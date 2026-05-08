@@ -67,15 +67,16 @@ html, body, #root {
 .mode-page .sb { display: none !important; }
 .mode-page .rp { display: none !important; }
 
-/* artboard reset */
+/* artboard reset — wrapped in :where() so utility classes (.btn, .input, .chip)
+   can override these with single-class specificity. */
 .as { font-family: var(--font-ui); color: var(--ink); background: var(--bg); font-size: 13px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-.as *, .as *::before, .as *::after { box-sizing: border-box; }
-.as button { font: inherit; color: inherit; background: none; border: none; padding: 0; cursor: pointer; }
-.as input, .as textarea { font: inherit; color: inherit; }
-.as svg { display: block; }
-.as h1, .as h2, .as h3, .as h4, .as p, .as ul, .as ol { margin: 0; padding: 0; }
-.as ul, .as ol { list-style: none; }
-.as a { color: inherit; text-decoration: none; }
+.as :where(*, *::before, *::after) { box-sizing: border-box; }
+.as :where(button) { font: inherit; color: inherit; background: none; border: none; padding: 0; cursor: pointer; }
+.as :where(input, textarea) { font: inherit; color: inherit; }
+.as :where(svg) { display: block; }
+.as :where(h1, h2, h3, h4, p, ul, ol) { margin: 0; padding: 0; }
+.as :where(ul, ol) { list-style: none; }
+.as :where(a) { color: inherit; text-decoration: none; }
 
 /* shared chrome */
 .as-app {
