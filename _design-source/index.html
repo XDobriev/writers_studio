@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <title>Авторская студия — дизайн-исследование</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="design-system.css"/>
+  <style>
+    html, body { margin: 0; background: #f0eee9; font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    /* design canvas inner cards: dark frame chrome */
+    .frame {
+      position: relative; width: 100%; height: 100%;
+      border-radius: 10px; overflow: hidden;
+      background: var(--bg);
+      box-shadow: 0 2px 6px rgba(0,0,0,.08), 0 18px 48px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.04);
+    }
+    /* macOS traffic-light bar — gives every artboard a sense of being a real app window */
+    .frame-bar {
+      height: 28px; background: var(--bg-deep);
+      border-bottom: 1px solid var(--border-soft);
+      display: flex; align-items: center; padding: 0 10px; gap: 6px;
+      flex-shrink: 0;
+    }
+    .frame-bar span { width: 10px; height: 10px; border-radius: 999px; background: oklch(0.42 0.012 50); }
+    .frame-bar span:nth-child(1) { background: oklch(0.62 0.16 25); }
+    .frame-bar span:nth-child(2) { background: oklch(0.78 0.12 80); }
+    .frame-bar span:nth-child(3) { background: oklch(0.66 0.14 145); }
+    .frame-bar-title {
+      flex: 1; text-align: center; font: 500 10.5px var(--font-mono);
+      color: var(--ink-4); letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .frame-body { position: absolute; left: 0; right: 0; top: 28px; bottom: 0; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script src="content.js"></script>
+<script type="text/babel" src="chrome.jsx"></script>
+<script type="text/babel" src="editors.jsx"></script>
+<script type="text/babel" src="screens-a.jsx"></script>
+<script type="text/babel" src="screens-b.jsx"></script>
+<script type="text/babel" src="screens-c.jsx"></script>
+<script type="text/babel" src="screens-d.jsx"></script>
+<script type="text/babel" src="screens-e.jsx"></script>
+<script type="text/babel" src="screens-f.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+function Frame({ title, children }) {
+  return (
+    <div className="frame">
+      <div className="frame-bar">
+        <span/><span/><span/>
+        <div className="frame-bar-title">{title}</div>
+      </div>
+      <div className="frame-body">{children}</div>
+    </div>
+  );
+}
+
+function App() {
+  const W = 1440, H = 900;
+  const Wmob = 420, Hmob = 900;
+  return (
+    <DesignCanvas
+      title="Авторская студия"
+      subtitle="Дизайн-исследование редактора художественной прозы. «Северный архив» — выдуманный роман в жанре тёмного фэнтези. Иней Ворон, картограф ордена Тереи, расследует исчезновение целого города. Авторский язык: интерфейс как мастерская, а не как Google Docs — рукопись на бумаге, тёмный дубовый кабинет вокруг. Шрифты: Source Serif 4 для прозы, IBM Plex Sans для UI, IBM Plex Mono для метаданных. Акцент — киноварь (печать ордена), охра (латунь). Перетаскивайте артборды для перегруппировки, кликайте на «развернуть» в правом верхнем углу любого артборда, чтобы открыть его на весь экран."
+    >
+      <DCSection
+        id="editor-variants"
+        title="01 · Главный экран редактора — гибрид «Студия ↔ Страница»"
+        subtitle="Один редактор, четыре режима. По умолчанию — полная студия (трёхколоночник из варианта A). В один клик панели сворачиваются: только сайдбар, только заметки на полях, или чистая страница с парящей плашкой инструментов и дугой цели (вариант C). Тумблер живёт в правом углу тулбара. Переключайтесь в любом артборде — состояние локально для каждого. Ниже показаны два крайних режима бок о бок."
+      >
+        <DCArtboard id="ed-studio" label="Гибрид · режим Студия (по умолч.)" width={W} height={H}>
+          <Frame title="Авторская студия — глава 1"><EditorHybrid defaultMode="studio"/></Frame>
+        </DCArtboard>
+        <DCArtboard id="ed-page" label="Гибрид · режим Страница (фокус)" width={W} height={H}>
+          <Frame title="Авторская студия — глава 1"><EditorHybrid defaultMode="page"/></Frame>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="entry"
+        title="02 · Вход в продукт"
+        subtitle="Что писатель видит до того, как откроет рукопись."
+      >
+        <DCArtboard id="auth" label="Авторизация" width={Wmob+260} height={Hmob}>
+          <Frame title="Вход"><ScreenAuth/></Frame>
+        </DCArtboard>
+        <DCArtboard id="home" label="Полка книг" width={W} height={H}>
+          <Frame title="Мои книги"><ScreenHome/></Frame>
+        </DCArtboard>
+        <DCArtboard id="dash" label="Дэшборд книги" width={W} height={H}>
+          <Frame title="Северный архив — обзор"><WithMode active="dashboard"><ScreenDashboard/></WithMode></Frame>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="structure"
+        title="03 · Структура книги"
+        subtitle="Разные срезы одной и той же рукописи: список, доска, карточки сцен."
+      >
+        <DCArtboard id="outline" label="Outline · структура" width={W} height={H}>
+          <Frame title="Структура — Северный архив"><WithMode active="editor"><ScreenOutline/></WithMode></Frame>
+        </DCArtboard>
+        <DCArtboard id="cork" label="Corkboard · карточки глав" width={W} height={H}>
+          <Frame title="Доска сцен"><WithMode active="editor"><ScreenCorkboard/></WithMode></Frame>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="world"
+        title="04 · Мир книги"
+        subtitle="Все справочные материалы — одной кистью с редактором, не отдельным приложением."
+      >
+        <DCArtboard id="map" label="Карта мира" width={W} height={H}>
+          <Frame title="Карта — север Тереи"><WithMode active="map"><ScreenMap/></WithMode></Frame>
+        </DCArtboard>
+        <DCArtboard id="timeline" label="Хронология" width={W} height={H}>
+          <Frame title="Хронология"><WithMode active="timeline"><ScreenTimeline/></WithMode></Frame>
+        </DCArtboard>
+        <DCArtboard id="chars" label="Персонажи" width={W} height={H}>
+          <Frame title="Картотека персонажей"><WithMode active="characters"><ScreenCharacters/></WithMode></Frame>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="modes"
+        title="05 · Режимы письма и экспорт"
+        subtitle="Переключения, которые меняют само ощущение работы — фокус, сравнение, отдача рукописи."
+      >
+        <DCArtboard id="focus" label="Focus mode" width={W} height={H}>
+          <Frame title="Фокус-режим"><ScreenFocus/></Frame>
+        </DCArtboard>
+        <DCArtboard id="split" label="Split view" width={W} height={H}>
+          <Frame title="Сравнение глав"><ScreenSplit/></Frame>
+        </DCArtboard>
+        <DCArtboard id="export" label="Экспорт (модалка)" width={W} height={H}>
+          <Frame title="Экспорт книги"><ScreenExport/></Frame>
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
