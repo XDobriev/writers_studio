@@ -2,9 +2,17 @@
 
 Редактор для писателей. Vite + React + TypeScript на фронте, Supabase (Auth + Postgres) на бэке, деплой на Vercel.
 
+## Боевые ссылки
+
+- **Прод:** https://avtorskaya-studiya.vercel.app
+- **GitHub:** https://github.com/XDobriev/writers_studio (push в `main` авто-деплоится в Vercel)
+- **Supabase project ref:** `joaxeoavjvlqmtlepkrr` (Dashboard: https://supabase.com/dashboard/project/joaxeoavjvlqmtlepkrr)
+- **Vercel project:** `khamza-s-projects/avtorskaya-studiya`
+- **Supabase MCP** подключён в local scope (`~/.claude.json`) с `--project-ref=joaxeoavjvlqmtlepkrr`. Для выполнения SQL/инспекции БД грузить tools через ToolSearch `select:mcp__supabase__...`.
+
 ## Текущая стадия
 
-Заход 1 завершён 2026-05-09: фундамент, реальная авторизация, реальная полка книг (CRUD из Supabase с RLS). Все остальные экраны (редактор, outline, corkboard, карта, хронология, персонажи, focus, split, экспорт) портированы из дизайна, но рендерятся как макеты на демо-данных из `src/data/sample.ts`.
+Заход 1 завершён и в проде 2026-05-09: фундамент, реальная авторизация, реальная полка книг (CRUD из Supabase с RLS, проверено end-to-end). Все остальные экраны (редактор, outline, corkboard, карта, хронология, персонажи, focus, split, экспорт) портированы из дизайна, но рендерятся как макеты на демо-данных из `src/data/sample.ts`.
 
 Дальше:
 - **Заход 2** — редактор сохраняет реальный текст глав в Supabase. Главы и сцены — CRUD. Outline и Corkboard работают на тех же данных.
@@ -28,10 +36,18 @@
 
 ## Supabase
 
-- Клиент: `src/lib/supabase.ts`. Читает `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY` из `.env`.
-- Auth: `src/lib/auth.tsx` (`AuthProvider`, `useAuth`). Защита роутов — `<AuthGuard>` в `src/components/AuthGuard.tsx`.
-- Миграции: `supabase/migrations/*.sql`. **Применяются вручную** через Supabase Dashboard → SQL Editor. Не использовать supabase CLI без явного запроса пользователя — у него только Dashboard-доступ.
+- Клиент: `src/lib/supabase.ts`. Читает `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY` из `.env`. На Vercel те же переменные лежат в Production+Development environments.
+- Auth: `src/lib/auth.tsx` (`AuthProvider`, `useAuth`). Защита роутов — `<AuthGuard>` в `src/components/AuthGuard.tsx`. Confirm email отключён, регистрация одношаговая.
+- Миграции: `supabase/migrations/*.sql`. Применяются через Supabase MCP (`apply_migration`/`execute_sql`) или Management API через PAT. Локально CLI Supabase не используется.
 - При добавлении таблиц обязательно RLS-политики `auth.uid() = user_id` (см. `0001_init.sql` как образец).
+- Auth URL Configuration уже настроена: `site_url=https://avtorskaya-studiya.vercel.app`, allow-list включает прод, preview-домены `avtorskaya-studiya-*.vercel.app` и `localhost:5273`.
+
+## Vercel
+
+- Проект `khamza-s-projects/avtorskaya-studiya`, привязан к GitHub репо. Push в `main` → авто-деплой prod.
+- Vercel CLI в PATH, `vercel whoami` = `xdobriev`. Команды: `vercel deploy --prod --yes`, `vercel env ls`, `vercel logs`.
+- Для слэш-команд Claude Code загружен пакет vercel-плагинов: `/vercel:deploy`, `/vercel:env`, `/vercel:status`.
+- `vercel.json` настраивает SPA-fallback (rewrite всех путей на `/`) — важно для React Router.
 
 ## Архитектура коротко
 
@@ -39,6 +55,7 @@
 - `src/components/Chrome.tsx` — Sidebar, Toolbar, RightPanel, RailNav, WithMode, StatusBar, Sheet. Все используют `NOVEL`/`SAMPLE_PROSE` из `src/data/sample.ts` — при переводе на реальные данные начинать здесь.
 - `src/components/EditorHybrid.tsx` — главный редактор, четыре режима (studio/left/right/page).
 - `src/styles/design-system.css` — все CSS-переменные (oklch-палитра, шрифты, радиусы). Кастомные классы `.as`, `.sb`, `.tb`, `.sheet`, `.btn`, `.input`, `.label` и др. описаны там же. Inline-стили в JSX оставлены из дизайна — постепенно переезжают в CSS-классы по мере появления повторений.
+- **Reset-правила в `.as` обёрнуты в `:where()`** (`.as :where(button)`, `.as :where(input)` и т.д.) — это критично, иначе они побивают утилитарные классы вроде `.btn--primary` по специфичности. Не разворачивать обратно в `.as button`.
 
 ## Конвенции
 
