@@ -5,6 +5,7 @@ dist
 .vscode
 .idea
 .claude
+.vercel
 *.log
 *.tsbuildinfo
 .DS_Store
