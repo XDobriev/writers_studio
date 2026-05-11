@@ -1,10 +1,30 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { Icon } from './Icon';
 import { NOVEL, SAMPLE_PROSE } from '../data/sample';
+import type { Chapter } from '../lib/chapters';
+import type { Book } from '../lib/supabase';
 
-interface SidebarProps { active?: number }
+interface SidebarProps {
+  active?: number;
+  book?: Book | null;
+  chapters?: Chapter[];
+  activeChapterId?: string | null;
+  onSelectChapter?: (id: string) => void;
+  onCreateChapter?: () => void;
+  bookHref?: string;
+}
 
-export function Sidebar({ active = 4 }: SidebarProps) {
+export function Sidebar({
+  active = 4,
+  book,
+  chapters,
+  activeChapterId,
+  onSelectChapter,
+  onCreateChapter,
+  bookHref,
+}: SidebarProps) {
+  const isReal = Boolean(chapters);
   const navItems: Array<[Parameters<typeof Icon>[0]['name'], string, boolean]> = [
     ['book', 'Манускрипт', true],
     ['char', 'Персонажи', false],
@@ -22,8 +42,10 @@ export function Sidebar({ active = 4 }: SidebarProps) {
           </span>
           <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
         </div>
-        <div className="sb-book-title">{NOVEL.title}</div>
-        <div className="sb-book-author">{NOVEL.author} · {NOVEL.genre}</div>
+        <div className="sb-book-title">{book?.title ?? NOVEL.title}</div>
+        <div className="sb-book-author">
+          {book ? [book.author, book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`}
+        </div>
       </div>
 
       <nav style={{ padding: '10px 8px 4px', display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -37,53 +59,103 @@ export function Sidebar({ active = 4 }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="sb-tabs" style={{ paddingTop: 14 }}>
-        <button className="sb-tab sb-tab--on">Список</button>
-        <button className="sb-tab">Доска</button>
-        <button className="sb-tab">Структура</button>
-      </div>
-
-      <div className="sb-section">
-        <span className="sb-section-title">Часть I · Снег</span>
-        <span className="sb-section-meta">3/3</span>
-      </div>
-      <div className="sb-list">
-        {NOVEL.chapters.slice(0, 3).map((c) => (
-          <div key={c.num} className={'sb-item' + (active === c.num ? ' sb-item--on' : '')}>
-            <span className="sb-item-num">{String(c.num).padStart(2, '0')}</span>
-            <span className="sb-item-title">{c.title}</span>
-            <span className={'sb-item-dot sb-item-dot--' + c.status} />
+      {isReal ? (
+        <>
+          <div className="sb-section">
+            <span className="sb-section-title">Главы</span>
+            <span className="sb-section-meta">{chapters!.length}</span>
           </div>
-        ))}
-      </div>
-
-      <div className="sb-section">
-        <span className="sb-section-title">Часть II · Тракт</span>
-        <span className="sb-section-meta">0/3</span>
-      </div>
-      <div className="sb-list">
-        {NOVEL.chapters.slice(3, 6).map((c) => (
-          <div key={c.num} className={'sb-item' + (active === c.num ? ' sb-item--on' : '')}>
-            <span className="sb-item-num">{String(c.num).padStart(2, '0')}</span>
-            <span className="sb-item-title">{c.title}</span>
-            <span className={'sb-item-dot sb-item-dot--' + c.status} />
+          <div className="sb-list">
+            {chapters!.length === 0 && (
+              <div style={{ padding: '8px 14px', font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>
+                Пока нет глав.
+              </div>
+            )}
+            {chapters!.map((c, i) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onSelectChapter?.(c.id)}
+                className={'sb-item' + (activeChapterId === c.id ? ' sb-item--on' : '')}
+                style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
+              >
+                <span className="sb-item-num">{String(i + 1).padStart(2, '0')}</span>
+                <span className="sb-item-title">{c.title || 'Без названия'}</span>
+                <span className={'sb-item-dot sb-item-dot--' + c.status} />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={onCreateChapter}
+              className="sb-item"
+              style={{ width: '100%', textAlign: 'left', cursor: 'pointer', color: 'var(--ink-3)' }}
+            >
+              <span className="sb-item-num"><Icon name="plus" size={13} /></span>
+              <span className="sb-item-title">Новая глава</span>
+              <span />
+            </button>
           </div>
-        ))}
-      </div>
-
-      <div className="sb-section">
-        <span className="sb-section-title">Часть III · Корна</span>
-        <span className="sb-section-meta">0/4</span>
-      </div>
-      <div className="sb-list">
-        {NOVEL.chapters.slice(6).map((c) => (
-          <div key={c.num} className={'sb-item' + (active === c.num ? ' sb-item--on' : '')}>
-            <span className="sb-item-num">{String(c.num).padStart(2, '0')}</span>
-            <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>{c.title}</span>
-            <span className={'sb-item-dot sb-item-dot--' + c.status} />
+          {bookHref && (
+            <div style={{ padding: '6px 12px 0' }}>
+              <Link to={bookHref} className="sb-item" style={{ color: 'var(--ink-3)' }}>
+                <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="arrows" size={14} /></span>
+                <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>← К дэшборду</span>
+                <span />
+              </Link>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="sb-tabs" style={{ paddingTop: 14 }}>
+            <button className="sb-tab sb-tab--on">Список</button>
+            <button className="sb-tab">Доска</button>
+            <button className="sb-tab">Структура</button>
           </div>
-        ))}
-      </div>
+
+          <div className="sb-section">
+            <span className="sb-section-title">Часть I · Снег</span>
+            <span className="sb-section-meta">3/3</span>
+          </div>
+          <div className="sb-list">
+            {NOVEL.chapters.slice(0, 3).map((c) => (
+              <div key={c.num} className={'sb-item' + (active === c.num ? ' sb-item--on' : '')}>
+                <span className="sb-item-num">{String(c.num).padStart(2, '0')}</span>
+                <span className="sb-item-title">{c.title}</span>
+                <span className={'sb-item-dot sb-item-dot--' + c.status} />
+              </div>
+            ))}
+          </div>
+
+          <div className="sb-section">
+            <span className="sb-section-title">Часть II · Тракт</span>
+            <span className="sb-section-meta">0/3</span>
+          </div>
+          <div className="sb-list">
+            {NOVEL.chapters.slice(3, 6).map((c) => (
+              <div key={c.num} className={'sb-item' + (active === c.num ? ' sb-item--on' : '')}>
+                <span className="sb-item-num">{String(c.num).padStart(2, '0')}</span>
+                <span className="sb-item-title">{c.title}</span>
+                <span className={'sb-item-dot sb-item-dot--' + c.status} />
+              </div>
+            ))}
+          </div>
+
+          <div className="sb-section">
+            <span className="sb-section-title">Часть III · Корна</span>
+            <span className="sb-section-meta">0/4</span>
+          </div>
+          <div className="sb-list">
+            {NOVEL.chapters.slice(6).map((c) => (
+              <div key={c.num} className={'sb-item' + (active === c.num ? ' sb-item--on' : '')}>
+                <span className="sb-item-num">{String(c.num).padStart(2, '0')}</span>
+                <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>{c.title}</span>
+                <span className={'sb-item-dot sb-item-dot--' + c.status} />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="sb-foot">
         <div className="sb-avatar">АК</div>
@@ -132,12 +204,13 @@ interface StatusBarProps {
   words?: number;
   chars?: number;
   savedAt?: string;
+  statusLabel?: string;
 }
 
-export function StatusBar({ words = 4720, chars = 28140, savedAt = '14:32' }: StatusBarProps) {
+export function StatusBar({ words = 4720, chars = 28140, savedAt = '14:32', statusLabel }: StatusBarProps) {
   return (
     <div className="status">
-      <span><span className="status-dot" style={{ display: 'inline-block', marginRight: 6, verticalAlign: 'middle' }} />Сохранено · {savedAt}</span>
+      <span><span className="status-dot" style={{ display: 'inline-block', marginRight: 6, verticalAlign: 'middle' }} />{statusLabel ?? `Сохранено · ${savedAt}`}</span>
       <span style={{ color: 'var(--ink-4)' }}>·</span>
       <span>Слов: {words.toLocaleString('ru')}</span>
       <span style={{ color: 'var(--ink-4)' }}>·</span>

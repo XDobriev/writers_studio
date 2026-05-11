@@ -1,9 +1,178 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { EditorHybrid } from '../components/EditorHybrid';
+import { useAuth } from '../lib/auth';
+import { supabase, type Book } from '../lib/supabase';
+import {
+  countWords,
+  createChapter,
+  listChapters,
+  updateChapter,
+  type Chapter,
+  type ChapterPatch,
+} from '../lib/chapters';
+
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 export default function Editor() {
+  const { id: bookId } = useParams<{ id: string }>();
+  const [search, setSearch] = useSearchParams();
+  const { user } = useAuth();
+
+  const [book, setBook] = useState<Book | null>(null);
+  const [chapters, setChapters] = useState<Chapter[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+
+  const activeId = search.get('chapter');
+
+  useEffect(() => {
+    if (!bookId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [bookRes, list] = await Promise.all([
+          supabase.from('books').select('*').eq('id', bookId).single(),
+          listChapters(bookId),
+        ]);
+        if (cancelled) return;
+        if (bookRes.error) throw bookRes.error;
+        setBook(bookRes.data as Book);
+        setChapters(list);
+      } catch (e) {
+        if (!cancelled) setError((e as Error).message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [bookId]);
+
+  useEffect(() => {
+    if (!chapters || chapters.length === 0) return;
+    const exists = activeId && chapters.some((c) => c.id === activeId);
+    if (!exists) {
+      const next = new URLSearchParams(search);
+      next.set('chapter', chapters[0].id);
+      setSearch(next, { replace: true });
+    }
+  }, [chapters, activeId, search, setSearch]);
+
+  const activeChapter = useMemo(
+    () => (chapters && activeId ? chapters.find((c) => c.id === activeId) ?? null : null),
+    [chapters, activeId],
+  );
+
+  const selectChapter = useCallback((id: string) => {
+    const next = new URLSearchParams(search);
+    next.set('chapter', id);
+    setSearch(next, { replace: false });
+  }, [search, setSearch]);
+
+  const onCreateChapter = useCallback(async () => {
+    if (!bookId || !user) return;
+    const position = (chapters?.length ?? 0);
+    try {
+      const created = await createChapter(bookId, user.id, {
+        title: `Глава ${position + 1}`,
+        position,
+      });
+      setChapters((prev) => [...(prev ?? []), created]);
+      const next = new URLSearchParams(search);
+      next.set('chapter', created.id);
+      setSearch(next, { replace: false });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [bookId, user, chapters, search, setSearch]);
+
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingPatch = useRef<ChapterPatch | null>(null);
+  const targetIdRef = useRef<string | null>(null);
+
+  const flush = useCallback(async () => {
+    const patch = pendingPatch.current;
+    const id = targetIdRef.current;
+    pendingPatch.current = null;
+    if (!patch || !id) return;
+    setSaveState('saving');
+    try {
+      const updated = await updateChapter(id, patch);
+      setChapters((prev) => prev ? prev.map((c) => (c.id === id ? updated : c)) : prev);
+      setSaveState('saved');
+      setSavedAt(new Date());
+    } catch (e) {
+      setSaveState('error');
+      setError((e as Error).message);
+    }
+  }, []);
+
+  const scheduleSave = useCallback((id: string, patch: ChapterPatch) => {
+    targetIdRef.current = id;
+    pendingPatch.current = { ...(pendingPatch.current ?? {}), ...patch };
+    setChapters((prev) => prev ? prev.map((c) => (c.id === id ? { ...c, ...patch } as Chapter : c)) : prev);
+    setSaveState('saving');
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => { void flush(); }, 700);
+  }, [flush]);
+
+  const lastActiveIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const newId = activeChapter?.id ?? null;
+    if (lastActiveIdRef.current && lastActiveIdRef.current !== newId) {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      void flush();
+    }
+    lastActiveIdRef.current = newId;
+  }, [activeChapter, flush]);
+
+  useEffect(() => () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    void flush();
+  }, [flush]);
+
+  const onContentChange = useCallback((html: string) => {
+    if (!activeChapter) return;
+    scheduleSave(activeChapter.id, { content: html, words: countWords(html) });
+  }, [activeChapter, scheduleSave]);
+
+  const onTitleChange = useCallback((title: string) => {
+    if (!activeChapter) return;
+    scheduleSave(activeChapter.id, { title });
+  }, [activeChapter, scheduleSave]);
+
+  if (!bookId) return <Navigate to="/books" replace />;
+
+  if (error) {
+    return (
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32 }}>
+        <div style={{ color: 'var(--danger)' }}>Ошибка: {error}</div>
+      </div>
+    );
+  }
+
+  if (!book || !chapters) {
+    return (
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink-3)', padding: 32 }}>
+        Загрузка…
+      </div>
+    );
+  }
+
   return (
     <div style={{ height: '100vh' }}>
-      <EditorHybrid defaultMode="studio" />
+      <EditorHybrid
+        defaultMode="studio"
+        book={book}
+        chapters={chapters}
+        activeChapter={activeChapter}
+        bookHref={`/books/${bookId}`}
+        onSelectChapter={selectChapter}
+        onCreateChapter={onCreateChapter}
+        onContentChange={onContentChange}
+        onTitleChange={onTitleChange}
+        saveState={saveState}
+        savedAt={savedAt}
+      />
     </div>
   );
 }

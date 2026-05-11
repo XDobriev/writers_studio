@@ -1,127 +1,164 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
-import { NOVEL } from '../data/sample';
 import { WithMode } from '../components/Chrome';
-import type { ChapterStatus } from '../data/sample';
+import { useAuth } from '../lib/auth';
+import { supabase, type Book } from '../lib/supabase';
+import { createChapter, listChapters, type Chapter } from '../lib/chapters';
 
-interface PartChapter {
-  num: number;
-  title: string;
-  words: number;
-  status: ChapterStatus;
-  scenes?: string[];
-}
-
-interface Part {
-  kind: 'part';
-  title: string;
-  words: number;
-  status: ChapterStatus;
-  chapters: PartChapter[];
-}
-
-const tree: Part[] = [
-  {
-    kind: 'part', title: 'Часть I · Снег', words: 13636, status: 'done',
-    chapters: [
-      { num: 1, title: 'Город, которого нет', words: 4720, status: 'done', scenes: ['В архиве Тереи', 'Магистр и письмо', 'Карта матери'] },
-      { num: 2, title: 'Письмо из Корны', words: 3812, status: 'done', scenes: ['Снег на крышах', 'Сборы в путь', 'Прощание с Каролом'] },
-      { num: 3, title: 'Трактир «Серая Цапля»', words: 5104, status: 'done', scenes: ['Дорога через Сольву', 'Серебряный ключ', 'Лето Маркис'] },
-    ],
-  },
-  {
-    kind: 'part', title: 'Часть II · Тракт', words: 7922, status: 'progress',
-    chapters: [
-      { num: 4, title: 'Дорога вдоль Тихой', words: 2998, status: 'progress', scenes: ['Лес и колокол', 'Беглец', 'Ночёвка у реки'] },
-      { num: 5, title: 'Карты, которые лгут', words: 3320, status: 'progress', scenes: ['Архив трактирщика', 'Двенадцатый картограф'] },
-      { num: 6, title: 'Снег и колокол', words: 1604, status: 'progress', scenes: ['Гарнизон Сольвы'] },
-    ],
-  },
-  {
-    kind: 'part', title: 'Часть III · Корна', words: 0, status: 'draft',
-    chapters: [
-      { num: 7, title: 'Архив старой Тереи', words: 0, status: 'draft' },
-      { num: 8, title: 'Двенадцатый картограф', words: 0, status: 'draft' },
-      { num: 9, title: 'Под башней', words: 0, status: 'draft' },
-      { num: 10, title: 'Тишина в Корне', words: 0, status: 'draft' },
-    ],
-  },
-];
+const STATUS_COLOR: Record<Chapter['status'], string> = {
+  draft: 'var(--ink-4)',
+  progress: 'var(--accent-2)',
+  done: 'var(--ok)',
+};
 
 export default function Outline() {
+  const { id: bookId } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [book, setBook] = useState<Book | null>(null);
+  const [chapters, setChapters] = useState<Chapter[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!bookId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [bookRes, list] = await Promise.all([
+          supabase.from('books').select('*').eq('id', bookId).single(),
+          listChapters(bookId),
+        ]);
+        if (cancelled) return;
+        if (bookRes.error) throw bookRes.error;
+        setBook(bookRes.data as Book);
+        setChapters(list);
+      } catch (e) {
+        if (!cancelled) setError((e as Error).message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [bookId]);
+
+  const totals = useMemo(() => {
+    if (!chapters) return { count: 0, words: 0, done: 0, progress: 0, draft: 0 };
+    return chapters.reduce(
+      (acc, c) => {
+        acc.count += 1;
+        acc.words += c.words;
+        acc[c.status] += 1;
+        return acc;
+      },
+      { count: 0, words: 0, done: 0, progress: 0, draft: 0 },
+    );
+  }, [chapters]);
+
+  const onCreate = async () => {
+    if (!bookId || !user) return;
+    try {
+      const created = await createChapter(bookId, user.id, {
+        title: `Глава ${(chapters?.length ?? 0) + 1}`,
+        position: chapters?.length ?? 0,
+      });
+      setChapters((prev) => [...(prev ?? []), created]);
+      navigate(`/books/${bookId}/editor?chapter=${created.id}`);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
   return (
     <WithMode active="editor">
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <aside className="sb">
           <div className="sb-head">
-            <div className="sb-book-title">{NOVEL.title}</div>
-            <div className="sb-book-author">структура · 21 540 / 80 000 сл</div>
+            <div className="sb-book-title">{book?.title ?? '…'}</div>
+            <div className="sb-book-author">
+              структура · {totals.words.toLocaleString('ru')} / {(book?.goal ?? 0).toLocaleString('ru')} сл
+            </div>
           </div>
           <div className="sb-tabs">
-            <button className="sb-tab">Список</button>
-            <button className="sb-tab">Доска</button>
+            <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/editor`)}>Список</button>
+            <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/corkboard`)}>Доска</button>
             <button className="sb-tab sb-tab--on">Структура</button>
           </div>
           <div style={{ padding: '18px 18px 14px', color: 'var(--ink-3)', fontSize: 12 }}>
-            Дерево структуры показывает книгу целиком: части, главы и сцены. Перетащите, чтобы переупорядочить.
+            Дерево структуры показывает книгу целиком. Главы и сцены — настраиваются по мере работы.
           </div>
           <div style={{ padding: '4px 14px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <button className="btn"><Icon name="plus" size={13} /> Новая часть</button>
-            <button className="btn btn--ghost" style={{ justifyContent: 'flex-start' }}>
-              <Icon name="plus" size={13} /> Новая глава
-            </button>
+            <button className="btn" onClick={onCreate}><Icon name="plus" size={13} /> Новая глава</button>
           </div>
+          {bookId && (
+            <div style={{ padding: '12px 14px 0' }}>
+              <Link to={`/books/${bookId}`} className="sb-item" style={{ color: 'var(--ink-3)' }}>
+                <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="arrows" size={14} /></span>
+                <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>← К дэшборду</span>
+                <span />
+              </Link>
+            </div>
+          )}
         </aside>
 
         <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Структура</span>
-              <span className="chip">3 части · 10 глав · 23 сцены</span>
+              <span className="chip">{totals.count} {totals.count === 1 ? 'глава' : 'глав'} · {totals.words.toLocaleString('ru')} сл</span>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)' }}>цели по словам</span>
-              <button className="tb-btn"><Icon name="settings" size={15} /></button>
+              <button className="btn" onClick={onCreate}><Icon name="plus" size={14} /> Новая глава</button>
             </div>
           </div>
 
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '28px 40px' }}>
-            {tree.map((p, pi) => (
-              <div key={pi} style={{ marginBottom: 32 }}>
+            {error && (
+              <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', color: 'var(--danger)', fontSize: 13 }}>
+                {error}
+              </div>
+            )}
+
+            {!chapters && !error && <div style={{ color: 'var(--ink-3)' }}>Загрузка…</div>}
+
+            {chapters && chapters.length === 0 && (
+              <div style={{ padding: '64px 32px', textAlign: 'center', border: '1px dashed var(--border-strong)', borderRadius: 12, color: 'var(--ink-3)' }}>
+                <div style={{ font: '500 18px var(--font-serif)', color: 'var(--ink-2)', marginBottom: 8 }}>Глав пока нет.</div>
+                <div style={{ marginBottom: 16, fontSize: 13 }}>Создайте первую главу — структура книги начнёт собираться отсюда.</div>
+                <button className="btn btn--primary" onClick={onCreate}>
+                  <Icon name="plus" size={14} /> Новая глава
+                </button>
+              </div>
+            )}
+
+            {chapters && chapters.length > 0 && (
+              <div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-soft)' }}>
-                  <Icon name="chevd" size={14} />
-                  <h2 style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em', color: p.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)' }}>{p.title}</h2>
+                  <h2 style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em' }}>Главы</h2>
                   <span style={{ flex: 1 }} />
                   <span style={{ font: '400 11.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em' }}>
-                    {p.words.toLocaleString('ru')} сл · {Math.round((p.words / 26000) * 100)}%
+                    {totals.done} готово · {totals.progress} в работе · {totals.draft} черновик
                   </span>
-                  <div style={{ width: 120, height: 3, background: 'var(--surface-2)', borderRadius: 999, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.min(100, (p.words / 26000) * 100)}%`, height: '100%', background: p.status === 'done' ? 'var(--ok)' : 'var(--accent-2)' }} />
-                  </div>
                 </div>
-                {p.chapters.map((c, ci) => (
-                  <div key={ci} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '10px 16px 10px 28px', borderRadius: 8, position: 'relative' }}>
+                {chapters.map((c, i) => (
+                  <Link
+                    key={c.id}
+                    to={`/books/${bookId}/editor?chapter=${c.id}`}
+                    style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '12px 16px 12px 28px', borderRadius: 8, position: 'relative' }}
+                  >
                     <span style={{ font: '500 12px var(--font-mono)', color: c.status === 'draft' ? 'var(--ink-4)' : 'var(--accent)', letterSpacing: '0.04em', marginTop: 3, minWidth: 28 }}>
-                      {String(c.num).padStart(2, '0')}
+                      {String(i + 1).padStart(2, '0')}
                     </span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ font: '500 15px var(--font-serif)', color: c.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)' }}>{c.title}</div>
-                      {c.scenes && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 8, paddingLeft: 18, borderLeft: '1px solid var(--border-soft)' }}>
-                          {c.scenes.map((s, si) => (
-                            <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'var(--ink-2)', padding: '3px 0' }}>
-                              <span style={{ width: 5, height: 5, borderRadius: 999, background: 'var(--ink-4)' }} />
-                              {s}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ font: '500 15px var(--font-serif)', color: c.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)' }}>
+                        {c.title || 'Без названия'}
+                      </div>
                     </div>
                     <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 4 }}>{c.words.toLocaleString('ru')} сл</span>
-                    <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 8, background: c.status === 'done' ? 'var(--ok)' : c.status === 'progress' ? 'var(--accent-2)' : 'var(--ink-4)' }} />
-                  </div>
+                    <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 8, background: STATUS_COLOR[c.status] }} />
+                  </Link>
                 ))}
               </div>
-            ))}
+            )}
           </div>
         </main>
       </div>
