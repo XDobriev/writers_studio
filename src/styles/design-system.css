@@ -390,20 +390,36 @@ html, body, #root {
   margin-bottom: 6px;
 }
 
-/* tiptap editor — paragraph spacing matches sheet-body design, placeholder */
+/* tiptap editor — жёсткие правила контраста, перебивают любые inline color из БД */
+.sheet .tiptap,
+.sheet .tiptap p,
+.sheet .tiptap li,
+.sheet .tiptap h1,
+.sheet .tiptap h2,
+.sheet .tiptap h3,
+.sheet .tiptap blockquote,
+.sheet .tiptap span,
+.sheet .tiptap a,
+.sheet .tiptap u,
+.sheet .tiptap em,
+.sheet .tiptap strong,
+.sheet .tiptap font {
+  color: var(--paper-ink) !important;
+  -webkit-text-fill-color: var(--paper-ink) !important;
+  opacity: 1 !important;
+}
 .tiptap p { margin: 0 0 1em; }
 .tiptap p:last-child { margin-bottom: 0; }
-.tiptap h1 { font: 600 30px var(--font-serif); letter-spacing: -0.012em; margin: 1.2em 0 0.6em; color: var(--ink); }
-.tiptap h2 { font: 600 22px var(--font-serif); letter-spacing: -0.01em; margin: 1.4em 0 0.5em; color: var(--ink); }
-.tiptap h3 { font: 600 17px var(--font-serif); margin: 1.2em 0 0.5em; color: var(--ink); }
+.tiptap h1 { font: 600 30px var(--font-serif); letter-spacing: -0.012em; margin: 1.2em 0 0.6em; }
+.tiptap h2 { font: 600 22px var(--font-serif); letter-spacing: -0.01em; margin: 1.4em 0 0.5em; }
+.tiptap h3 { font: 600 17px var(--font-serif); margin: 1.2em 0 0.5em; }
 .tiptap blockquote {
   margin: 1em 0;
   padding-left: 1em;
   border-left: 3px solid var(--accent);
-  color: var(--ink-2);
   font-style: italic;
 }
-.tiptap ul, .tiptap ol { padding-left: 1.4em; margin: 0 0 1em; }
+.tiptap ul, .tiptap ol { padding-left: 1.4em; margin: 0 0 1em; list-style: revert; }
 .tiptap li { margin-bottom: 0.3em; }
 .tiptap li > p { margin: 0 0 0.3em; }
 .tiptap code {
@@ -412,13 +428,15 @@ html, body, #root {
   padding: 0.1em 0.35em;
   border-radius: 3px;
 }
-.tiptap strong { font-weight: 600; color: var(--ink); }
+.tiptap strong { font-weight: 600; }
 .tiptap em { font-style: italic; }
 .tiptap u { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .tiptap s { text-decoration: line-through; }
+.tiptap a { text-decoration: underline; }
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
-  color: var(--ink-4);
+  color: var(--paper-ink-2);
+  opacity: 0.55;
   float: left;
   height: 0;
   pointer-events: none;

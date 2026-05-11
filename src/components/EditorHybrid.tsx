@@ -193,7 +193,7 @@ function ChapterSheet({ chapter, onContentChange, onTitleChange, onEditor, width
         placeholder="Без названия"
         style={{
           width: '100%', background: 'transparent', border: 'none', outline: 'none',
-          font: '600 30px var(--font-serif)', letterSpacing: '-0.012em', color: 'var(--ink)',
+          font: '600 30px var(--font-serif)', letterSpacing: '-0.012em', color: 'var(--paper-ink)',
           padding: 0, marginBottom: 22,
         }}
       />
