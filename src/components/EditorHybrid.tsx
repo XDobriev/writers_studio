@@ -15,18 +15,19 @@ interface ModeSegmentProps {
 }
 
 function ModeSegment({ mode, setMode }: ModeSegmentProps) {
-  const opts: Array<[Mode, Parameters<typeof Icon>[0]['name'], string]> = [
-    ['studio', 'layout', 'Студия'],
-    ['left', 'panel', 'Сайдбар'],
-    ['right', 'note', 'На полях'],
-    ['page', 'focus', 'Страница'],
+  const opts: Array<[Mode, Parameters<typeof Icon>[0]['name'], string, string]> = [
+    ['studio', 'layout', 'Студия', 'Студия — обе боковые панели'],
+    ['left', 'panel', 'Сайдбар', 'Только левый сайдбар с главами'],
+    ['right', 'note', 'На полях', 'Только правая панель с заметками'],
+    ['page', 'focus', 'Страница', 'Только страница, без панелей'],
   ];
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-deep)', border: '1px solid var(--border-soft)' }}>
-      {opts.map(([k, icn, l]) => (
+      {opts.map(([k, icn, l, tip]) => (
         <button
           key={k}
           onClick={() => setMode(k)}
+          title={tip}
           className={'tb-btn' + (mode === k ? ' tb-btn--on' : '')}
           style={{ height: 24, padding: '0 8px', borderRadius: 6, gap: 4, color: mode === k ? 'var(--ink)' : 'var(--ink-3)' }}
         >
@@ -55,46 +56,52 @@ function StudioToolbar({ mode, setMode, editor }: ToolbarProps) {
   return (
     <div className="tb">
       <button
+        title="Жирный (Ctrl+B)"
         className={tbCls(!!editor?.isActive('bold'))}
         onMouseDown={run((e) => e.chain().focus().toggleBold().run())}
         disabled={!can}
       ><Icon name="bold" /></button>
       <button
+        title="Курсив (Ctrl+I)"
         className={tbCls(!!editor?.isActive('italic'))}
         onMouseDown={run((e) => e.chain().focus().toggleItalic().run())}
         disabled={!can}
       ><Icon name="italic" /></button>
       <button
+        title="Подчёркнутый (Ctrl+U)"
         className={tbCls(!!editor?.isActive('underline'))}
         onMouseDown={run((e) => e.chain().focus().toggleUnderline().run())}
         disabled={!can}
       ><Icon name="underline" /></button>
       <span className="tb-sep" />
       <button
+        title="Заголовок 2 уровня"
         className={'tb-sel' + (editor?.isActive('heading', { level: 2 }) ? ' tb-btn--on' : '')}
         onMouseDown={run((e) => e.chain().focus().toggleHeading({ level: 2 }).run())}
         disabled={!can}
       >Заголовок 2 <Icon name="chevd" size={12} /></button>
       <span className="tb-sep" />
       <button
+        title="Маркированный список"
         className={tbCls(!!editor?.isActive('bulletList'))}
         onMouseDown={run((e) => e.chain().focus().toggleBulletList().run())}
         disabled={!can}
       ><Icon name="list" /></button>
       <button
+        title="Цитата"
         className={tbCls(!!editor?.isActive('blockquote'))}
         onMouseDown={run((e) => e.chain().focus().toggleBlockquote().run())}
         disabled={!can}
       ><Icon name="quote" /></button>
-      <button className="tb-btn" disabled><Icon name="link" /></button>
+      <button className="tb-btn" disabled title="Ссылка (скоро)"><Icon name="link" /></button>
       <span className="tb-sep" />
-      <button className="tb-btn tb-btn--on" disabled><Icon name="track" size={15} /> Правки</button>
+      <button className="tb-btn tb-btn--on" disabled title="Режим правок (скоро)"><Icon name="track" size={15} /> Правки</button>
       <div className="tb-spacer" />
       <ModeSegment mode={mode} setMode={setMode} />
       <span className="tb-sep" />
-      <button className="tb-btn" disabled><Icon name="speak" size={15} /></button>
-      <button className="tb-btn" disabled><Icon name="timer" size={15} /></button>
-      <button className="tb-btn" disabled><Icon name="download" size={15} /> Экспорт</button>
+      <button className="tb-btn" disabled title="Голосовой ввод (скоро)"><Icon name="speak" size={15} /></button>
+      <button className="tb-btn" disabled title="Таймер (скоро)"><Icon name="timer" size={15} /></button>
+      <button className="tb-btn" disabled title="Экспорт (откройте через сайдбар → Экспорт)"><Icon name="download" size={15} /> Экспорт</button>
     </div>
   );
 }
@@ -142,26 +149,27 @@ function FloatingPill({ editor }: { editor: Editor | null }) {
       background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 999,
       padding: '4px 6px', boxShadow: '0 8px 28px rgba(0,0,0,.35)', zIndex: 5,
     }}>
-      <button className={tbCls(!!editor?.isActive('bold'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleBold().run())}><Icon name="bold" /></button>
-      <button className={tbCls(!!editor?.isActive('italic'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleItalic().run())}><Icon name="italic" /></button>
-      <button className={tbCls(!!editor?.isActive('underline'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleUnderline().run())}><Icon name="underline" /></button>
+      <button title="Жирный (Ctrl+B)" className={tbCls(!!editor?.isActive('bold'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleBold().run())}><Icon name="bold" /></button>
+      <button title="Курсив (Ctrl+I)" className={tbCls(!!editor?.isActive('italic'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleItalic().run())}><Icon name="italic" /></button>
+      <button title="Подчёркнутый (Ctrl+U)" className={tbCls(!!editor?.isActive('underline'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleUnderline().run())}><Icon name="underline" /></button>
       <span className="tb-sep" />
       <button
+        title="Заголовок 2 уровня"
         className={'tb-sel' + (editor?.isActive('heading', { level: 2 }) ? ' tb-btn--on' : '')}
         disabled={!can}
         style={{ padding: '0 12px' }}
         onMouseDown={run((e) => e.chain().focus().toggleHeading({ level: 2 }).run())}
       >H2 <Icon name="chevd" size={12} /></button>
       <span className="tb-sep" />
-      <button className={tbCls(!!editor?.isActive('blockquote'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleBlockquote().run())}><Icon name="quote" /></button>
-      <button className="tb-btn" disabled><Icon name="link" /></button>
-      <button className="tb-btn" disabled><Icon name="color" /></button>
+      <button title="Цитата" className={tbCls(!!editor?.isActive('blockquote'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleBlockquote().run())}><Icon name="quote" /></button>
+      <button className="tb-btn" disabled title="Ссылка (скоро)"><Icon name="link" /></button>
+      <button className="tb-btn" disabled title="Цвет текста (скоро)"><Icon name="color" /></button>
       <span className="tb-sep" />
-      <button className="tb-btn tb-btn--on" style={{ color: 'var(--accent)' }} disabled><Icon name="track" size={15} /></button>
-      <button className="tb-btn" disabled><Icon name="sparkles" size={15} /></button>
+      <button className="tb-btn tb-btn--on" style={{ color: 'var(--accent)' }} disabled title="Режим правок (скоро)"><Icon name="track" size={15} /></button>
+      <button className="tb-btn" disabled title="AI-подсказки (скоро)"><Icon name="sparkles" size={15} /></button>
       <span className="tb-sep" />
-      <button className="tb-btn" disabled><Icon name="speak" size={15} /></button>
-      <button className="tb-btn" disabled><Icon name="timer" size={15} /></button>
+      <button className="tb-btn" disabled title="Голосовой ввод (скоро)"><Icon name="speak" size={15} /></button>
+      <button className="tb-btn" disabled title="Таймер (скоро)"><Icon name="timer" size={15} /></button>
     </div>
   );
 }
