@@ -3,6 +3,7 @@ import { Icon } from './Icon';
 import { Sidebar, RightPanel, StatusBar } from './Chrome';
 import { SAMPLE_PROSE } from '../data/sample';
 import { RichEditor, type Editor } from './RichEditor';
+import { EditorToolbar } from './EditorToolbar';
 import type { Book } from '../lib/supabase';
 import type { Chapter } from '../lib/chapters';
 
@@ -12,98 +13,6 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 interface ModeSegmentProps {
   mode: Mode;
   setMode: (m: Mode) => void;
-}
-
-function ModeSegment({ mode, setMode }: ModeSegmentProps) {
-  const opts: Array<[Mode, Parameters<typeof Icon>[0]['name'], string, string]> = [
-    ['studio', 'layout', 'Студия', 'Студия — обе боковые панели'],
-    ['left', 'panel', 'Сайдбар', 'Только левый сайдбар с главами'],
-    ['right', 'note', 'На полях', 'Только правая панель с заметками'],
-    ['page', 'focus', 'Страница', 'Только страница, без панелей'],
-  ];
-  return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-deep)', border: '1px solid var(--border-soft)' }}>
-      {opts.map(([k, icn, l, tip]) => (
-        <button
-          key={k}
-          onClick={() => setMode(k)}
-          title={tip}
-          className={'tb-btn' + (mode === k ? ' tb-btn--on' : '')}
-          style={{ height: 24, padding: '0 8px', borderRadius: 6, gap: 4, color: mode === k ? 'var(--ink)' : 'var(--ink-3)' }}
-        >
-          <Icon name={icn} size={13} />
-          <span style={{ fontSize: 11, letterSpacing: '0.01em' }}>{l}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-interface ToolbarProps extends ModeSegmentProps {
-  editor: Editor | null;
-}
-
-function tbCls(active: boolean) {
-  return 'tb-btn' + (active ? ' tb-btn--on' : '');
-}
-
-function StudioToolbar({ mode, setMode, editor }: ToolbarProps) {
-  const can = editor !== null;
-  const run = (fn: (e: Editor) => void) => (ev: React.MouseEvent) => {
-    ev.preventDefault();
-    if (editor) fn(editor);
-  };
-  return (
-    <div className="tb">
-      <button
-        title="Жирный (Ctrl+B)"
-        className={tbCls(!!editor?.isActive('bold'))}
-        onMouseDown={run((e) => e.chain().focus().toggleBold().run())}
-        disabled={!can}
-      ><Icon name="bold" /></button>
-      <button
-        title="Курсив (Ctrl+I)"
-        className={tbCls(!!editor?.isActive('italic'))}
-        onMouseDown={run((e) => e.chain().focus().toggleItalic().run())}
-        disabled={!can}
-      ><Icon name="italic" /></button>
-      <button
-        title="Подчёркнутый (Ctrl+U)"
-        className={tbCls(!!editor?.isActive('underline'))}
-        onMouseDown={run((e) => e.chain().focus().toggleUnderline().run())}
-        disabled={!can}
-      ><Icon name="underline" /></button>
-      <span className="tb-sep" />
-      <button
-        title="Заголовок 2 уровня"
-        className={'tb-sel' + (editor?.isActive('heading', { level: 2 }) ? ' tb-btn--on' : '')}
-        onMouseDown={run((e) => e.chain().focus().toggleHeading({ level: 2 }).run())}
-        disabled={!can}
-      >Заголовок 2 <Icon name="chevd" size={12} /></button>
-      <span className="tb-sep" />
-      <button
-        title="Маркированный список"
-        className={tbCls(!!editor?.isActive('bulletList'))}
-        onMouseDown={run((e) => e.chain().focus().toggleBulletList().run())}
-        disabled={!can}
-      ><Icon name="list" /></button>
-      <button
-        title="Цитата"
-        className={tbCls(!!editor?.isActive('blockquote'))}
-        onMouseDown={run((e) => e.chain().focus().toggleBlockquote().run())}
-        disabled={!can}
-      ><Icon name="quote" /></button>
-      <button className="tb-btn" disabled title="Ссылка (скоро)"><Icon name="link" /></button>
-      <span className="tb-sep" />
-      <button className="tb-btn tb-btn--on" disabled title="Режим правок (скоро)"><Icon name="track" size={15} /> Правки</button>
-      <div className="tb-spacer" />
-      <ModeSegment mode={mode} setMode={setMode} />
-      <span className="tb-sep" />
-      <button className="tb-btn" disabled title="Голосовой ввод (скоро)"><Icon name="speak" size={15} /></button>
-      <button className="tb-btn" disabled title="Таймер (скоро)"><Icon name="timer" size={15} /></button>
-      <button className="tb-btn" disabled title="Экспорт (откройте через сайдбар → Экспорт)"><Icon name="download" size={15} /> Экспорт</button>
-    </div>
-  );
 }
 
 interface PageHeaderProps extends ModeSegmentProps {
@@ -120,6 +29,31 @@ const STATUS_LABEL: Record<Chapter['status'], string> = {
   done: 'готово',
 };
 
+function ModeSegmentInline({ mode, setMode }: ModeSegmentProps) {
+  const opts: Array<[Mode, Parameters<typeof Icon>[0]['name'], string, string]> = [
+    ['studio', 'layout', 'Студия', 'Студия — обе боковые панели'],
+    ['left', 'panel', 'Сайдбар', 'Только левый сайдбар с главами'],
+    ['right', 'note', 'На полях', 'Только правая панель с заметками'],
+    ['page', 'focus', 'Страница', 'Только страница, без панелей'],
+  ];
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-deep)', border: '1px solid var(--border-soft)' }}>
+      {opts.map(([k, icn, l, tip]) => (
+        <button
+          key={k}
+          onClick={() => setMode(k)}
+          title={tip}
+          className={'tb-btn' + (mode === k ? ' tb-btn--on' : '')}
+          style={{ height: 24, padding: '0 8px', borderRadius: 6, gap: 4, color: mode === k ? 'var(--ink)' : 'var(--ink-3)', whiteSpace: 'nowrap' }}
+        >
+          <Icon name={icn} size={13} />
+          <span style={{ fontSize: 11, letterSpacing: '0.01em' }}>{l}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function PageHeader({ mode, setMode, bookTitle, chapterTitle, chapterIndex, status, words }: PageHeaderProps) {
   return (
     <div style={{ height: 54, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 28px', gap: 12, borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)' }}>
@@ -131,45 +65,7 @@ function PageHeader({ mode, setMode, bookTitle, chapterTitle, chapterIndex, stat
       <div style={{ flex: 1 }} />
       {status && <span className="chip">{STATUS_LABEL[status]} · {(words ?? 0).toLocaleString('ru')} сл</span>}
       <span style={{ width: 1, height: 18, background: 'var(--border-soft)', margin: '0 4px' }} />
-      <ModeSegment mode={mode} setMode={setMode} />
-    </div>
-  );
-}
-
-function FloatingPill({ editor }: { editor: Editor | null }) {
-  const can = editor !== null;
-  const run = (fn: (e: Editor) => void) => (ev: React.MouseEvent) => {
-    ev.preventDefault();
-    if (editor) fn(editor);
-  };
-  return (
-    <div style={{
-      position: 'absolute', left: '50%', bottom: 24, transform: 'translateX(-50%)',
-      display: 'flex', alignItems: 'center', gap: 2,
-      background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 999,
-      padding: '4px 6px', boxShadow: '0 8px 28px rgba(0,0,0,.35)', zIndex: 5,
-    }}>
-      <button title="Жирный (Ctrl+B)" className={tbCls(!!editor?.isActive('bold'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleBold().run())}><Icon name="bold" /></button>
-      <button title="Курсив (Ctrl+I)" className={tbCls(!!editor?.isActive('italic'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleItalic().run())}><Icon name="italic" /></button>
-      <button title="Подчёркнутый (Ctrl+U)" className={tbCls(!!editor?.isActive('underline'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleUnderline().run())}><Icon name="underline" /></button>
-      <span className="tb-sep" />
-      <button
-        title="Заголовок 2 уровня"
-        className={'tb-sel' + (editor?.isActive('heading', { level: 2 }) ? ' tb-btn--on' : '')}
-        disabled={!can}
-        style={{ padding: '0 12px' }}
-        onMouseDown={run((e) => e.chain().focus().toggleHeading({ level: 2 }).run())}
-      >H2 <Icon name="chevd" size={12} /></button>
-      <span className="tb-sep" />
-      <button title="Цитата" className={tbCls(!!editor?.isActive('blockquote'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleBlockquote().run())}><Icon name="quote" /></button>
-      <button className="tb-btn" disabled title="Ссылка (скоро)"><Icon name="link" /></button>
-      <button className="tb-btn" disabled title="Цвет текста (скоро)"><Icon name="color" /></button>
-      <span className="tb-sep" />
-      <button className="tb-btn tb-btn--on" style={{ color: 'var(--accent)' }} disabled title="Режим правок (скоро)"><Icon name="track" size={15} /></button>
-      <button className="tb-btn" disabled title="AI-подсказки (скоро)"><Icon name="sparkles" size={15} /></button>
-      <span className="tb-sep" />
-      <button className="tb-btn" disabled title="Голосовой ввод (скоро)"><Icon name="speak" size={15} /></button>
-      <button className="tb-btn" disabled title="Таймер (скоро)"><Icon name="timer" size={15} /></button>
+      <ModeSegmentInline mode={mode} setMode={setMode} />
     </div>
   );
 }
@@ -299,7 +195,7 @@ export function EditorHybrid({
             words={activeChapter?.words}
           />
         ) : (
-          <StudioToolbar mode={mode} setMode={setMode} editor={editor} />
+          <EditorToolbar editor={editor} mode={mode} setMode={setMode} variant="studio" />
         )}
 
         <div className="sheet-wrap" style={{ padding: isPage ? '48px 56px 110px' : '36px 32px 0' }}>
@@ -338,7 +234,7 @@ export function EditorHybrid({
             <StatusBar />
           )
         )}
-        {isPage && <FloatingPill editor={editor} />}
+        {isPage && <EditorToolbar editor={editor} variant="pill" showModes={false} showExtras={false} />}
       </main>
 
       {showRight && <RightPanel tab="margins" />}

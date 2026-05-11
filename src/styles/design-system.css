@@ -179,9 +179,15 @@ html, body, #root {
   border-bottom: 1px solid var(--border-soft);
   display: flex; align-items: center;
   padding: 0 14px; gap: 4px;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
 }
+.tb::-webkit-scrollbar { height: 6px; }
+.tb--wrap { flex-wrap: nowrap; }
+.tb > * { flex-shrink: 0; }
 .tb-grp { display: flex; align-items: center; gap: 1px; }
-.tb-sep { width: 1px; height: 18px; background: var(--border-soft); margin: 0 8px; }
+.tb-sep { width: 1px; height: 18px; background: var(--border-soft); margin: 0 4px; flex-shrink: 0; }
 .tb-btn {
   height: 28px; min-width: 28px; padding: 0 7px;
   border-radius: var(--r-1);
@@ -441,3 +447,30 @@ html, body, #root {
   height: 0;
   pointer-events: none;
 }
+.tiptap a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.tiptap mark { background: oklch(0.86 0.13 90 / 0.5); padding: 0.05em 0.15em; border-radius: 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.tiptap hr {
+  border: none;
+  border-top: 1px solid var(--paper-ink-2);
+  opacity: 0.35;
+  margin: 1.6em 0;
+}
+.tiptap pre {
+  background: var(--surface-2);
+  padding: 12px 16px;
+  border-radius: 6px;
+  font: 400 13px/1.55 var(--font-mono);
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.tiptap pre code { background: transparent; padding: 0; font-size: inherit; }
+.tiptap [data-text-align="center"] { text-align: center; }
+.tiptap [data-text-align="right"] { text-align: right; }
+.tiptap [data-text-align="justify"] { text-align: justify; }
+.tiptap ul[data-type="taskList"] { list-style: none; padding-left: 0.4em; }
+.tiptap ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 0.3em; }
+.tiptap ul[data-type="taskList"] li > label { flex-shrink: 0; user-select: none; margin-top: 0.3em; }
+.tiptap ul[data-type="taskList"] li > div { flex: 1; min-width: 0; }
+.tiptap ul[data-type="taskList"] input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; }
+.tiptap sub { vertical-align: sub; font-size: 0.75em; }
+.tiptap sup { vertical-align: super; font-size: 0.75em; }
