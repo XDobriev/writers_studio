@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Icon } from './Icon';
 import { Sidebar, RightPanel, StatusBar } from './Chrome';
 import { SAMPLE_PROSE } from '../data/sample';
+import { RichEditor, type Editor } from './RichEditor';
 import type { Book } from '../lib/supabase';
 import type { Chapter } from '../lib/chapters';
 
@@ -37,30 +38,63 @@ function ModeSegment({ mode, setMode }: ModeSegmentProps) {
   );
 }
 
-function exec(cmd: string, value?: string) {
-  document.execCommand(cmd, false, value);
+interface ToolbarProps extends ModeSegmentProps {
+  editor: Editor | null;
 }
 
-function StudioToolbar({ mode, setMode }: ModeSegmentProps) {
+function tbCls(active: boolean) {
+  return 'tb-btn' + (active ? ' tb-btn--on' : '');
+}
+
+function StudioToolbar({ mode, setMode, editor }: ToolbarProps) {
+  const can = editor !== null;
+  const run = (fn: (e: Editor) => void) => (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    if (editor) fn(editor);
+  };
   return (
     <div className="tb">
-      <button className="tb-btn" onMouseDown={(e) => { e.preventDefault(); exec('bold'); }}><Icon name="bold" /></button>
-      <button className="tb-btn" onMouseDown={(e) => { e.preventDefault(); exec('italic'); }}><Icon name="italic" /></button>
-      <button className="tb-btn" onMouseDown={(e) => { e.preventDefault(); exec('underline'); }}><Icon name="underline" /></button>
+      <button
+        className={tbCls(!!editor?.isActive('bold'))}
+        onMouseDown={run((e) => e.chain().focus().toggleBold().run())}
+        disabled={!can}
+      ><Icon name="bold" /></button>
+      <button
+        className={tbCls(!!editor?.isActive('italic'))}
+        onMouseDown={run((e) => e.chain().focus().toggleItalic().run())}
+        disabled={!can}
+      ><Icon name="italic" /></button>
+      <button
+        className={tbCls(!!editor?.isActive('underline'))}
+        onMouseDown={run((e) => e.chain().focus().toggleUnderline().run())}
+        disabled={!can}
+      ><Icon name="underline" /></button>
       <span className="tb-sep" />
-      <button className="tb-sel" onMouseDown={(e) => { e.preventDefault(); exec('formatBlock', 'H2'); }}>Заголовок 2 <Icon name="chevd" size={12} /></button>
+      <button
+        className={'tb-sel' + (editor?.isActive('heading', { level: 2 }) ? ' tb-btn--on' : '')}
+        onMouseDown={run((e) => e.chain().focus().toggleHeading({ level: 2 }).run())}
+        disabled={!can}
+      >Заголовок 2 <Icon name="chevd" size={12} /></button>
       <span className="tb-sep" />
-      <button className="tb-btn" onMouseDown={(e) => { e.preventDefault(); exec('insertUnorderedList'); }}><Icon name="list" /></button>
-      <button className="tb-btn" onMouseDown={(e) => { e.preventDefault(); exec('formatBlock', 'BLOCKQUOTE'); }}><Icon name="quote" /></button>
-      <button className="tb-btn"><Icon name="link" /></button>
+      <button
+        className={tbCls(!!editor?.isActive('bulletList'))}
+        onMouseDown={run((e) => e.chain().focus().toggleBulletList().run())}
+        disabled={!can}
+      ><Icon name="list" /></button>
+      <button
+        className={tbCls(!!editor?.isActive('blockquote'))}
+        onMouseDown={run((e) => e.chain().focus().toggleBlockquote().run())}
+        disabled={!can}
+      ><Icon name="quote" /></button>
+      <button className="tb-btn" disabled><Icon name="link" /></button>
       <span className="tb-sep" />
-      <button className="tb-btn tb-btn--on"><Icon name="track" size={15} /> Правки</button>
+      <button className="tb-btn tb-btn--on" disabled><Icon name="track" size={15} /> Правки</button>
       <div className="tb-spacer" />
       <ModeSegment mode={mode} setMode={setMode} />
       <span className="tb-sep" />
-      <button className="tb-btn"><Icon name="speak" size={15} /></button>
-      <button className="tb-btn"><Icon name="timer" size={15} /></button>
-      <button className="tb-btn"><Icon name="download" size={15} /> Экспорт</button>
+      <button className="tb-btn" disabled><Icon name="speak" size={15} /></button>
+      <button className="tb-btn" disabled><Icon name="timer" size={15} /></button>
+      <button className="tb-btn" disabled><Icon name="download" size={15} /> Экспорт</button>
     </div>
   );
 }
@@ -95,7 +129,12 @@ function PageHeader({ mode, setMode, bookTitle, chapterTitle, chapterIndex, stat
   );
 }
 
-function FloatingPill() {
+function FloatingPill({ editor }: { editor: Editor | null }) {
+  const can = editor !== null;
+  const run = (fn: (e: Editor) => void) => (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    if (editor) fn(editor);
+  };
   return (
     <div style={{
       position: 'absolute', left: '50%', bottom: 24, transform: 'translateX(-50%)',
@@ -103,21 +142,26 @@ function FloatingPill() {
       background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 999,
       padding: '4px 6px', boxShadow: '0 8px 28px rgba(0,0,0,.35)', zIndex: 5,
     }}>
-      <button className="tb-btn" onMouseDown={(e) => { e.preventDefault(); exec('bold'); }}><Icon name="bold" /></button>
-      <button className="tb-btn" onMouseDown={(e) => { e.preventDefault(); exec('italic'); }}><Icon name="italic" /></button>
-      <button className="tb-btn" onMouseDown={(e) => { e.preventDefault(); exec('underline'); }}><Icon name="underline" /></button>
+      <button className={tbCls(!!editor?.isActive('bold'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleBold().run())}><Icon name="bold" /></button>
+      <button className={tbCls(!!editor?.isActive('italic'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleItalic().run())}><Icon name="italic" /></button>
+      <button className={tbCls(!!editor?.isActive('underline'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleUnderline().run())}><Icon name="underline" /></button>
       <span className="tb-sep" />
-      <button className="tb-sel" style={{ padding: '0 12px' }} onMouseDown={(e) => { e.preventDefault(); exec('formatBlock', 'H2'); }}>H2 <Icon name="chevd" size={12} /></button>
+      <button
+        className={'tb-sel' + (editor?.isActive('heading', { level: 2 }) ? ' tb-btn--on' : '')}
+        disabled={!can}
+        style={{ padding: '0 12px' }}
+        onMouseDown={run((e) => e.chain().focus().toggleHeading({ level: 2 }).run())}
+      >H2 <Icon name="chevd" size={12} /></button>
       <span className="tb-sep" />
-      <button className="tb-btn" onMouseDown={(e) => { e.preventDefault(); exec('formatBlock', 'BLOCKQUOTE'); }}><Icon name="quote" /></button>
-      <button className="tb-btn"><Icon name="link" /></button>
-      <button className="tb-btn"><Icon name="color" /></button>
+      <button className={tbCls(!!editor?.isActive('blockquote'))} disabled={!can} onMouseDown={run((e) => e.chain().focus().toggleBlockquote().run())}><Icon name="quote" /></button>
+      <button className="tb-btn" disabled><Icon name="link" /></button>
+      <button className="tb-btn" disabled><Icon name="color" /></button>
       <span className="tb-sep" />
-      <button className="tb-btn tb-btn--on" style={{ color: 'var(--accent)' }}><Icon name="track" size={15} /></button>
-      <button className="tb-btn"><Icon name="sparkles" size={15} /></button>
+      <button className="tb-btn tb-btn--on" style={{ color: 'var(--accent)' }} disabled><Icon name="track" size={15} /></button>
+      <button className="tb-btn" disabled><Icon name="sparkles" size={15} /></button>
       <span className="tb-sep" />
-      <button className="tb-btn"><Icon name="speak" size={15} /></button>
-      <button className="tb-btn"><Icon name="timer" size={15} /></button>
+      <button className="tb-btn" disabled><Icon name="speak" size={15} /></button>
+      <button className="tb-btn" disabled><Icon name="timer" size={15} /></button>
     </div>
   );
 }
@@ -126,20 +170,12 @@ interface ChapterSheetProps {
   chapter: Chapter;
   onContentChange: (html: string) => void;
   onTitleChange: (title: string) => void;
+  onEditor: (editor: Editor | null) => void;
   width: number;
   padding: string;
 }
 
-function ChapterSheet({ chapter, onContentChange, onTitleChange, width, padding }: ChapterSheetProps) {
-  const bodyRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!bodyRef.current) return;
-    if (bodyRef.current.innerHTML !== chapter.content) {
-      bodyRef.current.innerHTML = chapter.content || '<p><br/></p>';
-    }
-  }, [chapter.id]);
-
+function ChapterSheet({ chapter, onContentChange, onTitleChange, onEditor, width, padding }: ChapterSheetProps) {
   return (
     <div className="sheet" style={{ width, padding }}>
       <input
@@ -153,14 +189,14 @@ function ChapterSheet({ chapter, onContentChange, onTitleChange, width, padding 
           padding: 0, marginBottom: 22,
         }}
       />
-      <div
-        ref={bodyRef}
+      <RichEditor
+        value={chapter.content}
+        onChange={onContentChange}
+        contentKey={chapter.id}
+        placeholder="Начните писать главу…"
         className="sheet-body"
-        contentEditable
-        suppressContentEditableWarning
-        spellCheck
-        onInput={(e) => onContentChange((e.currentTarget as HTMLDivElement).innerHTML)}
-        style={{ outline: 'none', minHeight: 300 }}
+        style={{ minHeight: 300 }}
+        onEditor={onEditor}
       />
     </div>
   );
@@ -206,6 +242,7 @@ export function EditorHybrid({
   savedAt = null,
 }: EditorHybridProps) {
   const [mode, setMode] = useState<Mode>(defaultMode);
+  const [editor, setEditor] = useState<Editor | null>(null);
   const showLeft = mode === 'studio' || mode === 'left';
   const showRight = mode === 'studio' || mode === 'right';
   const isPage = mode === 'page';
@@ -254,7 +291,7 @@ export function EditorHybrid({
             words={activeChapter?.words}
           />
         ) : (
-          <StudioToolbar mode={mode} setMode={setMode} />
+          <StudioToolbar mode={mode} setMode={setMode} editor={editor} />
         )}
 
         <div className="sheet-wrap" style={{ padding: isPage ? '48px 56px 110px' : '36px 32px 0' }}>
@@ -264,6 +301,7 @@ export function EditorHybrid({
                 chapter={activeChapter}
                 onContentChange={(html) => onContentChange?.(html)}
                 onTitleChange={(title) => onTitleChange?.(title)}
+                onEditor={setEditor}
                 width={sheetWidth}
                 padding={sheetPad}
               />
@@ -292,7 +330,7 @@ export function EditorHybrid({
             <StatusBar />
           )
         )}
-        {isPage && <FloatingPill />}
+        {isPage && <FloatingPill editor={editor} />}
       </main>
 
       {showRight && <RightPanel tab="margins" />}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
+import { RichEditor } from '../components/RichEditor';
 import { supabase, type Book } from '../lib/supabase';
 import {
   countWords,
@@ -168,7 +169,6 @@ function Pane({ side, chapter, chapters, saveState, onSelect, onPersist }: {
   onSelect: (id: string) => void;
   onPersist: (id: string, patch: ChapterPatch) => void;
 }) {
-  const editorRef = useRef<HTMLDivElement | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingPatch = useRef<ChapterPatch | null>(null);
   const targetIdRef = useRef<string | null>(null);
@@ -186,7 +186,6 @@ function Pane({ side, chapter, chapters, saveState, onSelect, onPersist }: {
     flush();
   }, [flush]);
 
-  // На смену активной главы — сначала flush предыдущей, потом подменить content.
   const lastChIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (lastChIdRef.current && lastChIdRef.current !== chapter?.id) {
@@ -196,16 +195,8 @@ function Pane({ side, chapter, chapters, saveState, onSelect, onPersist }: {
     lastChIdRef.current = chapter?.id ?? null;
   }, [chapter?.id, flush]);
 
-  useEffect(() => {
-    if (!chapter || !editorRef.current) return;
-    if (editorRef.current.innerHTML !== chapter.content) {
-      editorRef.current.innerHTML = chapter.content || '';
-    }
-  }, [chapter?.id]);
-
-  const onInput = useCallback(() => {
-    if (!chapter || !editorRef.current) return;
-    const html = editorRef.current.innerHTML;
+  const onContentChange = useCallback((html: string) => {
+    if (!chapter) return;
     targetIdRef.current = chapter.id;
     pendingPatch.current = { ...(pendingPatch.current ?? {}), content: html, words: countWords(html) };
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -218,6 +209,9 @@ function Pane({ side, chapter, chapters, saveState, onSelect, onPersist }: {
     saved: { text: '● сохранено', color: 'var(--ok)' },
     error: { text: '● ошибка', color: 'var(--danger)' },
   };
+
+  const paneEditorStyle =
+    'outline:none;font-family:var(--font-serif);color:var(--ink);font-size:15.5px;line-height:1.7;';
 
   return (
     <div style={{ background: 'var(--bg)', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -238,15 +232,17 @@ function Pane({ side, chapter, chapters, saveState, onSelect, onPersist }: {
         )}
       </div>
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto', display: 'flex', justifyContent: 'center', padding: '28px 24px 60px', background: 'var(--bg)' }}>
-        <div
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          onInput={onInput}
-          spellCheck
-          className="sheet"
-          style={{ width: 520, padding: '40px 48px 60px', fontSize: 15.5, outline: 'none' }}
-        />
+        {chapter && (
+          <RichEditor
+            value={chapter.content}
+            onChange={onContentChange}
+            contentKey={chapter.id}
+            placeholder="Печатайте…"
+            attributesStyle={paneEditorStyle}
+            className="sheet"
+            style={{ width: 520, padding: '40px 48px 60px' }}
+          />
+        )}
       </div>
     </div>
   );

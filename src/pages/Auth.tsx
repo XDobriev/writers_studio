@@ -116,7 +116,7 @@ export default function Auth() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48 }}>
-        <form onSubmit={onSubmit} style={{ width: 380 }}>
+        <form onSubmit={onSubmit} method="post" action="#" style={{ width: 380 }}>
           <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: '1px solid var(--border-soft)' }}>
             <button
               type="button"
@@ -183,19 +183,25 @@ export default function Auth() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
             <div>
-              <label className="label">Email</label>
+              <label className="label" htmlFor="auth-email">Email</label>
               <input
+                id="auth-email"
+                name="email"
                 className="input"
                 type="email"
                 required
-                autoComplete="email"
+                autoComplete="username"
+                inputMode="email"
+                spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
-              <label className="label">Пароль</label>
+              <label className="label" htmlFor="auth-password">Пароль</label>
               <input
+                id="auth-password"
+                name="password"
                 className="input"
                 type="password"
                 required

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { RichEditor } from '../components/RichEditor';
 import { supabase, type Book } from '../lib/supabase';
 import {
   countWords,
@@ -52,7 +53,6 @@ export default function Focus() {
     return chapters[0];
   }, [chapters, requestedChapter]);
 
-  const editorRef = useRef<HTMLDivElement | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingPatch = useRef<ChapterPatch | null>(null);
   const targetIdRef = useRef<string | null>(null);
@@ -86,13 +86,6 @@ export default function Focus() {
     void flush();
   }, [flush]);
 
-  useEffect(() => {
-    if (!activeChapter || !editorRef.current) return;
-    if (editorRef.current.innerHTML !== activeChapter.content) {
-      editorRef.current.innerHTML = activeChapter.content || '';
-    }
-  }, [activeChapter?.id]);
-
   const exit = useCallback(() => {
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
@@ -110,9 +103,8 @@ export default function Focus() {
     return () => window.removeEventListener('keydown', onKey);
   }, [exit]);
 
-  const onInput = useCallback(() => {
-    if (!activeChapter || !editorRef.current) return;
-    const html = editorRef.current.innerHTML;
+  const onContentChange = useCallback((html: string) => {
+    if (!activeChapter) return;
     scheduleSave(activeChapter.id, { content: html, words: countWords(html) });
   }, [activeChapter, scheduleSave]);
 
@@ -152,6 +144,9 @@ export default function Focus() {
     error: { text: '● ошибка', color: 'var(--danger)' },
   };
 
+  const focusEditorStyle =
+    'outline:none;font-family:var(--font-serif);color:oklch(0.92 0.014 85);font-size:18px;line-height:1.85;letter-spacing:0.005em;';
+
   return (
     <div className="as" style={{ height: '100vh', background: 'oklch(0.10 0.012 50)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', top: 18, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 8, background: 'oklch(0.20 0.014 50 / 0.7)', backdropFilter: 'blur(8px)', border: '1px solid var(--border-soft)', borderRadius: 999, padding: '6px 12px' }}>
@@ -176,23 +171,13 @@ export default function Focus() {
       </button>
 
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '80px 40px 60px', overflow: 'auto' }}>
-        <div
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          onInput={onInput}
-          spellCheck
-          style={{
-            width: 720,
-            maxWidth: '100%',
-            fontFamily: 'var(--font-serif)',
-            color: 'oklch(0.92 0.014 85)',
-            fontSize: 18,
-            lineHeight: 1.85,
-            letterSpacing: '0.005em',
-            outline: 'none',
-            minHeight: 'calc(100vh - 200px)',
-          }}
+        <RichEditor
+          value={activeChapter.content}
+          onChange={onContentChange}
+          contentKey={activeChapter.id}
+          placeholder="Только текст и вы. Печатайте…"
+          attributesStyle={focusEditorStyle}
+          style={{ width: 720, maxWidth: '100%', minHeight: 'calc(100vh - 200px)' }}
         />
       </div>
 
