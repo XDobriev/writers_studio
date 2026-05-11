@@ -1,121 +1,298 @@
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
-import { NOVEL } from '../data/sample';
+import { useAuth } from '../lib/auth';
+import { supabase, type Book } from '../lib/supabase';
+import { listChapters, type Chapter } from '../lib/chapters';
+import {
+  createTimelineEvent,
+  deleteTimelineEvent,
+  listTimelineEvents,
+  TYPE_COLORS,
+  TYPE_LABELS,
+  updateTimelineEvent,
+  type TimelineEvent,
+  type TimelineEventPatch,
+  type TimelineEventType,
+} from '../lib/timeline';
 
-interface Event {
-  era: string;
-  pos: number;
-  title: string;
-  type: 'plot' | 'character' | 'world' | 'other';
-  ch: number | null;
-  desc: string;
-}
+type TypeFilter = 'all' | TimelineEventType;
 
-const events: Event[] = [
-  { era: '412 г.', pos: 4, title: 'Основание Корны', type: 'world', ch: null, desc: 'Семь семей-основателей. Серебряный колокол отлит в первый же год.' },
-  { era: '580 г.', pos: 18, title: 'Первая экспедиция Тереи', type: 'world', ch: null, desc: 'Картограф Олимар достигает северных болот.' },
-  { era: '711 г.', pos: 32, title: 'Сожжение архива', type: 'world', ch: null, desc: 'Терея теряет половину карт. Корна не помечена ни на одной из уцелевших.' },
-  { era: 'Зима 824', pos: 50, title: 'Корна исчезает', type: 'plot', ch: null, desc: 'За одну ночь. Снег ложится ровно, ветер — ровно.' },
-  { era: 'Зима 824', pos: 56, title: 'Двенадцатый картограф уходит', type: 'character', ch: 5, desc: 'Последняя запись в журнале — «иду посмотреть».' },
-  { era: 'Весна 825', pos: 64, title: 'Иней получает приказ', type: 'plot', ch: 1, desc: 'Магистр Терей. Письмо с поломанной печатью.' },
-  { era: 'Весна 825', pos: 72, title: 'Прибытие в Сольву', type: 'plot', ch: 3, desc: 'Гарнизон не помнит пропавшего. Полковник Нич.' },
-  { era: 'Весна 825', pos: 80, title: 'Серебряный ключ', type: 'plot', ch: 3, desc: 'Висит за стойкой трактира «Серая Цапля».' },
-  { era: 'Лето 825', pos: 92, title: 'Под башней', type: 'plot', ch: 9, desc: 'Финал второго акта.' },
+const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
+  { value: 'all', label: 'все' },
+  { value: 'plot', label: 'сюжет' },
+  { value: 'character', label: 'персонаж' },
+  { value: 'world', label: 'мир' },
+  { value: 'other', label: 'другое' },
 ];
 
-const color: Record<Event['type'], string> = {
-  plot: 'var(--accent)', character: 'var(--info)', world: 'var(--ok)', other: 'var(--ink-3)',
-};
-const label: Record<Event['type'], string> = {
-  plot: 'Сюжет', character: 'Персонаж', world: 'Мир', other: 'Другое',
-};
-
 export default function Timeline() {
+  const { id: bookId } = useParams<{ id: string }>();
+  const { user } = useAuth();
+
+  const [book, setBook] = useState<Book | null>(null);
+  const [events, setEvents] = useState<TimelineEvent[] | null>(null);
+  const [chapters, setChapters] = useState<Chapter[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<TypeFilter>('all');
+
+  useEffect(() => {
+    if (!bookId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [bookRes, evList, chList] = await Promise.all([
+          supabase.from('books').select('*').eq('id', bookId).single(),
+          listTimelineEvents(bookId),
+          listChapters(bookId),
+        ]);
+        if (cancelled) return;
+        if (bookRes.error) throw bookRes.error;
+        setBook(bookRes.data as Book);
+        setEvents(evList);
+        setChapters(chList);
+      } catch (e) {
+        if (!cancelled) setError((e as Error).message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [bookId]);
+
+  const onCreate = useCallback(async () => {
+    if (!bookId || !user) return;
+    const position = events?.length ?? 0;
+    try {
+      const created = await createTimelineEvent(bookId, user.id, { position });
+      setEvents((prev) => [...(prev ?? []), created]);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [bookId, user, events]);
+
+  const onUpdate = useCallback(async (id: string, patch: TimelineEventPatch) => {
+    setEvents((prev) => prev ? prev.map((e) => (e.id === id ? { ...e, ...patch } as TimelineEvent : e)) : prev);
+    try {
+      const updated = await updateTimelineEvent(id, patch);
+      setEvents((prev) => prev ? prev.map((e) => (e.id === id ? updated : e)) : prev);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
+  const onDelete = useCallback(async (id: string) => {
+    if (!window.confirm('Удалить это событие? Действие нельзя отменить.')) return;
+    try {
+      await deleteTimelineEvent(id);
+      setEvents((prev) => prev ? prev.filter((e) => e.id !== id) : prev);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!events) return [];
+    if (filter === 'all') return events;
+    return events.filter((e) => e.type === filter);
+  }, [events, filter]);
+
+  if (!bookId) return <Navigate to="/books" replace />;
+
+  if (error) {
+    return (
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32 }}>
+        <div style={{ color: 'var(--danger)' }}>Ошибка: {error}</div>
+      </div>
+    );
+  }
+
+  if (!book || !events || !chapters) {
+    return (
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink-3)', padding: 32 }}>
+        Загрузка…
+      </div>
+    );
+  }
+
   return (
     <WithMode active="timeline">
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <aside className="sb">
           <div className="sb-head">
-            <div className="sb-book-title">{NOVEL.title}</div>
-            <div className="sb-book-author">хронология · 9 событий</div>
+            <div className="sb-book-title">{book.title}</div>
+            <div className="sb-book-author">хронология · {events.length}</div>
           </div>
           <nav style={{ padding: '14px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
             {([
-              ['book', 'Манускрипт', false],
-              ['char', 'Персонажи', false],
-              ['map', 'Карта мира', false],
-              ['clock', 'Хронология', true],
-              ['layout', 'Дэшборд', false],
-            ] as const).map(([n, l, on]) => (
-              <a key={l} className={'sb-item' + (on ? ' sb-item--on' : '')}>
+              ['layout', 'Дэшборд', `/books/${bookId}`, false],
+              ['book', 'Манускрипт', `/books/${bookId}/editor`, false],
+              ['char', 'Персонажи', `/books/${bookId}/characters`, false],
+              ['map', 'Карта мира', `/books/${bookId}/map`, false],
+              ['clock', 'Хронология', `/books/${bookId}/timeline`, true],
+            ] as const).map(([n, l, to, on]) => (
+              <Link key={l} to={to} className={'sb-item' + (on ? ' sb-item--on' : '')} style={{ textDecoration: 'none' }}>
                 <span style={{ display: 'flex', justifyContent: 'center', color: on ? 'var(--ink)' : 'var(--ink-3)' }}><Icon name={n} size={15} /></span>
                 <span className="sb-item-title">{l}</span>
                 <span />
-              </a>
+              </Link>
             ))}
           </nav>
           <div className="sb-section"><span className="sb-section-title">Слои</span></div>
-          <div style={{ padding: '4px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {Object.entries(label).map(([k, l]) => (
-              <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink-2)', padding: '4px 0' }}>
-                <span style={{ width: 14, height: 14, borderRadius: 3, border: '1px solid var(--border)', background: k === 'plot' ? color[k as Event['type']] : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {k !== 'plot' && <span style={{ width: 8, height: 8, borderRadius: 2, background: color[k as Event['type']] }} />}
-                </span>
-                {l}
-              </label>
+          <div style={{ padding: '4px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {TYPE_FILTERS.map((f) => (
+              <button
+                key={f.value}
+                className={'sb-item' + (filter === f.value ? ' sb-item--on' : '')}
+                onClick={() => setFilter(f.value)}
+                style={{ width: '100%', textAlign: 'left' }}
+              >
+                <span style={{ width: 14, height: 14, borderRadius: 3, background: f.value === 'all' ? 'transparent' : TYPE_COLORS[f.value], border: f.value === 'all' ? '1px solid var(--border)' : 'none' }} />
+                <span className="sb-item-title">{f.label}</span>
+                <span />
+              </button>
             ))}
-          </div>
-          <div style={{ padding: '14px', marginTop: 'auto', borderTop: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Внутреннее время книги</div>
-            <div style={{ font: '500 14px var(--font-serif)' }}>Зима 824 — Лето 825</div>
-            <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>~ 8 месяцев</div>
           </div>
         </aside>
 
-        <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+        <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>
-            <span style={{ font: '500 13px var(--font-ui)' }}>Хронология «{NOVEL.title}»</span>
+            <span style={{ font: '500 13px var(--font-ui)' }}>Хронология «{book.title}»</span>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className="tb-btn"><Icon name="layout" size={15} /> По главам</button>
-              <button className="tb-btn tb-btn--on"><Icon name="clock" size={15} /> По времени</button>
-              <button className="btn"><Icon name="plus" size={14} /> Событие</button>
+              <button onClick={onCreate} className="btn"><Icon name="plus" size={14} /> Событие</button>
             </div>
           </div>
 
-          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '40px 32px' }}>
-            <div style={{ position: 'relative', height: 520, marginTop: 20, minWidth: 1500 }}>
-              <div style={{ position: 'absolute', left: 0, right: 0, top: 260, height: 1, background: 'var(--border-strong)' }} />
-              {([['IV в.', 4], ['V в.', 18], ['VI в.', 32], ['VII в.', 46], ['VIII в.', 60], ['IX в.', 80]] as const).map(([l, x], i) => (
-                <div key={i} style={{ position: 'absolute', left: x + '%', top: 255, transform: 'translateX(-50%)' }}>
-                  <div style={{ width: 1, height: 16, background: 'var(--ink-4)' }} />
-                  <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', marginTop: 6, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{l}</div>
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
+            {filtered.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'var(--ink-3)', padding: '48px 0' }}>
+                <div style={{ font: '500 14px var(--font-ui)' }}>
+                  {events.length === 0 ? 'Хронология пуста' : 'Нет событий в этом слое'}
                 </div>
-              ))}
-              {events.map((e, i) => {
-                const above = i % 2 === 0;
-                const top = above ? 60 : 290;
-                const lineH = 200;
-                return (
-                  <div key={i} style={{ position: 'absolute', left: e.pos + '%', top, transform: 'translateX(-50%)', width: 200, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    {!above && <div style={{ position: 'absolute', bottom: '100%', width: 1, height: 30, background: color[e.type] }} />}
-                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderLeft: `3px solid ${color[e.type]}`, borderRadius: 8, padding: '10px 12px', width: '100%', position: 'relative' }}>
-                      <div style={{ font: '500 9.5px var(--font-mono)', color: color[e.type], letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>{label[e.type]} · {e.era}</div>
-                      <div style={{ font: '500 13.5px var(--font-serif)', color: 'var(--ink)', marginBottom: 6, lineHeight: 1.25 }}>{e.title}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink-2)', lineHeight: 1.45 }}>{e.desc}</div>
-                      {e.ch && <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', marginTop: 8, paddingTop: 6, borderTop: '1px dashed var(--border-soft)', letterSpacing: '0.04em' }}>→ ГЛ. {String(e.ch).padStart(2, '0')}</div>}
-                    </div>
-                    {above && <>
-                      <div style={{ width: 1, height: lineH - 180, background: color[e.type] }} />
-                      <div style={{ width: 10, height: 10, borderRadius: 999, background: color[e.type], marginTop: -3, border: '2px solid var(--bg)' }} />
-                    </>}
-                    {!above && <div style={{ width: 10, height: 10, borderRadius: 999, background: color[e.type], position: 'absolute', top: -34, border: '2px solid var(--bg)' }} />}
-                  </div>
-                );
-              })}
-            </div>
+                {events.length === 0 && (
+                  <button onClick={onCreate} className="btn"><Icon name="plus" size={13} /> Создать первое событие</button>
+                )}
+              </div>
+            ) : (
+              <div style={{ position: 'relative', paddingLeft: 24 }}>
+                <div style={{ position: 'absolute', left: 7, top: 6, bottom: 6, width: 2, background: 'var(--border-soft)' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  {filtered.map((ev) => (
+                    <EventCard
+                      key={ev.id}
+                      event={ev}
+                      chapters={chapters}
+                      onUpdate={(patch) => onUpdate(ev.id, patch)}
+                      onDelete={() => onDelete(ev.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>
     </WithMode>
+  );
+}
+
+function EventCard({ event, chapters, onUpdate, onDelete }: {
+  event: TimelineEvent;
+  chapters: Chapter[];
+  onUpdate: (patch: TimelineEventPatch) => void;
+  onDelete: () => void;
+}) {
+  const [era, setEra] = useState(event.era);
+  const [title, setTitle] = useState(event.title);
+  const [description, setDescription] = useState(event.description);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pending = useRef<TimelineEventPatch>({});
+
+  useEffect(() => { setEra(event.era); }, [event.id, event.era]);
+  useEffect(() => { setTitle(event.title); }, [event.id, event.title]);
+  useEffect(() => { setDescription(event.description); }, [event.id, event.description]);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  const schedule = (patch: TimelineEventPatch) => {
+    pending.current = { ...pending.current, ...patch };
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      const p = pending.current;
+      pending.current = {};
+      onUpdate(p);
+    }, 700);
+  };
+
+  const onEraChange = (e: ChangeEvent<HTMLInputElement>) => { setEra(e.target.value); schedule({ era: e.target.value }); };
+  const onTitleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setTitle(v);
+    schedule({ title: v.trim() === '' ? 'Событие' : v });
+  };
+  const onDescChange = (e: ChangeEvent<HTMLTextAreaElement>) => { setDescription(e.target.value); schedule({ description: e.target.value }); };
+  const onTypeChange = (type: TimelineEventType) => onUpdate({ type });
+  const onChapterChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    onUpdate({ chapter_id: e.target.value === '' ? null : e.target.value });
+  };
+
+  const color = TYPE_COLORS[event.type];
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div style={{ position: 'absolute', left: -23, top: 16, width: 14, height: 14, borderRadius: 999, background: color, border: '3px solid var(--bg)' }} />
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderLeft: `3px solid ${color}`, borderRadius: 10, padding: '14px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+          {(['plot', 'character', 'world', 'other'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => onTypeChange(t)}
+              className={'chip' + (event.type === t ? ' chip--accent' : '')}
+              style={{ cursor: 'pointer', border: 'none' }}
+            >
+              {TYPE_LABELS[t]}
+            </button>
+          ))}
+          <input
+            value={era}
+            onChange={onEraChange}
+            placeholder="когда (например, Зима 824)"
+            style={{ flex: 1, minWidth: 160, height: 28, padding: '0 10px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--ink)', font: '400 12px var(--font-ui)', outline: 'none' }}
+          />
+          <select
+            value={event.chapter_id ?? ''}
+            onChange={onChapterChange}
+            style={{ height: 28, padding: '0 8px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--ink)', fontSize: 12, outline: 'none' }}
+          >
+            <option value="">без главы</option>
+            {chapters.map((ch, i) => (
+              <option key={ch.id} value={ch.id}>{String(i + 1).padStart(2, '0')} · {ch.title}</option>
+            ))}
+          </select>
+          <button
+            onClick={onDelete}
+            title="Удалить событие"
+            style={{ background: 'transparent', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', padding: '4px 8px', font: '400 16px var(--font-ui)', lineHeight: 1, borderRadius: 4 }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--danger)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)'; }}
+          >
+            ×
+          </button>
+        </div>
+
+        <input
+          value={title}
+          onChange={onTitleChange}
+          placeholder="Название события"
+          style={{ width: '100%', font: '500 17px var(--font-serif)', color: 'var(--ink)', background: 'transparent', border: 'none', outline: 'none', padding: '2px 0', marginBottom: 6 }}
+        />
+
+        <textarea
+          value={description}
+          onChange={onDescChange}
+          placeholder="Что произошло"
+          rows={2}
+          style={{ width: '100%', font: '400 13px/1.55 var(--font-serif)', color: 'var(--ink-2)', background: 'transparent', border: 'none', outline: 'none', resize: 'vertical', padding: 0 }}
+        />
+      </div>
+    </div>
   );
 }

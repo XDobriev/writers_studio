@@ -1,154 +1,278 @@
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
-import { NOVEL } from '../data/sample';
+import { useAuth } from '../lib/auth';
+import { supabase, type Book } from '../lib/supabase';
+import {
+  createLocation,
+  deleteLocation,
+  listLocations,
+  TYPE_GLYPHS,
+  TYPE_LABELS,
+  updateLocation,
+  type Location,
+  type LocationPatch,
+  type LocationType,
+} from '../lib/locations';
 
-interface Pin {
-  x: number;
-  y: number;
-  type: 'city' | 'village' | 'forest' | 'sea' | 'castle' | 'other';
-  name: string;
-  role: string;
-  active: boolean;
-}
+type TypeFilter = 'all' | LocationType;
 
-const pins: Pin[] = [
-  { x: 28, y: 62, type: 'city', name: 'Терея', role: 'Столица ордена', active: false },
-  { x: 64, y: 22, type: 'city', name: 'Корна', role: 'Исчезнувший город', active: true },
-  { x: 46, y: 50, type: 'village', name: 'Сольва', role: 'Гарнизон', active: false },
-  { x: 56, y: 38, type: 'other', name: 'Серая Цапля', role: 'Трактир', active: false },
-  { x: 38, y: 30, type: 'forest', name: 'Лес Тихой', role: 'Тянется на север', active: false },
-  { x: 72, y: 70, type: 'sea', name: 'Море Хольд', role: 'Южный берег', active: false },
+const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
+  { value: 'all', label: 'все' },
+  { value: 'city', label: 'города' },
+  { value: 'village', label: 'поселения' },
+  { value: 'forest', label: 'леса' },
+  { value: 'sea', label: 'моря' },
+  { value: 'castle', label: 'замки' },
+  { value: 'other', label: 'другое' },
 ];
 
-const typeIcon: Record<Pin['type'], string> = {
-  city: '◆', village: '●', other: '▲', forest: '※', sea: '~', castle: '♛',
-};
-
 export default function MapScreen() {
+  const { id: bookId } = useParams<{ id: string }>();
+  const { user } = useAuth();
+
+  const [book, setBook] = useState<Book | null>(null);
+  const [locations, setLocations] = useState<Location[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<TypeFilter>('all');
+
+  useEffect(() => {
+    if (!bookId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [bookRes, list] = await Promise.all([
+          supabase.from('books').select('*').eq('id', bookId).single(),
+          listLocations(bookId),
+        ]);
+        if (cancelled) return;
+        if (bookRes.error) throw bookRes.error;
+        setBook(bookRes.data as Book);
+        setLocations(list);
+      } catch (e) {
+        if (!cancelled) setError((e as Error).message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [bookId]);
+
+  const onCreate = useCallback(async () => {
+    if (!bookId || !user) return;
+    const position = locations?.length ?? 0;
+    try {
+      const created = await createLocation(bookId, user.id, { position });
+      setLocations((prev) => [...(prev ?? []), created]);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [bookId, user, locations]);
+
+  const onUpdate = useCallback(async (id: string, patch: LocationPatch) => {
+    setLocations((prev) => prev ? prev.map((l) => (l.id === id ? { ...l, ...patch } as Location : l)) : prev);
+    try {
+      const updated = await updateLocation(id, patch);
+      setLocations((prev) => prev ? prev.map((l) => (l.id === id ? updated : l)) : prev);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
+  const onDelete = useCallback(async (id: string) => {
+    if (!window.confirm('Удалить локацию? Действие нельзя отменить.')) return;
+    try {
+      await deleteLocation(id);
+      setLocations((prev) => prev ? prev.filter((l) => l.id !== id) : prev);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!locations) return [];
+    if (filter === 'all') return locations;
+    return locations.filter((l) => l.type === filter);
+  }, [locations, filter]);
+
+  if (!bookId) return <Navigate to="/books" replace />;
+
+  if (error) {
+    return (
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32 }}>
+        <div style={{ color: 'var(--danger)' }}>Ошибка: {error}</div>
+      </div>
+    );
+  }
+
+  if (!book || !locations) {
+    return (
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink-3)', padding: 32 }}>
+        Загрузка…
+      </div>
+    );
+  }
+
   return (
     <WithMode active="map">
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <aside className="sb">
           <div className="sb-head">
-            <div className="sb-book-title">{NOVEL.title}</div>
-            <div className="sb-book-author">карта мира · 6 локаций</div>
+            <div className="sb-book-title">{book.title}</div>
+            <div className="sb-book-author">карта мира · {locations.length}</div>
           </div>
           <nav style={{ padding: '14px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
             {([
-              ['book', 'Манускрипт', false],
-              ['char', 'Персонажи', false],
-              ['map', 'Карта мира', true],
-              ['clock', 'Хронология', false],
-              ['layout', 'Дэшборд', false],
-            ] as const).map(([n, l, on]) => (
-              <a key={l} className={'sb-item' + (on ? ' sb-item--on' : '')}>
+              ['layout', 'Дэшборд', `/books/${bookId}`, false],
+              ['book', 'Манускрипт', `/books/${bookId}/editor`, false],
+              ['char', 'Персонажи', `/books/${bookId}/characters`, false],
+              ['map', 'Карта мира', `/books/${bookId}/map`, true],
+              ['clock', 'Хронология', `/books/${bookId}/timeline`, false],
+            ] as const).map(([n, l, to, on]) => (
+              <Link key={l} to={to} className={'sb-item' + (on ? ' sb-item--on' : '')} style={{ textDecoration: 'none' }}>
                 <span style={{ display: 'flex', justifyContent: 'center', color: on ? 'var(--ink)' : 'var(--ink-3)' }}><Icon name={n} size={15} /></span>
                 <span className="sb-item-title">{l}</span>
                 <span />
-              </a>
+              </Link>
             ))}
           </nav>
-          <div className="sb-section">
-            <span className="sb-section-title">Локации</span>
-            <span className="sb-section-meta">6</span>
-          </div>
-          <div className="sb-list" style={{ flex: 1, overflow: 'auto' }}>
-            {pins.map((p, i) => (
-              <div key={i} className={'sb-item' + (p.active ? ' sb-item--on' : '')}>
-                <span style={{ textAlign: 'center', color: 'var(--accent-2)', font: '500 13px var(--font-mono)' }}>{typeIcon[p.type]}</span>
-                <div style={{ minWidth: 0 }}>
-                  <div className="sb-item-title">{p.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>{p.role}</div>
-                </div>
+          <div className="sb-section"><span className="sb-section-title">Тип локации</span></div>
+          <div style={{ padding: '4px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {TYPE_FILTERS.map((f) => (
+              <button
+                key={f.value}
+                className={'sb-item' + (filter === f.value ? ' sb-item--on' : '')}
+                onClick={() => setFilter(f.value)}
+                style={{ width: '100%', textAlign: 'left' }}
+              >
+                <span style={{ display: 'flex', justifyContent: 'center', font: '500 14px var(--font-serif)', color: 'var(--ink-2)' }}>
+                  {f.value === 'all' ? '·' : TYPE_GLYPHS[f.value]}
+                </span>
+                <span className="sb-item-title">{f.label}</span>
                 <span />
-              </div>
+              </button>
             ))}
-          </div>
-          <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border-soft)' }}>
-            <button className="btn" style={{ width: '100%', justifyContent: 'center' }}><Icon name="plus" size={13} /> Добавить локацию</button>
           </div>
         </aside>
 
-        <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+        <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ font: '500 13px var(--font-ui)' }}>Карта мира</span>
-              <span className="chip">подложка: «Север Тереи»</span>
-            </div>
+            <span style={{ font: '500 13px var(--font-ui)' }}>Карта «{book.title}»</span>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className="tb-btn"><Icon name="eye" size={15} /> Только активные главы</button>
-              <button className="btn"><Icon name="plus" size={14} /> Загрузить карту</button>
+              <button onClick={onCreate} className="btn"><Icon name="plus" size={14} /> Локация</button>
             </div>
           </div>
 
-          <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden', background: 'oklch(0.32 0.018 80)' }}>
-            <div style={{ position: 'absolute', inset: 24, borderRadius: 8, background: 'oklch(0.86 0.03 85)', boxShadow: 'inset 0 0 80px oklch(0.20 0.04 50 / 0.5)', overflow: 'hidden' }}>
-              <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-                <path d="M0 75 Q 12 70 22 75 T 50 78 Q 65 82 80 80 T 100 75 L 100 100 L 0 100 Z" fill="oklch(0.68 0.06 230)" opacity="0.55" />
-                <path d="M0 75 Q 12 70 22 75 T 50 78 Q 65 82 80 80 T 100 75" fill="none" stroke="oklch(0.30 0.04 50)" strokeWidth="0.18" />
-                <g opacity="0.7" stroke="oklch(0.30 0.04 50)" strokeWidth="0.15" fill="none">
-                  <path d="M20 20 l3-4 3 4 m-2 0 l2-3 2 3" />
-                  <path d="M40 12 l3-4 3 4 m-2 0 l2-3 2 3" />
-                  <path d="M55 18 l3-4 3 4" />
-                  <path d="M70 26 l3-4 3 4 m-2 0 l2-3 2 3" />
-                </g>
-                <g opacity="0.45" fill="oklch(0.46 0.06 130)">
-                  {Array.from({ length: 80 }).map((_, i) => (
-                    <circle key={i} cx={20 + ((i * 7) % 50)} cy={28 + ((i * 11) % 18)} r="0.6" />
-                  ))}
-                </g>
-                <path d="M30 18 Q 38 32 44 44 T 52 65 Q 58 72 70 78" fill="none" stroke="oklch(0.62 0.08 230)" strokeWidth="0.6" opacity="0.7" />
-                <path d="M30 18 Q 38 32 44 44 T 52 65 Q 58 72 70 78" fill="none" stroke="oklch(0.30 0.04 50)" strokeWidth="0.15" strokeDasharray="0.4 0.4" />
-                <path d="M28 62 Q 40 58 46 50 Q 52 42 56 38 Q 60 30 64 22" fill="none" stroke="oklch(0.35 0.04 50)" strokeWidth="0.2" strokeDasharray="0.6 0.6" />
-                <g transform="translate(90 92)" stroke="oklch(0.30 0.04 50)" strokeWidth="0.2" fill="oklch(0.30 0.04 50)" opacity="0.7">
-                  <circle cx="0" cy="0" r="3" fill="none" />
-                  <path d="M0 -3 L 0.6 0 L 0 3 L -0.6 0 Z" />
-                  <text x="0" y="-4.2" textAnchor="middle" style={{ font: '600 1.6px var(--font-serif)', fill: 'oklch(0.30 0.04 50)' }}>С</text>
-                </g>
-                <g stroke="oklch(0.30 0.04 50)" strokeWidth="0.05" opacity="0.25">
-                  {[20, 40, 60, 80].map((v) => <line key={'h' + v} x1={0} x2={100} y1={v} y2={v} />)}
-                  {[20, 40, 60, 80].map((v) => <line key={'v' + v} x1={v} x2={v} y1={0} y2={100} />)}
-                </g>
-              </svg>
-
-              {pins.map((p, i) => (
-                <div key={i} style={{ position: 'absolute', left: p.x + '%', top: p.y + '%', transform: 'translate(-50%, -100%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ position: 'relative', width: p.active ? 28 : 22, height: p.active ? 34 : 26 }}>
-                    <svg viewBox="0 0 22 26" width={p.active ? 28 : 22} height={p.active ? 34 : 26}>
-                      <path d="M11 25 C 11 20 21 16 21 9 A 10 10 0 1 0 1 9 C 1 16 11 20 11 25 Z" fill={p.active ? 'var(--accent)' : 'oklch(0.30 0.04 50)'} stroke="oklch(0.18 0.04 50)" strokeWidth="0.5" />
-                      <circle cx="11" cy="9" r="3" fill="oklch(0.95 0.014 85)" />
-                    </svg>
-                  </div>
-                  <div style={{ font: '500 11px var(--font-serif)', color: 'oklch(0.22 0.02 60)', background: 'oklch(0.95 0.014 85 / 0.85)', padding: '2px 6px', borderRadius: 3, marginTop: 2, whiteSpace: 'nowrap', border: p.active ? '1px solid var(--accent)' : 'none' }}>
-                    {p.name}
-                  </div>
-                </div>
-              ))}
-
-              <div style={{ position: 'absolute', right: 14, top: 14, display: 'flex', flexDirection: 'column', background: 'oklch(0.96 0.014 85)', borderRadius: 6, overflow: 'hidden', border: '1px solid oklch(0.30 0.04 50 / 0.4)' }}>
-                <button style={{ width: 32, height: 32, borderBottom: '1px solid oklch(0.30 0.04 50 / 0.2)', color: 'oklch(0.22 0.02 60)' }}>+</button>
-                <button style={{ width: 32, height: 32, color: 'oklch(0.22 0.02 60)' }}>−</button>
-              </div>
-
-              <div style={{ position: 'absolute', left: 24, bottom: 24, width: 300, background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--accent)' }} />
-                  <span style={{ font: '500 10px var(--font-mono)', color: 'var(--accent)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>город · упоминается в гл. 1, 2, 5</span>
-                </div>
-                <div style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6 }}>Корна</div>
-                <p style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 12 }}>
-                  Северный город на реке Тихой. Шесть тысяч девятьсот сорок четыре жителя на момент исчезновения. Известен зимними ярмарками и ратушей с серебряным колоколом.
-                </p>
-                <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--ink-3)', paddingTop: 10, borderTop: '1px solid var(--border-soft)' }}>
-                  <span>62.4° с.ш.</span><span>·</span><span>34.1° в.д.</span>
-                  <span style={{ flex: 1 }} />
-                  <a style={{ color: 'var(--accent)' }}>Открыть статью →</a>
-                </div>
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
+            <div style={{ background: 'oklch(0.96 0.01 80 / 0.05)', border: '1px dashed var(--border-soft)', borderRadius: 12, padding: '16px 20px', marginBottom: 20 }}>
+              <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Визуальная карта</div>
+              <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
+                Графическое расположение локаций по координатам появится в следующем заходе. Сейчас — список с inline-редактированием.
               </div>
             </div>
+
+            {filtered.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'var(--ink-3)', padding: '48px 0' }}>
+                <div style={{ font: '500 14px var(--font-ui)' }}>
+                  {locations.length === 0 ? 'На карте ещё нет локаций' : 'Нет локаций этого типа'}
+                </div>
+                {locations.length === 0 && (
+                  <button onClick={onCreate} className="btn"><Icon name="plus" size={13} /> Создать первую</button>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
+                {filtered.map((loc) => (
+                  <LocationCard
+                    key={loc.id}
+                    location={loc}
+                    onUpdate={(patch) => onUpdate(loc.id, patch)}
+                    onDelete={() => onDelete(loc.id)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </main>
       </div>
     </WithMode>
+  );
+}
+
+function LocationCard({ location, onUpdate, onDelete }: {
+  location: Location;
+  onUpdate: (patch: LocationPatch) => void;
+  onDelete: () => void;
+}) {
+  const [name, setName] = useState(location.name);
+  const [role, setRole] = useState(location.role);
+  const [description, setDescription] = useState(location.description);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pending = useRef<LocationPatch>({});
+
+  useEffect(() => { setName(location.name); }, [location.id, location.name]);
+  useEffect(() => { setRole(location.role); }, [location.id, location.role]);
+  useEffect(() => { setDescription(location.description); }, [location.id, location.description]);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  const schedule = (patch: LocationPatch) => {
+    pending.current = { ...pending.current, ...patch };
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      const p = pending.current;
+      pending.current = {};
+      onUpdate(p);
+    }, 700);
+  };
+
+  const onNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setName(v);
+    schedule({ name: v.trim() === '' ? 'Без названия' : v });
+  };
+  const onRoleChange = (e: ChangeEvent<HTMLInputElement>) => { setRole(e.target.value); schedule({ role: e.target.value }); };
+  const onDescChange = (e: ChangeEvent<HTMLTextAreaElement>) => { setDescription(e.target.value); schedule({ description: e.target.value }); };
+
+  return (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '14px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <select
+          value={location.type}
+          onChange={(e) => onUpdate({ type: e.target.value as LocationType })}
+          style={{ height: 28, padding: '0 8px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--ink)', fontSize: 12, outline: 'none' }}
+        >
+          {(['city', 'village', 'forest', 'sea', 'castle', 'other'] as const).map((t) => (
+            <option key={t} value={t}>{TYPE_GLYPHS[t]} {TYPE_LABELS[t]}</option>
+          ))}
+        </select>
+        <input
+          value={name}
+          onChange={onNameChange}
+          placeholder="Название локации"
+          style={{ flex: 1, font: '500 16px var(--font-serif)', color: 'var(--ink)', background: 'transparent', border: 'none', outline: 'none', padding: '4px 0' }}
+        />
+        <button
+          onClick={onDelete}
+          title="Удалить локацию"
+          style={{ background: 'transparent', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', padding: '4px 8px', font: '400 16px var(--font-ui)', lineHeight: 1, borderRadius: 4 }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--danger)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)'; }}
+        >
+          ×
+        </button>
+      </div>
+      <input
+        value={role}
+        onChange={onRoleChange}
+        placeholder="Краткая роль в сюжете (например, столица ордена)"
+        style={{ width: '100%', font: '400 12px var(--font-mono)', color: 'var(--ink-3)', background: 'transparent', border: 'none', outline: 'none', padding: '2px 0', marginBottom: 6, letterSpacing: '0.02em' }}
+      />
+      <textarea
+        value={description}
+        onChange={onDescChange}
+        placeholder="Подробное описание"
+        rows={3}
+        style={{ width: '100%', font: '400 13px/1.55 var(--font-serif)', color: 'var(--ink-2)', background: 'transparent', border: 'none', outline: 'none', resize: 'vertical', padding: 0 }}
+      />
+    </div>
   );
 }
