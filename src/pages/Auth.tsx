@@ -146,7 +146,7 @@ export default function Auth() {
             {tab === 'signin' ? 'С возвращением.' : 'Откройте студию.'}
           </h2>
           <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 24 }}>
-            {tab === 'signin' ? 'Войдите по почте или через Google / Telegram.' : 'Минимальная регистрация — или один клик через Google / Telegram.'}
+            {tab === 'signin' ? 'Войдите по почте или через Google.' : 'Минимальная регистрация — или один клик через Google.'}
           </p>
 
           {!supabaseConfigured && (
