@@ -15,6 +15,20 @@ import {
   type CharacterPatch,
   type CharacterRole,
 } from '../lib/characters';
+import { listChapters, type Chapter } from '../lib/chapters';
+import {
+  createRelation,
+  deleteRelation,
+  listRelations,
+  updateRelationLabel,
+  type CharacterRelation,
+} from '../lib/character_relations';
+import {
+  attachCharacterToChapter,
+  detachCharacterFromChapter,
+  listChapterCharacters,
+  type ChapterCharacter,
+} from '../lib/chapter_characters';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type RoleFilter = 'all' | CharacterRole;
@@ -33,6 +47,9 @@ export default function Characters() {
 
   const [book, setBook] = useState<Book | null>(null);
   const [characters, setCharacters] = useState<Character[] | null>(null);
+  const [chapters, setChapters] = useState<Chapter[] | null>(null);
+  const [relations, setRelations] = useState<CharacterRelation[] | null>(null);
+  const [chapterChars, setChapterChars] = useState<ChapterCharacter[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
@@ -45,14 +62,20 @@ export default function Characters() {
     let cancelled = false;
     (async () => {
       try {
-        const [bookRes, list] = await Promise.all([
+        const [bookRes, charList, chList, relList, ccList] = await Promise.all([
           supabase.from('books').select('*').eq('id', bookId).single(),
           listCharacters(bookId),
+          listChapters(bookId),
+          listRelations(bookId),
+          listChapterCharacters(bookId),
         ]);
         if (cancelled) return;
         if (bookRes.error) throw bookRes.error;
         setBook(bookRes.data as Book);
-        setCharacters(list);
+        setCharacters(charList);
+        setChapters(chList);
+        setRelations(relList);
+        setChapterChars(ccList);
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
       }
@@ -164,6 +187,8 @@ export default function Characters() {
       await deleteCharacter(active.id);
       const remaining = characters.filter((c) => c.id !== active.id);
       setCharacters(remaining);
+      setRelations((prev) => prev ? prev.filter((r) => r.from_character_id !== active.id && r.to_character_id !== active.id) : prev);
+      setChapterChars((prev) => prev ? prev.filter((cc) => cc.character_id !== active.id) : prev);
       const next = new URLSearchParams(search);
       if (remaining.length > 0) {
         next.set('character', remaining[0].id);
@@ -176,6 +201,50 @@ export default function Characters() {
     }
   }, [active, characters, search, setSearch]);
 
+  const onCreateRelation = useCallback(async (toId: string, label: string) => {
+    if (!bookId || !user || !active) return;
+    try {
+      const created = await createRelation(bookId, user.id, active.id, toId, label);
+      setRelations((prev) => [...(prev ?? []), created]);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [bookId, user, active]);
+
+  const onDeleteRelation = useCallback(async (relationId: string) => {
+    try {
+      await deleteRelation(relationId);
+      setRelations((prev) => prev ? prev.filter((r) => r.id !== relationId) : prev);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
+  const onRelationLabelChange = useCallback(async (relationId: string, label: string) => {
+    try {
+      const updated = await updateRelationLabel(relationId, label);
+      setRelations((prev) => prev ? prev.map((r) => (r.id === relationId ? updated : r)) : prev);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
+  const onToggleChapter = useCallback(async (chapterId: string) => {
+    if (!bookId || !user || !active) return;
+    const existing = (chapterChars ?? []).find((cc) => cc.chapter_id === chapterId && cc.character_id === active.id);
+    try {
+      if (existing) {
+        await detachCharacterFromChapter(chapterId, active.id);
+        setChapterChars((prev) => prev ? prev.filter((cc) => cc.id !== existing.id) : prev);
+      } else {
+        const created = await attachCharacterToChapter(bookId, user.id, chapterId, active.id);
+        setChapterChars((prev) => [...(prev ?? []), created]);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [bookId, user, active, chapterChars]);
+
   if (!bookId) return <Navigate to="/books" replace />;
 
   if (error) {
@@ -186,7 +255,7 @@ export default function Characters() {
     );
   }
 
-  if (!book || !characters) {
+  if (!book || !characters || !chapters || !relations || !chapterChars) {
     return (
       <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink-3)', padding: 32 }}>
         Загрузка…
@@ -211,6 +280,7 @@ export default function Characters() {
           </div>
           <nav style={{ padding: '14px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
             {([
+              ['layout', 'Дэшборд', `/books/${bookId}`, false],
               ['book', 'Манускрипт', `/books/${bookId}/editor`, false],
               ['char', 'Персонажи', `/books/${bookId}/characters`, true],
               ['map', 'Карта мира', `/books/${bookId}/map`, false],
@@ -312,8 +382,21 @@ export default function Characters() {
                 />
               </div>
 
-              <PlaceholderCard label="Связи" hint="Связи с другими персонажами — в следующем заходе" />
-              <PlaceholderCard label="Появляется в главах" hint="Привязка к главам — в следующем заходе" />
+              <RelationsBlock
+                activeId={active.id}
+                characters={characters}
+                relations={relations}
+                onCreate={onCreateRelation}
+                onDelete={onDeleteRelation}
+                onLabelChange={onRelationLabelChange}
+              />
+
+              <AppearsInBlock
+                activeId={active.id}
+                chapters={chapters}
+                chapterChars={chapterChars}
+                onToggle={onToggleChapter}
+              />
             </div>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'var(--ink-3)' }}>
@@ -447,11 +530,194 @@ function FieldCard({ label, value, onChange, warn }: {
   );
 }
 
-function PlaceholderCard({ label, hint }: { label: string; hint: string }) {
+function RelationsBlock({ activeId, characters, relations, onCreate, onDelete, onLabelChange }: {
+  activeId: string;
+  characters: Character[];
+  relations: CharacterRelation[];
+  onCreate: (toId: string, label: string) => void;
+  onDelete: (relationId: string) => void;
+  onLabelChange: (relationId: string, label: string) => void;
+}) {
+  const mine = relations.filter((r) => r.from_character_id === activeId);
+  const occupied = new Set(mine.map((r) => r.to_character_id));
+  const candidates = characters.filter((c) => c.id !== activeId && !occupied.has(c.id));
+
+  const [adding, setAdding] = useState(false);
+  const [toId, setToId] = useState('');
+  const [label, setLabel] = useState('');
+
+  useEffect(() => {
+    setAdding(false);
+    setToId('');
+    setLabel('');
+  }, [activeId]);
+
+  const startAdd = () => {
+    if (candidates.length === 0) return;
+    setAdding(true);
+    setToId(candidates[0].id);
+    setLabel('');
+  };
+
+  const submit = () => {
+    if (!toId) return;
+    onCreate(toId, label);
+    setAdding(false);
+    setToId('');
+    setLabel('');
+  };
+
   return (
-    <div style={{ background: 'var(--surface)', border: '1px dashed var(--border-soft)', borderRadius: 12, padding: '18px 22px', marginBottom: 16, opacity: 0.7 }}>
-      <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>{label}</div>
-      <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>{hint}</div>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 22px', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <span style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Связи</span>
+        {!adding && (
+          <button onClick={startAdd} disabled={candidates.length === 0} className="btn btn--ghost" style={{ fontSize: 12 }}>
+            <Icon name="plus" size={12} /> Добавить связь
+          </button>
+        )}
+      </div>
+
+      {adding && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 8 }}>
+          <select
+            value={toId}
+            onChange={(e) => setToId(e.target.value)}
+            style={{ flex: '0 0 200px', height: 32, padding: '0 8px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+          >
+            {candidates.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Кто кому? (наставник, спутник, сестра…)"
+            onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setAdding(false); }}
+            autoFocus
+            style={{ flex: 1, height: 32, padding: '0 10px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+          />
+          <button onClick={submit} className="btn btn--primary" style={{ fontSize: 12 }}>Добавить</button>
+          <button onClick={() => setAdding(false)} className="btn btn--ghost" style={{ fontSize: 12 }}>Отмена</button>
+        </div>
+      )}
+
+      {mine.length === 0 && !adding ? (
+        <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
+          {candidates.length === 0 ? 'Нет других персонажей для связи.' : 'Связей пока нет.'}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+          {mine.map((rel) => {
+            const partner = characters.find((c) => c.id === rel.to_character_id);
+            if (!partner) return null;
+            return (
+              <RelationRow
+                key={rel.id}
+                relation={rel}
+                partner={partner}
+                onDelete={() => onDelete(rel.id)}
+                onLabelChange={(v) => onLabelChange(rel.id, v)}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RelationRow({ relation, partner, onDelete, onLabelChange }: {
+  relation: CharacterRelation;
+  partner: Character;
+  onDelete: () => void;
+  onLabelChange: (label: string) => void;
+}) {
+  const [label, setLabel] = useState(relation.label);
+  const initialRef = useRef(relation.label);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (relation.label !== initialRef.current) {
+      setLabel(relation.label);
+      initialRef.current = relation.label;
+    }
+  }, [relation.label]);
+
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+
+  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setLabel(v);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => { onLabelChange(v); }, 700);
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
+      <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 12px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0 }}>{initialsFromName(partner.name)}</div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ font: '500 13px var(--font-ui)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{partner.name}</div>
+        <input
+          value={label}
+          onChange={onChange}
+          placeholder="кем приходится"
+          style={{ width: '100%', font: '400 11.5px var(--font-ui)', color: 'var(--ink-3)', background: 'transparent', border: 'none', outline: 'none', padding: '2px 0' }}
+        />
+      </div>
+      <button
+        onClick={onDelete}
+        title="Удалить связь"
+        style={{ background: 'transparent', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'center', borderRadius: 4, font: '400 16px var(--font-ui)', lineHeight: 1 }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--danger)'; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)'; }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+function AppearsInBlock({ activeId, chapters, chapterChars, onToggle }: {
+  activeId: string;
+  chapters: Chapter[];
+  chapterChars: ChapterCharacter[];
+  onToggle: (chapterId: string) => void;
+}) {
+  const sorted = [...chapters].sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at));
+  const mineSet = new Set(chapterChars.filter((cc) => cc.character_id === activeId).map((cc) => cc.chapter_id));
+
+  return (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 22px' }}>
+      <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 14 }}>Появляется в главах</div>
+      {sorted.length === 0 ? (
+        <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>В книге ещё нет глав.</div>
+      ) : (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {sorted.map((ch, i) => {
+            const has = mineSet.has(ch.id);
+            return (
+              <button
+                key={ch.id}
+                onClick={() => onToggle(ch.id)}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 999,
+                  border: has ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
+                  background: has ? 'var(--accent-soft)' : 'transparent',
+                  font: '500 11.5px var(--font-mono)',
+                  color: has ? 'var(--accent)' : 'var(--ink-4)',
+                  cursor: 'pointer',
+                }}
+              >
+                {String(i + 1).padStart(2, '0')} · {ch.title}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
