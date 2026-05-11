@@ -23,9 +23,8 @@ export function countWords(html: string): number {
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&[a-z]+;/gi, ' ');
-  const matches = text.match(/[\p{L}\p{N}'\-]+/gu);
+    .replace(/&[a-z0-9#]+;/gi, ' ');
+  const matches = text.match(/[\p{L}\p{N}][\p{L}\p{N}'\-]*/gu);
   return matches ? matches.length : 0;
 }
 
