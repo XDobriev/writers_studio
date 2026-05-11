@@ -167,19 +167,8 @@ export default function Auth() {
               <span>{oauthBusy === 'google' ? 'Переход к Google…' : 'Войти через Google'}</span>
             </button>
 
-            {TG_BOT_USERNAME ? (
+            {TG_BOT_USERNAME && (
               <div ref={tgSlotRef} style={{ display: 'flex', justifyContent: 'center', minHeight: 42 }} />
-            ) : (
-              <button
-                type="button"
-                disabled
-                className="btn"
-                style={{ width: '100%', height: 42, justifyContent: 'center', gap: 10, color: 'var(--ink-4)' }}
-                title="Заполните VITE_TELEGRAM_BOT_USERNAME в .env"
-              >
-                <TelegramGlyph />
-                <span>Telegram — не сконфигурирован</span>
-              </button>
             )}
             {oauthBusy === 'telegram' && (
               <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', textAlign: 'center' }}>Подтверждение Telegram…</div>
@@ -254,10 +243,3 @@ function GoogleGlyph() {
   );
 }
 
-function TelegramGlyph() {
-  return (
-    <svg width={16} height={16} viewBox="0 0 24 24" aria-hidden>
-      <path fill="currentColor" d="M9.78 18.65l.28-4.2 7.61-6.86c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3L19.9 4.46c.73-.33 1.43.18 1.15 1.3l-2.72 12.84c-.19.91-.74 1.13-1.5.7L12.7 16.3l-2 1.96c-.23.23-.42.42-.92.42z" />
-    </svg>
-  );
-}
