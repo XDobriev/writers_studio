@@ -1,169 +1,92 @@
-# Авторская студия — заметки для Claude Code
+# Авторская студия — Claude Code
 
-Редактор для писателей. Vite + React + TypeScript на фронте, Supabase (Auth + Postgres) на бэке, деплой на Vercel.
+Редактор для писателей. Vite + React + TypeScript, Supabase (Auth + Postgres), деплой на Vercel.
 
 ## Боевые ссылки
 
 - **Прод:** https://avtorskaya-studiya.vercel.app
-- **GitHub:** https://github.com/XDobriev/writers_studio (push в `main` авто-деплоится в Vercel)
-- **Supabase project ref:** `joaxeoavjvlqmtlepkrr` (Dashboard: https://supabase.com/dashboard/project/joaxeoavjvlqmtlepkrr)
+- **GitHub:** https://github.com/XDobriev/writers_studio (push в `main` → авто-деплой)
+- **Supabase ref:** `joaxeoavjvlqmtlepkrr` · [Dashboard](https://supabase.com/dashboard/project/joaxeoavjvlqmtlepkrr)
 - **Vercel project:** `khamza-s-projects/avtorskaya-studiya`
-- **Supabase MCP** подключён в local scope (`~/.claude.json`) с `--project-ref=joaxeoavjvlqmtlepkrr`. Для выполнения SQL/инспекции БД грузить tools через ToolSearch `select:mcp__supabase__...`.
-
-## Текущая стадия
-
-- **Заход 1** (в проде 2026-05-09): фундамент, реальная авторизация, реальная полка книг.
-- **Заход 2** (в проде 2026-05-11): редактор пишет реальный текст глав в Supabase с автосохранением (debounce 700 мс). Главы — CRUD (создание/переименование/контент через `src/lib/chapters.ts`). Outline и Corkboard читают те же данные. `books.words` пересчитывается триггером `chapters_recount_book_words` из суммы `chapters.words`. Сцены и порядок drag-n-drop — позже.
-- **Заход 3** (в проде 2026-05-11): OAuth. Google работает end-to-end. Telegram-код и Edge Function `telegram-auth` на месте, но кнопка скрыта — Telegram anti-fraud режет login challenge для свежего бота. Вернуть = добавить `VITE_TELEGRAM_BOT_USERNAME=authorsStudioBot` в Vercel env.
-- **Заход 4** (в проде 2026-05-11): персонажи — реальный CRUD в Supabase. Таблица `characters` с RLS, поля name/role/age/quote/appearance/personality/backstory/notes, автосохранение полей с debounce 700 мс через `src/lib/characters.ts`.
-- **Заход 5** (в проде 2026-05-11): дэшборд книги (`/books/:id`) — реальные карточки (слова/главы/персонажи/дни в работе), прогресс по цели, список последних 6 правок. Графики до писательских снимков отложены — плашка-плейсхолдер.
-- **Заход 6** (в проде 2026-05-11): связи между персонажами + «появляется в главах». Миграция `0005_relations.sql` — таблицы `character_relations` (from→to + label, UNIQUE, CHECK no-self) и `chapter_characters` (many-to-many, UNIQUE). Inline-формы в `src/pages/Characters.tsx`, debounce 700 мс на label связи. Каскадные удаления через FK on delete cascade.
-- **Точность подсчёта слов**: в `src/lib/chapters.ts` `countWords` теперь требует чтобы слово начиналось с буквы/цифры (одиночные `-` и `'` не считаются). Очистка HTML entities расширена до `&[a-z0-9#]+;`. Для уже сохранённых глав счётчики пересчитаются при следующей правке.
-- **Заход 7** (в проде 2026-05-11): хронология (`/books/:id/timeline`) — реальный CRUD событий. Миграция `0006_timeline.sql`: таблица `timeline_events` с типами `plot/character/world/other`, опциональной привязкой к главе (`chapter_id` on delete set null). Inline-edit через `src/lib/timeline.ts`. Вертикальная timeline, фильтр по типу в sidebar. Горизонтальная timeline-визуализация по `pos` — следующий заход.
-- **Заход 8** (в проде 2026-05-11): карта мира (`/books/:id/map`) — реальный CRUD локаций. Миграция `0007_locations.sql`: таблица `locations` с типами `city/village/forest/sea/castle/other`, опциональные координаты `x/y`. Grid карточек с inline-edit. Графическая карта с пинами по координатам — следующий заход.
-- **Заход 9** (в проде 2026-05-11): экспорт книги (`/books/:id/export`) — HTML / TXT / Markdown без зависимостей. Собственные HTML→TXT и HTML→Markdown конвертеры. Тогглы: «только готовые главы», «заголовки глав внутри документа». Скачивание через Blob + `a[download]`. DOCX/EPUB — отдельный заход с библиотеками.
-- **Заход 10** (в проде 2026-05-11): focus-режим (`/books/:id/focus?chapter=X`) — фуллскрин contentEditable редактор одной главы, тёмный фон, автосейв debounce 700 мс, ESC возвращает на `/editor`.
-- **Заход 11** (в проде 2026-05-11): split-режим (`/books/:id/split?left=X&right=Y`) — две панели редактирования рядом для сравнения, независимый автосейв per-pane. Защита при <2 главах в книге.
-- **Заход 12** (в проде 2026-05-11): миграция редактора с `contentEditable` + `document.execCommand` (deprecated) на TipTap (ProseMirror). Общий компонент `src/components/RichEditor.tsx` (StarterKit + Underline + Placeholder) используется в `EditorHybrid` / `Focus` / `Split`. Тулбары `StudioToolbar` и `FloatingPill` теперь дёргают `editor.chain().focus().toggle*().run()` и подсвечивают активные форматы (bold/italic/underline/H2/list/quote). Bundle вырос с 138 → 259 KB gzip. CSS-стили TipTap в `src/styles/design-system.css` (`.tiptap` блок).
-- **Заход 13** (в проде 2026-05-11): полноценный тулбар TipTap. Подключены расширения: TextStyle+Color, Highlight (multicolor), Link, TextAlign (heading + paragraph), TaskList+TaskItem, Subscript, Superscript. Новый общий компонент `src/components/EditorToolbar.tsx` — большая горизонтальная панель с группами: Undo/Redo · Heading dropdown (Обычный/H1/H2/H3) · B/I/U/Strike/Clear · Color/Highlight popovers · Sup/Sub · Align (L/C/R/Justify) · BulletList/OrderedList/TaskList · Quote/Code/CodeBlock/HR · Link/Unlink · ModeSegment · Speak/Timer (disabled). Pill-вариант (`variant="pill"`) используется в режиме Страница — те же кнопки, без режимов. Color и Highlight открывают popover с палитрой (9/7 цветов + сброс). Link — через `window.prompt()`. Tb теперь `overflow-x: auto` чтобы кнопки не вылазили. Жёсткие CSS-правила `.sheet .tiptap` с `!important` перебивают любые inline color из старого HTML в БД. Заголовок главы (input.sheet-title) переключён с `var(--ink)` → `var(--paper-ink)` (закрывает баг #3). Bundle вырос с 259 → 263 KB gzip.
-- **Фиксы (2026-05-11):** favicon (inline SVG в `index.html` в стиле логотипа); autocomplete на `/login` (добавлены `name`/`id`/`htmlFor`, `autoComplete="username"`, `method="post" action="#"` на форму — Chrome/Firefox теперь сохраняют credentials и предлагают автозаполнение).
-
-Дальше:
-- **Заход 13+** — writing-snapshots для графиков дэшборда (heatmap активности, серия дней, накопленный объём; миграция `0008_writing_snapshots.sql` уже в `supabase/migrations/`, осталось применить и подключить чтение), графическая карта по координатам, горизонтальная timeline по pos, DOCX/EPUB экспорт через библиотеки, рабочая кнопка Link в тулбаре TipTap.
-
-Все экраны теперь на реальных данных. `src/data/sample.ts` остаётся только как референс из дизайна — в активном коде не используется.
-
-## Готовые функции для пользовательской проверки
-
-Чеклист того, что уже реально работает в проде — пользователь проверяет, находит баги, репортит. Найденные баги записываются в подраздел ниже.
-
-**Auth (`/login`)**
-- Регистрация по email/паролю (одношаговая, без подтверждения).
-- Вход по email/паролю.
-- Вход через Google OAuth (полный flow).
-- Выход (кнопка «Выйти» в `/books`).
-- Защита маршрутов: незалогиненного редиректит на `/login` с return-state.
-- Браузер запоминает email/пароль и автозаполняет при следующем входе (Chrome credentials manager + autofill).
-
-**Полка книг (`/books`)**
-- Список книг текущего пользователя (только свои — RLS).
-- Создание книги (название, жанр, цель по словам).
-- Открытие книги → переход на `/books/:id` (дэшборд).
-- Прогресс по словам пересчитывается из глав (триггер `chapters_recount_book_words`).
-
-**Дэшборд книги (`/books/:id`)**
-- 4 stat-карточки на реальных данных: слова/главы/персонажи/дни в работе.
-- Прогресс по цели (procент + сколько слов осталось).
-- Список последних 6 правок (клик → редактор конкретной главы).
-- Боковое меню навигации между разделами книги.
-
-**Редактор глав (`/books/:id/editor`)**
-- Список глав в sidebar.
-- Создание главы.
-- Переименование главы (inline).
-- Редактирование текста на TipTap с автосохранением (debounce 700 мс).
-- Тулбар: bold/italic/underline, H2, маркированный список, цитата — все с подсветкой активного формата. Markdown-шорткаты из коробки (`# `, `> `, `**...**`, и т.п.).
-- Подсчёт слов на лету.
-- Outline и Corkboard читают те же главы (`/books/:id/outline`, `/books/:id/corkboard`).
-- Переключение режимов студия/левая/правая/страница.
-
-**Персонажи (`/books/:id/characters`)**
-- Список персонажей в sidebar с инициалами и ролью.
-- Поиск по имени.
-- Фильтр по роли (все / главные / второстеп. / эпиз.).
-- Создание персонажа (кнопка «Новый персонаж» / «Создать первого»).
-- Inline-редактирование с автосохранением: имя, возраст, цитата, внешность, характер, предыстория, заметки.
-- Смена роли через чипы.
-- Удаление с подтверждением.
-- Навигация в sidebar на Дэшборд/Манускрипт/Карта/Хронология.
-- **Связи** (between characters): inline-форма добавления (выбор персонажа + текст ярлыка), правка ярлыка с debounce, удаление крестиком. Каждая связь направлена `from → to`.
-- **Появляется в главах**: chip-сетка всех глав, клик тогл-ит привязку character ↔ chapter.
-
-**Хронология (`/books/:id/timeline`)**
-- Создание/удаление событий, inline-edit (эра, заголовок, описание, тип, привязка к главе).
-- Фильтр по типу в sidebar (сюжет/персонаж/мир/другое).
-- Вертикальная timeline-лента с цветной шкалой по типу.
-
-**Карта мира (`/books/:id/map`)**
-- Создание/удаление локаций, inline-edit (тип, имя, роль, описание).
-- Фильтр по типу в sidebar (города/поселения/леса/моря/замки/другое).
-- Grid карточек. Графическая карта по координатам — следующий заход.
-
-**Экспорт (`/books/:id/export`)**
-- Три формата без зависимостей: HTML, TXT, Markdown.
-- Тогглы: «только готовые главы», «заголовки глав внутри документа».
-- Скачивание реального файла с книгой через браузер.
-- DOCX/EPUB — отдельный заход с библиотеками.
-
-**Focus (`/books/:id/focus?chapter=X`)**
-- Фуллскрин TipTap-редактор одной главы, тёмный фон, без отвлекающих панелей.
-- Автосейв при наборе текста.
-- ESC или кнопка справа сверху возвращают в обычный редактор.
-
-**Split (`/books/:id/split?left=X&right=Y`)**
-- Две панели рядом для сравнения глав (TipTap в каждой панели).
-- Можно менять главу в каждой панели через select.
-- Независимый автосейв.
-- При менее чем 2 главах — заглушка с переходом в редактор.
-
-### Найденные баги
-
-**Репорт 2026-05-11 (после Захода 12):**
-
-1. ~~Тулбар в редакторе без тултипов~~ — **закрыт** в `fdfbec5`: title-атрибуты на всех кнопках. После Захода 13 тулбар вообще переделан, тултипы у всех новых кнопок.
-2. **Заметки на полях не добавляются** — в правой панели «Заметки на полях» есть кнопка `+` сверху, но клик ничего не делает. Сейчас заметки берутся из `src/data/sample.ts` (статика), CRUD не подключён. Нужна реальная таблица `notes` в Supabase + inline-форма создания/правки/удаления.
-3. ~~«Глава 1» обесцвечена + нет управления цветом текста~~ — **закрыт** в `061bbd9` (видимость) + Заходе 13 (color/highlight picker).
-4. **Sidebar-навигация в режиме Манускрипт не работает** — пункты «Персонажи», «Карта мира», «Хронология», «Заметки», «Дэшборд» в левом сайдбаре редактора не реагируют на клик. Нужно проверить, что эти ссылки роутятся на `/books/:id/characters`, `/books/:id/map`, `/books/:id/timeline`, `/books/:id/notes` (пока нет), `/books/:id` — и что компонент пункта сайдбара навешивает onClick/navigate. «Заметки» как отдельный экран сейчас не существует — нужно решить, делать ли страницу или открывать правую панель.
-5. **«Сегодня · 348/1000 слов · серия 7 дней» — фейковые данные** — статусная плашка внизу редактора берёт цифры из `SAMPLE_PROSE`/константы, а не из реальных писательских снимков. Нужно: либо скрыть до Захода с writing-snapshots, либо считать «слова за сегодня» через diff `chapters.words` с началом суток (нужна таблица writing_snapshots, миграция уже подготовлена — `0008_writing_snapshots.sql`).
-6. **Клик по логотипу/названию «Авторская студия» не ведёт на главную** — в сайдбаре сверху логотип и подпись `АВТОРСКАЯ СТУДИЯ` не кликабельны. По конвенции большинства приложений это должна быть ссылка на `/books` (полка книг). Завернуть в `<Link to="/books">`.
-
-### Запланированные фичи
-
-- **Обложка книги** — возможность загружать/менять обложку для каждой книги. Хранилище: Supabase Storage bucket `book-covers`, путь `{user_id}/{book_id}.jpg`. В `books` добавить колонку `cover_url text`. UI: загрузка из формы создания книги + кнопка «Изменить обложку» на дэшборде книги. Карточка на полке `/books` показывает обложку вместо градиента-плейсхолдера. Ресайз/кроп на клиенте (canvas), max 1MB.
-
-## Что не трогать
-
-- `_design-source/` — оригинальные .jsx из Cloud Design, сохранены как референс. Это не активный код, не редактировать и не пересобирать на их основе. При расхождении правда в `src/`.
-- `src/data/sample.ts` дублирует то, что было в `_design-source/content.js` — для макетных экранов. По мере перевода экранов на реальные данные эта зависимость будет уходить.
+- **Supabase MCP** подключён (`~/.claude.json`, `--project-ref=joaxeoavjvlqmtlepkrr`). Грузить через ToolSearch: `select:mcp__supabase__...`.
 
 ## Команды
 
-- `npm run dev` — dev-сервер на 127.0.0.1:5273 (5173 занят параллельным проектом «Авторская студия версия 1» — не нашим)
-- `npm run build` — продакшен-сборка в `dist/`
-- `npm run typecheck` — только TypeScript, без сборки
-- `npm run preview` — превью продакшен-сборки
+```bash
+npm run dev        # dev-сервер на 127.0.0.1:5273
+npm run build      # продакшен-сборка в dist/
+npm run typecheck  # только TS, без сборки
+npm run preview    # превью продакшен-сборки
+```
 
+## Архитектура
 
-## Windows quirk
-
-`npm.ps1` заблокирован execution policy на этой машине — запуск `npm` через PowerShell-инструмент падает с PSSecurityException. Использовать **Bash-инструмент** для всех npm-команд (там npm запускается напрямую, не через .ps1-обёртку). Не пытаться обходить через `Set-ExecutionPolicy` без явного запроса пользователя.
+- `src/App.tsx` — роутер. Все маршруты `/books/:id/...` под `<AuthGuard>`.
+- `src/components/Chrome.tsx` — Sidebar, Toolbar, RightPanel, RailNav, WithMode, StatusBar, Sheet.
+- `src/components/EditorHybrid.tsx` — главный редактор, 4 режима (studio/left/right/page).
+- `src/components/RichEditor.tsx` — TipTap wrapper.
+- `src/components/EditorToolbar.tsx` — полноценный тулбар TipTap.
+- `src/styles/design-system.css` — CSS-переменные (oklch), классы `.as`, `.sb`, `.tb`, `.sheet`, `.btn`, `.input`, `.label`.
+- `src/lib/supabase.ts` — Supabase клиент.
+- `src/lib/auth.tsx` — `AuthProvider`, `useAuth`.
+- `src/components/AuthGuard.tsx` — защита роутов.
 
 ## Supabase
 
-- Клиент: `src/lib/supabase.ts`. Читает `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY` из `.env`. На Vercel те же переменные лежат в Production+Development environments.
-- Auth: `src/lib/auth.tsx` (`AuthProvider`, `useAuth`). Защита роутов — `<AuthGuard>` в `src/components/AuthGuard.tsx`. Confirm email отключён, регистрация одношаговая.
-- Миграции: `supabase/migrations/*.sql`. Применяются через Supabase MCP (`apply_migration`/`execute_sql`) или Management API через PAT. Локально CLI Supabase не используется.
-- При добавлении таблиц обязательно RLS-политики `auth.uid() = user_id` (см. `0001_init.sql` как образец).
-- Auth URL Configuration уже настроена: `site_url=https://avtorskaya-studiya.vercel.app`, allow-list включает прод, preview-домены `avtorskaya-studiya-*.vercel.app` и `localhost:5273`.
+- Клиент читает `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY` из `.env`.
+- Миграции: `supabase/migrations/*.sql`. Применять через Supabase MCP (`apply_migration` / `execute_sql`). CLI локально не используется.
+- **При добавлении таблиц: обязательно RLS** `auth.uid() = user_id` (образец: `0001_init.sql`).
+- Auth URL: `site_url=https://avtorskaya-studiya.vercel.app`, allow-list включает прод + `avtorskaya-studiya-*.vercel.app` + `localhost:5273`.
+- Confirm email отключён, регистрация одношаговая.
 
 ## Vercel
 
-- Проект `khamza-s-projects/avtorskaya-studiya`, привязан к GitHub репо. Push в `main` → авто-деплой prod.
-- Vercel CLI в PATH, `vercel whoami` = `xdobriev`. Команды: `vercel deploy --prod --yes`, `vercel env ls`, `vercel logs`.
-- Для слэш-команд Claude Code загружен пакет vercel-плагинов: `/vercel:deploy`, `/vercel:env`, `/vercel:status`.
-- `vercel.json` настраивает SPA-fallback (rewrite всех путей на `/`) — важно для React Router.
-
-## Архитектура коротко
-
-- `src/App.tsx` — роутер. Все рабочие маршруты — `/books/:id/...` под `<AuthGuard>`.
-- `src/components/Chrome.tsx` — Sidebar, Toolbar, RightPanel, RailNav, WithMode, StatusBar, Sheet. Все используют `NOVEL`/`SAMPLE_PROSE` из `src/data/sample.ts` — при переводе на реальные данные начинать здесь.
-- `src/components/EditorHybrid.tsx` — главный редактор, четыре режима (studio/left/right/page).
-- `src/styles/design-system.css` — все CSS-переменные (oklch-палитра, шрифты, радиусы). Кастомные классы `.as`, `.sb`, `.tb`, `.sheet`, `.btn`, `.input`, `.label` и др. описаны там же. Inline-стили в JSX оставлены из дизайна — постепенно переезжают в CSS-классы по мере появления повторений.
-- **Reset-правила в `.as` обёрнуты в `:where()`** (`.as :where(button)`, `.as :where(input)` и т.д.) — это критично, иначе они побивают утилитарные классы вроде `.btn--primary` по специфичности. Не разворачивать обратно в `.as button`.
+- Push в `main` → авто-деплой prod.
+- `vercel deploy --prod --yes`, `vercel env ls`, `vercel logs`.
+- `vercel.json` — SPA-fallback (rewrite всех путей на `/`) — критично для React Router.
 
 ## Конвенции
 
-- TypeScript strict, `noUnusedLocals` + `noUnusedParameters` включены — мёртвый код ломает сборку.
-- Без комментариев-шумов («// сохраняет книгу»). Комментарии только для неочевидного.
-- Inline-стили допустимы (всё ещё много дизайн-кода), но при появлении третьего повторения — выносить в CSS-класс.
-- Пути импортов относительные (`../components/Icon`). Алиас `@/*` объявлен в `tsconfig.app.json`, но пока не используется — можно ввести при реальной потребности.
+- TypeScript strict, `noUnusedLocals` + `noUnusedParameters` — мёртвый код ломает сборку.
+- Без комментариев-шумов. Только для неочевидного.
+- Inline-стили допустимы, но при 3+ повторениях — выносить в CSS-класс.
+- Импорты относительные (`../components/Icon`). Алиас `@/*` объявлён в `tsconfig.app.json`, пока не используется.
+- **Reset-правила в `.as` обёрнуты в `:where()`** — критично для специфичности. Не разворачивать в `.as button`.
+
+## Что не трогать
+
+- `_design-source/` — оригинальные .jsx из Cloud Design, референс. Не активный код.
+- `src/data/sample.ts` — макетные данные, в активном коде не используется.
+
+## Windows quirk
+
+`npm.ps1` заблокирован execution policy. Все npm-команды — через **Bash-инструмент**, не PowerShell. Не обходить через `Set-ExecutionPolicy` без явного запроса.
+
+## Token Efficiency Rules
+
+- Никогда не анализировать весь проект без прямого запроса.
+- Читать только файлы, относящиеся к текущей задаче.
+- Не перечитывать неизменённые файлы без необходимости.
+- Делать минимальные diff; предпочитать точечные изменения вместо рефакторингов.
+- Не давать длинные объяснения без запроса.
+- Перед сканированием большой части проекта уточнять scope.
+- Для багфиксов сначала проверять минимальный code path.
+- Не анализировать несвязанные папки.
+
+## Workflow Rules
+
+- Одна задача за раз, только в рамках текущей feature.
+- Предпочитать изменение существующих компонентов вместо переписывания систем.
+- Не создавать лишние абстракции.
+- Игнорировать несвязанную архитектуру без необходимости.
+
+## Документация (читать по задаче)
+
+- [docs/project-state.md](docs/project-state.md) — changelog заходов + следующие шаги.
+- [docs/bugs.md](docs/bugs.md) — открытые баги + запланированные фичи.
+- [docs/roadmap.md](docs/roadmap.md) — приоритеты следующих заходов.
+- [docs/features/editor.md](docs/features/editor.md) — редактор, TipTap, focus, split.
+- [docs/features/characters.md](docs/features/characters.md) — персонажи, связи, chapter_characters.
+- [docs/features/timeline.md](docs/features/timeline.md) — хронология.
+- [docs/features/maps.md](docs/features/maps.md) — карта мира.
+- [docs/features/export.md](docs/features/export.md) — экспорт.
