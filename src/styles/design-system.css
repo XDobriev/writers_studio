@@ -179,11 +179,8 @@ html, body, #root {
   border-bottom: 1px solid var(--border-soft);
   display: flex; align-items: center;
   padding: 0 14px; gap: 4px;
-  overflow-x: auto;
-  overflow-y: visible;
-  scrollbar-width: thin;
+  overflow: hidden;
 }
-.tb::-webkit-scrollbar { height: 6px; }
 .tb--wrap { flex-wrap: nowrap; }
 .tb > * { flex-shrink: 0; }
 .tb-grp { display: flex; align-items: center; gap: 1px; }
@@ -198,6 +195,25 @@ html, body, #root {
 .tb-btn--on { background: var(--surface-2); color: var(--ink); }
 .tb-btn--accent { color: var(--accent); }
 .tb-spacer { flex: 1; }
+
+/* Bubble menu */
+.bubble-menu {
+  display: flex; align-items: center; gap: 2px;
+  padding: 4px 6px;
+  background: var(--ink); color: var(--bg);
+  border-radius: var(--r-2);
+  box-shadow: 0 4px 16px oklch(0% 0 0 / 0.32);
+}
+.bubble-btn {
+  height: 26px; min-width: 26px; padding: 0 5px;
+  border-radius: var(--r-1);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: oklch(85% 0 0); font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background 0.1s;
+}
+.bubble-btn:hover { background: oklch(100% 0 0 / 0.12); color: #fff; }
+.bubble-btn--on { background: var(--accent); color: #fff; }
+.bubble-sep { width: 1px; height: 16px; background: oklch(100% 0 0 / 0.15); margin: 0 2px; }
 .tb-sel {
   height: 28px; padding: 0 10px;
   border-radius: var(--r-1);

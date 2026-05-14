@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { Underline } from '@tiptap/extension-underline';
@@ -72,5 +73,53 @@ export function RichEditor({
     return () => onEditor?.(null);
   }, [editor, onEditor]);
 
-  return <EditorContent editor={editor} className={className} style={style} />;
+  function setLink() {
+    if (!editor) return;
+    const prev = editor.getAttributes('link').href as string | undefined;
+    const url = window.prompt('Ссылка', prev ?? 'https://');
+    if (url === null) return;
+    if (url === '') { editor.chain().focus().unsetLink().run(); return; }
+    editor.chain().focus().setLink({ href: url }).run();
+  }
+
+  return (
+    <>
+      {editor && (
+        <BubbleMenu editor={editor}>
+          <div className="bubble-menu">
+            <button
+              className={'bubble-btn' + (editor.isActive('bold') ? ' bubble-btn--on' : '')}
+              onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}
+            >B</button>
+            <button
+              className={'bubble-btn' + (editor.isActive('italic') ? ' bubble-btn--on' : '')}
+              onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}
+              style={{ fontStyle: 'italic' }}
+            >I</button>
+            <button
+              className={'bubble-btn' + (editor.isActive('underline') ? ' bubble-btn--on' : '')}
+              onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleUnderline().run(); }}
+              style={{ textDecoration: 'underline' }}
+            >U</button>
+            <button
+              className={'bubble-btn' + (editor.isActive('strike') ? ' bubble-btn--on' : '')}
+              onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleStrike().run(); }}
+              style={{ textDecoration: 'line-through' }}
+            >S</button>
+            <div className="bubble-sep" />
+            <button
+              className={'bubble-btn' + (editor.isActive('code') ? ' bubble-btn--on' : '')}
+              onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleCode().run(); }}
+              style={{ fontFamily: 'monospace', fontSize: 11 }}
+            >{'{}'}</button>
+            <button
+              className={'bubble-btn' + (editor.isActive('link') ? ' bubble-btn--on' : '')}
+              onMouseDown={e => { e.preventDefault(); setLink(); }}
+            >↗</button>
+          </div>
+        </BubbleMenu>
+      )}
+      <EditorContent editor={editor} className={className} style={style} />
+    </>
+  );
 }
