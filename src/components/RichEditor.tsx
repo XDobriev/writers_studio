@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
+import { Icon } from './Icon';
 import StarterKit from '@tiptap/starter-kit';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { Underline } from '@tiptap/extension-underline';
@@ -73,13 +74,43 @@ export function RichEditor({
     return () => onEditor?.(null);
   }, [editor, onEditor]);
 
-  function setLink() {
+  const TEXT_COLORS = [
+    { label: 'По умолчанию', value: '',        bg: null },
+    { label: 'Красный',      value: '#c43d3d', bg: '#c43d3d' },
+    { label: 'Оранжевый',   value: '#d97706', bg: '#d97706' },
+    { label: 'Жёлтый',      value: '#ca8a04', bg: '#ca8a04' },
+    { label: 'Зелёный',     value: '#2f9c4f', bg: '#2f9c4f' },
+    { label: 'Синий',       value: '#2563eb', bg: '#2563eb' },
+    { label: 'Фиолетовый',  value: '#7c3aed', bg: '#7c3aed' },
+  ];
+
+  function applyColor(value: string) {
     if (!editor) return;
-    const prev = editor.getAttributes('link').href as string | undefined;
-    const url = window.prompt('Ссылка', prev ?? 'https://');
-    if (url === null) return;
-    if (url === '') { editor.chain().focus().unsetLink().run(); return; }
-    editor.chain().focus().setLink({ href: url }).run();
+    if (value === '') {
+      editor.chain().focus().unsetColor().run();
+    } else {
+      editor.chain().focus().setColor(value).run();
+    }
+  }
+
+  const activeColor = editor
+    ? (editor.getAttributes('textStyle').color as string | undefined) ?? null
+    : null;
+
+  const fmt = [
+    { name: 'bold',      icon: 'bold'      as const, label: 'Жирный' },
+    { name: 'italic',    icon: 'italic'    as const, label: 'Курсив' },
+    { name: 'underline', icon: 'underline' as const, label: 'Подчёркнутый' },
+    { name: 'strike',    icon: 'strike'    as const, label: 'Зачёркнутый' },
+  ];
+
+  function runFmt(name: string) {
+    if (!editor) return;
+    const chain = editor.chain().focus();
+    if (name === 'bold')      chain.toggleBold().run();
+    else if (name === 'italic')    chain.toggleItalic().run();
+    else if (name === 'underline') chain.toggleUnderline().run();
+    else if (name === 'strike')    chain.toggleStrike().run();
   }
 
   return (
@@ -87,35 +118,35 @@ export function RichEditor({
       {editor && (
         <BubbleMenu editor={editor}>
           <div className="bubble-menu">
-            <button
-              className={'bubble-btn' + (editor.isActive('bold') ? ' bubble-btn--on' : '')}
-              onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}
-            >B</button>
-            <button
-              className={'bubble-btn' + (editor.isActive('italic') ? ' bubble-btn--on' : '')}
-              onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}
-              style={{ fontStyle: 'italic' }}
-            >I</button>
-            <button
-              className={'bubble-btn' + (editor.isActive('underline') ? ' bubble-btn--on' : '')}
-              onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleUnderline().run(); }}
-              style={{ textDecoration: 'underline' }}
-            >U</button>
-            <button
-              className={'bubble-btn' + (editor.isActive('strike') ? ' bubble-btn--on' : '')}
-              onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleStrike().run(); }}
-              style={{ textDecoration: 'line-through' }}
-            >S</button>
+            <div className="bubble-fmt">
+              {fmt.map(({ name, icon, label }) => (
+                <button
+                  key={name}
+                  title={label}
+                  className={'bubble-btn' + (editor.isActive(name) ? ' bubble-btn--on' : '')}
+                  onMouseDown={e => { e.preventDefault(); runFmt(name); }}
+                >
+                  <Icon name={icon} size={14} />
+                </button>
+              ))}
+            </div>
             <div className="bubble-sep" />
-            <button
-              className={'bubble-btn' + (editor.isActive('code') ? ' bubble-btn--on' : '')}
-              onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleCode().run(); }}
-              style={{ fontFamily: 'monospace', fontSize: 11 }}
-            >{'{}'}</button>
-            <button
-              className={'bubble-btn' + (editor.isActive('link') ? ' bubble-btn--on' : '')}
-              onMouseDown={e => { e.preventDefault(); setLink(); }}
-            >↗</button>
+            <div className="bubble-colors">
+              {TEXT_COLORS.map(({ label, value, bg }) => {
+                const isOn = value === '' ? activeColor === null : activeColor === value;
+                return (
+                  <button
+                    key={label}
+                    title={label}
+                    className={'bubble-color' + (isOn ? ' bubble-color--on' : '') + (bg === null ? ' bubble-color--clear' : '')}
+                    style={bg ? { background: bg } : undefined}
+                    onMouseDown={e => { e.preventDefault(); applyColor(value); }}
+                  >
+                    {bg === null && <span style={{ fontSize: 10, color: 'oklch(72% 0 0)', lineHeight: 1 }}>×</span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </BubbleMenu>
       )}

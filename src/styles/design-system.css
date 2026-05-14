@@ -198,23 +198,51 @@ html, body, #root {
 .tb-spacer { flex: 1; }
 
 /* Bubble menu */
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(5px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
 .bubble-menu {
-  display: flex; align-items: center; gap: 2px;
-  padding: 4px 6px;
-  background: var(--ink); color: var(--bg);
-  border-radius: var(--r-2);
-  box-shadow: 0 4px 16px oklch(0% 0 0 / 0.32);
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px;
+  background: oklch(11% 0.014 50 / 0.94);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid oklch(100% 0 0 / 0.1);
+  border-radius: 11px;
+  box-shadow: 0 12px 32px oklch(0% 0 0 / 0.5), 0 1px 0 oklch(100% 0 0 / 0.07) inset;
+  animation: bubble-in 0.13s cubic-bezier(.22,.68,0,1.2) both;
 }
+.bubble-fmt { display: flex; align-items: center; gap: 1px; }
 .bubble-btn {
-  height: 26px; min-width: 26px; padding: 0 5px;
-  border-radius: var(--r-1);
+  width: 28px; height: 28px; padding: 0;
+  border-radius: 6px;
   display: inline-flex; align-items: center; justify-content: center;
-  color: oklch(85% 0 0); font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: background 0.1s;
+  color: oklch(68% 0.006 80); cursor: pointer;
+  transition: background 0.1s, color 0.1s;
 }
-.bubble-btn:hover { background: oklch(100% 0 0 / 0.12); color: #fff; }
+.bubble-btn:hover { background: oklch(100% 0 0 / 0.1); color: #fff; }
 .bubble-btn--on { background: var(--accent); color: #fff; }
-.bubble-sep { width: 1px; height: 16px; background: oklch(100% 0 0 / 0.15); margin: 0 2px; }
+.bubble-sep { width: 1px; height: 18px; background: oklch(100% 0 0 / 0.13); flex-shrink: 0; }
+.bubble-colors { display: flex; align-items: center; gap: 5px; }
+.bubble-color {
+  width: 16px; height: 16px; padding: 0;
+  border-radius: 50%; cursor: pointer;
+  position: relative; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform 0.12s;
+  box-shadow: 0 1px 4px oklch(0% 0 0 / 0.35);
+}
+.bubble-color:hover { transform: scale(1.25); }
+.bubble-color--on::after {
+  content: ''; position: absolute; inset: -3px;
+  border-radius: 50%; border: 2px solid #fff;
+  pointer-events: none;
+}
+.bubble-color--clear {
+  background: oklch(100% 0 0 / 0.1) !important;
+  border: 1px solid oklch(100% 0 0 / 0.22);
+  box-shadow: none;
+}
 .tb-sel {
   height: 28px; padding: 0 10px;
   border-radius: var(--r-1);
