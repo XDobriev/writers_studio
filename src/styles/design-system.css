@@ -190,6 +190,7 @@ html, body, #root {
   border-radius: var(--r-1);
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   color: var(--ink-2); font-size: 12px;
+  background: transparent; border: none; cursor: pointer;
 }
 .tb-btn:hover { background: var(--surface); color: var(--ink); }
 .tb-btn--on { background: var(--surface-2); color: var(--ink); }
@@ -227,7 +228,7 @@ html, body, #root {
   flex: 1; min-height: 0;
   background: var(--bg);
   overflow-x: hidden; overflow-y: auto; position: relative;
-  display: flex; justify-content: center; align-items: flex-start;
+  display: flex; flex-direction: column; align-items: center;
   padding: 36px 48px 0;
   scrollbar-width: thin;
   scrollbar-color: var(--surface-3) transparent;
@@ -242,6 +243,7 @@ html, body, #root {
 .sheet-wrap::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 .sheet {
   width: 720px; max-width: 100%;
+  flex: 1;
   background: var(--paper);
   color: var(--paper-ink);
   font-family: var(--font-serif);
