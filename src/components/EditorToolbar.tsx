@@ -14,25 +14,57 @@ interface ToolbarProps {
 }
 
 const TEXT_COLORS: Array<{ label: string; value: string }> = [
-  { label: 'По умолчанию', value: '' },
-  { label: 'Чёрный', value: '#1a1a1a' },
-  { label: 'Серый', value: '#5a5a5a' },
-  { label: 'Красный', value: '#c43d3d' },
-  { label: 'Оранжевый', value: '#d97706' },
-  { label: 'Зелёный', value: '#2f9c4f' },
-  { label: 'Голубой', value: '#2563eb' },
-  { label: 'Фиолетовый', value: '#7c3aed' },
-  { label: 'Розовый', value: '#db2777' },
+  { label: 'Чёрный',          value: '#0f172a' },
+  { label: 'Тёмно-серый',     value: '#374151' },
+  { label: 'Серый',           value: '#6b7280' },
+  { label: 'Светло-серый',    value: '#9ca3af' },
+  { label: 'Бледно-серый',    value: '#d1d5db' },
+  { label: 'Почти белый',     value: '#f9fafb' },
+  { label: 'Тёмно-красный',   value: '#991b1b' },
+  { label: 'Красный',         value: '#ef4444' },
+  { label: 'Оранжевый',       value: '#f97316' },
+  { label: 'Янтарный',        value: '#f59e0b' },
+  { label: 'Лаймовый',        value: '#84cc16' },
+  { label: 'Зелёный',         value: '#22c55e' },
+  { label: 'Бирюзовый',       value: '#14b8a6' },
+  { label: 'Голубой',         value: '#0ea5e9' },
+  { label: 'Синий',           value: '#3b82f6' },
+  { label: 'Индиго',          value: '#6366f1' },
+  { label: 'Фиолетовый',      value: '#8b5cf6' },
+  { label: 'Пурпурный',       value: '#a855f8' },
+  { label: 'Фуксия',          value: '#d946ef' },
+  { label: 'Розовый',         value: '#ec4899' },
+  { label: 'Малиновый',       value: '#f43f5e' },
+  { label: 'Алый',            value: '#e11d48' },
+  { label: 'Коричневый',      value: '#92400e' },
+  { label: 'Сланцевый',       value: '#475569' },
 ];
 
 const HIGHLIGHT_COLORS: Array<{ label: string; value: string }> = [
-  { label: 'Снять', value: '' },
-  { label: 'Жёлтый', value: '#fef3c7' },
-  { label: 'Зелёный', value: '#d1fae5' },
-  { label: 'Голубой', value: '#dbeafe' },
-  { label: 'Розовый', value: '#fce7f3' },
-  { label: 'Фиолетовый', value: '#ede9fe' },
-  { label: 'Оранжевый', value: '#fed7aa' },
+  { label: 'Светло-красный',    value: '#fee2e2' },
+  { label: 'Светло-оранжевый',  value: '#ffedd5' },
+  { label: 'Светло-янтарный',   value: '#fef3c7' },
+  { label: 'Светло-жёлтый',     value: '#fefce8' },
+  { label: 'Светло-лаймовый',   value: '#f7fee7' },
+  { label: 'Светло-зелёный',    value: '#dcfce7' },
+  { label: 'Изумрудный',        value: '#d1fae5' },
+  { label: 'Светло-бирюзовый',  value: '#ccfbf1' },
+  { label: 'Светло-голубой',    value: '#cffafe' },
+  { label: 'Светло-небесный',   value: '#e0f2fe' },
+  { label: 'Светло-синий',      value: '#dbeafe' },
+  { label: 'Светло-индиго',     value: '#e0e7ff' },
+  { label: 'Светло-фиолетовый', value: '#ede9fe' },
+  { label: 'Светло-пурпурный',  value: '#f3e8ff' },
+  { label: 'Светло-сиреневый',  value: '#fae8ff' },
+  { label: 'Светло-розовый',    value: '#fce7f3' },
+  { label: 'Светло-малиновый',  value: '#ffe4e6' },
+  { label: 'Светло-серый',      value: '#f1f5f9' },
+  { label: 'Кораллово-розовый', value: '#fecaca' },
+  { label: 'Медово-оранжевый',  value: '#fed7aa' },
+  { label: 'Медово-жёлтый',     value: '#fde68a' },
+  { label: 'Мятно-зелёный',     value: '#bbf7d0' },
+  { label: 'Бирюзово-мятный',   value: '#a5f3fc' },
+  { label: 'Лавандовый',        value: '#ddd6fe' },
 ];
 
 function btnCls(active: boolean) {
@@ -186,30 +218,39 @@ function ColorPopover({ editor, kind }: ColorPopoverProps) {
           <div style={{
             background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 8,
             padding: 8, boxShadow: '0 12px 28px rgba(0,0,0,.35)',
-            display: 'grid', gridTemplateColumns: 'repeat(3, 28px)', gap: 6,
+            display: 'flex', flexDirection: 'column', gap: 6,
           }}>
-            {palette.map((c) => (
-              <button
-                key={c.value || 'unset'}
-                type="button"
-                title={c.label}
-                onMouseDown={apply(c.value)}
-                style={{
-                  width: 28, height: 28, borderRadius: 6,
-                  border: '1px solid var(--border-soft)',
-                  background: c.value || 'transparent',
-                  position: 'relative', cursor: 'pointer',
-                }}
-              >
-                {!c.value && (
-                  <span style={{
-                    position: 'absolute', inset: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 10, color: 'var(--ink-3)', letterSpacing: 0,
-                  }}>×</span>
-                )}
-              </button>
-            ))}
+            <button
+              type="button"
+              title={kind === 'text' ? 'По умолчанию' : 'Снять выделение'}
+              onMouseDown={apply('')}
+              style={{
+                height: 22, borderRadius: 5, padding: '0 8px',
+                border: '1px solid var(--border-soft)',
+                background: 'transparent', cursor: 'pointer',
+                fontSize: 11, color: 'var(--ink-3)',
+              }}
+            >
+              {kind === 'text' ? 'По умолчанию' : 'Снять выделение'}
+            </button>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(6, 22px)', gap: 4,
+            }}>
+              {palette.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  title={c.label}
+                  onMouseDown={apply(c.value)}
+                  style={{
+                    width: 22, height: 22, borderRadius: 5,
+                    border: '1px solid rgba(0,0,0,0.12)',
+                    background: c.value,
+                    cursor: 'pointer',
+                  }}
+                />
+              ))}
+            </div>
           </div>
         </PortalDropdown>
       )}

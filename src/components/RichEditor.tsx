@@ -75,13 +75,13 @@ export function RichEditor({
   }, [editor, onEditor]);
 
   const TEXT_COLORS = [
-    { label: 'По умолчанию', value: '',        bg: null },
-    { label: 'Красный',      value: '#c43d3d', bg: '#c43d3d' },
-    { label: 'Оранжевый',   value: '#d97706', bg: '#d97706' },
-    { label: 'Жёлтый',      value: '#ca8a04', bg: '#ca8a04' },
-    { label: 'Зелёный',     value: '#2f9c4f', bg: '#2f9c4f' },
-    { label: 'Синий',       value: '#2563eb', bg: '#2563eb' },
-    { label: 'Фиолетовый',  value: '#7c3aed', bg: '#7c3aed' },
+    { label: 'По умолчанию', value: '',        bg: null      },
+    { label: 'Красный',      value: '#ef4444', bg: '#ef4444' },
+    { label: 'Оранжевый',    value: '#f97316', bg: '#f97316' },
+    { label: 'Зелёный',      value: '#22c55e', bg: '#22c55e' },
+    { label: 'Синий',        value: '#3b82f6', bg: '#3b82f6' },
+    { label: 'Фиолетовый',   value: '#8b5cf6', bg: '#8b5cf6' },
+    { label: 'Розовый',      value: '#ec4899', bg: '#ec4899' },
   ];
 
   function applyColor(value: string) {
