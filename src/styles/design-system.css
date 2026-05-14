@@ -210,10 +210,20 @@ html, body, #root {
 .sheet-wrap {
   flex: 1; min-height: 0;
   background: var(--bg);
-  overflow: hidden; position: relative;
-  display: flex; justify-content: center;
+  overflow-x: hidden; overflow-y: auto; position: relative;
+  display: flex; justify-content: center; align-items: flex-start;
   padding: 36px 48px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
 }
+.sheet-wrap::-webkit-scrollbar { width: 5px; }
+.sheet-wrap::-webkit-scrollbar-track { background: transparent; }
+.sheet-wrap::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+.sheet-wrap::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 .sheet {
   width: 720px; max-width: 100%;
   background: var(--paper);
@@ -396,7 +406,7 @@ html, body, #root {
   margin-bottom: 6px;
 }
 
-/* tiptap editor — жёсткие правила контраста, перебивают любые inline color из БД */
+/* tiptap editor — базовый цвет текста; inline-стили (Color extension) его перебивают */
 .sheet .tiptap,
 .sheet .tiptap p,
 .sheet .tiptap li,
@@ -404,14 +414,11 @@ html, body, #root {
 .sheet .tiptap h2,
 .sheet .tiptap h3,
 .sheet .tiptap blockquote,
-.sheet .tiptap span,
 .sheet .tiptap a,
 .sheet .tiptap u,
 .sheet .tiptap em,
-.sheet .tiptap strong,
-.sheet .tiptap font {
-  color: var(--paper-ink) !important;
-  -webkit-text-fill-color: var(--paper-ink) !important;
+.sheet .tiptap strong {
+  color: var(--paper-ink);
   opacity: 1 !important;
 }
 .tiptap p { margin: 0 0 1em; }

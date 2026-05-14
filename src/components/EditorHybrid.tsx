@@ -234,7 +234,7 @@ export function EditorHybrid({
             <StatusBar />
           )
         )}
-        {isPage && <EditorToolbar editor={editor} variant="pill" showModes={false} showExtras={false} />}
+        {isPage && <EditorToolbar editor={editor} variant="pill" showModes={false} />}
       </main>
 
       {showRight && <RightPanel tab="margins" />}

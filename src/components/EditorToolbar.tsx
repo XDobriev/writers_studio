@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Editor } from './RichEditor';
 import { Icon } from './Icon';
 
@@ -10,7 +11,6 @@ interface ToolbarProps {
   setMode?: (m: EditorMode) => void;
   variant?: 'studio' | 'pill';
   showModes?: boolean;
-  showExtras?: boolean;
 }
 
 const TEXT_COLORS: Array<{ label: string; value: string }> = [
@@ -39,26 +39,54 @@ function btnCls(active: boolean) {
   return 'tb-btn' + (active ? ' tb-btn--on' : '');
 }
 
-function HeadingDropdown({ editor }: { editor: Editor | null }) {
-  const [open, setOpen] = useState(false);
+function PortalDropdown({
+  anchor,
+  onClose,
+  children,
+}: {
+  anchor: HTMLElement;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
   const ref = useRef<HTMLDivElement>(null);
+  const rect = anchor.getBoundingClientRect();
 
   useEffect(() => {
-    if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+      if (
+        !ref.current?.contains(e.target as Node) &&
+        !anchor.contains(e.target as Node)
+      ) {
+        onClose();
+      }
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
+  }, [anchor, onClose]);
+
+  return createPortal(
+    <div
+      ref={ref}
+      style={{ position: 'fixed', top: rect.bottom + 4, left: rect.left, zIndex: 1000 }}
+      onMouseDown={(e) => { e.preventDefault(); e.nativeEvent.stopPropagation(); }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
+
+function HeadingDropdown({ editor }: { editor: Editor | null }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   const current = editor?.isActive('heading', { level: 1 })
-    ? 'Заголовок 1'
+    ? 'H1'
     : editor?.isActive('heading', { level: 2 })
-    ? 'Заголовок 2'
+    ? 'H2'
     : editor?.isActive('heading', { level: 3 })
-    ? 'Заголовок 3'
-    : 'Обычный';
+    ? 'H3'
+    : '¶';
 
   const set = (action: () => void) => (ev: React.MouseEvent) => {
     ev.preventDefault();
@@ -67,8 +95,9 @@ function HeadingDropdown({ editor }: { editor: Editor | null }) {
   };
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <>
       <button
+        ref={btnRef}
         type="button"
         className="tb-sel"
         title="Уровень текста"
@@ -77,40 +106,41 @@ function HeadingDropdown({ editor }: { editor: Editor | null }) {
       >
         {current} <Icon name="chevd" size={12} />
       </button>
-      {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 50,
-          background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 8,
-          padding: 4, boxShadow: '0 12px 28px rgba(0,0,0,.35)',
-          minWidth: 160, display: 'flex', flexDirection: 'column', gap: 2,
-        }}>
-          <button
-            type="button"
-            className={btnCls(!editor?.isActive('heading'))}
-            style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 13 }}
-            onMouseDown={set(() => editor?.chain().focus().setParagraph().run())}
-          >Обычный текст</button>
-          <button
-            type="button"
-            className={btnCls(!!editor?.isActive('heading', { level: 1 }))}
-            style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-serif)' }}
-            onMouseDown={set(() => editor?.chain().focus().toggleHeading({ level: 1 }).run())}
-          >Заголовок 1</button>
-          <button
-            type="button"
-            className={btnCls(!!editor?.isActive('heading', { level: 2 }))}
-            style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 15, fontWeight: 600, fontFamily: 'var(--font-serif)' }}
-            onMouseDown={set(() => editor?.chain().focus().toggleHeading({ level: 2 }).run())}
-          >Заголовок 2</button>
-          <button
-            type="button"
-            className={btnCls(!!editor?.isActive('heading', { level: 3 }))}
-            style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-serif)' }}
-            onMouseDown={set(() => editor?.chain().focus().toggleHeading({ level: 3 }).run())}
-          >Заголовок 3</button>
-        </div>
+      {open && btnRef.current && (
+        <PortalDropdown anchor={btnRef.current} onClose={() => setOpen(false)}>
+          <div style={{
+            background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 8,
+            padding: 4, boxShadow: '0 12px 28px rgba(0,0,0,.35)',
+            minWidth: 160, display: 'flex', flexDirection: 'column', gap: 2,
+          }}>
+            <button
+              type="button"
+              className={btnCls(!editor?.isActive('heading'))}
+              style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 13 }}
+              onMouseDown={set(() => editor?.chain().focus().setParagraph().run())}
+            >Обычный текст</button>
+            <button
+              type="button"
+              className={btnCls(!!editor?.isActive('heading', { level: 1 }))}
+              style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-serif)' }}
+              onMouseDown={set(() => editor?.chain().focus().toggleHeading({ level: 1 }).run())}
+            >Заголовок 1</button>
+            <button
+              type="button"
+              className={btnCls(!!editor?.isActive('heading', { level: 2 }))}
+              style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 15, fontWeight: 600, fontFamily: 'var(--font-serif)' }}
+              onMouseDown={set(() => editor?.chain().focus().toggleHeading({ level: 2 }).run())}
+            >Заголовок 2</button>
+            <button
+              type="button"
+              className={btnCls(!!editor?.isActive('heading', { level: 3 }))}
+              style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-serif)' }}
+              onMouseDown={set(() => editor?.chain().focus().toggleHeading({ level: 3 }).run())}
+            >Заголовок 3</button>
+          </div>
+        </PortalDropdown>
       )}
-    </div>
+    </>
   );
 }
 
@@ -121,19 +151,10 @@ interface ColorPopoverProps {
 
 function ColorPopover({ editor, kind }: ColorPopoverProps) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
   const palette = kind === 'text' ? TEXT_COLORS : HIGHLIGHT_COLORS;
   const icon = kind === 'text' ? 'color' : 'highlight';
   const title = kind === 'text' ? 'Цвет текста' : 'Выделение цветом';
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
 
   const apply = (value: string) => (ev: React.MouseEvent) => {
     ev.preventDefault();
@@ -149,8 +170,9 @@ function ColorPopover({ editor, kind }: ColorPopoverProps) {
   };
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <>
       <button
+        ref={btnRef}
         type="button"
         className="tb-btn"
         title={title}
@@ -159,38 +181,39 @@ function ColorPopover({ editor, kind }: ColorPopoverProps) {
       >
         <Icon name={icon} />
       </button>
-      {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 50,
-          background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 8,
-          padding: 8, boxShadow: '0 12px 28px rgba(0,0,0,.35)',
-          display: 'grid', gridTemplateColumns: 'repeat(3, 28px)', gap: 6, minWidth: 0,
-        }}>
-          {palette.map((c) => (
-            <button
-              key={c.value || 'unset'}
-              type="button"
-              title={c.label}
-              onMouseDown={apply(c.value)}
-              style={{
-                width: 28, height: 28, borderRadius: 6,
-                border: '1px solid var(--border-soft)',
-                background: c.value || 'transparent',
-                position: 'relative', cursor: 'pointer',
-              }}
-            >
-              {!c.value && (
-                <span style={{
-                  position: 'absolute', inset: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, color: 'var(--ink-3)', letterSpacing: 0,
-                }}>×</span>
-              )}
-            </button>
-          ))}
-        </div>
+      {open && btnRef.current && (
+        <PortalDropdown anchor={btnRef.current} onClose={() => setOpen(false)}>
+          <div style={{
+            background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 8,
+            padding: 8, boxShadow: '0 12px 28px rgba(0,0,0,.35)',
+            display: 'grid', gridTemplateColumns: 'repeat(3, 28px)', gap: 6,
+          }}>
+            {palette.map((c) => (
+              <button
+                key={c.value || 'unset'}
+                type="button"
+                title={c.label}
+                onMouseDown={apply(c.value)}
+                style={{
+                  width: 28, height: 28, borderRadius: 6,
+                  border: '1px solid var(--border-soft)',
+                  background: c.value || 'transparent',
+                  position: 'relative', cursor: 'pointer',
+                }}
+              >
+                {!c.value && (
+                  <span style={{
+                    position: 'absolute', inset: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, color: 'var(--ink-3)', letterSpacing: 0,
+                  }}>×</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </PortalDropdown>
       )}
-    </div>
+    </>
   );
 }
 
@@ -209,52 +232,42 @@ function LinkButton({ editor }: { editor: Editor | null }) {
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   };
   return (
-    <>
-      <button
-        type="button"
-        title="Ссылка"
-        className={btnCls(active)}
-        disabled={!editor}
-        onMouseDown={onSet}
-      ><Icon name="link" /></button>
-      <button
-        type="button"
-        title="Убрать ссылку"
-        className="tb-btn"
-        disabled={!editor || !active}
-        onMouseDown={(ev) => { ev.preventDefault(); editor?.chain().focus().unsetLink().run(); }}
-      ><Icon name="unlink" /></button>
-    </>
+    <button
+      type="button"
+      title="Ссылка"
+      className={btnCls(active)}
+      disabled={!editor}
+      onMouseDown={onSet}
+    ><Icon name="link" /></button>
   );
 }
 
 function ModeSegment({ mode, setMode }: { mode: EditorMode; setMode: (m: EditorMode) => void }) {
-  const opts: Array<[EditorMode, Parameters<typeof Icon>[0]['name'], string, string]> = [
-    ['studio', 'layout', 'Студия', 'Студия — обе боковые панели'],
-    ['left', 'panel', 'Сайдбар', 'Только левый сайдбар с главами'],
-    ['right', 'note', 'На полях', 'Только правая панель с заметками'],
-    ['page', 'focus', 'Страница', 'Только страница, без панелей'],
+  const opts: Array<[EditorMode, Parameters<typeof Icon>[0]['name'], string]> = [
+    ['studio', 'layout', 'Студия — обе боковые панели'],
+    ['left', 'panel', 'Только левый сайдбар с главами'],
+    ['right', 'note', 'Только правая панель с заметками'],
+    ['page', 'focus', 'Только страница, без панелей'],
   ];
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-deep)', border: '1px solid var(--border-soft)' }}>
-      {opts.map(([k, icn, l, tip]) => (
+      {opts.map(([k, icn, tip]) => (
         <button
           key={k}
           type="button"
           onClick={() => setMode(k)}
           title={tip}
           className={'tb-btn' + (mode === k ? ' tb-btn--on' : '')}
-          style={{ height: 24, padding: '0 8px', borderRadius: 6, gap: 4, color: mode === k ? 'var(--ink)' : 'var(--ink-3)', whiteSpace: 'nowrap' }}
+          style={{ height: 24, padding: '0 6px', borderRadius: 6, color: mode === k ? 'var(--ink)' : 'var(--ink-3)' }}
         >
-          <Icon name={icn} size={13} />
-          <span style={{ fontSize: 11, letterSpacing: '0.01em' }}>{l}</span>
+          <Icon name={icn} size={14} />
         </button>
       ))}
     </div>
   );
 }
 
-export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showModes = true, showExtras = true }: ToolbarProps) {
+export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showModes = true }: ToolbarProps) {
   const can = editor !== null;
   const run = (fn: (e: Editor) => void) => (ev: React.MouseEvent) => {
     ev.preventDefault();
@@ -333,22 +346,6 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
 
       <button
         type="button"
-        title="Надстрочный"
-        className={btnCls(!!editor?.isActive('superscript'))}
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().toggleSuperscript().run())}
-      ><Icon name="sup" /></button>
-      <button
-        type="button"
-        title="Подстрочный"
-        className={btnCls(!!editor?.isActive('subscript'))}
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().toggleSubscript().run())}
-      ><Icon name="sub" /></button>
-      <span className="tb-sep" />
-
-      <button
-        type="button"
         title="По левому краю"
         className={btnCls(!!editor?.isActive({ textAlign: 'left' }))}
         disabled={!can}
@@ -391,13 +388,6 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         disabled={!can}
         onMouseDown={run((e) => e.chain().focus().toggleOrderedList().run())}
       ><Icon name="olist" /></button>
-      <button
-        type="button"
-        title="Список задач"
-        className={btnCls(!!editor?.isActive('taskList'))}
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().toggleTaskList().run())}
-      ><Icon name="tasklist" /></button>
       <span className="tb-sep" />
 
       <button
@@ -407,20 +397,6 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         disabled={!can}
         onMouseDown={run((e) => e.chain().focus().toggleBlockquote().run())}
       ><Icon name="quote" /></button>
-      <button
-        type="button"
-        title="Инлайн-код"
-        className={btnCls(!!editor?.isActive('code'))}
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().toggleCode().run())}
-      ><Icon name="code" /></button>
-      <button
-        type="button"
-        title="Блок кода"
-        className={btnCls(!!editor?.isActive('codeBlock'))}
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().toggleCodeBlock().run())}
-      ><Icon name="codeblock" /></button>
       <button
         type="button"
         title="Горизонтальная линия"
@@ -439,13 +415,6 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         </>
       )}
 
-      {showExtras && (
-        <>
-          <span className="tb-sep" />
-          <button type="button" className="tb-btn" disabled title="Голосовой ввод (скоро)"><Icon name="speak" size={15} /></button>
-          <button type="button" className="tb-btn" disabled title="Таймер (скоро)"><Icon name="timer" size={15} /></button>
-        </>
-      )}
     </div>
   );
 }
