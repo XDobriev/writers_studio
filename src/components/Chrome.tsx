@@ -553,11 +553,12 @@ interface WithModeProps {
 
 export function WithMode({ active = 'editor', children }: WithModeProps) {
   const [mode, setMode] = useState<ScreenMode>('studio');
+  const showToggle = active !== 'dashboard';
   return (
     <div className={mode === 'page' ? 'mode-page' : ''} style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
       {children}
       {mode === 'page' && <RailNav active={active} />}
-      <ScreenModeToggle mode={mode} setMode={setMode} />
+      {showToggle && <ScreenModeToggle mode={mode} setMode={setMode} />}
     </div>
   );
 }
