@@ -52,15 +52,13 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 }
 
 export default function Admin() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.email !== ADMIN_EMAIL) return <Navigate to="/books" replace />;
-
   useEffect(() => {
+    if (!user || user.email !== ADMIN_EMAIL) return;
     Promise.all([
       supabase.rpc('get_admin_stats'),
       supabase.rpc('get_admin_users'),
@@ -70,7 +68,11 @@ export default function Admin() {
       if (usersRes.error) { setErr((prev) => prev ?? usersRes.error!.message); }
       else { setUsers(usersRes.data as AdminUser[]); }
     });
-  }, []);
+  }, [user]);
+
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.email !== ADMIN_EMAIL) return <Navigate to="/books" replace />;
 
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)' }}>

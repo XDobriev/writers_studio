@@ -31,6 +31,12 @@ Supabase Storage bucket `book-covers`, путь `{user_id}/{book_id}.jpg`. Ко�
 
 ---
 
+## Перед релизом
+
+- **Верификация Google OAuth** — пройти проверку приложения в Google Cloud Console, чтобы на экране авторизации отображалось «Авторская студия» вместо `joaxeoavjvlqmtlepkrr.supabase.co`. Требует Privacy Policy, Terms of Service и ожидания (~недели).
+
+---
+
 ## Backlog
 
 - Telegram OAuth (кнопка скрыта — `VITE_TELEGRAM_BOT_USERNAME=authorsStudioBot` в Vercel env).
