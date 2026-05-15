@@ -240,9 +240,6 @@ export function StatusBar({ words = 4720, chars = 28140, savedAt = '14:32', stat
       <span style={{ color: 'var(--ink-4)' }}>·</span>
       <span>~{Math.ceil(words / 220)} мин чтения</span>
       <span style={{ flex: 1 }} />
-      <span>сегодня · 348/1000 слов</span>
-      <span style={{ color: 'var(--ink-4)' }}>·</span>
-      <span style={{ color: 'var(--accent-2)' }}>серия 7 дней</span>
     </div>
   );
 }
