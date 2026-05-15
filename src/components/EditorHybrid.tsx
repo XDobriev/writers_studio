@@ -173,7 +173,6 @@ export function EditorHybrid({
     <div className="as" style={{ height: '100%', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative', transition: 'grid-template-columns 220ms cubic-bezier(.2,.7,.3,1)' }}>
       {showLeft && (
         <Sidebar
-          active={1}
           book={book}
           chapters={chapters}
           activeChapterId={activeChapter?.id ?? null}

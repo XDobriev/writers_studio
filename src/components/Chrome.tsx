@@ -1,12 +1,11 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
 import { NOVEL, SAMPLE_PROSE } from '../data/sample';
 import type { Chapter } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
 
 interface SidebarProps {
-  active?: number;
   book?: Book | null;
   chapters?: Chapter[];
   activeChapterId?: string | null;
@@ -16,7 +15,6 @@ interface SidebarProps {
 }
 
 export function Sidebar({
-  active = 4,
   book,
   chapters,
   activeChapterId,
@@ -25,14 +23,21 @@ export function Sidebar({
   bookHref,
 }: SidebarProps) {
   const isReal = Boolean(chapters);
-  const navItems: Array<[Parameters<typeof Icon>[0]['name'], string, boolean]> = [
-    ['book', 'Манускрипт', true],
-    ['char', 'Персонажи', false],
-    ['map', 'Карта мира', false],
-    ['clock', 'Хронология', false],
-    ['note', 'Заметки', false],
-    ['layout', 'Дэшборд', false],
+  const { pathname } = useLocation();
+  const bid = book?.id ?? '';
+  const navItems: Array<[Parameters<typeof Icon>[0]['name'], string, string | null]> = [
+    ['book', 'Манускрипт', bid ? `/books/${bid}/editor` : null],
+    ['char', 'Персонажи', bid ? `/books/${bid}/characters` : null],
+    ['map', 'Карта мира', bid ? `/books/${bid}/map` : null],
+    ['clock', 'Хронология', bid ? `/books/${bid}/timeline` : null],
+    ['note', 'Заметки', null],
+    ['layout', 'Дэшборд', bid ? `/books/${bid}` : null],
   ];
+  function isNavActive(href: string | null): boolean {
+    if (!href) return false;
+    if (href === `/books/${bid}`) return pathname === href;
+    return pathname.startsWith(href);
+  }
   return (
     <aside className="sb">
       <div className="sb-head">
@@ -49,14 +54,31 @@ export function Sidebar({
       </div>
 
       <nav style={{ padding: '10px 8px 4px', display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {navItems.map(([icn, label, on]) => (
-          <a key={label} className="sb-item" style={on ? { background: 'var(--surface)' } : {}}>
-            <span style={{ display: 'flex', justifyContent: 'center', color: on ? 'var(--ink)' : 'var(--ink-3)' }}>
-              <Icon name={icn} size={15} />
-            </span>
-            <span className="sb-item-title" style={{ color: on ? 'var(--ink)' : 'var(--ink-2)' }}>{label}</span>
-          </a>
-        ))}
+        {navItems.map(([icn, label, href]) => {
+          const on = isNavActive(href);
+          const cls = 'sb-item' + (on ? ' sb-item--on' : '');
+          const style = on ? { background: 'var(--surface)' } : {};
+          const inner = (
+            <>
+              <span style={{ display: 'flex', justifyContent: 'center', color: on ? 'var(--ink)' : 'var(--ink-3)' }}>
+                <Icon name={icn} size={15} />
+              </span>
+              <span className="sb-item-title" style={{ color: on ? 'var(--ink)' : 'var(--ink-2)' }}>{label}</span>
+            </>
+          );
+          if (!href) {
+            return (
+              <span key={label} className={cls} style={{ ...style, opacity: 0.5, cursor: 'default' }}>
+                {inner}
+              </span>
+            );
+          }
+          return (
+            <Link key={label} to={href} className={cls} style={style}>
+              {inner}
+            </Link>
+          );
+        })}
       </nav>
 
       {isReal ? (
@@ -119,7 +141,7 @@ export function Sidebar({
           </div>
           <div className="sb-list">
             {NOVEL.chapters.slice(0, 3).map((c) => (
-              <div key={c.num} className={'sb-item' + (active === c.num ? ' sb-item--on' : '')}>
+              <div key={c.num} className={'sb-item' + ('')}>
                 <span className="sb-item-num">{String(c.num).padStart(2, '0')}</span>
                 <span className="sb-item-title">{c.title}</span>
                 <span className={'sb-item-dot sb-item-dot--' + c.status} />
@@ -133,7 +155,7 @@ export function Sidebar({
           </div>
           <div className="sb-list">
             {NOVEL.chapters.slice(3, 6).map((c) => (
-              <div key={c.num} className={'sb-item' + (active === c.num ? ' sb-item--on' : '')}>
+              <div key={c.num} className={'sb-item' + ('')}>
                 <span className="sb-item-num">{String(c.num).padStart(2, '0')}</span>
                 <span className="sb-item-title">{c.title}</span>
                 <span className={'sb-item-dot sb-item-dot--' + c.status} />
@@ -147,7 +169,7 @@ export function Sidebar({
           </div>
           <div className="sb-list">
             {NOVEL.chapters.slice(6).map((c) => (
-              <div key={c.num} className={'sb-item' + (active === c.num ? ' sb-item--on' : '')}>
+              <div key={c.num} className={'sb-item' + ('')}>
                 <span className="sb-item-num">{String(c.num).padStart(2, '0')}</span>
                 <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>{c.title}</span>
                 <span className={'sb-item-dot sb-item-dot--' + c.status} />
