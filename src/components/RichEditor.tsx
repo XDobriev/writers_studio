@@ -129,6 +129,13 @@ export function RichEditor({
                   <Icon name={icon} size={14} />
                 </button>
               ))}
+              <button
+                title="Очистить форматирование"
+                className="bubble-btn"
+                onMouseDown={e => { e.preventDefault(); editor.chain().focus().unsetAllMarks().clearNodes().run(); }}
+              >
+                <Icon name="clear" size={14} />
+              </button>
             </div>
             <div className="bubble-sep" />
             <div className="bubble-colors">
