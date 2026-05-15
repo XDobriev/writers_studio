@@ -31,7 +31,7 @@ export function Sidebar({
     ['char', 'Персонажи', bid ? `/books/${bid}/characters` : null],
     ['map', 'Карта мира', bid ? `/books/${bid}/map` : null],
     ['clock', 'Хронология', bid ? `/books/${bid}/timeline` : null],
-    ['note', 'Заметки', null],
+    ['note', 'Заметки', bid ? `/books/${bid}/notes` : null],
     ['layout', 'Дэшборд', bid ? `/books/${bid}` : null],
   ];
   function isNavActive(href: string | null): boolean {

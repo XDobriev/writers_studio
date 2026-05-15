@@ -13,6 +13,7 @@ import Characters from './pages/Characters';
 import Focus from './pages/Focus';
 import Split from './pages/Split';
 import Export from './pages/Export';
+import Notes from './pages/Notes';
 import Admin from './pages/Admin';
 
 export default function App() {
@@ -62,6 +63,10 @@ export default function App() {
           <Route
             path="/books/:id/split"
             element={<AuthGuard><Split /></AuthGuard>}
+          />
+          <Route
+            path="/books/:id/notes"
+            element={<AuthGuard><Notes /></AuthGuard>}
           />
           <Route
             path="/books/:id/export"
