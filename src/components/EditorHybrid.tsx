@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from './Icon';
 import { Sidebar, RightPanel, StatusBar } from './Chrome';
 import { SAMPLE_PROSE } from '../data/sample';
@@ -106,6 +106,16 @@ function ChapterSheet({ chapter, onContentChange, onTitleChange, onEditor, width
   );
 }
 
+function useWindowWidth(): number {
+  const [width, setWidth] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return width;
+}
+
 function formatTime(d: Date): string {
   return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 }
@@ -147,8 +157,9 @@ export function EditorHybrid({
 }: EditorHybridProps) {
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [editor, setEditor] = useState<Editor | null>(null);
+  const windowWidth = useWindowWidth();
   const showLeft = mode === 'studio' || mode === 'left';
-  const showRight = mode === 'studio' || mode === 'right';
+  const showRight = (mode === 'studio' && windowWidth >= 1024) || mode === 'right';
   const isPage = mode === 'page';
   const isReal = Boolean(chapters);
 
