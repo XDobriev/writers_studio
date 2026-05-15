@@ -122,7 +122,7 @@ export default function Home() {
                     <span>{b.words.toLocaleString('ru')} / {b.goal.toLocaleString('ru')}</span>
                     <span>{Math.round((b.words / Math.max(1, b.goal)) * 100)}%</span>
                   </div>
-                  <div style={{ height: 3, background: 'var(--surface-2)', borderRadius: 999, overflow: 'hidden', marginBottom: 12 }}>
+                  <div style={{ height: 3, background: 'var(--surface-3)', borderRadius: 999, overflow: 'hidden', marginBottom: 12 }}>
                     <div style={{ width: `${(b.words / Math.max(1, b.goal)) * 100}%`, height: '100%', background: b.words > 0 ? 'var(--accent)' : 'var(--ink-4)' }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)' }}>
