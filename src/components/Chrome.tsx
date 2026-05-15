@@ -228,9 +228,18 @@ interface StatusBarProps {
   chars?: number;
   savedAt?: string;
   statusLabel?: string;
+  todayWords?: number;
+  goalWords?: number;
+  streak?: number;
 }
 
-export function StatusBar({ words = 4720, chars = 28140, savedAt = '14:32', statusLabel }: StatusBarProps) {
+export function StatusBar({ words = 4720, chars = 28140, savedAt = '14:32', statusLabel, todayWords, goalWords = 1000, streak }: StatusBarProps) {
+  function pluralDays(n: number): string {
+    const m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return 'день';
+    if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return 'дня';
+    return 'дней';
+  }
   return (
     <div className="status">
       <span><span className="status-dot" style={{ display: 'inline-block', marginRight: 6, verticalAlign: 'middle' }} />{statusLabel ?? `Сохранено · ${savedAt}`}</span>
@@ -241,6 +250,17 @@ export function StatusBar({ words = 4720, chars = 28140, savedAt = '14:32', stat
       <span style={{ color: 'var(--ink-4)' }}>·</span>
       <span>~{Math.ceil(words / 220)} мин чтения</span>
       <span style={{ flex: 1 }} />
+      {todayWords !== undefined && (
+        <>
+          <span>сегодня · {todayWords.toLocaleString('ru')}/{goalWords.toLocaleString('ru')} слов</span>
+          {streak !== undefined && streak > 0 && (
+            <>
+              <span style={{ color: 'var(--ink-4)' }}>·</span>
+              <span style={{ color: 'var(--accent-2)' }}>серия {streak} {pluralDays(streak)}</span>
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }

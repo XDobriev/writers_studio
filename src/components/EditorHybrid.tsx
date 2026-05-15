@@ -6,6 +6,7 @@ import { RichEditor, type Editor } from './RichEditor';
 import { EditorToolbar } from './EditorToolbar';
 import type { Book } from '../lib/supabase';
 import type { Chapter } from '../lib/chapters';
+import { useWritingStats } from '../lib/useWritingStats';
 
 type Mode = 'studio' | 'left' | 'right' | 'page';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -164,6 +165,7 @@ export function EditorHybrid({
   const showRight = (mode === 'studio' && windowWidth >= 1024) || mode === 'right';
   const isPage = mode === 'page';
   const isReal = Boolean(chapters);
+  const writingStats = useWritingStats(book?.id);
 
   useEffect(() => {
     if (!isMobile) setShowMobileSidebar(false);
@@ -263,6 +265,9 @@ export function EditorHybrid({
               words={activeChapter?.words ?? 0}
               chars={(activeChapter?.content ?? '').replace(/<[^>]+>/g, '').length}
               statusLabel={saveLabel(saveState, savedAt)}
+              todayWords={writingStats.todayWords}
+              goalWords={writingStats.goalWords}
+              streak={writingStats.streak}
             />
           ) : (
             <StatusBar />
