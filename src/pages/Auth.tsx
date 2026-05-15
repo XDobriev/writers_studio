@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth, type TelegramAuthData } from '../lib/auth';
-import { supabaseConfigured } from '../lib/supabase';
+import { supabase, supabaseConfigured } from '../lib/supabase';
+
+interface PublicStats {
+  users_total: number;
+  books_total: number;
+  words_total: number;
+}
 
 type Tab = 'signin' | 'signup';
 
@@ -24,7 +30,14 @@ export default function Auth() {
   const [oauthBusy, setOauthBusy] = useState<'google' | 'telegram' | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [stats, setStats] = useState<PublicStats | null>(null);
   const tgSlotRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    supabase.rpc('get_public_stats').then(({ data }) => {
+      if (data) setStats(data as PublicStats);
+    });
+  }, []);
 
   useEffect(() => {
     if (!TG_BOT_USERNAME || !tgSlotRef.current) return;
@@ -106,12 +119,19 @@ export default function Auth() {
         </div>
 
         <div style={{ display: 'flex', gap: 32, paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
-          {[['12 384', 'авторов'], ['41 207', 'книг написано'], ['1.8 млрд', 'слов']].map(([n, l]) => (
-            <div key={l}>
-              <div style={{ font: '500 22px var(--font-serif)', color: 'var(--ink)' }}>{n}</div>
-              <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>{l}</div>
-            </div>
-          ))}
+          {stats ? (
+            <>
+              <StatCell value={stats.users_total.toLocaleString('ru')} label="авторов" />
+              <StatCell value={stats.books_total.toLocaleString('ru')} label="книг написано" />
+              <StatCell value={formatWords(stats.words_total)} label="слов" />
+            </>
+          ) : (
+            <>
+              <StatCell value="—" label="авторов" />
+              <StatCell value="—" label="книг написано" />
+              <StatCell value="—" label="слов" />
+            </>
+          )}
         </div>
       </div>
 
@@ -234,6 +254,21 @@ export default function Auth() {
           </button>
         </form>
       </div>
+    </div>
+  );
+}
+
+function formatWords(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1).replace('.', ',')} млрд`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')} млн`;
+  return n.toLocaleString('ru');
+}
+
+function StatCell({ value, label }: { value: string; label: string }) {
+  return (
+    <div>
+      <div style={{ font: '500 22px var(--font-serif)', color: 'var(--ink)' }}>{value}</div>
+      <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>{label}</div>
     </div>
   );
 }

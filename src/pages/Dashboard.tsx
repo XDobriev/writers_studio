@@ -6,6 +6,9 @@ import { supabase, type Book } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { listChapters, type Chapter } from '../lib/chapters';
 import { listCharacters, type Character } from '../lib/characters';
+import { pluralDays } from '../lib/useWritingStats';
+
+type SnapRow = { date: string; words: number };
 
 const STATUS_LABEL: Record<Chapter['status'], string> = {
   draft: 'черновик',
@@ -33,23 +36,33 @@ export default function Dashboard() {
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[] | null>(null);
   const [characters, setCharacters] = useState<Character[] | null>(null);
+  const [snapshots, setSnapshots] = useState<SnapRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
+    const snapFrom = new Date();
+    snapFrom.setDate(snapFrom.getDate() - 366);
     (async () => {
       try {
-        const [bookRes, chList, charList] = await Promise.all([
+        const [bookRes, chList, charList, snapRes] = await Promise.all([
           supabase.from('books').select('*').eq('id', id).single(),
           listChapters(id),
           listCharacters(id),
+          supabase
+            .from('writing_snapshots')
+            .select('date, words')
+            .eq('book_id', id)
+            .gte('date', snapFrom.toISOString().slice(0, 10))
+            .order('date', { ascending: true }),
         ]);
         if (cancelled) return;
         if (bookRes.error) throw bookRes.error;
         setBook(bookRes.data as Book);
         setChapters(chList);
         setCharacters(charList);
+        setSnapshots((snapRes.data ?? []) as SnapRow[]);
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
       }
@@ -67,6 +80,73 @@ export default function Dashboard() {
     const goalPct = book.goal > 0 ? Math.min(100, Math.round((book.words / book.goal) * 100)) : 0;
     return { done, progress, draft, totalChars, daysActive, goalPct };
   }, [book, chapters, characters]);
+
+  const activityData = useMemo(() => {
+    if (!snapshots) return null;
+    const snap: Record<string, number> = {};
+    for (const row of snapshots) snap[row.date] = row.words;
+
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+
+    // Start = Monday of the week 25 weeks before the current week
+    const dow = today.getDay();
+    const daysFromMon = dow === 0 ? 6 : dow - 1;
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - daysFromMon - 51 * 7);
+
+    type Cell = { date: string; delta: number; future: boolean; weekIdx: number };
+    const cells: Cell[] = [];
+    for (let i = 0; i < 52 * 7; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const ds = d.toISOString().slice(0, 10);
+      const future = ds > todayStr;
+      const prev = new Date(d);
+      prev.setDate(prev.getDate() - 1);
+      const prevStr = prev.toISOString().slice(0, 10);
+      const delta = future ? 0 : Math.max(0, (snap[ds] ?? 0) - (snap[prevStr] ?? 0));
+      cells.push({ date: ds, delta, future, weekIdx: Math.floor(i / 7) });
+    }
+
+    const weeks: number[] = Array.from({ length: 52 }, (_, w) =>
+      cells.slice(w * 7, w * 7 + 7).reduce((s, c) => s + c.delta, 0)
+    );
+
+    const maxDelta = Math.max(1, ...cells.map(c => c.delta));
+    const maxWeek = Math.max(1, ...weeks);
+
+    const cellByDate: Record<string, Cell> = {};
+    for (const c of cells) cellByDate[c.date] = c;
+
+    let streak = 0;
+    const cur = new Date(today);
+    for (let i = 0; i < 366; i++) {
+      const ds = cur.toISOString().slice(0, 10);
+      if ((cellByDate[ds]?.delta ?? 0) > 0) {
+        streak++;
+        cur.setDate(cur.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    const todayWords = cellByDate[todayStr]?.delta ?? 0;
+
+    const monthLabels: Array<{ col: number; label: string }> = [];
+    let lastMonth = -1;
+    for (let w = 0; w < 52; w++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + w * 7);
+      const m = d.getMonth();
+      if (m !== lastMonth) {
+        monthLabels.push({ col: w, label: d.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', '') });
+        lastMonth = m;
+      }
+    }
+
+    return { cells, weeks, maxDelta, maxWeek, todayWords, streak, monthLabels };
+  }, [snapshots]);
 
   if (!id) return <Navigate to="/books" replace />;
 
@@ -218,11 +298,97 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div style={{ background: 'var(--surface)', border: '1px dashed var(--border-soft)', borderRadius: 12, padding: '18px 22px', opacity: 0.7 }}>
-              <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>Графики прогресса</div>
-              <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
-                Серия дней, накопленный объём по неделям, активность за 26 недель — появятся, когда заведём дневные снимки прогресса.
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '20px 24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
+                <div style={{ font: '500 13px var(--font-ui)' }}>История активности</div>
+                {activityData && (
+                  <div style={{ display: 'flex', gap: 16, font: '500 11.5px var(--font-mono)', color: 'var(--ink-3)' }}>
+                    {activityData.streak > 0 && (
+                      <span style={{ color: 'var(--accent)' }}>
+                        {activityData.streak} {pluralDays(activityData.streak)} подряд
+                      </span>
+                    )}
+                    {activityData.todayWords > 0 && (
+                      <span>{fmtNumber(activityData.todayWords)} слов сегодня</span>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {!activityData || activityData.cells.every(c => c.delta === 0 || c.future) ? (
+                <div style={{ color: 'var(--ink-3)', fontSize: 13, padding: '8px 0' }}>
+                  Данных пока нет — начните писать, и здесь появится график активности.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {/* Month labels */}
+                  <div style={{ display: 'flex', gap: 2, paddingLeft: 22 }}>
+                    {Array.from({ length: 52 }, (_, w) => {
+                      const label = activityData.monthLabels.find(m => m.col === w);
+                      return (
+                        <div key={w} style={{ flex: 1, minWidth: 0, font: '400 9px var(--font-mono)', color: 'var(--ink-3)', overflow: 'visible', whiteSpace: 'nowrap' }}>
+                          {label?.label ?? ''}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Heatmap */}
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 20, flexShrink: 0 }}>
+                      {['Пн', '', 'Ср', '', 'Пт', '', 'Вс'].map((label, i) => (
+                        <div key={i} style={{ flex: 1, font: '400 9px var(--font-mono)', color: 'var(--ink-4)', textAlign: 'right', paddingRight: 4, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                          {label}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>
+                      {Array.from({ length: 52 }, (_, w) => (
+                        <div key={w} style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
+                          {activityData.cells.slice(w * 7, w * 7 + 7).map((cell) => {
+                            const t = cell.delta / activityData.maxDelta;
+                            const bg = cell.future
+                              ? 'transparent'
+                              : cell.delta === 0
+                              ? 'var(--surface-3)'
+                              : t < 0.25
+                              ? 'oklch(0.63 0.16 30 / 0.28)'
+                              : t < 0.5
+                              ? 'oklch(0.63 0.16 30 / 0.52)'
+                              : t < 0.75
+                              ? 'oklch(0.63 0.16 30 / 0.76)'
+                              : 'var(--accent)';
+                            return (
+                              <div
+                                key={cell.date}
+                                title={cell.future ? '' : `${cell.date}: +${fmtNumber(cell.delta)} слов`}
+                                style={{ width: '100%', aspectRatio: '1', borderRadius: 2, background: bg }}
+                              />
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Weekly bar chart */}
+                  <div style={{ paddingLeft: 22 }}>
+                    <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>Объём по неделям</div>
+                    <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', height: 40 }}>
+                      {activityData.weeks.map((w, i) => {
+                        const h = activityData.maxWeek > 0 ? Math.max(2, Math.round((w / activityData.maxWeek) * 40)) : 2;
+                        return (
+                          <div
+                            key={i}
+                            title={`${fmtNumber(w)} слов`}
+                            style={{ flex: 1, minWidth: 0, height: h, borderRadius: '2px 2px 0 0', background: w > 0 ? 'oklch(0.63 0.16 30 / 0.55)' : 'var(--surface-3)' }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </main>

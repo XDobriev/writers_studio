@@ -13,6 +13,7 @@ import Characters from './pages/Characters';
 import Focus from './pages/Focus';
 import Split from './pages/Split';
 import Export from './pages/Export';
+import Admin from './pages/Admin';
 
 export default function App() {
   return (
@@ -66,6 +67,8 @@ export default function App() {
             path="/books/:id/export"
             element={<AuthGuard><Export /></AuthGuard>}
           />
+
+          <Route path="/admin" element={<Admin />} />
 
           <Route path="*" element={<Navigate to="/books" replace />} />
         </Routes>
