@@ -10,3 +10,4 @@ dist
 *.tsbuildinfo
 .DS_Store
 .mcp.json
+.design-review/
