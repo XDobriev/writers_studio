@@ -179,8 +179,10 @@ html, body, #root {
   border-bottom: 1px solid var(--border-soft);
   display: flex; align-items: center;
   padding: 0 14px; gap: 4px;
-  overflow: hidden;
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: none;
 }
+.tb::-webkit-scrollbar { display: none; }
 .tb--wrap { flex-wrap: nowrap; }
 .tb > * { flex-shrink: 0; }
 .tb-grp { display: flex; align-items: center; gap: 1px; }
