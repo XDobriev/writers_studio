@@ -317,10 +317,11 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
 
   const wrapper = variant === 'pill' ? {
     position: 'absolute' as const, left: '50%', bottom: 24, transform: 'translateX(-50%)',
-    display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' as const,
+    display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap' as const,
     background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 18,
     padding: '6px 10px', boxShadow: '0 8px 28px rgba(0,0,0,.35)', zIndex: 5,
-    maxWidth: 'calc(100% - 48px)', justifyContent: 'center',
+    maxWidth: 'calc(100% - 48px)',
+    overflowX: 'auto' as const, overflowY: 'hidden' as const, scrollbarWidth: 'none' as const,
   } : undefined;
 
   return (
