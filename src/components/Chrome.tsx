@@ -1,9 +1,10 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useState, useEffect, type CSSProperties, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
 import { NOVEL, SAMPLE_PROSE } from '../data/sample';
 import type { Chapter } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
+import { fetchNotes, createNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
 
 interface SidebarProps {
   book?: Book | null;
@@ -258,29 +259,114 @@ export function Sheet({ wide = false }: SheetProps) {
   );
 }
 
-interface RightPanelProps { tab?: 'margins' | 'versions' }
+interface RightPanelProps {
+  tab?: 'margins' | 'versions';
+  bookId?: string;
+}
 
-export function RightPanel({ tab = 'margins' }: RightPanelProps) {
+export function RightPanel({ tab = 'margins', bookId }: RightPanelProps) {
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно' };
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [formKind, setFormKind] = useState<NoteKind>('idea');
+  const [formText, setFormText] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!bookId) return;
+    fetchNotes(bookId).then(setNotes).catch(() => {});
+  }, [bookId]);
+
+  const handleAdd = async () => {
+    if (!bookId || !formText.trim()) return;
+    setSaving(true);
+    try {
+      const note = await createNote(bookId, formKind, formText.trim());
+      setNotes((prev) => [note, ...prev]);
+      setFormText('');
+      setShowForm(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    setNotes((prev) => prev.filter((n) => n.id !== id));
+    deleteNote(id).catch(() => {});
+  };
+
   return (
     <aside className="rp">
       <div className="rp-head">
         <span className={'rp-tab' + (tab === 'margins' ? ' rp-tab--on' : '')}>Заметки на полях</span>
         <span className={'rp-tab' + (tab === 'versions' ? ' rp-tab--on' : '')}>Версии</span>
         <span style={{ flex: 1 }} />
-        <button className="tb-btn"><Icon name="plus" size={14} /></button>
+        <button className="tb-btn" onClick={() => setShowForm((v) => !v)} title="Добавить заметку">
+          <Icon name="plus" size={14} />
+        </button>
       </div>
       <div className="rp-body">
-        {tab === 'margins' && NOVEL.margins.map((m) => (
-          <div key={m.id} className={'mn' + (m.kind !== 'idea' ? ' mn--' + m.kind : '')}>
-            <div className="mn-head">
-              <span className="mn-label">{labels[m.kind]}</span>
-              <span className="mn-time">{m.time}</span>
-            </div>
-            <div className="mn-quote">«{m.quote}…»</div>
-            <div className="mn-text">{m.text}</div>
-          </div>
-        ))}
+        {tab === 'margins' && (
+          <>
+            {showForm && (
+              <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <select
+                  value={formKind}
+                  onChange={(e) => setFormKind(e.target.value as NoteKind)}
+                  className="input"
+                  style={{ fontSize: 12 }}
+                >
+                  <option value="idea">Идея</option>
+                  <option value="question">Вопрос</option>
+                  <option value="todo">TODO</option>
+                  <option value="important">Важно</option>
+                </select>
+                <textarea
+                  className="input"
+                  rows={3}
+                  placeholder="Текст заметки…"
+                  value={formText}
+                  onChange={(e) => setFormText(e.target.value)}
+                  style={{ fontSize: 12, resize: 'vertical' }}
+                  autoFocus
+                />
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                  <button
+                    className="btn btn--ghost"
+                    style={{ fontSize: 12, padding: '4px 10px' }}
+                    onClick={() => { setShowForm(false); setFormText(''); }}
+                  >Отмена</button>
+                  <button
+                    className="btn btn--primary"
+                    style={{ fontSize: 12, padding: '4px 10px' }}
+                    onClick={handleAdd}
+                    disabled={saving || !formText.trim()}
+                  >Сохранить</button>
+                </div>
+              </div>
+            )}
+            {notes.length === 0 && !showForm && (
+              <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>Нет заметок</div>
+            )}
+            {notes.map((n) => (
+              <div key={n.id} className={'mn' + (n.kind !== 'idea' ? ' mn--' + n.kind : '')}>
+                <div className="mn-head">
+                  <span className="mn-label">{labels[n.kind]}</span>
+                  <span style={{ color: 'var(--ink-4)', margin: '0 4px' }}>·</span>
+                  <span className="mn-time">{new Date(n.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
+                  <span style={{ flex: 1 }} />
+                  <button
+                    className="tb-btn"
+                    onClick={() => handleDelete(n.id)}
+                    title="Удалить"
+                    style={{ opacity: 0.5, fontSize: 14, lineHeight: 1, padding: '2px 6px', minWidth: 24 }}
+                  >×</button>
+                </div>
+                <div className="mn-text">{n.text}</div>
+              </div>
+            ))}
+          </>
+        )}
         {tab === 'versions' && NOVEL.versions.map((v, i) => (
           <div key={i} className="mn" style={v.active ? { borderColor: 'var(--accent)' } : {}}>
             <div className="mn-head">

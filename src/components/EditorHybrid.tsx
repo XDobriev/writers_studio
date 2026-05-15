@@ -271,7 +271,7 @@ export function EditorHybrid({
         {isPage && <EditorToolbar editor={editor} variant="pill" showModes={false} />}
       </main>
 
-      {showRight && <RightPanel tab="margins" />}
+      {showRight && <RightPanel tab="margins" bookId={book?.id} />}
 
       {isMobile && showMobileSidebar && (
         <>
