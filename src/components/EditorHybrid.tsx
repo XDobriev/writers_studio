@@ -75,7 +75,7 @@ interface ChapterSheetProps {
   onContentChange: (html: string) => void;
   onTitleChange: (title: string) => void;
   onEditor: (editor: Editor | null) => void;
-  width: number;
+  width: number | string;
   padding: string;
 }
 
@@ -157,11 +157,17 @@ export function EditorHybrid({
 }: EditorHybridProps) {
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const windowWidth = useWindowWidth();
-  const showLeft = mode === 'studio' || mode === 'left';
+  const isMobile = windowWidth < 768;
+  const showLeft = !isMobile && (mode === 'studio' || mode === 'left');
   const showRight = (mode === 'studio' && windowWidth >= 1024) || mode === 'right';
   const isPage = mode === 'page';
   const isReal = Boolean(chapters);
+
+  useEffect(() => {
+    if (!isMobile) setShowMobileSidebar(false);
+  }, [isMobile]);
 
   const cols = isPage
     ? '1fr'
@@ -173,8 +179,8 @@ export function EditorHybrid({
     ? '1fr 320px'
     : '1fr';
 
-  const sheetWidth = isPage ? 740 : 680;
-  const sheetPad = isPage ? '64px 80px 80px' : '48px 64px 80px';
+  const sheetWidth = isMobile ? '100%' : (isPage ? 740 : 680);
+  const sheetPad = isMobile ? '24px 20px 80px' : (isPage ? '64px 80px 80px' : '48px 64px 80px');
 
   const chapterIndex = isReal && activeChapter
     ? chapters!.findIndex((c) => c.id === activeChapter.id)
@@ -194,6 +200,24 @@ export function EditorHybrid({
       )}
 
       <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
+        {isMobile && !isPage && (
+          <div style={{ display: 'flex', alignItems: 'center', height: 44, padding: '0 12px', gap: 8, borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)', flexShrink: 0 }}>
+            <button
+              type="button"
+              className="tb-btn"
+              onClick={() => setShowMobileSidebar(true)}
+              title="Главы"
+              style={{ flexShrink: 0 }}
+            >
+              <Icon name="panel" size={16} />
+            </button>
+            {activeChapter && (
+              <span style={{ font: '500 13px var(--font-serif)', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {activeChapter.title || 'Без названия'}
+              </span>
+            )}
+          </div>
+        )}
         {isPage ? (
           <PageHeader
             mode={mode}
@@ -205,10 +229,10 @@ export function EditorHybrid({
             words={activeChapter?.words}
           />
         ) : (
-          <EditorToolbar editor={editor} mode={mode} setMode={setMode} variant="studio" />
+          <EditorToolbar editor={editor} mode={mode} setMode={setMode} variant="studio" showModes={!isMobile} />
         )}
 
-        <div className="sheet-wrap" style={{ padding: isPage ? '48px 56px 110px' : '36px 32px 0' }}>
+        <div className="sheet-wrap" style={{ padding: isMobile ? '16px 8px 0' : (isPage ? '48px 56px 110px' : '36px 32px 0') }}>
           {isReal ? (
             activeChapter ? (
               <ChapterSheet
@@ -248,6 +272,26 @@ export function EditorHybrid({
       </main>
 
       {showRight && <RightPanel tab="margins" />}
+
+      {isMobile && showMobileSidebar && (
+        <>
+          <div
+            role="presentation"
+            onClick={() => setShowMobileSidebar(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 40 }}
+          />
+          <div style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px rgba(0,0,0,0.35)' }}>
+            <Sidebar
+              book={book}
+              chapters={chapters}
+              activeChapterId={activeChapter?.id ?? null}
+              onSelectChapter={(id) => { onSelectChapter?.(id); setShowMobileSidebar(false); }}
+              onCreateChapter={onCreateChapter}
+              bookHref={bookHref}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
