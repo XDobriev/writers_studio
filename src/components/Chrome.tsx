@@ -36,12 +36,12 @@ export function Sidebar({
   return (
     <aside className="sb">
       <div className="sb-head">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, textDecoration: 'none' }}>
           <span style={{ width: 18, height: 22, background: 'var(--accent)', borderRadius: '1px 4px 4px 1px', position: 'relative' }}>
             <span style={{ position: 'absolute', left: 3, top: 3, right: 3, bottom: 3, border: '0.5px solid oklch(0.98 0 0 / 0.6)' }} />
           </span>
           <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
-        </div>
+        </Link>
         <div className="sb-book-title">{book?.title ?? NOVEL.title}</div>
         <div className="sb-book-author">
           {book ? [book.author, book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`}
