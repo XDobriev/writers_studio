@@ -105,7 +105,7 @@ export default function Home() {
         )}
 
         {books && books.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}>
             {books.map((b) => (
               <Link key={b.id} to={`/books/${b.id}`} style={{ background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border-soft)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ height: 180, background: `linear-gradient(160deg, ${b.cover ?? '#3a3a4a'}, oklch(0.20 0.02 50))`, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '18px 20px', borderBottom: '1px solid var(--border-soft)' }}>
