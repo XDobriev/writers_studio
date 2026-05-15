@@ -33,6 +33,17 @@ export async function createNote(bookId: string, kind: NoteKind, text: string): 
   return data as Note;
 }
 
+export async function updateNote(id: string, kind: NoteKind, text: string): Promise<Note> {
+  const { data, error } = await supabase
+    .from('notes')
+    .update({ kind, text })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Note;
+}
+
 export async function deleteNote(id: string): Promise<void> {
   const { error } = await supabase.from('notes').delete().eq('id', id);
   if (error) throw error;

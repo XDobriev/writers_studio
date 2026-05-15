@@ -7,7 +7,7 @@ type IconName =
   | 'save' | 'book' | 'layout' | 'grid' | 'tree' | 'map' | 'clock'
   | 'user' | 'note' | 'plus' | 'chev' | 'chevd' | 'track' | 'history'
   | 'settings' | 'timer' | 'sound' | 'search' | 'eye' | 'panel'
-  | 'dot' | 'pin' | 'char' | 'arrows' | 'moremenu' | 'feather';
+  | 'dot' | 'pin' | 'char' | 'arrows' | 'moremenu' | 'feather' | 'pencil';
 
 interface IconProps {
   name: IconName;
@@ -75,6 +75,7 @@ const PATHS: Record<IconName, JSX.Element> = {
   clear: <><path d="M16 4l4 4-9 9H6l-2-2z"/><line x1="13" y1="7" x2="17" y2="11"/><line x1="3" y1="21" x2="21" y2="21"/></>,
   indent: <><line x1="11" y1="6" x2="20" y2="6"/><line x1="11" y1="12" x2="20" y2="12"/><line x1="3" y1="18" x2="20" y2="18"/><polyline points="3 8 7 12 3 16"/></>,
   outdent: <><line x1="11" y1="6" x2="20" y2="6"/><line x1="11" y1="12" x2="20" y2="12"/><line x1="3" y1="18" x2="20" y2="18"/><polyline points="7 8 3 12 7 16"/></>,
+  pencil: <><path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></>,
 };
 
 export function Icon({ name, size = 16 }: IconProps) {

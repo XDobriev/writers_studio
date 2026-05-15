@@ -4,7 +4,7 @@ import { Icon } from './Icon';
 import { NOVEL, SAMPLE_PROSE } from '../data/sample';
 import type { Chapter } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
-import { fetchNotes, createNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
+import { fetchNotes, createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
 
 interface SidebarProps {
   book?: Book | null;
@@ -271,6 +271,9 @@ export function RightPanel({ tab = 'margins', bookId }: RightPanelProps) {
   const [formKind, setFormKind] = useState<NoteKind>('idea');
   const [formText, setFormText] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editKind, setEditKind] = useState<NoteKind>('idea');
+  const [editText, setEditText] = useState('');
 
   useEffect(() => {
     if (!bookId) return;
@@ -293,6 +296,24 @@ export function RightPanel({ tab = 'margins', bookId }: RightPanelProps) {
   const handleDelete = (id: string) => {
     setNotes((prev) => prev.filter((n) => n.id !== id));
     deleteNote(id).catch(() => {});
+  };
+
+  const startEdit = (n: Note) => {
+    setEditingId(n.id);
+    setEditKind(n.kind);
+    setEditText(n.text);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingId || !editText.trim()) return;
+    setSaving(true);
+    try {
+      const updated = await updateNote(editingId, editKind, editText.trim());
+      setNotes((prev) => prev.map((n) => n.id === editingId ? updated : n));
+      setEditingId(null);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -350,19 +371,64 @@ export function RightPanel({ tab = 'margins', bookId }: RightPanelProps) {
             )}
             {notes.map((n) => (
               <div key={n.id} className={'mn' + (n.kind !== 'idea' ? ' mn--' + n.kind : '')}>
-                <div className="mn-head">
-                  <span className="mn-label">{labels[n.kind]}</span>
-                  <span style={{ color: 'var(--ink-4)', margin: '0 4px' }}>·</span>
-                  <span className="mn-time">{new Date(n.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
-                  <span style={{ flex: 1 }} />
-                  <button
-                    className="tb-btn"
-                    onClick={() => handleDelete(n.id)}
-                    title="Удалить"
-                    style={{ opacity: 0.5, fontSize: 14, lineHeight: 1, padding: '2px 6px', minWidth: 24 }}
-                  >×</button>
-                </div>
-                <div className="mn-text">{n.text}</div>
+                {editingId === n.id ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <select
+                      value={editKind}
+                      onChange={(e) => setEditKind(e.target.value as NoteKind)}
+                      className="input"
+                      style={{ fontSize: 12 }}
+                    >
+                      <option value="idea">Идея</option>
+                      <option value="question">Вопрос</option>
+                      <option value="todo">TODO</option>
+                      <option value="important">Важно</option>
+                    </select>
+                    <textarea
+                      className="input"
+                      rows={3}
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      style={{ fontSize: 12, resize: 'vertical' }}
+                      autoFocus
+                    />
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      <button
+                        className="btn btn--ghost"
+                        style={{ fontSize: 12, padding: '4px 10px' }}
+                        onClick={() => setEditingId(null)}
+                      >Отмена</button>
+                      <button
+                        className="btn btn--primary"
+                        style={{ fontSize: 12, padding: '4px 10px' }}
+                        onClick={handleUpdate}
+                        disabled={saving || !editText.trim()}
+                      >Сохранить</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mn-head">
+                      <span className="mn-label">{labels[n.kind]}</span>
+                      <span style={{ color: 'var(--ink-4)', margin: '0 4px' }}>·</span>
+                      <span className="mn-time">{new Date(n.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
+                      <span style={{ flex: 1 }} />
+                      <button
+                        className="tb-btn"
+                        onClick={() => startEdit(n)}
+                        title="Редактировать"
+                        style={{ opacity: 0.5, padding: '2px 5px', minWidth: 24 }}
+                      ><Icon name="pencil" size={11} /></button>
+                      <button
+                        className="tb-btn"
+                        onClick={() => handleDelete(n.id)}
+                        title="Удалить"
+                        style={{ opacity: 0.5, fontSize: 14, lineHeight: 1, padding: '2px 6px', minWidth: 24 }}
+                      >×</button>
+                    </div>
+                    <div className="mn-text">{n.text}</div>
+                  </>
+                )}
               </div>
             ))}
           </>
