@@ -152,7 +152,7 @@ export default function Characters() {
     const position = characters?.length ?? 0;
     try {
       const created = await createCharacter(bookId, user.id, {
-        name: 'Новый персонаж',
+        name: '',
         role: 'protagonist',
         position,
       });
@@ -288,9 +288,9 @@ export default function Characters() {
                   className={'sb-item' + (on ? ' sb-item--on' : '')}
                   style={{ height: 'auto', padding: '8px 10px', width: '100%', textAlign: 'left', gridTemplateColumns: '34px 1fr auto' }}
                 >
-                  <span style={{ width: 28, height: 28, borderRadius: 999, background: on ? 'var(--accent)' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 10px var(--font-ui)', color: on ? 'oklch(0.98 0 0)' : 'var(--ink)' }}>{initialsFromName(c.name)}</span>
+                  <span style={{ width: 28, height: 28, borderRadius: 999, background: on ? 'var(--accent)' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 10px var(--font-ui)', color: on ? 'oklch(0.98 0 0)' : 'var(--ink)' }}>{initialsFromName(c.name || 'Без имени')}</span>
                   <div style={{ minWidth: 0 }}>
-                    <div className="sb-item-title">{c.name}</div>
+                    <div className="sb-item-title">{c.name || 'Без имени'}</div>
                     <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em' }}>{ROLE_LABELS[c.role]}</div>
                   </div>
                   <span />
@@ -359,7 +359,7 @@ export default function Characters() {
 
       {confirmDelete && active && (
         <ConfirmDialog
-          message={`Удалить «${active.name}»? Это действие нельзя отменить.`}
+          message={`Удалить «${active.name || 'Без имени'}»? Это действие нельзя отменить.`}
           onConfirm={onDeleteConfirmed}
           onCancel={() => setConfirmDelete(false)}
         />
@@ -382,7 +382,7 @@ function HeroBlock({ character, onChange, onDelete }: {
   const onNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     setName(v);
-    onChange({ name: v.trim() === '' ? 'Без имени' : v });
+    onChange({ name: v });
   };
   const onQuoteChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const v = e.target.value;
@@ -528,7 +528,7 @@ function RelationsBlock({ activeId, characters, relations, onCreate, onDelete, o
             style={{ flex: '0 0 200px', height: 32, padding: '0 8px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
           >
             {candidates.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>{c.name || 'Без имени'}</option>
             ))}
           </select>
           <input
@@ -599,9 +599,9 @@ function RelationRow({ relation, partner, onDelete, onLabelChange }: {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
-      <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 12px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0 }}>{initialsFromName(partner.name)}</div>
+      <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 12px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0 }}>{initialsFromName(partner.name || 'Без имени')}</div>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ font: '500 13px var(--font-ui)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{partner.name}</div>
+        <div style={{ font: '500 13px var(--font-ui)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{partner.name || 'Без имени'}</div>
         <input
           value={label}
           onChange={onChange}
