@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { Icon } from './Icon';
@@ -13,6 +13,8 @@ import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
 import { Subscript } from '@tiptap/extension-subscript';
 import { Superscript } from '@tiptap/extension-superscript';
+import { LanguageTool, LT_KEY } from '../extensions/LanguageTool';
+import { DecorationSet } from '@tiptap/pm/view';
 
 export type { Editor };
 
@@ -55,13 +57,14 @@ export function RichEditor({
       Subscript,
       Superscript,
       Placeholder.configure({ placeholder: placeholder ?? 'Начните писать…' }),
+      LanguageTool,
     ],
     content: value || '',
     editorProps: {
       attributes: {
         class: 'tiptap',
         style: attributesStyle ?? 'outline:none;',
-        spellcheck: 'true',
+        spellcheck: 'false',
       },
     },
     onUpdate: ({ editor }) => {
@@ -73,6 +76,50 @@ export function RichEditor({
     onEditor?.(editor);
     return () => onEditor?.(null);
   }, [editor, onEditor]);
+
+  const [spellPopup, setSpellPopup] = useState<{
+    x: number; y: number; suggestions: string[]; from: number; to: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!editor) return;
+    const dom = editor.view.dom;
+    const handleClick = (e: MouseEvent) => {
+      const span = (e.target as HTMLElement).closest('.lt-spell') as HTMLElement | null;
+      if (!span) { setSpellPopup(null); return; }
+      const suggestions = (span.dataset.lt ?? '').split('|').filter(Boolean);
+      if (!suggestions.length) { setSpellPopup(null); return; }
+      const coords = editor.view.posAtCoords({ left: e.clientX, top: e.clientY });
+      if (!coords) return;
+      const decoState = LT_KEY.getState(editor.view.state);
+      if (!decoState) return;
+      const found = decoState.find(coords.pos, coords.pos + 1);
+      if (!found.length) return;
+      const rect = span.getBoundingClientRect();
+      setSpellPopup({ x: rect.left, y: rect.bottom + 6, suggestions, from: found[0].from, to: found[0].to });
+    };
+    dom.addEventListener('click', handleClick);
+    return () => dom.removeEventListener('click', handleClick);
+  }, [editor]);
+
+  useEffect(() => {
+    if (!spellPopup) return;
+    const dismiss = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.spell-popup')) setSpellPopup(null);
+    };
+    document.addEventListener('mousedown', dismiss);
+    return () => document.removeEventListener('mousedown', dismiss);
+  }, [spellPopup]);
+
+  const applySuggestion = (suggestion: string) => {
+    if (!spellPopup || !editor) return;
+    editor.chain().focus().command(({ tr }) => {
+      tr.replaceWith(spellPopup.from, spellPopup.to, editor.schema.text(suggestion));
+      tr.setMeta(LT_KEY, DecorationSet.empty);
+      return true;
+    }).run();
+    setSpellPopup(null);
+  };
 
   const TEXT_COLORS = [
     { label: 'По умолчанию', value: '',        bg: null      },
@@ -158,6 +205,22 @@ export function RichEditor({
         </BubbleMenu>
       )}
       <EditorContent editor={editor} className={className} style={style} />
+      {spellPopup && (
+        <div
+          className="spell-popup"
+          style={{ left: spellPopup.x, top: spellPopup.y }}
+        >
+          {spellPopup.suggestions.map(s => (
+            <button
+              key={s}
+              className="spell-popup__item"
+              onMouseDown={e => { e.preventDefault(); applySuggestion(s); }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
     </>
   );
 }
