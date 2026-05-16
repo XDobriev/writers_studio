@@ -185,6 +185,12 @@ export default function Corkboard() {
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <aside className="sb">
           <div className="sb-head">
+            <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, textDecoration: 'none' }}>
+              <span style={{ width: 18, height: 22, background: 'var(--accent)', borderRadius: '1px 4px 4px 1px', position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 3, top: 3, right: 3, bottom: 3, border: '0.5px solid oklch(0.98 0 0 / 0.6)' }} />
+              </span>
+              <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
+            </Link>
             <div className="sb-book-title">{book?.title ?? '…'}</div>
             <div className="sb-book-author">
               {counts.all} {counts.all === 1 ? 'глава' : 'глав'} · {(book?.words ?? 0).toLocaleString('ru')} сл

@@ -82,7 +82,11 @@ export function Sidebar({
           </span>
           <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
         </Link>
-        <div className="sb-book-title">{book?.title ?? NOVEL.title}</div>
+        {bid ? (
+          <Link to={`/books/${bid}`} className="sb-book-title" style={{ textDecoration: 'none' }}>{book?.title ?? NOVEL.title}</Link>
+        ) : (
+          <div className="sb-book-title">{book?.title ?? NOVEL.title}</div>
+        )}
         <div className="sb-book-author">
           {book ? [book.author, book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`}
         </div>

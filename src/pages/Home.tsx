@@ -20,6 +20,43 @@ export default function Home() {
   const [books, setBooks] = useState<Book[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+  const [editBook, setEditBook] = useState<Book | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editGenre, setEditGenre] = useState('');
+  const [editGoal, setEditGoal] = useState(0);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const openEditBook = (b: Book) => {
+    setEditBook(b);
+    setEditTitle(b.title);
+    setEditGenre(b.genre ?? '');
+    setEditGoal(b.goal);
+    setEditError(null);
+  };
+
+  const saveEditBook = async () => {
+    if (!editBook || !editTitle.trim()) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      const { data, error } = await supabase
+        .from('books')
+        .update({ title: editTitle.trim(), genre: editGenre.trim() || null, goal: Math.max(0, editGoal) })
+        .eq('id', editBook.id)
+        .select()
+        .single();
+      if (error) throw error;
+      setBooks((prev) => prev?.map((b) => b.id === editBook.id ? data as Book : b) ?? prev);
+      setEditBook(null);
+    } catch (e) {
+      setEditError((e as Error).message);
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -107,34 +144,120 @@ export default function Home() {
         {books && books.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}>
             {books.map((b) => (
-              <Link key={b.id} to={`/books/${b.id}`} style={{ background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border-soft)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ height: 180, background: `linear-gradient(160deg, ${b.cover ?? '#3a3a4a'}, oklch(0.20 0.02 50))`, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '18px 20px', borderBottom: '1px solid var(--border-soft)' }}>
-                  <div style={{ font: '500 10px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'oklch(0.95 0.008 80 / 0.7)', marginBottom: 6 }}>
-                    {b.genre || 'Без жанра'}
+              <div
+                key={b.id}
+                style={{ position: 'relative' }}
+                onMouseEnter={() => setHoveredId(b.id)}
+                onMouseLeave={() => setHoveredId(null)}
+              >
+                <Link to={`/books/${b.id}`} style={{ background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border-soft)', overflow: 'hidden', display: 'flex', flexDirection: 'column', textDecoration: 'none' }}>
+                  <div style={{ height: 180, background: `linear-gradient(160deg, ${b.cover ?? '#3a3a4a'}, oklch(0.20 0.02 50))`, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '18px 20px', borderBottom: '1px solid var(--border-soft)' }}>
+                    <div style={{ font: '500 10px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'oklch(0.95 0.008 80 / 0.7)', marginBottom: 6 }}>
+                      {b.genre || 'Без жанра'}
+                    </div>
+                    <div style={{ font: '600 22px var(--font-serif)', color: 'oklch(0.97 0.01 80)', letterSpacing: '-0.01em', lineHeight: 1.15 }}>{b.title}</div>
+                    {b.author && (
+                      <div style={{ font: '400 11px var(--font-mono)', color: 'oklch(0.97 0.01 80 / 0.6)', marginTop: 6, letterSpacing: '0.06em' }}>{b.author}</div>
+                    )}
                   </div>
-                  <div style={{ font: '600 22px var(--font-serif)', color: 'oklch(0.97 0.01 80)', letterSpacing: '-0.01em', lineHeight: 1.15 }}>{b.title}</div>
-                  {b.author && (
-                    <div style={{ font: '400 11px var(--font-mono)', color: 'oklch(0.97 0.01 80 / 0.6)', marginTop: 6, letterSpacing: '0.06em' }}>{b.author}</div>
-                  )}
-                </div>
-                <div style={{ padding: '14px 20px 16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>
-                    <span>{b.words.toLocaleString('ru')} / {b.goal.toLocaleString('ru')}</span>
-                    <span>{Math.round((b.words / Math.max(1, b.goal)) * 100)}%</span>
+                  <div style={{ padding: '14px 20px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>
+                      <span>{b.words.toLocaleString('ru')} / {b.goal.toLocaleString('ru')}</span>
+                      <span>{Math.round((b.words / Math.max(1, b.goal)) * 100)}%</span>
+                    </div>
+                    <div style={{ height: 3, background: 'var(--surface-3)', borderRadius: 999, overflow: 'hidden', marginBottom: 12 }}>
+                      <div style={{ width: `${(b.words / Math.max(1, b.goal)) * 100}%`, height: '100%', background: b.words > 0 ? 'var(--accent)' : 'var(--ink-4)' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)' }}>
+                      <span>{dayDiff(b.created_at)} дн. в работе</span>
+                      <span>изм. {formatDate(b.updated_at)}</span>
+                    </div>
                   </div>
-                  <div style={{ height: 3, background: 'var(--surface-3)', borderRadius: 999, overflow: 'hidden', marginBottom: 12 }}>
-                    <div style={{ width: `${(b.words / Math.max(1, b.goal)) * 100}%`, height: '100%', background: b.words > 0 ? 'var(--accent)' : 'var(--ink-4)' }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)' }}>
-                    <span>{dayDiff(b.created_at)} дн. в работе</span>
-                    <span>изм. {formatDate(b.updated_at)}</span>
-                  </div>
-                </div>
-              </Link>
+                </Link>
+                <button
+                  onClick={() => openEditBook(b)}
+                  title="Редактировать"
+                  style={{
+                    position: 'absolute', top: 10, right: 10, zIndex: 1,
+                    width: 28, height: 28, borderRadius: 6,
+                    background: 'oklch(0.12 0.01 50 / 0.70)',
+                    border: '1px solid oklch(1 0 0 / 0.12)',
+                    backdropFilter: 'blur(6px)',
+                    cursor: 'pointer',
+                    display: hoveredId === b.id ? 'flex' : 'none',
+                    alignItems: 'center', justifyContent: 'center',
+                    color: 'oklch(0.95 0.01 80)',
+                  }}
+                >
+                  <Icon name="pencil" size={13} />
+                </button>
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      {editBook && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'oklch(0 0 0 / 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setEditBook(null)}
+        >
+          <div
+            style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px 28px', width: 460, display: 'flex', flexDirection: 'column', gap: 18, boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ font: '600 20px var(--font-serif)' }}>Редактировать книгу</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label className="label">Название</label>
+                <input
+                  className="input"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveEditBook(); if (e.key === 'Escape') setEditBook(null); }}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="label">Жанр</label>
+                <input
+                  className="input"
+                  value={editGenre}
+                  onChange={(e) => setEditGenre(e.target.value)}
+                  placeholder="Фэнтези, Детектив, Роман…"
+                  onKeyDown={(e) => { if (e.key === 'Escape') setEditBook(null); }}
+                />
+              </div>
+              <div>
+                <label className="label">Цель по словам</label>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={editGoal}
+                  onChange={(e) => setEditGoal(Number(e.target.value))}
+                  onKeyDown={(e) => { if (e.key === 'Escape') setEditBook(null); }}
+                />
+              </div>
+            </div>
+            {editError && (
+              <div style={{ fontSize: 12, color: 'var(--danger)' }}>{editError}</div>
+            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn--ghost" onClick={() => setEditBook(null)}>Отмена</button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={saveEditBook}
+                disabled={editSaving || !editTitle.trim()}
+              >
+                {editSaving ? 'Сохранение…' : 'Сохранить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showCreate && (
         <div style={{ position: 'fixed', inset: 0, background: 'oklch(0.10 0.012 50 / 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }} onClick={() => setShowCreate(false)}>

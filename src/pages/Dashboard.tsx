@@ -39,6 +39,43 @@ export default function Dashboard() {
   const [snapshots, setSnapshots] = useState<SnapRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editGenre, setEditGenre] = useState('');
+  const [editGoal, setEditGoal] = useState(0);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const openEdit = () => {
+    if (!book) return;
+    setEditTitle(book.title);
+    setEditGenre(book.genre ?? '');
+    setEditGoal(book.goal);
+    setEditError(null);
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editTitle.trim() || !id) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      const { data, error: err } = await supabase
+        .from('books')
+        .update({ title: editTitle.trim(), genre: editGenre.trim() || null, goal: Math.max(0, editGoal) })
+        .eq('id', id)
+        .select()
+        .single();
+      if (err) throw err;
+      setBook(data as Book);
+      setEditOpen(false);
+    } catch (e) {
+      setEditError((e as Error).message);
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
@@ -203,6 +240,12 @@ export default function Dashboard() {
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <aside className="sb">
           <div className="sb-head">
+            <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, textDecoration: 'none' }}>
+              <span style={{ width: 18, height: 22, background: 'var(--accent)', borderRadius: '1px 4px 4px 1px', position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 3, top: 3, right: 3, bottom: 3, border: '0.5px solid oklch(0.98 0 0 / 0.6)' }} />
+              </span>
+              <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
+            </Link>
             <div className="sb-book-title">{book.title}</div>
             <div className="sb-book-author">дэшборд книги</div>
           </div>
@@ -234,6 +277,7 @@ export default function Dashboard() {
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <span style={{ font: '500 13px var(--font-ui)' }}>Дэшборд · {book.title}</span>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button className="btn btn--ghost" onClick={openEdit}><Icon name="pencil" size={14} /> Изменить</button>
               <Link to={navTo('/editor')} className="btn btn--primary" style={{ textDecoration: 'none' }}><Icon name="book" size={14} /> Открыть редактор</Link>
               <button className="btn btn--ghost" onClick={signOut}>Выйти</button>
             </div>
@@ -393,6 +437,68 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
+      {editOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'oklch(0 0 0 / 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setEditOpen(false)}
+        >
+          <div
+            style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 16, padding: '28px 32px', width: 440, display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label className="label">Название</label>
+              <input
+                className="input"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditOpen(false); }}
+                autoFocus
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label className="label">Жанр</label>
+              <input
+                className="input"
+                value={editGenre}
+                onChange={(e) => setEditGenre(e.target.value)}
+                placeholder="Фэнтези, Детектив, Роман…"
+                onKeyDown={(e) => { if (e.key === 'Escape') setEditOpen(false); }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label className="label">Целевой объём (слов)</label>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={editGoal}
+                onChange={(e) => setEditGoal(Number(e.target.value))}
+                onKeyDown={(e) => { if (e.key === 'Escape') setEditOpen(false); }}
+              />
+            </div>
+
+            {editError && (
+              <div style={{ fontSize: 12, color: 'var(--danger)' }}>{editError}</div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn btn--ghost" onClick={() => setEditOpen(false)}>Отмена</button>
+              <button
+                className="btn btn--primary"
+                onClick={saveEdit}
+                disabled={editSaving || !editTitle.trim()}
+              >
+                {editSaving ? 'Сохранение…' : 'Сохранить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </WithMode>
   );
 }
