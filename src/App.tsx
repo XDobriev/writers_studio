@@ -15,6 +15,7 @@ import Split from './pages/Split';
 import Export from './pages/Export';
 import Notes from './pages/Notes';
 import Admin from './pages/Admin';
+import ResetPassword from './pages/ResetPassword';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/books" replace />} />
           <Route path="/login" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route
             path="/books"

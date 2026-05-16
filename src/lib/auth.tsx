@@ -21,6 +21,8 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<{ error: string | null }>;
   signInWithTelegram: (data: TelegramAuthData) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  resetPasswordForEmail: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (password: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -74,6 +76,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const resetPasswordForEmail: AuthContextValue['resetPasswordForEmail'] = async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { error: error?.message ?? null };
+  };
+
+  const updatePassword: AuthContextValue['updatePassword'] = async (password) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error: error?.message ?? null };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -85,6 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithGoogle,
         signInWithTelegram,
         signOut,
+        resetPasswordForEmail,
+        updatePassword,
       }}
     >
       {children}

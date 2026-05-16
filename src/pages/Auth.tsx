@@ -10,6 +10,22 @@ interface PublicStats {
 }
 
 type Tab = 'signin' | 'signup';
+type Flow = 'auth' | 'reset-request' | 'reset-sent';
+
+const SUPABASE_ERRORS: Record<string, string> = {
+  'Invalid login credentials': 'Неверная почта или пароль.',
+  'Email not confirmed': 'Почта не подтверждена. Проверьте входящие письма.',
+  'User already registered': 'Пользователь с этой почтой уже зарегистрирован.',
+  'Password should be at least 6 characters.': 'Пароль должен содержать не менее 6 символов.',
+  'Signup requires a valid password': 'Необходимо задать пароль.',
+  'Email rate limit exceeded': 'Слишком много попыток. Повторите позже.',
+  'For security purposes, you can only request this once every 60 seconds': 'По соображениям безопасности — не чаще одного запроса в 60 секунд.',
+  'Unable to validate email address: invalid format': 'Неверный формат адреса электронной почты.',
+};
+
+function te(msg: string): string {
+  return SUPABASE_ERRORS[msg] ?? msg;
+}
 
 const TG_BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string | undefined;
 const TG_CALLBACK = '__onTelegramAuth';
@@ -21,9 +37,10 @@ declare global {
 }
 
 export default function Auth() {
-  const { session, signIn, signUp, signInWithGoogle, signInWithTelegram } = useAuth();
+  const { session, signIn, signUp, signInWithGoogle, signInWithTelegram, resetPasswordForEmail } = useAuth();
   const location = useLocation();
   const [tab, setTab] = useState<Tab>('signin');
+  const [flow, setFlow] = useState<Flow>('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -46,7 +63,7 @@ export default function Auth() {
       setErr(null);
       const { error } = await signInWithTelegram(user);
       setOauthBusy(null);
-      if (error) setErr(`Telegram: ${error}`);
+      if (error) setErr(`Telegram: ${te(error)}`);
     };
     const slot = tgSlotRef.current;
     const script = document.createElement('script');
@@ -74,13 +91,23 @@ export default function Auth() {
     setErr(null);
     setInfo(null);
     setBusy(true);
+    if (flow === 'reset-request') {
+      const { error } = await resetPasswordForEmail(email);
+      if (error) {
+        setErr(te(error));
+      } else {
+        setFlow('reset-sent');
+      }
+      setBusy(false);
+      return;
+    }
     if (tab === 'signin') {
       const { error } = await signIn(email, password);
-      if (error) setErr(error);
+      if (error) setErr(te(error));
     } else {
       const { error } = await signUp(email, password);
       if (error) {
-        setErr(error);
+        setErr(te(error));
       } else {
         setInfo('Аккаунт создан. Проверьте почту, если включена верификация — иначе входите сразу.');
         setTab('signin');
@@ -94,7 +121,7 @@ export default function Auth() {
     setOauthBusy('google');
     const { error } = await signInWithGoogle();
     if (error) {
-      setErr(`Google: ${error}`);
+      setErr(`Google: ${te(error)}`);
       setOauthBusy(null);
     }
     // при успехе редирект уходит на Google — стейт busy не сбрасываем
@@ -137,121 +164,201 @@ export default function Auth() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48 }}>
         <form onSubmit={onSubmit} method="post" action="#" style={{ width: 380 }}>
-          <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: '1px solid var(--border-soft)' }}>
-            <button
-              type="button"
-              onClick={() => setTab('signin')}
-              style={{
-                padding: '10px 0', marginRight: 24,
-                font: tab === 'signin' ? '500 14px var(--font-ui)' : '400 14px var(--font-ui)',
-                color: tab === 'signin' ? 'var(--ink)' : 'var(--ink-3)',
-                borderBottom: tab === 'signin' ? '1.5px solid var(--accent)' : '1.5px solid transparent',
-                background: 'none', cursor: 'pointer',
-              }}
-            >Войти</button>
-            <button
-              type="button"
-              onClick={() => setTab('signup')}
-              style={{
-                padding: '10px 0',
-                font: tab === 'signup' ? '500 14px var(--font-ui)' : '400 14px var(--font-ui)',
-                color: tab === 'signup' ? 'var(--ink)' : 'var(--ink-3)',
-                borderBottom: tab === 'signup' ? '1.5px solid var(--accent)' : '1.5px solid transparent',
-                background: 'none', cursor: 'pointer',
-              }}
-            >Регистрация</button>
-          </div>
 
-          <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6 }}>
-            {tab === 'signin' ? 'С возвращением.' : 'Откройте студию.'}
-          </h2>
-          <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 24 }}>
-            {tab === 'signin' ? 'Войдите по почте или через Google.' : 'Минимальная регистрация — или один клик через Google.'}
-          </p>
-
-          {!supabaseConfigured && (
-            <div style={{ marginBottom: 16, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--danger)', background: 'oklch(0.65 0.18 25 / 0.08)', color: 'var(--ink-2)', fontSize: 12.5, lineHeight: 1.5 }}>
-              Supabase не сконфигурирован. Скопируйте <code style={{ font: '400 11px var(--font-mono)' }}>.env.example</code> в <code style={{ font: '400 11px var(--font-mono)' }}>.env</code> и заполните значения из Supabase → Project Settings → API.
-            </div>
+          {/* ── reset-sent ── */}
+          {flow === 'reset-sent' && (
+            <>
+              <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 8 }}>Проверьте почту.</h2>
+              <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.6 }}>
+                Ссылка для сброса пароля отправлена на <strong style={{ color: 'var(--ink-2)' }}>{email}</strong>. Перейдите по ней в течение часа.
+              </p>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                style={{ fontSize: 13 }}
+                onClick={() => { setFlow('auth'); setErr(null); }}
+              >
+                ← Вернуться к входу
+              </button>
+            </>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
-            <button
-              type="button"
-              onClick={onGoogle}
-              disabled={oauthBusy !== null || !supabaseConfigured}
-              className="btn"
-              style={{ width: '100%', height: 42, justifyContent: 'center', gap: 10 }}
-            >
-              <GoogleGlyph />
-              <span>{oauthBusy === 'google' ? 'Переход к Google…' : 'Войти через Google'}</span>
-            </button>
-
-            {TG_BOT_USERNAME && (
-              <div ref={tgSlotRef} style={{ display: 'flex', justifyContent: 'center', minHeight: 42 }} />
-            )}
-            {oauthBusy === 'telegram' && (
-              <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', textAlign: 'center' }}>Подтверждение Telegram…</div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 18px', color: 'var(--ink-4)', font: '400 11px var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            <span style={{ flex: 1, height: 1, background: 'var(--border-soft)' }} />
-            <span>или по почте</span>
-            <span style={{ flex: 1, height: 1, background: 'var(--border-soft)' }} />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-            <div>
-              <label className="label" htmlFor="auth-email">Email</label>
-              <input
-                id="auth-email"
-                name="email"
-                className="input"
-                type="email"
-                required
-                autoComplete="username"
-                inputMode="email"
-                spellCheck={false}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="auth-password">Пароль</label>
-              <input
-                id="auth-password"
-                name="password"
-                className="input"
-                type="password"
-                required
-                minLength={6}
-                autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {err && (
-            <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 6, background: 'oklch(0.65 0.18 25 / 0.12)', color: 'var(--danger)', fontSize: 12.5 }}>
-              {err}
-            </div>
-          )}
-          {info && (
-            <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 6, background: 'oklch(0.72 0.14 145 / 0.12)', color: 'var(--ok)', fontSize: 12.5 }}>
-              {info}
-            </div>
+          {/* ── reset-request ── */}
+          {flow === 'reset-request' && (
+            <>
+              <button
+                type="button"
+                onClick={() => { setFlow('auth'); setErr(null); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', font: '400 13px var(--font-ui)', color: 'var(--ink-3)', padding: '0 0 20px', display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                ← Назад
+              </button>
+              <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6 }}>Сброс пароля.</h2>
+              <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 24 }}>
+                Введите почту — пришлём ссылку для создания нового пароля.
+              </p>
+              <div style={{ marginBottom: 16 }}>
+                <label className="label" htmlFor="reset-email">Email</label>
+                <input
+                  id="reset-email"
+                  className="input"
+                  type="email"
+                  required
+                  autoFocus
+                  inputMode="email"
+                  spellCheck={false}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              {err && (
+                <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 6, background: 'oklch(0.65 0.18 25 / 0.12)', color: 'var(--danger)', fontSize: 12.5 }}>
+                  {err}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={busy || !supabaseConfigured}
+                className="btn btn--primary"
+                style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center' }}
+              >
+                {busy ? '…' : 'Отправить ссылку'}
+              </button>
+            </>
           )}
 
-          <button
-            type="submit"
-            disabled={busy || !supabaseConfigured}
-            className="btn btn--primary"
-            style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center' }}
-          >
-            {busy ? '…' : tab === 'signin' ? 'Войти в студию' : 'Создать аккаунт'}
-          </button>
+          {/* ── signin / signup ── */}
+          {flow === 'auth' && (
+            <>
+              <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: '1px solid var(--border-soft)' }}>
+                <button
+                  type="button"
+                  onClick={() => setTab('signin')}
+                  style={{
+                    padding: '10px 0', marginRight: 24,
+                    font: tab === 'signin' ? '500 14px var(--font-ui)' : '400 14px var(--font-ui)',
+                    color: tab === 'signin' ? 'var(--ink)' : 'var(--ink-3)',
+                    borderBottom: tab === 'signin' ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+                    background: 'none', cursor: 'pointer',
+                  }}
+                >Войти</button>
+                <button
+                  type="button"
+                  onClick={() => setTab('signup')}
+                  style={{
+                    padding: '10px 0',
+                    font: tab === 'signup' ? '500 14px var(--font-ui)' : '400 14px var(--font-ui)',
+                    color: tab === 'signup' ? 'var(--ink)' : 'var(--ink-3)',
+                    borderBottom: tab === 'signup' ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+                    background: 'none', cursor: 'pointer',
+                  }}
+                >Регистрация</button>
+              </div>
+
+              <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6 }}>
+                {tab === 'signin' ? 'С возвращением.' : 'Откройте студию.'}
+              </h2>
+              <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 24 }}>
+                {tab === 'signin' ? 'Войдите по почте или через Google.' : 'Минимальная регистрация — или один клик через Google.'}
+              </p>
+
+              {!supabaseConfigured && (
+                <div style={{ marginBottom: 16, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--danger)', background: 'oklch(0.65 0.18 25 / 0.08)', color: 'var(--ink-2)', fontSize: 12.5, lineHeight: 1.5 }}>
+                  Supabase не сконфигурирован. Скопируйте <code style={{ font: '400 11px var(--font-mono)' }}>.env.example</code> в <code style={{ font: '400 11px var(--font-mono)' }}>.env</code> и заполните значения из Supabase → Project Settings → API.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
+                <button
+                  type="button"
+                  onClick={onGoogle}
+                  disabled={oauthBusy !== null || !supabaseConfigured}
+                  className="btn"
+                  style={{ width: '100%', height: 42, justifyContent: 'center', gap: 10 }}
+                >
+                  <GoogleGlyph />
+                  <span>{oauthBusy === 'google' ? 'Переход к Google…' : 'Войти через Google'}</span>
+                </button>
+
+                {TG_BOT_USERNAME && (
+                  <div ref={tgSlotRef} style={{ display: 'flex', justifyContent: 'center', minHeight: 42 }} />
+                )}
+                {oauthBusy === 'telegram' && (
+                  <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', textAlign: 'center' }}>Подтверждение Telegram…</div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 18px', color: 'var(--ink-4)', font: '400 11px var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                <span style={{ flex: 1, height: 1, background: 'var(--border-soft)' }} />
+                <span>или по почте</span>
+                <span style={{ flex: 1, height: 1, background: 'var(--border-soft)' }} />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+                <div>
+                  <label className="label" htmlFor="auth-email">Email</label>
+                  <input
+                    id="auth-email"
+                    name="email"
+                    className="input"
+                    type="email"
+                    required
+                    autoComplete="username"
+                    inputMode="email"
+                    spellCheck={false}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                    <label className="label" htmlFor="auth-password" style={{ marginBottom: 0 }}>Пароль</label>
+                    {tab === 'signin' && (
+                      <button
+                        type="button"
+                        onClick={() => { setErr(null); setInfo(null); setFlow('reset-request'); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--ink-3)', padding: 0, lineHeight: 1 }}
+                      >
+                        Забыли пароль?
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    id="auth-password"
+                    name="password"
+                    className="input"
+                    type="password"
+                    required
+                    minLength={6}
+                    autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {err && (
+                <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 6, background: 'oklch(0.65 0.18 25 / 0.12)', color: 'var(--danger)', fontSize: 12.5 }}>
+                  {err}
+                </div>
+              )}
+              {info && (
+                <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 6, background: 'oklch(0.72 0.14 145 / 0.12)', color: 'var(--ok)', fontSize: 12.5 }}>
+                  {info}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={busy || !supabaseConfigured}
+                className="btn btn--primary"
+                style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center' }}
+              >
+                {busy ? '…' : tab === 'signin' ? 'Войти в студию' : 'Создать аккаунт'}
+              </button>
+            </>
+          )}
+
         </form>
       </div>
     </div>
