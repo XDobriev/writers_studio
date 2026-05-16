@@ -732,7 +732,7 @@ interface WithModeProps {
 
 export function WithMode({ active = 'editor', children }: WithModeProps) {
   const [mode, setMode] = useState<ScreenMode>('studio');
-  const showToggle = active !== 'dashboard';
+  const showToggle = active === 'editor';
   return (
     <div className={mode === 'page' ? 'mode-page' : ''} style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
       {children}

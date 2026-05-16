@@ -407,7 +407,7 @@ export default function Characters() {
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'var(--ink-3)' }}>
               <div style={{ font: '500 14px var(--font-ui)' }}>В картотеке ещё нет персонажей</div>
-              <button onClick={onCreate} className="btn"><Icon name="plus" size={13} /> Создать первого</button>
+              <button onClick={onCreate} className="btn"><Icon name="plus" size={13} /> Создать</button>
             </div>
           )}
         </main>
