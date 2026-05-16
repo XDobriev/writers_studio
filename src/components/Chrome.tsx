@@ -175,12 +175,14 @@ export function Sidebar({
   }, [statusMenuFor]);
   const bid = book?.id ?? '';
   const navItems: Array<[Parameters<typeof Icon>[0]['name'], string, string | null]> = [
+    ['layout', 'Дэшборд', bid ? `/books/${bid}` : null],
     ['book', 'Манускрипт', bid ? `/books/${bid}/editor` : null],
     ['char', 'Персонажи', bid ? `/books/${bid}/characters` : null],
     ['map', 'Карта мира', bid ? `/books/${bid}/map` : null],
     ['clock', 'Хронология', bid ? `/books/${bid}/timeline` : null],
     ['note', 'Заметки', bid ? `/books/${bid}/notes` : null],
-    ['layout', 'Дэшборд', bid ? `/books/${bid}` : null],
+    ['tree', 'Структура', bid ? `/books/${bid}/outline` : null],
+    ['grid', 'Доска', bid ? `/books/${bid}/corkboard` : null],
   ];
   function isNavActive(href: string | null): boolean {
     if (!href) return false;
@@ -307,55 +309,13 @@ export function Sidebar({
           )}
         </>
       ) : (
-        <>
-          <div className="sb-tabs" style={{ paddingTop: 14 }}>
-            <button className="sb-tab sb-tab--on">Список</button>
-            <button className="sb-tab">Доска</button>
-            <button className="sb-tab">Структура</button>
-          </div>
-
-          <div className="sb-section">
-            <span className="sb-section-title">Часть I · Снег</span>
-            <span className="sb-section-meta">3/3</span>
-          </div>
-          <div className="sb-list">
-            {NOVEL.chapters.slice(0, 3).map((c) => (
-              <div key={c.num} className={'sb-item' + ('')}>
-                <span className="sb-item-num">{String(c.num).padStart(2, '0')}</span>
-                <span className="sb-item-title">{c.title}</span>
-                <span className={'sb-item-dot sb-item-dot--' + c.status} />
-              </div>
-            ))}
-          </div>
-
-          <div className="sb-section">
-            <span className="sb-section-title">Часть II · Тракт</span>
-            <span className="sb-section-meta">0/3</span>
-          </div>
-          <div className="sb-list">
-            {NOVEL.chapters.slice(3, 6).map((c) => (
-              <div key={c.num} className={'sb-item' + ('')}>
-                <span className="sb-item-num">{String(c.num).padStart(2, '0')}</span>
-                <span className="sb-item-title">{c.title}</span>
-                <span className={'sb-item-dot sb-item-dot--' + c.status} />
-              </div>
-            ))}
-          </div>
-
-          <div className="sb-section">
-            <span className="sb-section-title">Часть III · Корна</span>
-            <span className="sb-section-meta">0/4</span>
-          </div>
-          <div className="sb-list">
-            {NOVEL.chapters.slice(6).map((c) => (
-              <div key={c.num} className={'sb-item' + ('')}>
-                <span className="sb-item-num">{String(c.num).padStart(2, '0')}</span>
-                <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>{c.title}</span>
-                <span className={'sb-item-dot sb-item-dot--' + c.status} />
-              </div>
-            ))}
-          </div>
-        </>
+        <div style={{ padding: '6px 12px 0' }}>
+          <Link to="/books" className="sb-item" style={{ color: 'var(--ink-3)' }}>
+            <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="arrows" size={14} /></span>
+            <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>← Все книги</span>
+            <span />
+          </Link>
+        </div>
       )}
 
       <div className="sb-foot">
