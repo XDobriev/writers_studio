@@ -111,7 +111,7 @@ export default function Auth() {
         </div>
 
         <div>
-          <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.2em', color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 18 }}>Издание для писателей · 2026</div>
+          <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.2em', color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 18 }}>Редактор для писателей · 2026</div>
           <h1 style={{ font: '600 56px/1.05 var(--font-serif)', letterSpacing: '-0.02em', marginBottom: 24 }}>Здесь<br />пишутся книги.</h1>
           <p style={{ font: '400 16px/1.65 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 480 }}>
             Манускрипт, картотека персонажей, карта мира и хронология — в одном тихом редакторе. Автосохранение, версии глав, заметки на полях. Без шума, баннеров и рекламы.
@@ -121,9 +121,9 @@ export default function Auth() {
         <div style={{ display: 'flex', gap: 32, paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
           {stats ? (
             <>
-              <StatCell value={stats.users_total.toLocaleString('ru')} label="авторов" />
-              <StatCell value={stats.books_total.toLocaleString('ru')} label="книг написано" />
-              <StatCell value={formatWords(stats.words_total)} label="слов" />
+              <StatCell value={stats.users_total.toLocaleString('ru')} label={pluralRu(stats.users_total, 'автор', 'автора', 'авторов')} />
+              <StatCell value={stats.books_total.toLocaleString('ru')} label={pluralRu(stats.books_total, 'книга написана', 'книги написано', 'книг написано')} />
+              <StatCell value={formatWords(stats.words_total)} label={wordsLabel(stats.words_total)} />
             </>
           ) : (
             <>
@@ -262,6 +262,20 @@ function formatWords(n: number): string {
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1).replace('.', ',')} млрд`;
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')} млн`;
   return n.toLocaleString('ru');
+}
+
+function pluralRu(n: number, one: string, few: string, many: string): string {
+  const abs = Math.abs(Math.round(n)) % 100;
+  const rem = abs % 10;
+  if (abs >= 11 && abs <= 19) return many;
+  if (rem === 1) return one;
+  if (rem >= 2 && rem <= 4) return few;
+  return many;
+}
+
+function wordsLabel(n: number): string {
+  if (n >= 1_000_000) return 'слов';
+  return pluralRu(n, 'слово', 'слова', 'слов');
 }
 
 function StatCell({ value, label }: { value: string; label: string }) {
