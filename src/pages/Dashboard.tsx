@@ -182,7 +182,24 @@ export default function Dashboard() {
       }
     }
 
-    return { cells, weeks, maxDelta, maxWeek, todayWords, streak, monthLabels };
+    const cumulativeLine: Array<{ date: string; words: number }> = [];
+    let lastKnownWords = 0;
+    let hasCumData = false;
+    for (let w = 0; w < 52; w++) {
+      const weekPastCells = cells.slice(w * 7, w * 7 + 7).filter(c => !c.future);
+      if (weekPastCells.length === 0) continue;
+      for (const c of weekPastCells) {
+        if (snap[c.date] !== undefined) {
+          lastKnownWords = snap[c.date];
+          hasCumData = true;
+        }
+      }
+      if (hasCumData) {
+        cumulativeLine.push({ date: weekPastCells[weekPastCells.length - 1].date, words: lastKnownWords });
+      }
+    }
+
+    return { cells, weeks, maxDelta, maxWeek, todayWords, streak, monthLabels, cumulativeLine };
   }, [snapshots]);
 
   if (!id) return <Navigate to="/books" replace />;
@@ -431,6 +448,43 @@ export default function Dashboard() {
                       })}
                     </div>
                   </div>
+
+                  {/* Cumulative volume line chart */}
+                  {activityData.cumulativeLine.length > 1 && (() => {
+                    const pts = activityData.cumulativeLine;
+                    const maxW = Math.max(1, ...pts.map(p => p.words));
+                    const vH = 60, vW = 100;
+                    const toX = (i: number) => (i / (pts.length - 1)) * vW;
+                    const toY = (w: number) => vH - (w / maxW) * vH * 0.85 - vH * 0.05;
+                    const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(2)} ${toY(p.words).toFixed(2)}`).join(' ');
+                    const fillPath = `${linePath} L${vW} ${vH} L0 ${vH}Z`;
+                    const growth = pts[pts.length - 1].words - pts[0].words;
+                    return (
+                      <div style={{ paddingLeft: 22, marginTop: 4 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                          <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.10em', textTransform: 'uppercase' }}>Накопленный объём</div>
+                          {growth > 0 && (
+                            <span style={{ font: '500 11px var(--font-mono)', color: 'var(--ink-3)' }}>+{fmtNumber(growth)} за период</span>
+                          )}
+                        </div>
+                        <svg viewBox={`0 0 ${vW} ${vH}`} style={{ width: '100%', height: 72, display: 'block' }} preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id="cumGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="oklch(0.63 0.16 30)" stopOpacity="0.22" />
+                              <stop offset="100%" stopColor="oklch(0.63 0.16 30)" stopOpacity="0" />
+                            </linearGradient>
+                          </defs>
+                          <path d={fillPath} fill="url(#cumGrad)" />
+                          <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
+                          <circle cx={toX(pts.length - 1)} cy={toY(pts[pts.length - 1].words)} r="1.8" fill="var(--accent)" />
+                        </svg>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', font: '400 10px var(--font-mono)', color: 'var(--ink-4)', marginTop: 4 }}>
+                          <span>{fmtNumber(pts[0].words)} слов</span>
+                          <span>{fmtNumber(pts[pts.length - 1].words)} слов сейчас</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
