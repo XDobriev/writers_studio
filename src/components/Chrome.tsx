@@ -1,10 +1,22 @@
-import { useState, useEffect, type CSSProperties, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
 import { NOVEL, SAMPLE_PROSE } from '../data/sample';
-import type { Chapter } from '../lib/chapters';
+import type { Chapter, ChapterStatus } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
 import { fetchNotes, createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
+
+const SB_STATUS_LABEL: Record<ChapterStatus, string> = {
+  draft: 'Черновик',
+  progress: 'В работе',
+  done: 'Готово',
+};
+
+const SB_STATUS_COLOR: Record<ChapterStatus, string> = {
+  draft: 'var(--ink-4)',
+  progress: 'var(--accent-2)',
+  done: 'var(--ok)',
+};
 
 interface SidebarProps {
   book?: Book | null;
@@ -12,6 +24,7 @@ interface SidebarProps {
   activeChapterId?: string | null;
   onSelectChapter?: (id: string) => void;
   onCreateChapter?: () => void;
+  onStatusChange?: (id: string, status: ChapterStatus) => void;
   bookHref?: string;
 }
 
@@ -21,10 +34,22 @@ export function Sidebar({
   activeChapterId,
   onSelectChapter,
   onCreateChapter,
+  onStatusChange,
   bookHref,
 }: SidebarProps) {
   const isReal = Boolean(chapters);
   const { pathname } = useLocation();
+  const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!statusMenuFor) return;
+    const handler = (e: MouseEvent) => {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) setStatusMenuFor(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [statusMenuFor]);
   const bid = book?.id ?? '';
   const navItems: Array<[Parameters<typeof Icon>[0]['name'], string, string | null]> = [
     ['book', 'Манускрипт', bid ? `/books/${bid}/editor` : null],
@@ -95,17 +120,43 @@ export function Sidebar({
               </div>
             )}
             {chapters!.map((c, i) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => onSelectChapter?.(c.id)}
-                className={'sb-item' + (activeChapterId === c.id ? ' sb-item--on' : '')}
-                style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
-              >
-                <span className="sb-item-num">{String(i + 1).padStart(2, '0')}</span>
-                <span className="sb-item-title">{c.title || 'Без названия'}</span>
-                <span className={'sb-item-dot sb-item-dot--' + c.status} />
-              </button>
+              <div key={c.id} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => onSelectChapter?.(c.id)}
+                  className={'sb-item' + (activeChapterId === c.id ? ' sb-item--on' : '')}
+                  style={{ flex: 1, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+                >
+                  <span className="sb-item-num">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="sb-item-title">{c.title || 'Без названия'}</span>
+                </button>
+                <div ref={statusMenuFor === c.id ? statusMenuRef : null} style={{ position: 'relative', flexShrink: 0, marginRight: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setStatusMenuFor(statusMenuFor === c.id ? null : c.id)}
+                    title={`Статус: ${SB_STATUS_LABEL[c.status]}`}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, margin: -4, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4 }}
+                  >
+                    <span style={{ width: 6, height: 6, borderRadius: 999, background: SB_STATUS_COLOR[c.status], display: 'block' }} />
+                  </button>
+                  {statusMenuFor === c.id && (
+                    <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 140, boxShadow: '0 4px 20px rgba(0,0,0,0.18)' }}>
+                      {(['draft', 'progress', 'done'] as ChapterStatus[]).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => { onStatusChange?.(c.id, s); setStatusMenuFor(null); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: c.status === s ? 'var(--bg-deep)' : 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--ink)', border: 'none', textAlign: 'left' }}
+                        >
+                          <span style={{ width: 6, height: 6, borderRadius: 999, background: SB_STATUS_COLOR[s], flexShrink: 0 }} />
+                          {SB_STATUS_LABEL[s]}
+                          {c.status === s && <span style={{ marginLeft: 'auto', font: '400 10px var(--font-mono)', color: 'var(--ink-4)' }}>✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             ))}
             <button
               type="button"

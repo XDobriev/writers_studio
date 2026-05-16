@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
 import { supabase, type Book } from '../lib/supabase';
-import { createChapter, listChapters, type Chapter } from '../lib/chapters';
+import { createChapter, listChapters, updateChapter, type Chapter } from '../lib/chapters';
 
 type Filter = 'all' | Chapter['status'];
 
@@ -32,30 +32,73 @@ function firstParagraph(html: string): string {
   return text.length > 240 ? text.slice(0, 240).trimEnd() + '…' : text;
 }
 
-function Card({ c, index, href }: { c: Chapter; index: number; href: string }) {
+const STATUS_ORDER: Chapter['status'][] = ['draft', 'progress', 'done'];
+
+function Card({ c, index, href, onStatusChange }: { c: Chapter; index: number; href: string; onStatusChange: (id: string, status: Chapter['status']) => void }) {
   const synopsis = firstParagraph(c.content);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
   return (
-    <Link
-      to={href}
-      style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '14px 16px 16px', position: 'relative', minHeight: 180, display: 'flex', flexDirection: 'column' }}
-    >
-      <div style={{ position: 'absolute', top: -6, left: 14, width: 10, height: 10, borderRadius: 999, background: 'var(--accent-2)', border: '2px solid var(--bg-deep)' }} />
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-        <span style={{ font: '500 10px var(--font-mono)', color: 'var(--accent)', letterSpacing: '0.1em' }}>ГЛ. {String(index + 1).padStart(2, '0')}</span>
-        <span style={{ flex: 1 }} />
-        <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)' }}>{c.words.toLocaleString('ru')} сл</span>
-      </div>
-      <div style={{ font: '500 16px var(--font-serif)', letterSpacing: '-0.005em', marginBottom: 10 }}>{c.title || 'Без названия'}</div>
-      <div style={{ flex: 1, fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>{synopsis}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--border-soft)' }}>
-        <span style={{ width: 6, height: 6, borderRadius: 999, background: STATUS_COLOR[c.status] }} />
+    <div style={{ position: 'relative', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, minHeight: 180 }}>
+      <Link
+        to={href}
+        style={{ display: 'flex', flexDirection: 'column', padding: '14px 16px 48px', height: '100%', minHeight: 'inherit', position: 'relative' }}
+      >
+        <div style={{ position: 'absolute', top: -6, left: 14, width: 10, height: 10, borderRadius: 999, background: 'var(--accent-2)', border: '2px solid var(--bg-deep)' }} />
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+          <span style={{ font: '500 10px var(--font-mono)', color: 'var(--accent)', letterSpacing: '0.1em' }}>ГЛ. {String(index + 1).padStart(2, '0')}</span>
+          <span style={{ flex: 1 }} />
+          <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)' }}>{c.words.toLocaleString('ru')} сл</span>
+        </div>
+        <div style={{ font: '500 16px var(--font-serif)', letterSpacing: '-0.005em', marginBottom: 10 }}>{c.title || 'Без названия'}</div>
+        <div style={{ flex: 1, fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>{synopsis}</div>
+      </Link>
+
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px 14px', borderTop: '1px dashed var(--border-soft)' }}>
+        <span style={{ width: 6, height: 6, borderRadius: 999, background: STATUS_COLOR[c.status], flexShrink: 0 }} />
         <span style={{ font: '400 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           {STATUS_LABEL[c.status]}
         </span>
         <span style={{ flex: 1 }} />
-        <Icon name="moremenu" size={14} />
+        <div ref={menuRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, margin: -4, background: menuOpen ? 'var(--bg-deep)' : 'transparent', border: 'none', cursor: 'pointer', borderRadius: 4, color: 'var(--ink-3)' }}
+            title="Изменить статус"
+          >
+            <Icon name="moremenu" size={14} />
+          </button>
+          {menuOpen && (
+            <div style={{ position: 'absolute', right: 0, bottom: 'calc(100% + 6px)', zIndex: 100, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px rgba(0,0,0,0.18)' }}>
+              <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px 6px' }}>Статус</div>
+              {STATUS_ORDER.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => { onStatusChange(c.id, s); setMenuOpen(false); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: c.status === s ? 'var(--bg-deep)' : 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--ink)', border: 'none', textAlign: 'left' }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: 999, background: STATUS_COLOR[s], flexShrink: 0 }} />
+                  {STATUS_LABEL[s]}
+                  {c.status === s && <span style={{ marginLeft: 'auto', font: '400 10px var(--font-mono)', color: 'var(--ink-4)' }}>✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -106,6 +149,15 @@ export default function Corkboard() {
     if (filter === 'all') return chapters;
     return chapters.filter((c) => c.status === filter);
   }, [chapters, filter]);
+
+  const onStatusChange = async (id: string, status: Chapter['status']) => {
+    setChapters((prev) => prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev);
+    try {
+      await updateChapter(id, { status });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
 
   const onCreate = async () => {
     if (!bookId || !user) return;
@@ -213,6 +265,7 @@ export default function Corkboard() {
                       c={c}
                       index={index}
                       href={`/books/${bookId}/editor?chapter=${c.id}`}
+                      onStatusChange={onStatusChange}
                     />
                   );
                 })}

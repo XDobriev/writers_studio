@@ -10,6 +10,7 @@ import {
   updateChapter,
   type Chapter,
   type ChapterPatch,
+  type ChapterStatus,
 } from '../lib/chapters';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -140,6 +141,15 @@ export default function Editor() {
     scheduleSave(activeChapter.id, { title });
   }, [activeChapter, scheduleSave]);
 
+  const onStatusChange = useCallback(async (id: string, status: ChapterStatus) => {
+    setChapters((prev) => prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev);
+    try {
+      await updateChapter(id, { status });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
   if (!bookId) return <Navigate to="/books" replace />;
 
   if (error) {
@@ -168,6 +178,7 @@ export default function Editor() {
         bookHref={`/books/${bookId}`}
         onSelectChapter={selectChapter}
         onCreateChapter={onCreateChapter}
+        onStatusChange={onStatusChange}
         onContentChange={onContentChange}
         onTitleChange={onTitleChange}
         saveState={saveState}
