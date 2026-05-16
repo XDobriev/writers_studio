@@ -258,28 +258,137 @@ function ColorPopover({ editor, kind }: ColorPopoverProps) {
   );
 }
 
-function LinkButton({ editor }: { editor: Editor | null }) {
+function LinkPopover({ editor }: { editor: Editor | null }) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState('');
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const active = !!editor?.isActive('link');
-  const onSet = (ev: React.MouseEvent) => {
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (
+        !popoverRef.current?.contains(e.target as Node) &&
+        !btnRef.current?.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) requestAnimationFrame(() => inputRef.current?.focus());
+  }, [open]);
+
+  const toggleOpen = (ev: React.MouseEvent) => {
     ev.preventDefault();
-    if (!editor) return;
-    const prev = (editor.getAttributes('link').href as string | undefined) ?? '';
-    const url = window.prompt('Адрес ссылки (пусто = удалить):', prev);
-    if (url === null) return;
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+    const current = (editor?.getAttributes('link').href as string | undefined) ?? '';
+    setUrl(current);
+    setOpen(v => !v);
   };
+
+  const apply = () => {
+    if (!editor) return;
+    const trimmed = url.trim();
+    if (!trimmed) {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+    } else {
+      const href = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+      editor.chain().focus().extendMarkRange('link').setLink({ href }).run();
+    }
+    setOpen(false);
+  };
+
+  const remove = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    editor?.chain().focus().extendMarkRange('link').unsetLink().run();
+    setOpen(false);
+  };
+
+  const openHref = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    const href = editor?.getAttributes('link').href as string | undefined;
+    if (href) window.open(href, '_blank', 'noopener,noreferrer');
+  };
+
+  const rect = btnRef.current?.getBoundingClientRect();
+
   return (
-    <button
-      type="button"
-      title="Ссылка"
-      className={btnCls(active)}
-      disabled={!editor}
-      onMouseDown={onSet}
-    ><Icon name="link" /></button>
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        title="Ссылка"
+        className={btnCls(active)}
+        disabled={!editor}
+        onMouseDown={toggleOpen}
+      ><Icon name="link" /></button>
+      {open && rect && createPortal(
+        <div
+          ref={popoverRef}
+          style={{
+            position: 'fixed', top: rect.bottom + 4, left: rect.left, zIndex: 1000,
+            background: 'var(--bg-deep)', border: '1px solid var(--border)',
+            borderRadius: 10, padding: 10, boxShadow: '0 12px 28px rgba(0,0,0,.35)',
+            minWidth: 280, display: 'flex', flexDirection: 'column', gap: 6,
+          }}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          <input
+            ref={inputRef}
+            type="url"
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); apply(); }
+              if (e.key === 'Escape') setOpen(false);
+            }}
+            placeholder="https://..."
+            className="input"
+            style={{ width: '100%', fontSize: 13, boxSizing: 'border-box' }}
+          />
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button
+              type="button"
+              onMouseDown={e => { e.preventDefault(); apply(); }}
+              style={{
+                flex: 1, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
+                background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 500,
+              }}
+            >Применить</button>
+            {active && (
+              <button
+                type="button"
+                title="Открыть ссылку"
+                onMouseDown={openHref}
+                style={{
+                  width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-soft)',
+                  background: 'transparent', cursor: 'pointer', color: 'var(--ink-2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              ><Icon name="eye" size={13} /></button>
+            )}
+            {active && (
+              <button
+                type="button"
+                title="Убрать ссылку"
+                onMouseDown={remove}
+                style={{
+                  width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-soft)',
+                  background: 'transparent', cursor: 'pointer', color: 'var(--ink-2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              ><Icon name="unlink" size={13} /></button>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -448,7 +557,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
       ><Icon name="hr" /></button>
       <span className="tb-sep" />
 
-      <LinkButton editor={editor} />
+      <LinkPopover editor={editor} />
 
       {showModes && mode && setMode && (
         <>

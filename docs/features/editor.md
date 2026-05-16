@@ -23,7 +23,7 @@ Debounce 700 мс через `chapters.ts`. Подсчёт слов — `countWo
 
 Undo/Redo · Heading dropdown (Обычный/H1/H2/H3) · B/I/U/Strike/Clear · Color/Highlight popovers · Sup/Sub · Align (L/C/R/Justify) · BulletList/OrderedList/TaskList · Quote/Code/CodeBlock/HR · Link/Unlink · ModeSegment.
 
-Color открывает popover (9 цветов + сброс), Highlight — 7 цветов + сброс. Link — `window.prompt()` (временно, баг).
+Color открывает popover (9 цветов + сброс), Highlight — 7 цветов + сброс. Link — inline-попover: поле ввода URL, кнопки «Применить» / «Открыть» / «Убрать», Enter подтверждает, Escape закрывает.
 
 ## CSS
 
