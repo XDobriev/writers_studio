@@ -45,7 +45,7 @@ export async function createCharacter(
       book_id: bookId,
       user_id: userId,
       name: patch.name ?? 'Без имени',
-      role: patch.role ?? 'minor',
+      role: patch.role ?? 'protagonist',
       position: patch.position ?? 0,
     })
     .select('*')

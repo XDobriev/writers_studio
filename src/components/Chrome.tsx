@@ -240,7 +240,6 @@ export function Sidebar({
         <>
           <div className="sb-section">
             <span className="sb-section-title">Главы</span>
-            <span className="sb-section-meta">{chapters!.length}</span>
           </div>
           <div className="sb-list">
             {chapters!.length === 0 && (

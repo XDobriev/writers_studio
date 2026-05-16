@@ -15,7 +15,6 @@ import {
   type CharacterPatch,
   type CharacterRole,
 } from '../lib/characters';
-import { listChapters, type Chapter } from '../lib/chapters';
 import {
   createRelation,
   deleteRelation,
@@ -23,12 +22,6 @@ import {
   updateRelationLabel,
   type CharacterRelation,
 } from '../lib/character_relations';
-import {
-  attachCharacterToChapter,
-  detachCharacterFromChapter,
-  listChapterCharacters,
-  type ChapterCharacter,
-} from '../lib/chapter_characters';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type RoleFilter = 'all' | CharacterRole;
@@ -47,13 +40,12 @@ export default function Characters() {
 
   const [book, setBook] = useState<Book | null>(null);
   const [characters, setCharacters] = useState<Character[] | null>(null);
-  const [chapters, setChapters] = useState<Chapter[] | null>(null);
   const [relations, setRelations] = useState<CharacterRelation[] | null>(null);
-  const [chapterChars, setChapterChars] = useState<ChapterCharacter[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [query, setQuery] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const activeId = search.get('character');
 
@@ -62,20 +54,16 @@ export default function Characters() {
     let cancelled = false;
     (async () => {
       try {
-        const [bookRes, charList, chList, relList, ccList] = await Promise.all([
+        const [bookRes, charList, relList] = await Promise.all([
           supabase.from('books').select('*').eq('id', bookId).single(),
           listCharacters(bookId),
-          listChapters(bookId),
           listRelations(bookId),
-          listChapterCharacters(bookId),
         ]);
         if (cancelled) return;
         if (bookRes.error) throw bookRes.error;
         setBook(bookRes.data as Book);
         setCharacters(charList);
-        setChapters(chList);
         setRelations(relList);
-        setChapterChars(ccList);
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
       }
@@ -165,7 +153,7 @@ export default function Characters() {
     try {
       const created = await createCharacter(bookId, user.id, {
         name: 'Новый персонаж',
-        role: 'minor',
+        role: 'protagonist',
         position,
       });
       setCharacters((prev) => [...(prev ?? []), created]);
@@ -177,9 +165,14 @@ export default function Characters() {
     }
   }, [bookId, user, characters, search, setSearch]);
 
-  const onDelete = useCallback(async () => {
+  const onDelete = useCallback(() => {
+    if (!active) return;
+    setConfirmDelete(true);
+  }, [active]);
+
+  const onDeleteConfirmed = useCallback(async () => {
     if (!active || !characters) return;
-    if (!window.confirm(`Удалить «${active.name}»? Это действие нельзя отменить.`)) return;
+    setConfirmDelete(false);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     pendingPatch.current = null;
     targetIdRef.current = null;
@@ -188,7 +181,6 @@ export default function Characters() {
       const remaining = characters.filter((c) => c.id !== active.id);
       setCharacters(remaining);
       setRelations((prev) => prev ? prev.filter((r) => r.from_character_id !== active.id && r.to_character_id !== active.id) : prev);
-      setChapterChars((prev) => prev ? prev.filter((cc) => cc.character_id !== active.id) : prev);
       const next = new URLSearchParams(search);
       if (remaining.length > 0) {
         next.set('character', remaining[0].id);
@@ -229,22 +221,6 @@ export default function Characters() {
     }
   }, []);
 
-  const onToggleChapter = useCallback(async (chapterId: string) => {
-    if (!bookId || !user || !active) return;
-    const existing = (chapterChars ?? []).find((cc) => cc.chapter_id === chapterId && cc.character_id === active.id);
-    try {
-      if (existing) {
-        await detachCharacterFromChapter(chapterId, active.id);
-        setChapterChars((prev) => prev ? prev.filter((cc) => cc.id !== existing.id) : prev);
-      } else {
-        const created = await attachCharacterToChapter(bookId, user.id, chapterId, active.id);
-        setChapterChars((prev) => [...(prev ?? []), created]);
-      }
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [bookId, user, active, chapterChars]);
-
   if (!bookId) return <Navigate to="/books" replace />;
 
   if (error) {
@@ -255,7 +231,7 @@ export default function Characters() {
     );
   }
 
-  if (!book || !characters || !chapters || !relations || !chapterChars) {
+  if (!book || !characters || !relations) {
     return (
       <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink-3)', padding: 32 }}>
         Загрузка…
@@ -335,12 +311,12 @@ export default function Characters() {
                   key={c.id}
                   onClick={() => selectCharacter(c.id)}
                   className={'sb-item' + (on ? ' sb-item--on' : '')}
-                  style={{ height: 'auto', padding: '8px 10px', width: '100%', textAlign: 'left' }}
+                  style={{ height: 'auto', padding: '8px 10px', width: '100%', textAlign: 'left', gridTemplateColumns: '34px 1fr auto' }}
                 >
-                  <span style={{ width: 30, height: 30, borderRadius: 999, background: on ? 'var(--accent)' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 11px var(--font-ui)', color: on ? 'oklch(0.98 0 0)' : 'var(--ink)', gridRow: '1 / 3', marginRight: 2 }}>{initialsFromName(c.name)}</span>
+                  <span style={{ width: 28, height: 28, borderRadius: 999, background: on ? 'var(--accent)' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 10px var(--font-ui)', color: on ? 'oklch(0.98 0 0)' : 'var(--ink)' }}>{initialsFromName(c.name)}</span>
                   <div style={{ minWidth: 0 }}>
                     <div className="sb-item-title">{c.name}</div>
-                    <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em' }}>{ROLE_LABELS[c.role]}{c.age ? ` · ${c.age}` : ''}</div>
+                    <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em' }}>{ROLE_LABELS[c.role]}</div>
                   </div>
                   <span />
                 </button>
@@ -396,13 +372,6 @@ export default function Characters() {
                 onDelete={onDeleteRelation}
                 onLabelChange={onRelationLabelChange}
               />
-
-              <AppearsInBlock
-                activeId={active.id}
-                chapters={chapters}
-                chapterChars={chapterChars}
-                onToggle={onToggleChapter}
-              />
             </div>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'var(--ink-3)' }}>
@@ -412,6 +381,14 @@ export default function Characters() {
           )}
         </main>
       </div>
+
+      {confirmDelete && active && (
+        <ConfirmDialog
+          message={`Удалить «${active.name}»? Это действие нельзя отменить.`}
+          onConfirm={onDeleteConfirmed}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </WithMode>
   );
 }
@@ -423,11 +400,9 @@ function HeroBlock({ character, onChange, onDelete }: {
 }) {
   const [name, setName] = useState(character.name);
   const [quote, setQuote] = useState(character.quote);
-  const [ageInput, setAgeInput] = useState(character.age?.toString() ?? '');
 
   useEffect(() => { setName(character.name); }, [character.id, character.name]);
   useEffect(() => { setQuote(character.quote); }, [character.id, character.quote]);
-  useEffect(() => { setAgeInput(character.age?.toString() ?? ''); }, [character.id, character.age]);
 
   const onNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
@@ -438,11 +413,6 @@ function HeroBlock({ character, onChange, onDelete }: {
     const v = e.target.value;
     setQuote(v);
     onChange({ quote: v });
-  };
-  const onAgeChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value.replace(/[^\d]/g, '');
-    setAgeInput(v);
-    onChange({ age: v === '' ? null : Number(v) });
   };
   const onRoleChange = (role: CharacterRole) => {
     onChange({ role });
@@ -470,15 +440,6 @@ function HeroBlock({ character, onChange, onDelete }: {
               {ROLE_LABELS[r]}
             </button>
           ))}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 4 }}>
-            <input
-              value={ageInput}
-              onChange={onAgeChange}
-              placeholder="—"
-              style={{ width: 48, height: 24, border: '1px solid var(--border-soft)', borderRadius: 4, background: 'var(--surface)', color: 'var(--ink)', font: '500 12px var(--font-ui)', padding: '0 8px', outline: 'none', textAlign: 'center' }}
-            />
-            <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em' }}>лет</span>
-          </div>
         </div>
 
         <input
@@ -686,44 +647,26 @@ function RelationRow({ relation, partner, onDelete, onLabelChange }: {
   );
 }
 
-function AppearsInBlock({ activeId, chapters, chapterChars, onToggle }: {
-  activeId: string;
-  chapters: Chapter[];
-  chapterChars: ChapterCharacter[];
-  onToggle: (chapterId: string) => void;
+function ConfirmDialog({ message, onConfirm, onCancel }: {
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
 }) {
-  const sorted = [...chapters].sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at));
-  const mineSet = new Set(chapterChars.filter((cc) => cc.character_id === activeId).map((cc) => cc.chapter_id));
-
   return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 22px' }}>
-      <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 14 }}>Появляется в главах</div>
-      {sorted.length === 0 ? (
-        <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>В книге ещё нет глав.</div>
-      ) : (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {sorted.map((ch, i) => {
-            const has = mineSet.has(ch.id);
-            return (
-              <button
-                key={ch.id}
-                onClick={() => onToggle(ch.id)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: 999,
-                  border: has ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
-                  background: has ? 'var(--accent-soft)' : 'transparent',
-                  font: '500 11.5px var(--font-mono)',
-                  color: has ? 'var(--accent)' : 'var(--ink-4)',
-                  cursor: 'pointer',
-                }}
-              >
-                {String(i + 1).padStart(2, '0')} · {ch.title}
-              </button>
-            );
-          })}
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+      onClick={onCancel}
+    >
+      <div
+        style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '24px 28px', width: 360, display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 48px oklch(0 0 0 / 0.4)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p style={{ font: '400 14px/1.6 var(--font-ui)', color: 'var(--ink)', margin: 0 }}>{message}</p>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button onClick={onCancel} className="btn btn--ghost">Отмена</button>
+          <button onClick={onConfirm} className="btn btn--ghost" style={{ color: 'var(--danger)' }}>Удалить</button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
