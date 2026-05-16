@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
-import { WithMode } from '../components/Chrome';
+import { Sidebar, WithMode } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
 import { supabase, type Book } from '../lib/supabase';
 import { listChapters, type Chapter } from '../lib/chapters';
@@ -117,32 +117,7 @@ export default function Timeline() {
   return (
     <WithMode active="timeline">
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
-        <aside className="sb">
-          <div className="sb-head">
-            <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, textDecoration: 'none' }}>
-              <span style={{ width: 18, height: 22, background: 'var(--accent)', borderRadius: '1px 4px 4px 1px', position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 3, top: 3, right: 3, bottom: 3, border: '0.5px solid oklch(0.98 0 0 / 0.6)' }} />
-              </span>
-              <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
-            </Link>
-            <div className="sb-book-title">{book.title}</div>
-            <div className="sb-book-author">хронология · {events.length}</div>
-          </div>
-          <nav style={{ padding: '14px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {([
-              ['layout', 'Дэшборд', `/books/${bookId}`, false],
-              ['book', 'Манускрипт', `/books/${bookId}/editor`, false],
-              ['char', 'Персонажи', `/books/${bookId}/characters`, false],
-              ['map', 'Карта мира', `/books/${bookId}/map`, false],
-              ['clock', 'Хронология', `/books/${bookId}/timeline`, true],
-            ] as const).map(([n, l, to, on]) => (
-              <Link key={l} to={to} className={'sb-item' + (on ? ' sb-item--on' : '')} style={{ textDecoration: 'none' }}>
-                <span style={{ display: 'flex', justifyContent: 'center', color: on ? 'var(--ink)' : 'var(--ink-3)' }}><Icon name={n} size={15} /></span>
-                <span className="sb-item-title">{l}</span>
-                <span />
-              </Link>
-            ))}
-          </nav>
+        <Sidebar book={book} subtitle={`хронология · ${events.length}`}>
           <div className="sb-section"><span className="sb-section-title">Слои</span></div>
           <div style={{ padding: '4px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
             {TYPE_FILTERS.map((f) => (
@@ -158,7 +133,7 @@ export default function Timeline() {
               </button>
             ))}
           </div>
-        </aside>
+        </Sidebar>
 
         <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>

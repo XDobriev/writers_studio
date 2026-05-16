@@ -140,6 +140,8 @@ interface SidebarProps {
   onCreateChapter?: () => void;
   onStatusChange?: (id: string, status: ChapterStatus) => void;
   bookHref?: string;
+  subtitle?: string;
+  children?: ReactNode;
 }
 
 export function Sidebar({
@@ -150,6 +152,8 @@ export function Sidebar({
   onCreateChapter,
   onStatusChange,
   bookHref,
+  subtitle,
+  children,
 }: SidebarProps) {
   const isReal = Boolean(chapters);
   const { pathname } = useLocation();
@@ -204,7 +208,7 @@ export function Sidebar({
           <div className="sb-book-title">{book?.title ?? NOVEL.title}</div>
         )}
         <div className="sb-book-author">
-          {book ? [book.author, book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`}
+          {subtitle ?? (book ? [book.author, book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`)}
         </div>
       </div>
 
@@ -307,7 +311,7 @@ export function Sidebar({
             </div>
           )}
         </>
-      ) : (
+      ) : children ? children : (
         <div style={{ padding: '6px 12px 0' }}>
           <Link to="/books" className="sb-item" style={{ color: 'var(--ink-3)' }}>
             <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="arrows" size={14} /></span>
