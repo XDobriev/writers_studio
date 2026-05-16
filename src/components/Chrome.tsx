@@ -4,8 +4,121 @@ import { Icon } from './Icon';
 import { NOVEL, SAMPLE_PROSE } from '../data/sample';
 import type { Chapter, ChapterStatus } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { fetchNotes, createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
 import { useAuth } from '../lib/auth';
+
+function SettingsModal({ onClose }: { onClose: () => void }) {
+  const { user, signOut, updatePassword } = useAuth();
+  const [name, setName] = useState(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '');
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameSaved, setNameSaved] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [newPass, setNewPass] = useState('');
+  const [passSaving, setPassSaving] = useState(false);
+  const [passError, setPassError] = useState<string | null>(null);
+  const [passSaved, setPassSaved] = useState(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const handleSaveName = async () => {
+    setNameSaving(true); setNameError(null);
+    try {
+      const { error } = await supabase.auth.updateUser({ data: { full_name: name.trim() } });
+      if (error) setNameError(error.message);
+      else setNameSaved(true);
+    } finally {
+      setNameSaving(false);
+    }
+  };
+
+  const handleSavePass = async () => {
+    if (newPass.length < 6) { setPassError('Минимум 6 символов'); return; }
+    setPassSaving(true); setPassError(null);
+    try {
+      const { error } = await updatePassword(newPass);
+      if (error) setPassError(error);
+      else { setPassSaved(true); setNewPass(''); }
+    } finally {
+      setPassSaving(false);
+    }
+  };
+
+  const sectionLabel: CSSProperties = { font: '500 11px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 };
+  const fieldLabel: CSSProperties = { font: '400 12px var(--font-ui)', color: 'var(--ink-3)' };
+  const divider: CSSProperties = { borderTop: '1px solid var(--border-soft)', paddingTop: 20 };
+
+  return (
+    <div
+      ref={overlayRef}
+      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <div style={{ background: 'var(--bg)', border: '1px solid var(--border-soft)', borderRadius: 12, width: 400, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border-soft)' }}>
+          <span style={{ font: '500 14px var(--font-ui)', color: 'var(--ink)' }}>Настройки</span>
+          <span style={{ flex: 1 }} />
+          <button className="tb-btn" onClick={onClose} style={{ fontSize: 18, lineHeight: 1, padding: '2px 8px' }}>×</button>
+        </div>
+
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <section>
+            <div style={sectionLabel}>Профиль</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={fieldLabel}>Имя</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input className="input" value={name} onChange={(e) => { setName(e.target.value); setNameSaved(false); }} placeholder="Ваше имя" style={{ flex: 1, fontSize: 13 }} />
+                <button className="btn btn--primary" style={{ fontSize: 12, padding: '0 12px' }} onClick={handleSaveName} disabled={nameSaving || !name.trim()}>
+                  {nameSaving ? '…' : nameSaved ? '✓' : 'Сохранить'}
+                </button>
+              </div>
+              {nameError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)' }}>{nameError}</span>}
+              <span style={{ ...fieldLabel, marginTop: 4 }}>Email</span>
+              <input className="input" value={user?.email ?? ''} readOnly style={{ fontSize: 13, opacity: 0.55 }} />
+            </div>
+          </section>
+
+          <section style={divider}>
+            <div style={sectionLabel}>Безопасность</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={fieldLabel}>Новый пароль</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input className="input" type="password" value={newPass} onChange={(e) => { setNewPass(e.target.value); setPassSaved(false); setPassError(null); }} placeholder="Минимум 6 символов" style={{ flex: 1, fontSize: 13 }} />
+                <button className="btn btn--primary" style={{ fontSize: 12, padding: '0 12px' }} onClick={handleSavePass} disabled={passSaving || !newPass}>
+                  {passSaving ? '…' : passSaved ? '✓' : 'Сменить'}
+                </button>
+              </div>
+              {passError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)' }}>{passError}</span>}
+              {passSaved && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ok)' }}>Пароль изменён</span>}
+            </div>
+          </section>
+
+          <section style={divider}>
+            <div style={sectionLabel}>Подписка</div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-2)' }}>Свободный план</span>
+              <span style={{ flex: 1 }} />
+              <button className="btn btn--ghost" style={{ fontSize: 12, padding: '4px 10px', opacity: 0.4 }} disabled>Управление</button>
+            </div>
+          </section>
+
+          <section style={divider}>
+            <button
+              className="btn"
+              style={{ width: '100%', fontSize: 13, padding: '8px 0', color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: 6, opacity: 0.85 }}
+              onClick={() => signOut()}
+            >Выйти из аккаунта</button>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const SB_STATUS_LABEL: Record<ChapterStatus, string> = {
   draft: 'Черновик',
@@ -48,6 +161,7 @@ export function Sidebar({
     .slice(0, 2)
     .map((w: string) => w[0].toUpperCase())
     .join('') || '?';
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
 
@@ -250,8 +364,9 @@ export function Sidebar({
           <div className="sb-foot-name">{displayName || '—'}</div>
           <div className="sb-foot-meta">Свободный план</div>
         </div>
-        <button className="tb-btn"><Icon name="settings" size={15} /></button>
+        <button className="tb-btn" onClick={() => setSettingsOpen(true)} title="Настройки"><Icon name="settings" size={15} /></button>
       </div>
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </aside>
   );
 }
