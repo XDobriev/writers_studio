@@ -5,6 +5,7 @@ import { NOVEL, SAMPLE_PROSE } from '../data/sample';
 import type { Chapter, ChapterStatus } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
 import { fetchNotes, createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
+import { useAuth } from '../lib/auth';
 
 const SB_STATUS_LABEL: Record<ChapterStatus, string> = {
   draft: 'Черновик',
@@ -39,6 +40,14 @@ export function Sidebar({
 }: SidebarProps) {
   const isReal = Boolean(chapters);
   const { pathname } = useLocation();
+  const { user } = useAuth();
+  const displayName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email ?? '';
+  const initials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w: string) => w[0].toUpperCase())
+    .join('') || '?';
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
 
@@ -232,9 +241,9 @@ export function Sidebar({
       )}
 
       <div className="sb-foot">
-        <div className="sb-avatar">АК</div>
+        <div className="sb-avatar">{initials}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="sb-foot-name">Анна Корвин</div>
+          <div className="sb-foot-name">{displayName || '—'}</div>
           <div className="sb-foot-meta">Свободный план</div>
         </div>
         <button className="tb-btn"><Icon name="settings" size={15} /></button>
