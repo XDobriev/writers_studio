@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { EditorHybrid } from '../components/EditorHybrid';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useAuth } from '../lib/auth';
 import { supabase, type Book } from '../lib/supabase';
 import {
@@ -186,21 +187,23 @@ export default function Editor() {
 
   return (
     <div style={{ height: '100vh' }}>
-      <EditorHybrid
-        defaultMode="studio"
-        book={book}
-        chapters={chapters}
-        activeChapter={activeChapter}
-        bookHref={`/books/${bookId}`}
-        onSelectChapter={selectChapter}
-        onCreateChapter={onCreateChapter}
-        onStatusChange={onStatusChange}
-        onDeleteChapter={onDeleteChapter}
-        onContentChange={onContentChange}
-        onTitleChange={onTitleChange}
-        saveState={saveState}
-        savedAt={savedAt}
-      />
+      <ErrorBoundary>
+        <EditorHybrid
+          defaultMode="studio"
+          book={book}
+          chapters={chapters}
+          activeChapter={activeChapter}
+          bookHref={`/books/${bookId}`}
+          onSelectChapter={selectChapter}
+          onCreateChapter={onCreateChapter}
+          onStatusChange={onStatusChange}
+          onDeleteChapter={onDeleteChapter}
+          onContentChange={onContentChange}
+          onTitleChange={onTitleChange}
+          saveState={saveState}
+          savedAt={savedAt}
+        />
+      </ErrorBoundary>
     </div>
   );
 }

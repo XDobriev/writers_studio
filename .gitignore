@@ -12,3 +12,4 @@ dist
 .mcp.json
 .design-review/
 supabase/.temp/
+docs/learning-plan.md

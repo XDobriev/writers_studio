@@ -30,6 +30,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/supabase.ts` — Supabase клиент.
 - `src/lib/auth.tsx` — `AuthProvider`, `useAuth`.
 - `src/components/AuthGuard.tsx` — защита роутов.
+- `src/components/ErrorBoundary.tsx` — перехват краша компонентов, показывает fallback UI.
 
 ## Supabase
 
@@ -56,7 +57,7 @@ npm run preview    # превью продакшен-сборки
 ## Что не трогать
 
 - `_design-source/` — оригинальные .jsx из Cloud Design, референс. Не активный код.
-- `src/data/sample.ts` — макетные данные, в активном коде не используется.
+- `src/data/sample.ts` — фоллбэк-данные. Используется в `Chrome.tsx` как заглушка (`NOVEL`, `SAMPLE_PROSE`) когда нет реального контекста книги. Не удалять.
 
 ## Windows quirk
 
@@ -79,6 +80,7 @@ npm run preview    # превью продакшен-сборки
 - Предпочитать изменение существующих компонентов вместо переписывания систем.
 - Не создавать лишние абстракции.
 - Игнорировать несвязанную архитектуру без необходимости.
+- **При изменении кода обновлять `docs/learning-plan.md`**: если добавляется новый компонент, хук, паттерн или значимо меняется существующий файл — обновить соответствующий раздел плана (новые ссылки `файл:строка`, новые задания). Не переписывать план целиком — только точечные правки в затронутых темах.
 
 ## Документация (читать по задаче)
 
@@ -89,3 +91,4 @@ npm run preview    # превью продакшен-сборки
 - [docs/features/timeline.md](docs/features/timeline.md) — хронология.
 - [docs/features/maps.md](docs/features/maps.md) — карта мира.
 - [docs/features/export.md](docs/features/export.md) — экспорт.
+- [docs/learning-plan.md](docs/learning-plan.md) — план изучения TypeScript/React на коде проекта (в .gitignore, личный).

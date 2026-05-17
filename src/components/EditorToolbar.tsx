@@ -569,10 +569,17 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
       <LinkPopover editor={editor} />
 
       {showModes && mode && setMode && (
-        <>
-          <div className="tb-spacer" />
+        <div style={{
+          position: 'sticky',
+          right: 0,
+          flexShrink: 0,
+          marginLeft: 'auto',
+          paddingLeft: 10,
+          background: 'var(--bg)',
+          boxShadow: '-10px 0 8px var(--bg)',
+        }}>
           <ModeSegment mode={mode} setMode={setMode} />
-        </>
+        </div>
       )}
 
     </div>
