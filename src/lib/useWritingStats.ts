@@ -9,12 +9,16 @@ export interface WritingStats {
 
 const DAILY_GOAL = 1000;
 
-function pluralDays(n: number): string {
+export function plural(n: number, one: string, few: string, many: string): string {
   const mod10 = n % 10;
   const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return 'день';
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'дня';
-  return 'дней';
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+}
+
+function pluralDays(n: number): string {
+  return plural(n, 'день', 'дня', 'дней');
 }
 
 export { pluralDays };
