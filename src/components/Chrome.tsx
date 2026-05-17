@@ -49,71 +49,94 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const sectionLabel: CSSProperties = { font: '500 11px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 };
-  const fieldLabel: CSSProperties = { font: '400 12px var(--font-ui)', color: 'var(--ink-3)' };
-  const divider: CSSProperties = { borderTop: '1px solid var(--border-soft)', paddingTop: 20 };
+  const SL: CSSProperties = { font: '500 10.5px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.09em', textTransform: 'uppercase', marginBottom: 14 };
+  const FL: CSSProperties = { font: '400 12px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 6 };
+  const HR: CSSProperties = { border: 'none', borderTop: '1px solid var(--border-soft)', margin: '20px 0 0' };
+  const FG: CSSProperties = { display: 'flex', flexDirection: 'column' };
+  const ROW: CSSProperties = { display: 'flex', gap: 8 };
 
   return (
     <div
       ref={overlayRef}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
-      <div style={{ background: 'var(--bg)', border: '1px solid var(--border-soft)', borderRadius: 12, width: 400, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border-soft)' }}>
-          <span style={{ font: '500 14px var(--font-ui)', color: 'var(--ink)' }}>Настройки</span>
+      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, width: 440, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 32px 80px rgba(0,0,0,0.55)' }}>
+
+        {/* Шапка */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '18px 24px 16px', borderBottom: '1px solid var(--border-soft)' }}>
+          <span style={{ font: '600 14px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Настройки</span>
           <span style={{ flex: 1 }} />
-          <button className="tb-btn" onClick={onClose} style={{ fontSize: 18, lineHeight: 1, padding: '2px 8px' }}>×</button>
+          <button className="tb-btn" onClick={onClose} style={{ fontSize: 20, lineHeight: 1, padding: '0 6px', color: 'var(--ink-4)' }}>×</button>
         </div>
 
-        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ padding: '24px 24px 20px', display: 'flex', flexDirection: 'column' }}>
+
+          {/* ПРОФИЛЬ */}
           <section>
-            <div style={sectionLabel}>Профиль</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={fieldLabel}>Имя</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input className="input" value={name} onChange={(e) => { setName(e.target.value); setNameSaved(false); }} placeholder="Ваше имя" style={{ flex: 1, fontSize: 13 }} />
-                <button className="btn btn--primary" style={{ fontSize: 12, padding: '0 12px' }} onClick={handleSaveName} disabled={nameSaving || !name.trim()}>
-                  {nameSaving ? '…' : nameSaved ? '✓' : 'Сохранить'}
-                </button>
+            <div style={SL}>Профиль</div>
+            <div style={{ ...FG, gap: 14 }}>
+              <div style={FG}>
+                <span style={FL}>Имя</span>
+                <div style={ROW}>
+                  <input className="input" value={name} onChange={(e) => { setName(e.target.value); setNameSaved(false); }} placeholder="Ваше имя" style={{ flex: 1, fontSize: 13 }} />
+                  <button className="btn btn--primary" style={{ fontSize: 13, padding: '0 14px', flexShrink: 0 }} onClick={handleSaveName} disabled={nameSaving || !name.trim()}>
+                    {nameSaving ? '…' : nameSaved ? '✓' : 'Сохранить'}
+                  </button>
+                </div>
+                {nameError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', marginTop: 6 }}>{nameError}</span>}
               </div>
-              {nameError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)' }}>{nameError}</span>}
-              <span style={{ ...fieldLabel, marginTop: 4 }}>Email</span>
-              <input className="input" value={user?.email ?? ''} readOnly style={{ fontSize: 13, opacity: 0.55 }} />
+              <div style={FG}>
+                <span style={FL}>Email</span>
+                <input className="input" value={user?.email ?? ''} readOnly style={{ fontSize: 13, opacity: 0.5, cursor: 'default' }} />
+              </div>
             </div>
           </section>
 
-          <section style={divider}>
-            <div style={sectionLabel}>Безопасность</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={fieldLabel}>Новый пароль</span>
-              <div style={{ display: 'flex', gap: 8 }}>
+          <hr style={HR} />
+
+          {/* БЕЗОПАСНОСТЬ */}
+          <section style={{ marginTop: 20 }}>
+            <div style={SL}>Безопасность</div>
+            <div style={FG}>
+              <span style={FL}>Новый пароль</span>
+              <div style={ROW}>
                 <input className="input" type="password" value={newPass} onChange={(e) => { setNewPass(e.target.value); setPassSaved(false); setPassError(null); }} placeholder="Минимум 6 символов" style={{ flex: 1, fontSize: 13 }} />
-                <button className="btn btn--primary" style={{ fontSize: 12, padding: '0 12px' }} onClick={handleSavePass} disabled={passSaving || !newPass}>
+                <button className="btn btn--primary" style={{ fontSize: 13, padding: '0 14px', flexShrink: 0 }} onClick={handleSavePass} disabled={passSaving || !newPass}>
                   {passSaving ? '…' : passSaved ? '✓' : 'Сменить'}
                 </button>
               </div>
-              {passError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)' }}>{passError}</span>}
-              {passSaved && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ok)' }}>Пароль изменён</span>}
+              {passError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', marginTop: 6 }}>{passError}</span>}
+              {passSaved && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ok)', marginTop: 6 }}>Пароль изменён</span>}
             </div>
           </section>
 
-          <section style={divider}>
-            <div style={sectionLabel}>Подписка</div>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-2)' }}>Свободный план</span>
-              <span style={{ flex: 1 }} />
-              <button className="btn btn--ghost" style={{ fontSize: 12, padding: '4px 10px', opacity: 0.4 }} disabled>Управление</button>
+          <hr style={HR} />
+
+          {/* ПОДПИСКА */}
+          <section style={{ marginTop: 20 }}>
+            <div style={SL}>Подписка</div>
+            <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 3 }}>Бесплатный план</div>
+                <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>1 книга · базовый редактор · без экспорта</div>
+              </div>
+              <button className="btn btn--ghost" style={{ fontSize: 12, padding: '5px 12px', opacity: 0.35, flexShrink: 0 }} disabled>Управление</button>
             </div>
           </section>
 
-          <section style={divider}>
+          <hr style={HR} />
+
+          {/* ВЫХОД */}
+          <section style={{ marginTop: 20 }}>
             <button
-              className="btn"
-              style={{ width: '100%', fontSize: 13, padding: '8px 0', color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: 6, opacity: 0.85 }}
               onClick={() => signOut()}
+              style={{ width: '100%', fontSize: 13, padding: '9px 0', color: 'var(--danger)', background: 'transparent', border: '1px solid color-mix(in oklch, var(--danger) 45%, transparent)', borderRadius: 8, cursor: 'pointer', letterSpacing: '-0.01em', transition: 'background 0.15s, border-color 0.15s' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in oklch, var(--danger) 10%, transparent)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
             >Выйти из аккаунта</button>
           </section>
+
         </div>
       </div>
     </div>
