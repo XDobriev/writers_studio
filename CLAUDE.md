@@ -83,8 +83,7 @@ npm run preview    # превью продакшен-сборки
 ## Документация (читать по задаче)
 
 - [docs/project-state.md](docs/project-state.md) — changelog заходов + следующие шаги.
-- [docs/bugs.md](docs/bugs.md) — открытые баги + запланированные фичи.
-- [docs/roadmap.md](docs/roadmap.md) — приоритеты следующих заходов.
+- [docs/roadmap.md](docs/roadmap.md) — активные баги, приоритеты, backlog, продвижение, монетизация.
 - [docs/features/editor.md](docs/features/editor.md) — редактор, TipTap, focus, split.
 - [docs/features/characters.md](docs/features/characters.md) — персонажи, связи, chapter_characters.
 - [docs/features/timeline.md](docs/features/timeline.md) — хронология.
