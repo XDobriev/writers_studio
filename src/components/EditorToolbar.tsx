@@ -82,6 +82,10 @@ function PortalDropdown({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const rect = anchor.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const posY = spaceBelow < 240
+    ? { bottom: window.innerHeight - rect.top + 4 }
+    : { top: rect.bottom + 4 };
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -99,7 +103,7 @@ function PortalDropdown({
   return createPortal(
     <div
       ref={ref}
-      style={{ position: 'fixed', top: rect.bottom + 4, left: rect.left, zIndex: 1000 }}
+      style={{ position: 'fixed', ...posY, left: rect.left, zIndex: 1000 }}
       onMouseDown={(e) => { e.preventDefault(); e.nativeEvent.stopPropagation(); }}
     >
       {children}
@@ -316,6 +320,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
   };
 
   const rect = btnRef.current?.getBoundingClientRect();
+  const spaceBelow = rect ? window.innerHeight - rect.bottom : 200;
 
   return (
     <>
@@ -331,7 +336,12 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
         <div
           ref={popoverRef}
           style={{
-            position: 'fixed', top: rect.bottom + 4, left: rect.left, zIndex: 1000,
+            position: 'fixed',
+            ...(spaceBelow < 180
+              ? { bottom: window.innerHeight - rect.top + 4 }
+              : { top: rect.bottom + 4 }
+            ),
+            left: rect.left, zIndex: 1000,
             background: 'var(--bg-deep)', border: '1px solid var(--border)',
             borderRadius: 10, padding: 10, boxShadow: '0 12px 28px rgba(0,0,0,.35)',
             minWidth: 280, display: 'flex', flexDirection: 'column', gap: 6,
@@ -425,11 +435,10 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
   };
 
   const wrapper = variant === 'pill' ? {
-    position: 'absolute' as const, left: '50%', bottom: 24, transform: 'translateX(-50%)',
     display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap' as const,
     background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 18,
-    padding: '6px 10px', boxShadow: '0 8px 28px rgba(0,0,0,.35)', zIndex: 5,
-    maxWidth: 'calc(100% - 48px)',
+    padding: '6px 10px', boxShadow: '0 8px 28px rgba(0,0,0,.35)',
+    maxWidth: '100%',
     overflowX: 'auto' as const, overflowY: 'hidden' as const, scrollbarWidth: 'none' as const,
   } : undefined;
 

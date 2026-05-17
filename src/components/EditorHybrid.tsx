@@ -237,7 +237,7 @@ export function EditorHybrid({
           <EditorToolbar editor={editor} mode={mode} setMode={setMode} variant="studio" showModes={!isMobile} />
         )}
 
-        <div className="sheet-wrap" style={{ padding: isMobile ? '16px 8px 0' : (isPage ? '48px 56px 110px' : '36px 32px 0') }}>
+        <div className="sheet-wrap" style={{ padding: isMobile ? '16px 8px 0' : (isPage ? '48px 56px 40px' : '36px 32px 0') }}>
           {isReal ? (
             activeChapter ? (
               <ChapterSheet
@@ -276,10 +276,14 @@ export function EditorHybrid({
             <StatusBar />
           )
         )}
-        {isPage && <EditorToolbar editor={editor} variant="pill" showModes={false} />}
+        {isPage && (
+          <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'center', padding: '10px 24px 20px', background: 'var(--bg)' }}>
+            <EditorToolbar editor={editor} variant="pill" showModes={false} />
+          </div>
+        )}
       </main>
 
-      {showRight && <RightPanel tab="margins" bookId={book?.id} />}
+      {showRight && <RightPanel bookId={book?.id} />}
 
       {isMobile && showMobileSidebar && (
         <>

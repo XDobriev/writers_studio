@@ -445,11 +445,10 @@ export function Sheet({ wide = false }: SheetProps) {
 }
 
 interface RightPanelProps {
-  tab?: 'margins' | 'versions';
   bookId?: string;
 }
 
-export function RightPanel({ tab = 'margins', bookId }: RightPanelProps) {
+export function RightPanel({ bookId }: RightPanelProps) {
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно' };
   const [notes, setNotes] = useState<Note[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -504,16 +503,15 @@ export function RightPanel({ tab = 'margins', bookId }: RightPanelProps) {
   return (
     <aside className="rp">
       <div className="rp-head">
-        <span className={'rp-tab' + (tab === 'margins' ? ' rp-tab--on' : '')}>Заметки на полях</span>
-        <span className={'rp-tab' + (tab === 'versions' ? ' rp-tab--on' : '')}>Версии</span>
+        <span className="rp-tab rp-tab--on">Заметки на полях</span>
         <span style={{ flex: 1 }} />
         <button className="tb-btn" onClick={() => setShowForm((v) => !v)} title="Добавить заметку">
           <Icon name="plus" size={14} />
         </button>
       </div>
       <div className="rp-body">
-        {tab === 'margins' && (
-          <>
+        <>
+
             {showForm && (
               <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <select
@@ -616,20 +614,7 @@ export function RightPanel({ tab = 'margins', bookId }: RightPanelProps) {
                 )}
               </div>
             ))}
-          </>
-        )}
-        {tab === 'versions' && NOVEL.versions.map((v, i) => (
-          <div key={i} className="mn" style={v.active ? { borderColor: 'var(--accent)' } : {}}>
-            <div className="mn-head">
-              <span className="mn-label">{v.label}</span>
-              <span className="mn-time">{v.words.toLocaleString('ru')} сл</span>
-            </div>
-            <div className="mn-text" style={{ color: 'var(--ink-2)' }}>{v.date}</div>
-            {v.active && (
-              <div style={{ font: '500 10px var(--font-mono)', color: 'var(--accent)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>текущая</div>
-            )}
-          </div>
-        ))}
+        </>
       </div>
     </aside>
   );
