@@ -612,7 +612,7 @@ export function RightPanel({ tab = 'margins', bookId }: RightPanelProps) {
   );
 }
 
-type RailKey = 'editor' | 'characters' | 'map' | 'timeline' | 'notes' | 'dashboard';
+type RailKey = 'editor' | 'characters' | 'map' | 'timeline' | 'notes' | 'dashboard' | 'outline' | 'corkboard';
 
 interface RailNavProps {
   active?: RailKey;
