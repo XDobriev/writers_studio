@@ -224,7 +224,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   transition: background 0.1s, color 0.1s;
 }
 .bubble-btn:hover { background: oklch(100% 0 0 / 0.1); color: var(--ink); }
-.bubble-btn--on { background: oklch(100% 0 0 / 0.18); color: var(--ink); }
+.bubble-btn--on { background: var(--accent); color: #fff; }
 .bubble-sep { width: 1px; height: 18px; background: oklch(100% 0 0 / 0.13); flex-shrink: 0; }
 .bubble-colors { display: flex; align-items: center; gap: 5px; }
 .bubble-color {
