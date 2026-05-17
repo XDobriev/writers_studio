@@ -686,6 +686,15 @@ interface RailNavProps {
 }
 
 export function RailNav({ active = 'editor', style }: RailNavProps) {
+  const { user } = useAuth();
+  const displayName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email ?? '';
+  const initials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w: string) => w[0].toUpperCase())
+    .join('') || '?';
+
   const items: Array<[RailKey, Parameters<typeof Icon>[0]['name']]> = [
     ['editor', 'book'],
     ['characters', 'char'],
@@ -711,7 +720,7 @@ export function RailNav({ active = 'editor', style }: RailNavProps) {
       ))}
       <div style={{ flex: 1 }} />
       <button className="tb-btn" style={{ width: 36, height: 36, borderRadius: 8 }}><Icon name="settings" size={17} /></button>
-      <div className="sb-avatar" style={{ width: 32, height: 32, fontSize: 11 }}>АК</div>
+      <div className="sb-avatar" style={{ width: 32, height: 32, fontSize: 11 }}>{initials}</div>
     </aside>
   );
 }

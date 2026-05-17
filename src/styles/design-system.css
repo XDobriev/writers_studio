@@ -60,6 +60,18 @@ html, body, #root {
 }
 
 @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.page-spinner {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--accent);
+  animation: spin 0.75s linear infinite;
+}
+
+.page-loading {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+}
 
 /* mode-page rail */
 .mode-page .as.as-app { grid-template-columns: 56px 1fr !important; }
