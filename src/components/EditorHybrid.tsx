@@ -7,6 +7,7 @@ import { EditorToolbar } from './EditorToolbar';
 import type { Book } from '../lib/supabase';
 import type { Chapter } from '../lib/chapters';
 import { useWritingStats } from '../lib/useWritingStats';
+import { useToolbarAutoHide } from '../lib/useToolbarAutoHide';
 
 type Mode = 'studio' | 'left' | 'right' | 'page';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -168,6 +169,7 @@ export function EditorHybrid({
   const isPage = mode === 'page';
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
+  const { visible: toolbarVisible, onKeyDown: scheduleToolbarHide, containerHandlers, toolbarHandlers } = useToolbarAutoHide({ enabled: isPage });
 
   useEffect(() => {
     if (!isMobile) setShowMobileSidebar(false);
@@ -204,7 +206,11 @@ export function EditorHybrid({
         />
       )}
 
-      <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
+      <main
+        style={{ display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}
+        onMouseMove={isPage ? containerHandlers.onMouseMove : undefined}
+        onKeyDown={isPage ? scheduleToolbarHide : undefined}
+      >
         {isMobile && !isPage && (
           <div style={{ display: 'flex', alignItems: 'center', height: 44, padding: '0 12px', gap: 8, borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)', flexShrink: 0 }}>
             <button
@@ -277,7 +283,18 @@ export function EditorHybrid({
           )
         )}
         {isPage && (
-          <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'center', padding: '10px 24px 20px', background: 'var(--bg)' }}>
+          <div
+            style={{
+              flexShrink: 0, display: 'flex', justifyContent: 'center', padding: '10px 24px 20px',
+              background: 'var(--bg)',
+              opacity: toolbarVisible ? 1 : 0,
+              transform: toolbarVisible ? 'translateY(0)' : 'translateY(8px)',
+              transition: 'opacity 0.25s ease, transform 0.25s ease',
+              pointerEvents: toolbarVisible ? 'auto' : 'none',
+            }}
+            onMouseEnter={toolbarHandlers.onMouseEnter}
+            onMouseLeave={toolbarHandlers.onMouseLeave}
+          >
             <EditorToolbar editor={editor} variant="pill" showModes={false} />
           </div>
         )}
