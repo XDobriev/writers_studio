@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
 import { supabase, type Book } from '../lib/supabase';
-import { createChapter, listChapters, type Chapter } from '../lib/chapters';
+import { createChapter, deleteChapter, listChapters, type Chapter } from '../lib/chapters';
 
 const STATUS_COLOR: Record<Chapter['status'], string> = {
   draft: 'var(--ink-4)',
@@ -20,6 +20,24 @@ export default function Outline() {
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuFor) {
+      setDeleteConfirmFor(null);
+      return;
+    }
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuFor(null);
+        setDeleteConfirmFor(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuFor]);
 
   useEffect(() => {
     if (!bookId) return;
@@ -53,6 +71,17 @@ export default function Outline() {
       { count: 0, words: 0, done: 0, progress: 0, draft: 0 },
     );
   }, [chapters]);
+
+  const onDelete = async (id: string) => {
+    setChapters((prev) => (prev ?? []).filter((c) => c.id !== id));
+    setMenuFor(null);
+    setDeleteConfirmFor(null);
+    try {
+      await deleteChapter(id);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
 
   const onCreate = async () => {
     if (!bookId || !user) return;
@@ -146,22 +175,73 @@ export default function Outline() {
                   </span>
                 </div>
                 {chapters.map((c, i) => (
-                  <Link
-                    key={c.id}
-                    to={`/books/${bookId}/editor?chapter=${c.id}`}
-                    style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '12px 16px 12px 28px', borderRadius: 8, position: 'relative' }}
-                  >
-                    <span style={{ font: '500 12px var(--font-mono)', color: c.status === 'draft' ? 'var(--ink-4)' : 'var(--accent)', letterSpacing: '0.04em', marginTop: 3, minWidth: 28 }}>
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ font: '500 15px var(--font-serif)', color: c.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)' }}>
-                        {c.title || 'Без названия'}
+                  <div key={c.id} style={{ position: 'relative', display: 'flex', alignItems: 'center', borderRadius: 8 }}>
+                    <Link
+                      to={`/books/${bookId}/editor?chapter=${c.id}`}
+                      style={{ flex: 1, display: 'flex', alignItems: 'flex-start', gap: 14, padding: '12px 40px 12px 28px', borderRadius: 8, textDecoration: 'none' }}
+                    >
+                      <span style={{ font: '500 12px var(--font-mono)', color: c.status === 'draft' ? 'var(--ink-4)' : 'var(--accent)', letterSpacing: '0.04em', marginTop: 3, minWidth: 28 }}>
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ font: '500 15px var(--font-serif)', color: c.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)' }}>
+                          {c.title || 'Без названия'}
+                        </div>
                       </div>
+                      <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 4 }}>{c.words.toLocaleString('ru')} сл</span>
+                      <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 8, background: STATUS_COLOR[c.status] }} />
+                    </Link>
+                    <div
+                      ref={menuFor === c.id ? menuRef : null}
+                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setMenuFor(menuFor === c.id ? null : c.id)}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, background: menuFor === c.id ? 'var(--bg-deep)' : 'transparent', border: 'none', cursor: 'pointer', borderRadius: 4, color: 'var(--ink-3)' }}
+                        title="Действия"
+                      >
+                        <Icon name="moremenu" size={14} />
+                      </button>
+                      {menuFor === c.id && (
+                        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px rgba(0,0,0,0.18)' }}>
+                          {deleteConfirmFor === c.id ? (
+                            <div style={{ padding: '6px 8px' }}>
+                              <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 8, lineHeight: 1.4 }}>
+                                Удалить главу? Текст будет потерян.
+                              </div>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <button
+                                  type="button"
+                                  onClick={() => void onDelete(c.id)}
+                                  style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', font: '500 11px var(--font-ui)' }}
+                                >Удалить</button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteConfirmFor(null)}
+                                  style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--bg-deep)', color: 'var(--ink-2)', border: 'none', borderRadius: 4, cursor: 'pointer', font: '400 11px var(--font-ui)' }}
+                                >Отмена</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (c.words > 0) {
+                                  setDeleteConfirmFor(c.id);
+                                } else {
+                                  void onDelete(c.id);
+                                }
+                              }}
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--danger)', border: 'none', textAlign: 'left' }}
+                            >
+                              Удалить главу
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 4 }}>{c.words.toLocaleString('ru')} сл</span>
-                    <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 8, background: STATUS_COLOR[c.status] }} />
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}

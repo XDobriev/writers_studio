@@ -138,6 +138,7 @@ interface EditorHybridProps {
   onSelectChapter?: (id: string) => void;
   onCreateChapter?: () => void;
   onStatusChange?: (id: string, status: Chapter['status']) => void;
+  onDeleteChapter?: (id: string) => void;
   onContentChange?: (html: string) => void;
   onTitleChange?: (title: string) => void;
   saveState?: SaveState;
@@ -153,6 +154,7 @@ export function EditorHybrid({
   onSelectChapter,
   onCreateChapter,
   onStatusChange,
+  onDeleteChapter,
   onContentChange,
   onTitleChange,
   saveState = 'idle',
@@ -200,6 +202,7 @@ export function EditorHybrid({
           onSelectChapter={onSelectChapter}
           onCreateChapter={onCreateChapter}
           onStatusChange={onStatusChange}
+          onDeleteChapter={onDeleteChapter}
           bookHref={bookHref}
         />
       )}
@@ -295,6 +298,7 @@ export function EditorHybrid({
               onSelectChapter={(id) => { onSelectChapter?.(id); setShowMobileSidebar(false); }}
               onCreateChapter={onCreateChapter}
               onStatusChange={onStatusChange}
+              onDeleteChapter={onDeleteChapter}
               bookHref={bookHref}
             />
           </div>

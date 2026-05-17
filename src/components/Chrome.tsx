@@ -162,6 +162,7 @@ interface SidebarProps {
   onSelectChapter?: (id: string) => void;
   onCreateChapter?: () => void;
   onStatusChange?: (id: string, status: ChapterStatus) => void;
+  onDeleteChapter?: (id: string) => void;
   bookHref?: string;
   subtitle?: string;
   children?: ReactNode;
@@ -174,6 +175,7 @@ export function Sidebar({
   onSelectChapter,
   onCreateChapter,
   onStatusChange,
+  onDeleteChapter,
   bookHref,
   subtitle,
   children,
@@ -190,12 +192,19 @@ export function Sidebar({
     .join('') || '?';
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
+  const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!statusMenuFor) return;
+    if (!statusMenuFor) {
+      setDeleteConfirmFor(null);
+      return;
+    }
     const handler = (e: MouseEvent) => {
-      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) setStatusMenuFor(null);
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
+        setStatusMenuFor(null);
+        setDeleteConfirmFor(null);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -295,7 +304,8 @@ export function Sidebar({
                     <span style={{ width: 6, height: 6, borderRadius: 999, background: SB_STATUS_COLOR[c.status], display: 'block' }} />
                   </button>
                   {statusMenuFor === c.id && (
-                    <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 140, boxShadow: '0 4px 20px rgba(0,0,0,0.18)' }}>
+                    <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px rgba(0,0,0,0.18)' }}>
+                      <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px 6px' }}>Статус</div>
                       {(['draft', 'progress', 'done'] as ChapterStatus[]).map((s) => (
                         <button
                           key={s}
@@ -308,6 +318,41 @@ export function Sidebar({
                           {c.status === s && <span style={{ marginLeft: 'auto', font: '400 10px var(--font-mono)', color: 'var(--ink-4)' }}>✓</span>}
                         </button>
                       ))}
+                      <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
+                      {deleteConfirmFor === c.id ? (
+                        <div style={{ padding: '6px 8px' }}>
+                          <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 8, lineHeight: 1.4 }}>
+                            Удалить главу? Текст будет потерян.
+                          </div>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button
+                              type="button"
+                              onClick={() => { onDeleteChapter?.(c.id); setStatusMenuFor(null); setDeleteConfirmFor(null); }}
+                              style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', font: '500 11px var(--font-ui)' }}
+                            >Удалить</button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirmFor(null)}
+                              style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--bg-deep)', color: 'var(--ink-2)', border: 'none', borderRadius: 4, cursor: 'pointer', font: '400 11px var(--font-ui)' }}
+                            >Отмена</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (c.words > 0) {
+                              setDeleteConfirmFor(c.id);
+                            } else {
+                              onDeleteChapter?.(c.id);
+                              setStatusMenuFor(null);
+                            }
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--danger)', border: 'none', textAlign: 'left' }}
+                        >
+                          Удалить главу
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

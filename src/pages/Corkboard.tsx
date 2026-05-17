@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
 import { supabase, type Book } from '../lib/supabase';
-import { createChapter, listChapters, updateChapter, type Chapter } from '../lib/chapters';
+import { createChapter, deleteChapter, listChapters, updateChapter, type Chapter } from '../lib/chapters';
 
 type Filter = 'all' | Chapter['status'];
 
@@ -34,15 +34,22 @@ function firstParagraph(html: string): string {
 
 const STATUS_ORDER: Chapter['status'][] = ['draft', 'progress', 'done'];
 
-function Card({ c, index, href, onStatusChange }: { c: Chapter; index: number; href: string; onStatusChange: (id: string, status: Chapter['status']) => void }) {
+function Card({ c, index, href, onStatusChange, onDeleteChapter }: { c: Chapter; index: number; href: string; onStatusChange: (id: string, status: Chapter['status']) => void; onDeleteChapter: (id: string) => void }) {
   const synopsis = firstParagraph(c.content);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen) {
+      setDeleteConfirm(false);
+      return;
+    }
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+        setDeleteConfirm(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -94,6 +101,41 @@ function Card({ c, index, href, onStatusChange }: { c: Chapter; index: number; h
                   {c.status === s && <span style={{ marginLeft: 'auto', font: '400 10px var(--font-mono)', color: 'var(--ink-4)' }}>✓</span>}
                 </button>
               ))}
+              <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
+              {deleteConfirm ? (
+                <div style={{ padding: '6px 8px' }}>
+                  <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 8, lineHeight: 1.4 }}>
+                    Удалить главу? Текст будет потерян.
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => { onDeleteChapter(c.id); setMenuOpen(false); setDeleteConfirm(false); }}
+                      style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', font: '500 11px var(--font-ui)' }}
+                    >Удалить</button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm(false)}
+                      style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--bg-deep)', color: 'var(--ink-2)', border: 'none', borderRadius: 4, cursor: 'pointer', font: '400 11px var(--font-ui)' }}
+                    >Отмена</button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (c.words > 0) {
+                      setDeleteConfirm(true);
+                    } else {
+                      onDeleteChapter(c.id);
+                      setMenuOpen(false);
+                    }
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--danger)', border: 'none', textAlign: 'left' }}
+                >
+                  Удалить главу
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -154,6 +196,15 @@ export default function Corkboard() {
     setChapters((prev) => prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev);
     try {
       await updateChapter(id, { status });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const onDeleteChapter = async (id: string) => {
+    setChapters((prev) => prev ? prev.filter((c) => c.id !== id) : prev);
+    try {
+      await deleteChapter(id);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -272,6 +323,7 @@ export default function Corkboard() {
                       index={index}
                       href={`/books/${bookId}/editor?chapter=${c.id}`}
                       onStatusChange={onStatusChange}
+                      onDeleteChapter={onDeleteChapter}
                     />
                   );
                 })}

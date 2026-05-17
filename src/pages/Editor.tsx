@@ -6,6 +6,7 @@ import { supabase, type Book } from '../lib/supabase';
 import {
   countWords,
   createChapter,
+  deleteChapter,
   listChapters,
   updateChapter,
   type Chapter,
@@ -150,6 +151,21 @@ export default function Editor() {
     }
   }, []);
 
+  const onDeleteChapter = useCallback(async (id: string) => {
+    try {
+      await deleteChapter(id);
+      const remaining = (chapters ?? []).filter((c) => c.id !== id);
+      setChapters(remaining);
+      if (id === activeId && remaining.length > 0) {
+        const next = new URLSearchParams(search);
+        next.set('chapter', remaining[0].id);
+        setSearch(next, { replace: false });
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [chapters, activeId, search, setSearch]);
+
   if (!bookId) return <Navigate to="/books" replace />;
 
   if (error) {
@@ -179,6 +195,7 @@ export default function Editor() {
         onSelectChapter={selectChapter}
         onCreateChapter={onCreateChapter}
         onStatusChange={onStatusChange}
+        onDeleteChapter={onDeleteChapter}
         onContentChange={onContentChange}
         onTitleChange={onTitleChange}
         saveState={saveState}
