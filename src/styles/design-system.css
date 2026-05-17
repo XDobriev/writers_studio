@@ -220,11 +220,11 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   width: 28px; height: 28px; padding: 0;
   border-radius: 6px;
   display: inline-flex; align-items: center; justify-content: center;
-  color: oklch(68% 0.006 80); cursor: pointer;
+  color: var(--ink-2); cursor: pointer;
   transition: background 0.1s, color 0.1s;
 }
-.bubble-btn:hover { background: oklch(100% 0 0 / 0.1); color: #fff; }
-.bubble-btn--on { background: var(--accent); color: #fff; }
+.bubble-btn:hover { background: oklch(100% 0 0 / 0.1); color: var(--ink); }
+.bubble-btn--on { background: oklch(100% 0 0 / 0.18); color: var(--ink); }
 .bubble-sep { width: 1px; height: 18px; background: oklch(100% 0 0 / 0.13); flex-shrink: 0; }
 .bubble-colors { display: flex; align-items: center; gap: 5px; }
 .bubble-color {
