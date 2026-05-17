@@ -522,9 +522,22 @@ export function RightPanel({ bookId }: RightPanelProps) {
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    const idx = notes.findIndex((n) => n.id === id);
+    const deleted = notes[idx];
     setNotes((prev) => prev.filter((n) => n.id !== id));
-    deleteNote(id).catch(() => {});
+    try {
+      await deleteNote(id);
+    } catch (e) {
+      if (deleted) {
+        setNotes((prev) => {
+          const next = [...prev];
+          next.splice(Math.min(idx, next.length), 0, deleted);
+          return next;
+        });
+      }
+      console.error('Не удалось удалить заметку:', e);
+    }
   };
 
   const startEdit = (n: Note) => {
