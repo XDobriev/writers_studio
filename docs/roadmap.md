@@ -33,7 +33,6 @@ _Обновлён: 2026-05-18. Горизонт активной разрабо�
 
 ### Производительность и tech debt
 
-- [ ] **Code splitting** — `App.tsx` загружает все страницы eagerly (263 KB gzip с TipTap). Добавить `React.lazy` + `Suspense` на все маршруты кроме `/login` и `/`. Ожидаемый выигрыш: бандл первого экрана < 80 KB.
 - [ ] **Вынести компоненты из Chrome.tsx** — файл 820 строк, 9 компонентов. Вынести в отдельные файлы: `src/components/SettingsModal.tsx`, `src/components/RightPanel.tsx`, `src/components/StatusBar.tsx`. `Sidebar` и `RailNav` оставить в Chrome.tsx или вынести тоже.
 - [x] **Удалить мёртвый Toolbar** — `Chrome.tsx`: компонент `Toolbar()` удалён.
 - [ ] **Применить миграцию writing_snapshots** — `0008_writing_snapshots.sql` лежит в `supabase/migrations/` но не применена. Подключить в Dashboard графики.
@@ -165,6 +164,13 @@ _Обновлён: 2026-05-18. Горизонт активной разрабо�
 
 ---
 
+## Тестирование
+
+- [ ] **Ручная проверка golden path перед каждым коммитом** — войти → открыть книгу → написать → убедиться что последний фикс работает. Дисциплина, не код.
+- [ ] **Playwright e2e (после появления платящих)** — один тест: логин → создание книги → редактор открылся. Установка: `npm i -D @playwright/test && npx playwright install chromium`. Запускать перед деплоем в прод.
+
+---
+
 ## Tech debt (отслеживание)
 
 - [x] **Нет кэширования данных** — TanStack Query подключён, все страницы мигрированы
@@ -175,10 +181,6 @@ _Обновлён: 2026-05-18. Горизонт активной разрабо�
 
 ### React best practices — найденные нарушения
 
-- [ ] **Константы внутри компонентов** — `TEXT_COLORS` и `FMT_ACTIONS` в `RichEditor.tsx:124,147` пересоздаются на каждом рендере. Вынести за пределы функции компонента.
-- [ ] **`navItems` в Sidebar без мemoization** — `Chrome.tsx:213`, зависит от `bid`, поэтому нельзя вынести за компонент — нужен `useMemo([bid])`.
-- [ ] **`queryClient` на уровне модуля** — `App.tsx:23`. При HMR и в Strict Mode создаётся общий инстанс. Правильно: `const [queryClient] = useState(() => new QueryClient())` внутри `App`.
-- [ ] **Двойной ErrorBoundary в Editor** — `App.tsx` уже оборачивает все маршруты через `<Guard><ErrorBoundary>`. Лишний `<ErrorBoundary>` внутри `Editor.tsx:190` — удалить.
 - [ ] **Несогласованный `useCallback`** — в `Editor.tsx` все обработчики завёрнуты в `useCallback`, в `RichEditor.tsx` — `applyColor`, `runFmt`, `applySuggestion` — обычные функции. Не баг, но стиль непоследователен.
 
 ---

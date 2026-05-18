@@ -18,6 +18,23 @@ import { DecorationSet } from '@tiptap/pm/view';
 
 export type { Editor };
 
+const TEXT_COLORS = [
+  { label: 'По умолчанию', value: '',        bg: null      },
+  { label: 'Красный',      value: '#ef4444', bg: '#ef4444' },
+  { label: 'Оранжевый',    value: '#f97316', bg: '#f97316' },
+  { label: 'Зелёный',      value: '#22c55e', bg: '#22c55e' },
+  { label: 'Синий',        value: '#3b82f6', bg: '#3b82f6' },
+  { label: 'Фиолетовый',   value: '#8b5cf6', bg: '#8b5cf6' },
+  { label: 'Розовый',      value: '#ec4899', bg: '#ec4899' },
+];
+
+const FMT = [
+  { name: 'bold',      icon: 'bold'      as const, label: 'Жирный' },
+  { name: 'italic',    icon: 'italic'    as const, label: 'Курсив' },
+  { name: 'underline', icon: 'underline' as const, label: 'Подчёркнутый' },
+  { name: 'strike',    icon: 'strike'    as const, label: 'Зачёркнутый' },
+];
+
 interface RichEditorProps {
   value: string;
   onChange: (html: string) => void;
@@ -121,16 +138,6 @@ export function RichEditor({
     setSpellPopup(null);
   };
 
-  const TEXT_COLORS = [
-    { label: 'По умолчанию', value: '',        bg: null      },
-    { label: 'Красный',      value: '#ef4444', bg: '#ef4444' },
-    { label: 'Оранжевый',    value: '#f97316', bg: '#f97316' },
-    { label: 'Зелёный',      value: '#22c55e', bg: '#22c55e' },
-    { label: 'Синий',        value: '#3b82f6', bg: '#3b82f6' },
-    { label: 'Фиолетовый',   value: '#8b5cf6', bg: '#8b5cf6' },
-    { label: 'Розовый',      value: '#ec4899', bg: '#ec4899' },
-  ];
-
   function applyColor(value: string) {
     if (!editor) return;
     if (value === '') {
@@ -143,13 +150,6 @@ export function RichEditor({
   const activeColor = editor
     ? (editor.getAttributes('textStyle').color as string | undefined) ?? null
     : null;
-
-  const fmt = [
-    { name: 'bold',      icon: 'bold'      as const, label: 'Жирный' },
-    { name: 'italic',    icon: 'italic'    as const, label: 'Курсив' },
-    { name: 'underline', icon: 'underline' as const, label: 'Подчёркнутый' },
-    { name: 'strike',    icon: 'strike'    as const, label: 'Зачёркнутый' },
-  ];
 
   function runFmt(name: string) {
     if (!editor) return;
@@ -166,7 +166,7 @@ export function RichEditor({
         <BubbleMenu editor={editor}>
           <div className="bubble-menu">
             <div className="bubble-fmt">
-              {fmt.map(({ name, icon, label }) => (
+              {FMT.map(({ name, icon, label }) => (
                 <button
                   key={name}
                   title={label}

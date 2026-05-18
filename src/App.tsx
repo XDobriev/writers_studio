@@ -1,36 +1,48 @@
-import type { ReactNode } from 'react';
+import { useState, lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './lib/auth';
 import { AuthGuard } from './components/AuthGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
+
+// Критический путь — eager: эти страницы нужны до любой навигации
 import Auth from './pages/Auth';
-import Home from './pages/Home';
-import Dashboard from './pages/Dashboard';
-import Editor from './pages/Editor';
-import Outline from './pages/Outline';
-import Corkboard from './pages/Corkboard';
-import MapScreen from './pages/Map';
-import Timeline from './pages/Timeline';
-import Characters from './pages/Characters';
-import Focus from './pages/Focus';
-import Split from './pages/Split';
-import Export from './pages/Export';
-import Notes from './pages/Notes';
-import Admin from './pages/Admin';
 import ResetPassword from './pages/ResetPassword';
 
-const queryClient = new QueryClient();
+// Всё остальное — lazy: браузер скачает чанк только при переходе на маршрут
+const Home       = lazy(() => import('./pages/Home'));
+const Dashboard  = lazy(() => import('./pages/Dashboard'));
+const Editor     = lazy(() => import('./pages/Editor'));
+const Outline    = lazy(() => import('./pages/Outline'));
+const Corkboard  = lazy(() => import('./pages/Corkboard'));
+const MapScreen  = lazy(() => import('./pages/Map'));
+const Timeline   = lazy(() => import('./pages/Timeline'));
+const Characters = lazy(() => import('./pages/Characters'));
+const Focus      = lazy(() => import('./pages/Focus'));
+const Split      = lazy(() => import('./pages/Split'));
+const Export     = lazy(() => import('./pages/Export'));
+const Notes      = lazy(() => import('./pages/Notes'));
+const Admin      = lazy(() => import('./pages/Admin'));
+
+function PageFallback() {
+  return (
+    <div style={{ height: '100vh', display: 'grid', placeItems: 'center' }}>
+      <span style={{ color: 'var(--ink-3)', fontSize: '0.875rem' }}>Загрузка…</span>
+    </div>
+  );
+}
 
 function Guard({ children }: { children: ReactNode }) {
   return <AuthGuard><ErrorBoundary>{children}</ErrorBoundary></AuthGuard>;
 }
 
 export default function App() {
+  const [queryClient] = useState(() => new QueryClient());
   return (
     <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <BrowserRouter>
+        <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<Navigate to="/books" replace />} />
           <Route path="/login" element={<Auth />} />
@@ -52,6 +64,7 @@ export default function App() {
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/books" replace />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
     </QueryClientProvider>
