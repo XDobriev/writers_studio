@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
@@ -21,6 +21,8 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<{ error: string | null }>;
   signInWithTelegram: (data: TelegramAuthData) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  sessionExpired: boolean;
+  clearSessionExpired: () => void;
   resetPasswordForEmail: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (password: string) => Promise<{ error: string | null }>;
 }
@@ -30,14 +32,28 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  // Различаем намеренный logout от истечения токена
+  const hadSession = useRef(false);
+  const deliberateSignOut = useRef(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
+      if (data.session) hadSession.current = true;
       setSession(data.session);
       setLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'SIGNED_OUT' && hadSession.current && !deliberateSignOut.current) {
+        setSessionExpired(true);
+      }
+      if (s) {
+        hadSession.current = true;
+        setSessionExpired(false);
+      }
+      deliberateSignOut.current = false;
       setSession(s);
     });
     return () => sub.subscription.unsubscribe();
@@ -73,8 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    deliberateSignOut.current = true;
     await supabase.auth.signOut();
   };
+
+  const clearSessionExpired = () => setSessionExpired(false);
 
   const resetPasswordForEmail: AuthContextValue['resetPasswordForEmail'] = async (email) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -99,6 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithGoogle,
         signInWithTelegram,
         signOut,
+        sessionExpired,
+        clearSessionExpired,
         resetPasswordForEmail,
         updatePassword,
       }}
