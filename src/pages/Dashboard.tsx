@@ -4,7 +4,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { supabase, type Book } from '../lib/supabase';
-import { useAuth } from '../lib/auth';
 import { type Chapter } from '../lib/chapters';
 import { pluralDays, plural } from '../lib/useWritingStats';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useWritingSnapshots } from '../lib/queries';
@@ -31,7 +30,6 @@ function daysBetween(a: Date, b: Date): number {
 
 export default function Dashboard() {
   const { id } = useParams<{ id: string }>();
-  const { signOut } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: book, error: bookError } = useBook(id);
@@ -236,7 +234,6 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button className="btn btn--ghost" onClick={openEdit}><Icon name="pencil" size={14} /> Изменить</button>
               <Link to={navTo('/editor')} className="btn btn--primary" style={{ textDecoration: 'none' }}><Icon name="book" size={14} /> Открыть редактор</Link>
-              <button className="btn btn--ghost" onClick={signOut}>Выйти</button>
             </div>
           </div>
 

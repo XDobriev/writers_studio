@@ -16,7 +16,7 @@ function dayDiff(iso: string): number {
 }
 
 export default function Home() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [books, setBooks] = useState<Book[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -105,7 +105,6 @@ export default function Home() {
         <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
         <span style={{ flex: 1 }} />
         <span className="hide-sm" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{user?.email}</span>
-        <button className="btn btn--ghost" onClick={signOut}>Выйти</button>
       </div>
 
       <div style={{ flex: 1, padding: '40px 48px' }}>
