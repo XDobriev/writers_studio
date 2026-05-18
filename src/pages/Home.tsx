@@ -15,11 +15,15 @@ function dayDiff(iso: string): number {
   return Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000));
 }
 
+type Plan = 'free' | 'pro' | 'lifetime';
+
 export default function Home() {
   const { user } = useAuth();
   const [books, setBooks] = useState<Book[] | null>(null);
+  const [plan, setPlan] = useState<Plan>('free');
   const [err, setErr] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const [editBook, setEditBook] = useState<Book | null>(null);
@@ -61,16 +65,25 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
-        .from('books')
-        .select('*')
-        .order('updated_at', { ascending: false });
+      const [booksRes, profileRes] = await Promise.all([
+        supabase.from('books').select('*').order('updated_at', { ascending: false }),
+        supabase.from('profiles').select('plan').eq('user_id', user!.id).single(),
+      ]);
       if (cancelled) return;
-      if (error) setErr(error.message);
-      else setBooks((data ?? []) as Book[]);
+      if (booksRes.error) setErr(booksRes.error.message);
+      else setBooks((booksRes.data ?? []) as Book[]);
+      if (profileRes.data) setPlan(profileRes.data.plan as Plan);
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [user]);
+
+  const handleNewBookClick = () => {
+    if (plan === 'free' && (books?.length ?? 0) >= 1) {
+      setShowUpgrade(true);
+    } else {
+      setShowCreate(true);
+    }
+  };
 
   const onCreate = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -116,7 +129,7 @@ export default function Home() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn--primary" onClick={() => setShowCreate(true)}>
+            <button className="btn btn--primary" onClick={handleNewBookClick}>
               <Icon name="plus" size={14} /> Новая книга
             </button>
           </div>
@@ -131,11 +144,27 @@ export default function Home() {
         {books == null && <div style={{ color: 'var(--ink-3)' }}>Загрузка…</div>}
 
         {books && books.length === 0 && (
-          <div style={{ padding: '64px 32px', textAlign: 'center', border: '1px dashed var(--border-strong)', borderRadius: 12, color: 'var(--ink-3)' }}>
-            <div style={{ font: '500 18px var(--font-serif)', color: 'var(--ink-2)', marginBottom: 8 }}>Полка пуста.</div>
-            <div style={{ marginBottom: 16, fontSize: 13 }}>Создайте первую книгу — её данные будут храниться в вашем аккаунте.</div>
-            <button className="btn btn--primary" onClick={() => setShowCreate(true)}>
-              <Icon name="plus" size={14} /> Начать новую книгу
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 32px', textAlign: 'center' }}>
+            <div style={{
+              width: 96, height: 120, marginBottom: 32, position: 'relative', flexShrink: 0,
+            }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, var(--surface-2), var(--surface))', borderRadius: '4px 10px 10px 4px', border: '1px solid var(--border-soft)', boxShadow: '4px 6px 20px oklch(0 0 0 / 0.25)' }} />
+              <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 6, background: 'var(--accent)', borderRadius: '2px 0 0 2px', opacity: 0.9 }} />
+              <div style={{ position: 'absolute', left: 18, right: 14, top: 28, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {[0.7, 0.5, 0.6, 0.4, 0.55].map((w, i) => (
+                  <div key={i} style={{ height: 2, borderRadius: 999, background: 'var(--ink-4)', width: `${w * 100}%` }} />
+                ))}
+              </div>
+              <div style={{ position: 'absolute', bottom: 16, left: 18, right: 14, height: 2, borderRadius: 999, background: 'var(--accent)', opacity: 0.5 }} />
+            </div>
+            <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 10 }}>
+              Начните свою первую историю
+            </h2>
+            <p style={{ font: '400 14px/1.6 var(--font-ui)', color: 'var(--ink-3)', maxWidth: 360, marginBottom: 28 }}>
+              Создайте книгу — все главы, персонажи и заметки будут храниться в вашем аккаунте.
+            </p>
+            <button className="btn btn--primary" style={{ height: 42, padding: '0 24px', fontSize: 14 }} onClick={handleNewBookClick}>
+              <Icon name="plus" size={15} /> Создать книгу
             </button>
           </div>
         )}
@@ -165,7 +194,7 @@ export default function Home() {
                       <span>{Math.round((b.words / Math.max(1, b.goal)) * 100)}%</span>
                     </div>
                     <div style={{ height: 3, background: 'var(--surface-3)', borderRadius: 999, overflow: 'hidden', marginBottom: 12 }}>
-                      <div style={{ width: `${(b.words / Math.max(1, b.goal)) * 100}%`, height: '100%', background: b.words > 0 ? 'var(--accent)' : 'var(--ink-4)' }} />
+                      <div style={{ width: `${(b.words / Math.max(1, b.goal)) * 100}%`, minWidth: 4, height: '100%', background: b.words > 0 ? 'var(--accent)' : 'var(--ink-4)' }} />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)' }}>
                       <span>{dayDiff(b.created_at)} дн. в работе</span>
@@ -253,6 +282,52 @@ export default function Home() {
               >
                 {editSaving ? 'Сохранение…' : 'Сохранить'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showUpgrade && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'oklch(0 0 0 / 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowUpgrade(false)}
+        >
+          <div
+            style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 36px', width: 480, display: 'flex', flexDirection: 'column', gap: 24, boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 10 }}>Pro</div>
+              <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 8 }}>Безлимит проектов</h2>
+              <p style={{ font: '400 14px/1.65 var(--font-ui)', color: 'var(--ink-3)' }}>
+                Бесплатный план включает одну книгу. Перейдите на Pro, чтобы создавать неограниченное количество проектов, экспортировать текст и получать доступ ко всем функциям.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                'Неограниченное количество книг',
+                'Экспорт в DOCX и EPUB',
+                'Приоритетная поддержка',
+              ].map((f) => (
+                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, font: '400 13.5px var(--font-ui)', color: 'var(--ink-2)' }}>
+                  <span style={{ width: 18, height: 18, borderRadius: 999, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 11, color: 'oklch(0.98 0 0)', fontWeight: 600 }}>
+                    ✓
+                  </span>
+                  {f}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <div style={{ font: '600 28px var(--font-serif)', letterSpacing: '-0.02em' }}>390 ₽<span style={{ font: '400 14px var(--font-ui)', color: 'var(--ink-3)', letterSpacing: 0 }}>/мес</span></div>
+                <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', marginTop: 2 }}>или 2 900 ₽/год — экономия 40%</div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn--ghost" onClick={() => setShowUpgrade(false)}>Отмена</button>
+                <button className="btn btn--primary" style={{ opacity: 0.5, cursor: 'not-allowed' }} disabled>Скоро</button>
+              </div>
             </div>
           </div>
         </div>

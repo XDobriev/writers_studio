@@ -403,36 +403,6 @@ export function Sidebar({
   );
 }
 
-export function Toolbar() {
-  return (
-    <div className="tb">
-      <button className="tb-btn"><Icon name="bold" /></button>
-      <button className="tb-btn"><Icon name="italic" /></button>
-      <button className="tb-btn"><Icon name="underline" /></button>
-      <button className="tb-btn"><Icon name="strike" /></button>
-      <span className="tb-sep" />
-      <button className="tb-sel">Заголовок 2 <Icon name="chevd" size={12} /></button>
-      <span className="tb-sep" />
-      <button className="tb-btn"><Icon name="list" /></button>
-      <button className="tb-btn"><Icon name="olist" /></button>
-      <button className="tb-btn"><Icon name="quote" /></button>
-      <span className="tb-sep" />
-      <button className="tb-btn"><Icon name="align" /></button>
-      <button className="tb-btn"><Icon name="link" /></button>
-      <button className="tb-btn"><Icon name="color" /></button>
-      <span className="tb-sep" />
-      <button className="tb-btn tb-btn--on"><Icon name="track" size={15} /> Правки</button>
-      <div className="tb-spacer" />
-      <button className="tb-btn"><Icon name="sound" size={15} /></button>
-      <button className="tb-btn"><Icon name="timer" size={15} /></button>
-      <button className="tb-btn"><Icon name="speak" size={15} /></button>
-      <button className="tb-btn"><Icon name="split" size={15} /></button>
-      <button className="tb-btn"><Icon name="focus" size={15} /></button>
-      <span className="tb-sep" />
-      <button className="tb-btn"><Icon name="download" size={15} /> Экспорт</button>
-    </div>
-  );
-}
 
 interface StatusBarProps {
   words?: number;

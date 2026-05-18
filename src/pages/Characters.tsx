@@ -308,7 +308,7 @@ export default function Characters() {
 
           {active ? (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
-              <HeroBlock character={active} onChange={(patch) => scheduleSave(active.id, patch)} onDelete={onDelete} />
+              <HeroBlock character={active} onChange={(patch) => scheduleSave(active.id, patch)} />
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
                 <FieldCard
@@ -342,6 +342,10 @@ export default function Characters() {
                 onDelete={onDeleteRelation}
                 onLabelChange={onRelationLabelChange}
               />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16, paddingBottom: 8 }}>
+                <button onClick={onDelete} className="btn btn--ghost" style={{ color: 'var(--danger)' }}>Удалить персонажа</button>
+              </div>
             </div>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'var(--ink-3)' }}>
@@ -363,10 +367,9 @@ export default function Characters() {
   );
 }
 
-function HeroBlock({ character, onChange, onDelete }: {
+function HeroBlock({ character, onChange }: {
   character: Character;
   onChange: (patch: CharacterPatch) => void;
-  onDelete: () => void;
 }) {
   const [name, setName] = useState(character.name);
   const [quote, setQuote] = useState(character.quote);
@@ -384,9 +387,7 @@ function HeroBlock({ character, onChange, onDelete }: {
     setQuote(v);
     onChange({ quote: v });
   };
-  const onRoleChange = (role: CharacterRole) => {
-    onChange({ role });
-  };
+  const onRoleChange = (role: CharacterRole) => onChange({ role });
 
   return (
     <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start', marginBottom: 36 }}>
@@ -427,9 +428,6 @@ function HeroBlock({ character, onChange, onDelete }: {
           style={{ width: '100%', maxWidth: 560, font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', fontStyle: 'italic', background: 'transparent', border: 'none', outline: 'none', resize: 'vertical', padding: 0 }}
         />
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-          <button onClick={onDelete} className="btn btn--ghost" style={{ color: 'var(--danger)' }}>Удалить</button>
-        </div>
       </div>
     </div>
   );
@@ -451,10 +449,10 @@ function FieldCard({ label, value, onChange, warn }: {
   }, [value]);
 
   return (
-    <div style={{ background: warn ? 'oklch(0.70 0.16 25 / 0.08)' : 'var(--surface)', border: `1px solid ${warn ? 'oklch(0.70 0.16 25 / 0.4)' : 'var(--border-soft)'}`, borderRadius: 12, padding: '16px 18px' }}>
+    <div style={{ background: warn ? 'color-mix(in oklch, var(--accent) 8%, transparent)' : 'var(--surface)', border: `1px solid ${warn ? 'color-mix(in oklch, var(--accent) 40%, transparent)' : 'var(--border-soft)'}`, borderRadius: 12, padding: '16px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        {warn && <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--danger)' }} />}
-        <span style={{ font: '500 10.5px var(--font-mono)', color: warn ? 'var(--danger)' : 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{label}</span>
+        {warn && <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />}
+        <span style={{ font: '500 10.5px var(--font-mono)', color: warn ? 'var(--accent)' : 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{label}</span>
       </div>
       <textarea
         value={local}
