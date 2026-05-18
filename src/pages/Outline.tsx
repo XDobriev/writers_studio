@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
-import { supabase, type Book } from '../lib/supabase';
-import { createChapter, deleteChapter, listChapters, type Chapter } from '../lib/chapters';
+import { createChapter, deleteChapter, type Chapter } from '../lib/chapters';
+import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
 
 const STATUS_COLOR: Record<Chapter['status'], string> = {
   draft: 'var(--ink-4)',
@@ -16,10 +17,12 @@ export default function Outline() {
   const { id: bookId } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [chapters, setChapters] = useState<Chapter[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data: book } = useBook(bookId);
+  const { data: chapters, error: chaptersError } = useChapters(bookId);
+  const [mutationError, setError] = useState<string | null>(null);
+  const error = chaptersError?.message ?? mutationError;
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -39,26 +42,6 @@ export default function Outline() {
     return () => document.removeEventListener('mousedown', handler);
   }, [menuFor]);
 
-  useEffect(() => {
-    if (!bookId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [bookRes, list] = await Promise.all([
-          supabase.from('books').select('*').eq('id', bookId).single(),
-          listChapters(bookId),
-        ]);
-        if (cancelled) return;
-        if (bookRes.error) throw bookRes.error;
-        setBook(bookRes.data as Book);
-        setChapters(list);
-      } catch (e) {
-        if (!cancelled) setError((e as Error).message);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [bookId]);
-
   const totals = useMemo(() => {
     if (!chapters) return { count: 0, words: 0, done: 0, progress: 0, draft: 0 };
     return chapters.reduce(
@@ -73,13 +56,18 @@ export default function Outline() {
   }, [chapters]);
 
   const onDelete = async (id: string) => {
-    setChapters((prev) => (prev ?? []).filter((c) => c.id !== id));
     setMenuFor(null);
     setDeleteConfirmFor(null);
+    if (bookId) {
+      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+        (prev ?? []).filter((c) => c.id !== id)
+      );
+    }
     try {
       await deleteChapter(id);
     } catch (e) {
       setError((e as Error).message);
+      if (bookId) void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
     }
   };
 
@@ -90,7 +78,7 @@ export default function Outline() {
         title: `Глава ${(chapters?.length ?? 0) + 1}`,
         position: chapters?.length ?? 0,
       });
-      setChapters((prev) => [...(prev ?? []), created]);
+      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) => [...(prev ?? []), created]);
       navigate(`/books/${bookId}/editor?chapter=${created.id}`);
     } catch (e) {
       setError((e as Error).message);

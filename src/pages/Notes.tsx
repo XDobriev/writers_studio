@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
 import { Sidebar } from '../components/Chrome';
-import { supabase, type Book } from '../lib/supabase';
-import { listChapters, type Chapter } from '../lib/chapters';
-import { fetchNotes, createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
+import { createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
+import { QUERY_KEYS, useBook, useChapters, useNotes } from '../lib/queries';
 
 const KIND_LABELS: Record<NoteKind, string> = {
   idea: 'Идея',
@@ -25,11 +25,13 @@ const KIND_COLORS: Record<NoteKind, string> = {
 
 export default function Notes() {
   const { id: bookId } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [chapters, setChapters] = useState<Chapter[] | null>(null);
-  const [notes, setNotes] = useState<Note[] | null>(null);
+  const { data: book, error: bookError } = useBook(bookId);
+  const { data: chapters, error: chaptersError } = useChapters(bookId);
+  const { data: notes, error: notesError } = useNotes(bookId);
   const [error, setError] = useState<string | null>(null);
+  const queryError = (bookError ?? chaptersError ?? notesError)?.message ?? null;
 
   const [showForm, setShowForm] = useState(false);
   const [formKind, setFormKind] = useState<NoteKind>('idea');
@@ -42,34 +44,12 @@ export default function Notes() {
 
   const [filterKind, setFilterKind] = useState<NoteKind | 'all'>('all');
 
-  useEffect(() => {
-    if (!bookId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [bookRes, noteList, chList] = await Promise.all([
-          supabase.from('books').select('*').eq('id', bookId).single(),
-          fetchNotes(bookId),
-          listChapters(bookId),
-        ]);
-        if (cancelled) return;
-        if (bookRes.error) throw bookRes.error;
-        setBook(bookRes.data as Book);
-        setNotes(noteList);
-        setChapters(chList);
-      } catch (e) {
-        if (!cancelled) setError((e as Error).message);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [bookId]);
-
   const handleAdd = async () => {
     if (!bookId || !formText.trim()) return;
     setSaving(true);
     try {
       const note = await createNote(bookId, formKind, formText.trim());
-      setNotes((prev) => [note, ...(prev ?? [])]);
+      queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), (prev) => [note, ...(prev ?? [])]);
       setFormText('');
       setShowForm(false);
     } catch (e) {
@@ -80,8 +60,11 @@ export default function Notes() {
   };
 
   const handleDelete = (id: string) => {
-    setNotes((prev) => prev ? prev.filter((n) => n.id !== id) : prev);
-    deleteNote(id).catch(() => {});
+    if (!bookId) return;
+    queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), (prev) => prev?.filter((n) => n.id !== id) ?? []);
+    deleteNote(id).catch(() => {
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(bookId) });
+    });
   };
 
   const startEdit = (n: Note) => {
@@ -91,11 +74,13 @@ export default function Notes() {
   };
 
   const handleUpdate = async () => {
-    if (!editingId || !editText.trim()) return;
+    if (!editingId || !editText.trim() || !bookId) return;
     setSaving(true);
     try {
       const updated = await updateNote(editingId, editKind, editText.trim());
-      setNotes((prev) => prev ? prev.map((n) => n.id === editingId ? updated : n) : prev);
+      queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), (prev) =>
+        prev?.map((n) => (n.id === editingId ? updated : n)) ?? []
+      );
       setEditingId(null);
     } catch (e) {
       setError((e as Error).message);
@@ -106,15 +91,17 @@ export default function Notes() {
 
   if (!bookId) return <Navigate to="/books" replace />;
 
-  if (error) {
+  const displayError = error ?? queryError;
+
+  if (displayError) {
     return (
       <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32 }}>
-        <div style={{ color: 'var(--danger)' }}>Ошибка: {error}</div>
+        <div style={{ color: 'var(--danger)' }}>Ошибка: {displayError}</div>
       </div>
     );
   }
 
-  if (!book || !notes || !chapters) {
+  if (!book || notes === undefined || !chapters) {
     return (
       <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink-3)', padding: 32 }}>
         Загрузка…
@@ -122,7 +109,7 @@ export default function Notes() {
     );
   }
 
-  const filtered = filterKind === 'all' ? notes : notes.filter((n) => n.kind === filterKind);
+  const filtered = filterKind === 'all' ? notes : (notes ?? []).filter((n) => n.kind === filterKind);
 
   return (
     <WithMode active="notes">

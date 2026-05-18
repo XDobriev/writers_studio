@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
-import { supabase, type Book } from '../lib/supabase';
-import { createChapter, deleteChapter, listChapters, updateChapter, type Chapter } from '../lib/chapters';
+import { createChapter, deleteChapter, updateChapter, type Chapter } from '../lib/chapters';
+import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
 
 type Filter = 'all' | Chapter['status'];
 
@@ -149,30 +150,12 @@ export default function Corkboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [chapters, setChapters] = useState<Chapter[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: book } = useBook(bookId);
+  const { data: chapters, error: chaptersError } = useChapters(bookId);
+  const [mutationError, setError] = useState<string | null>(null);
+  const error = chaptersError?.message ?? mutationError;
   const [filter, setFilter] = useState<Filter>('all');
-
-  useEffect(() => {
-    if (!bookId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [bookRes, list] = await Promise.all([
-          supabase.from('books').select('*').eq('id', bookId).single(),
-          listChapters(bookId),
-        ]);
-        if (cancelled) return;
-        if (bookRes.error) throw bookRes.error;
-        setBook(bookRes.data as Book);
-        setChapters(list);
-      } catch (e) {
-        if (!cancelled) setError((e as Error).message);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [bookId]);
 
   const counts = useMemo(() => {
     if (!chapters) return { all: 0, draft: 0, progress: 0, done: 0 };
@@ -193,21 +176,27 @@ export default function Corkboard() {
   }, [chapters, filter]);
 
   const onStatusChange = async (id: string, status: Chapter['status']) => {
-    setChapters((prev) => prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev);
-    try {
-      await updateChapter(id, { status });
-    } catch (e) {
-      setError((e as Error).message);
+    if (bookId) {
+      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+        prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev
+      );
     }
+    await updateChapter(id, { status }).catch((e: Error) => {
+      setError(e.message);
+      if (bookId) void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
+    });
   };
 
   const onDeleteChapter = async (id: string) => {
-    setChapters((prev) => prev ? prev.filter((c) => c.id !== id) : prev);
-    try {
-      await deleteChapter(id);
-    } catch (e) {
-      setError((e as Error).message);
+    if (bookId) {
+      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+        prev ? prev.filter((c) => c.id !== id) : prev
+      );
     }
+    await deleteChapter(id).catch((e: Error) => {
+      setError(e.message);
+      if (bookId) void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
+    });
   };
 
   const onCreate = async () => {
@@ -217,7 +206,7 @@ export default function Corkboard() {
         title: `Глава ${(chapters?.length ?? 0) + 1}`,
         position: chapters?.length ?? 0,
       });
-      setChapters((prev) => [...(prev ?? []), created]);
+      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) => [...(prev ?? []), created]);
       navigate(`/books/${bookId}/editor?chapter=${created.id}`);
     } catch (e) {
       setError((e as Error).message);

@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
-import { supabase, type Book } from '../lib/supabase';
-import { listChapters, type Chapter } from '../lib/chapters';
 import {
   createTimelineEvent,
   deleteTimelineEvent,
-  listTimelineEvents,
   TYPE_COLORS,
   TYPE_LABELS,
   updateTimelineEvent,
@@ -16,6 +14,8 @@ import {
   type TimelineEventPatch,
   type TimelineEventType,
 } from '../lib/timeline';
+import { type Chapter } from '../lib/chapters';
+import { QUERY_KEYS, useBook, useChapters, useTimelineEvents } from '../lib/queries';
 
 type TypeFilter = 'all' | TimelineEventType;
 
@@ -31,64 +31,52 @@ export default function Timeline() {
   const { id: bookId } = useParams<{ id: string }>();
   const { user } = useAuth();
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [events, setEvents] = useState<TimelineEvent[] | null>(null);
-  const [chapters, setChapters] = useState<Chapter[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: book } = useBook(bookId);
+  const { data: events, error: eventsQueryError } = useTimelineEvents(bookId);
+  const { data: chapters } = useChapters(bookId);
+  const [mutationError, setError] = useState<string | null>(null);
+  const error = eventsQueryError?.message ?? mutationError;
   const [filter, setFilter] = useState<TypeFilter>('all');
-
-  useEffect(() => {
-    if (!bookId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [bookRes, evList, chList] = await Promise.all([
-          supabase.from('books').select('*').eq('id', bookId).single(),
-          listTimelineEvents(bookId),
-          listChapters(bookId),
-        ]);
-        if (cancelled) return;
-        if (bookRes.error) throw bookRes.error;
-        setBook(bookRes.data as Book);
-        setEvents(evList);
-        setChapters(chList);
-      } catch (e) {
-        if (!cancelled) setError((e as Error).message);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [bookId]);
 
   const onCreate = useCallback(async () => {
     if (!bookId || !user) return;
     const position = events?.length ?? 0;
     try {
       const created = await createTimelineEvent(bookId, user.id, { position });
-      setEvents((prev) => [...(prev ?? []), created]);
+      queryClient.setQueryData<TimelineEvent[]>(QUERY_KEYS.timelineEvents(bookId), (prev) => [...(prev ?? []), created]);
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [bookId, user, events]);
+  }, [bookId, user, events, queryClient]);
 
   const onUpdate = useCallback(async (id: string, patch: TimelineEventPatch) => {
-    setEvents((prev) => prev ? prev.map((e) => (e.id === id ? { ...e, ...patch } as TimelineEvent : e)) : prev);
+    if (!bookId) return;
+    queryClient.setQueryData<TimelineEvent[]>(QUERY_KEYS.timelineEvents(bookId), (prev) =>
+      prev ? prev.map((e) => (e.id === id ? { ...e, ...patch } as TimelineEvent : e)) : prev
+    );
     try {
       const updated = await updateTimelineEvent(id, patch);
-      setEvents((prev) => prev ? prev.map((e) => (e.id === id ? updated : e)) : prev);
+      queryClient.setQueryData<TimelineEvent[]>(QUERY_KEYS.timelineEvents(bookId), (prev) =>
+        prev ? prev.map((e) => (e.id === id ? updated : e)) : prev
+      );
     } catch (e) {
       setError((e as Error).message);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timelineEvents(bookId) });
     }
-  }, []);
+  }, [bookId, queryClient]);
 
   const onDelete = useCallback(async (id: string) => {
-    if (!window.confirm('Удалить это событие? Действие нельзя отменить.')) return;
+    if (!bookId || !window.confirm('Удалить это событие? Действие нельзя отменить.')) return;
     try {
       await deleteTimelineEvent(id);
-      setEvents((prev) => prev ? prev.filter((e) => e.id !== id) : prev);
+      queryClient.setQueryData<TimelineEvent[]>(QUERY_KEYS.timelineEvents(bookId), (prev) =>
+        prev ? prev.filter((e) => e.id !== id) : prev
+      );
     } catch (e) {
       setError((e as Error).message);
     }
-  }, []);
+  }, [bookId, queryClient]);
 
   const filtered = useMemo(() => {
     if (!events) return [];
@@ -107,7 +95,7 @@ export default function Timeline() {
     );
   }
 
-  if (!book || !events || !chapters) {
+  if (!book || events === undefined || chapters === undefined) {
     return (
       <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="page-spinner" />

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './lib/auth';
 import { AuthGuard } from './components/AuthGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -19,12 +20,15 @@ import Notes from './pages/Notes';
 import Admin from './pages/Admin';
 import ResetPassword from './pages/ResetPassword';
 
+const queryClient = new QueryClient();
+
 function Guard({ children }: { children: ReactNode }) {
   return <AuthGuard><ErrorBoundary>{children}</ErrorBoundary></AuthGuard>;
 }
 
 export default function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <BrowserRouter>
         <Routes>
@@ -50,5 +54,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </QueryClientProvider>
   );
 }

@@ -1,14 +1,13 @@
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { supabase, type Book } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
-import { listChapters, type Chapter } from '../lib/chapters';
-import { listCharacters, type Character } from '../lib/characters';
+import { type Chapter } from '../lib/chapters';
 import { pluralDays, plural } from '../lib/useWritingStats';
-
-type SnapRow = { date: string; words: number };
+import { QUERY_KEYS, useBook, useChapters, useCharacters, useWritingSnapshots } from '../lib/queries';
 
 const STATUS_LABEL: Record<Chapter['status'], string> = {
   draft: 'черновик',
@@ -33,11 +32,13 @@ function daysBetween(a: Date, b: Date): number {
 export default function Dashboard() {
   const { id } = useParams<{ id: string }>();
   const { signOut } = useAuth();
-  const [book, setBook] = useState<Book | null>(null);
-  const [chapters, setChapters] = useState<Chapter[] | null>(null);
-  const [characters, setCharacters] = useState<Character[] | null>(null);
-  const [snapshots, setSnapshots] = useState<SnapRow[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: book, error: bookError } = useBook(id);
+  const { data: chapters, error: chaptersError } = useChapters(id);
+  const { data: characters, error: charsError } = useCharacters(id);
+  const { data: snapshots, error: snapsError } = useWritingSnapshots(id);
+  const error = (bookError ?? chaptersError ?? charsError ?? snapsError)?.message ?? null;
 
   const [editOpen, setEditOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -67,7 +68,7 @@ export default function Dashboard() {
         .select()
         .single();
       if (err) throw err;
-      setBook(data as Book);
+      queryClient.setQueryData(QUERY_KEYS.book(id), data as Book);
       setEditOpen(false);
     } catch (e) {
       setEditError((e as Error).message);
@@ -75,37 +76,6 @@ export default function Dashboard() {
       setEditSaving(false);
     }
   };
-
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-    const snapFrom = new Date();
-    snapFrom.setDate(snapFrom.getDate() - 366);
-    (async () => {
-      try {
-        const [bookRes, chList, charList, snapRes] = await Promise.all([
-          supabase.from('books').select('*').eq('id', id).single(),
-          listChapters(id),
-          listCharacters(id),
-          supabase
-            .from('writing_snapshots')
-            .select('date, words')
-            .eq('book_id', id)
-            .gte('date', snapFrom.toISOString().slice(0, 10))
-            .order('date', { ascending: true }),
-        ]);
-        if (cancelled) return;
-        if (bookRes.error) throw bookRes.error;
-        setBook(bookRes.data as Book);
-        setChapters(chList);
-        setCharacters(charList);
-        setSnapshots((snapRes.data ?? []) as SnapRow[]);
-      } catch (e) {
-        if (!cancelled) setError((e as Error).message);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [id]);
 
   const stats = useMemo(() => {
     if (!book || !chapters || !characters) return null;
@@ -119,7 +89,7 @@ export default function Dashboard() {
   }, [book, chapters, characters]);
 
   const activityData = useMemo(() => {
-    if (!snapshots) return null;
+    if (snapshots === undefined) return null;
     const snap: Record<string, number> = {};
     for (const row of snapshots) snap[row.date] = row.words;
 

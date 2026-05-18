@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams, Navigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { EditorHybrid } from '../components/EditorHybrid';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useAuth } from '../lib/auth';
@@ -8,12 +9,12 @@ import {
   countWords,
   createChapter,
   deleteChapter,
-  listChapters,
   updateChapter,
   type Chapter,
   type ChapterPatch,
   type ChapterStatus,
 } from '../lib/chapters';
+import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -22,33 +23,15 @@ export default function Editor() {
   const [search, setSearch] = useSearchParams();
   const { user } = useAuth();
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [chapters, setChapters] = useState<Chapter[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: book, error: bookError } = useBook(bookId);
+  const { data: chapters, error: chaptersError } = useChapters(bookId);
+  const [mutationError, setError] = useState<string | null>(null);
+  const error = (bookError ?? chaptersError)?.message ?? mutationError;
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [savedAt, setSavedAt] = useState<Date | null>(null);
 
   const activeId = search.get('chapter');
-
-  useEffect(() => {
-    if (!bookId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [bookRes, list] = await Promise.all([
-          supabase.from('books').select('*').eq('id', bookId).single(),
-          listChapters(bookId),
-        ]);
-        if (cancelled) return;
-        if (bookRes.error) throw bookRes.error;
-        setBook(bookRes.data as Book);
-        setChapters(list);
-      } catch (e) {
-        if (!cancelled) setError((e as Error).message);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [bookId]);
 
   useEffect(() => {
     if (!chapters || chapters.length === 0) return;
@@ -79,14 +62,14 @@ export default function Editor() {
         title: `Глава ${position + 1}`,
         position,
       });
-      setChapters((prev) => [...(prev ?? []), created]);
+      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId!), (prev) => [...(prev ?? []), created]);
       const next = new URLSearchParams(search);
       next.set('chapter', created.id);
       setSearch(next, { replace: false });
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [bookId, user, chapters, search, setSearch]);
+  }, [bookId, user, chapters, queryClient, search, setSearch]);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingPatch = useRef<ChapterPatch | null>(null);
@@ -96,27 +79,32 @@ export default function Editor() {
     const patch = pendingPatch.current;
     const id = targetIdRef.current;
     pendingPatch.current = null;
-    if (!patch || !id) return;
+    if (!patch || !id || !bookId) return;
     setSaveState('saving');
     try {
       const updated = await updateChapter(id, patch);
-      setChapters((prev) => prev ? prev.map((c) => (c.id === id ? updated : c)) : prev);
+      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+        prev ? prev.map((c) => (c.id === id ? updated : c)) : prev
+      );
       setSaveState('saved');
       setSavedAt(new Date());
-    } catch (e) {
+    } catch {
       setSaveState('error');
-      setError((e as Error).message);
     }
-  }, []);
+  }, [bookId, queryClient]);
 
   const scheduleSave = useCallback((id: string, patch: ChapterPatch) => {
     targetIdRef.current = id;
     pendingPatch.current = { ...(pendingPatch.current ?? {}), ...patch };
-    setChapters((prev) => prev ? prev.map((c) => (c.id === id ? { ...c, ...patch } as Chapter : c)) : prev);
+    if (bookId) {
+      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+        prev ? prev.map((c) => (c.id === id ? { ...c, ...patch } as Chapter : c)) : prev
+      );
+    }
     setSaveState('saving');
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => { void flush(); }, 700);
-  }, [flush]);
+  }, [flush, bookId, queryClient]);
 
   const lastActiveIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -144,34 +132,40 @@ export default function Editor() {
   }, [activeChapter, scheduleSave]);
 
   const onStatusChange = useCallback(async (id: string, status: ChapterStatus) => {
-    setChapters((prev) => prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev);
-    try {
-      await updateChapter(id, { status });
-    } catch (e) {
-      setError((e as Error).message);
+    if (bookId) {
+      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+        prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev
+      );
     }
-  }, []);
+    await updateChapter(id, { status }).catch(() => {
+      if (bookId) void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
+    });
+  }, [bookId, queryClient]);
 
   const onGoalChange = useCallback(async (goal: number) => {
     if (!bookId) return;
-    setBook((prev) => prev ? { ...prev, daily_goal: goal } : prev);
+    queryClient.setQueryData<Book>(QUERY_KEYS.book(bookId), (prev) =>
+      prev ? { ...prev, daily_goal: goal } : prev
+    );
     await supabase.from('books').update({ daily_goal: goal }).eq('id', bookId);
-  }, [bookId]);
+  }, [bookId, queryClient]);
 
   const onDeleteChapter = useCallback(async (id: string) => {
     try {
       await deleteChapter(id);
       const remaining = (chapters ?? []).filter((c) => c.id !== id);
-      setChapters(remaining);
+      if (bookId) {
+        queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), remaining);
+      }
       if (id === activeId && remaining.length > 0) {
         const next = new URLSearchParams(search);
         next.set('chapter', remaining[0].id);
         setSearch(next, { replace: false });
       }
-    } catch (e) {
-      setError((e as Error).message);
+    } catch {
+      if (bookId) void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
     }
-  }, [chapters, activeId, search, setSearch]);
+  }, [chapters, activeId, bookId, queryClient, search, setSearch]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 

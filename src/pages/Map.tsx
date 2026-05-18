@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
-import { supabase, type Book } from '../lib/supabase';
 import {
   createLocation,
   deleteLocation,
-  listLocations,
   TYPE_GLYPHS,
   TYPE_LABELS,
   updateLocation,
@@ -15,6 +14,7 @@ import {
   type LocationPatch,
   type LocationType,
 } from '../lib/locations';
+import { QUERY_KEYS, useBook, useLocations } from '../lib/queries';
 
 type TypeFilter = 'all' | LocationType;
 
@@ -32,61 +32,51 @@ export default function MapScreen() {
   const { id: bookId } = useParams<{ id: string }>();
   const { user } = useAuth();
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [locations, setLocations] = useState<Location[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: book } = useBook(bookId);
+  const { data: locations, error: locationsQueryError } = useLocations(bookId);
+  const [mutationError, setError] = useState<string | null>(null);
+  const error = locationsQueryError?.message ?? mutationError;
   const [filter, setFilter] = useState<TypeFilter>('all');
-
-  useEffect(() => {
-    if (!bookId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [bookRes, list] = await Promise.all([
-          supabase.from('books').select('*').eq('id', bookId).single(),
-          listLocations(bookId),
-        ]);
-        if (cancelled) return;
-        if (bookRes.error) throw bookRes.error;
-        setBook(bookRes.data as Book);
-        setLocations(list);
-      } catch (e) {
-        if (!cancelled) setError((e as Error).message);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [bookId]);
 
   const onCreate = useCallback(async () => {
     if (!bookId || !user) return;
     const position = locations?.length ?? 0;
     try {
       const created = await createLocation(bookId, user.id, { position });
-      setLocations((prev) => [...(prev ?? []), created]);
+      queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), (prev) => [...(prev ?? []), created]);
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [bookId, user, locations]);
+  }, [bookId, user, locations, queryClient]);
 
   const onUpdate = useCallback(async (id: string, patch: LocationPatch) => {
-    setLocations((prev) => prev ? prev.map((l) => (l.id === id ? { ...l, ...patch } as Location : l)) : prev);
+    if (!bookId) return;
+    queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), (prev) =>
+      prev ? prev.map((l) => (l.id === id ? { ...l, ...patch } as Location : l)) : prev
+    );
     try {
       const updated = await updateLocation(id, patch);
-      setLocations((prev) => prev ? prev.map((l) => (l.id === id ? updated : l)) : prev);
+      queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), (prev) =>
+        prev ? prev.map((l) => (l.id === id ? updated : l)) : prev
+      );
     } catch (e) {
       setError((e as Error).message);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.locations(bookId) });
     }
-  }, []);
+  }, [bookId, queryClient]);
 
   const onDelete = useCallback(async (id: string) => {
-    if (!window.confirm('Удалить локацию? Действие нельзя отменить.')) return;
+    if (!bookId || !window.confirm('Удалить локацию? Действие нельзя отменить.')) return;
     try {
       await deleteLocation(id);
-      setLocations((prev) => prev ? prev.filter((l) => l.id !== id) : prev);
+      queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), (prev) =>
+        prev ? prev.filter((l) => l.id !== id) : prev
+      );
     } catch (e) {
       setError((e as Error).message);
     }
-  }, []);
+  }, [bookId, queryClient]);
 
   const filtered = useMemo(() => {
     if (!locations) return [];
@@ -105,7 +95,7 @@ export default function MapScreen() {
     );
   }
 
-  if (!book || !locations) {
+  if (!book || locations === undefined) {
     return (
       <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="page-spinner" />
