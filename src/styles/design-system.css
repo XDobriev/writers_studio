@@ -68,6 +68,7 @@ html, body, #root {
 
 @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes slide-down { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 
 .page-spinner {
   width: 28px; height: 28px; border-radius: 50%;
@@ -218,6 +219,9 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .tb-btn--on { background: var(--surface-2); color: var(--ink); }
 .tb-btn--accent { color: var(--accent); }
 .tb-spacer { flex: 1; }
+@media (max-width: 768px) {
+  .tb-btn { min-height: 44px; min-width: 44px; }
+}
 
 /* Bubble menu */
 @keyframes bubble-in {

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './lib/auth';
 import { AuthGuard } from './components/AuthGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { OfflineBanner } from './components/OfflineBanner';
 
 // Критический путь — eager: эти страницы нужны до любой навигации
 import Auth from './pages/Auth';
@@ -44,6 +45,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <BrowserRouter>
+        <OfflineBanner />
         <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<Landing />} />
