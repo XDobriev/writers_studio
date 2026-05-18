@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
 import { NOVEL, SAMPLE_PROSE } from '../data/sample';
 import type { Chapter, ChapterStatus } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
 import { supabase } from '../lib/supabase';
-import { fetchNotes, createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
+import { createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
+import { useNotes, QUERY_KEYS } from '../lib/queries';
 import { useAuth } from '../lib/auth';
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
@@ -533,7 +535,8 @@ interface RightPanelProps {
 
 export function RightPanel({ bookId }: RightPanelProps) {
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно' };
-  const [notes, setNotes] = useState<Note[]>([]);
+  const queryClient = useQueryClient();
+  const { data: notes = [] } = useNotes(bookId);
   const [showForm, setShowForm] = useState(false);
   const [formKind, setFormKind] = useState<NoteKind>('idea');
   const [formText, setFormText] = useState('');
@@ -542,17 +545,16 @@ export function RightPanel({ bookId }: RightPanelProps) {
   const [editKind, setEditKind] = useState<NoteKind>('idea');
   const [editText, setEditText] = useState('');
 
-  useEffect(() => {
-    if (!bookId) return;
-    fetchNotes(bookId).then(setNotes).catch(() => {});
-  }, [bookId]);
+  const invalidate = () => {
+    if (bookId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(bookId) });
+  };
 
   const handleAdd = async () => {
     if (!bookId || !formText.trim()) return;
     setSaving(true);
     try {
-      const note = await createNote(bookId, formKind, formText.trim());
-      setNotes((prev) => [note, ...prev]);
+      await createNote(bookId, formKind, formText.trim());
+      invalidate();
       setFormText('');
       setShowForm(false);
     } finally {
@@ -561,19 +563,10 @@ export function RightPanel({ bookId }: RightPanelProps) {
   };
 
   const handleDelete = async (id: string) => {
-    const idx = notes.findIndex((n) => n.id === id);
-    const deleted = notes[idx];
-    setNotes((prev) => prev.filter((n) => n.id !== id));
     try {
       await deleteNote(id);
+      invalidate();
     } catch (e) {
-      if (deleted) {
-        setNotes((prev) => {
-          const next = [...prev];
-          next.splice(Math.min(idx, next.length), 0, deleted);
-          return next;
-        });
-      }
       console.error('Не удалось удалить заметку:', e);
     }
   };
@@ -588,8 +581,8 @@ export function RightPanel({ bookId }: RightPanelProps) {
     if (!editingId || !editText.trim()) return;
     setSaving(true);
     try {
-      const updated = await updateNote(editingId, editKind, editText.trim());
-      setNotes((prev) => prev.map((n) => n.id === editingId ? updated : n));
+      await updateNote(editingId, editKind, editText.trim());
+      invalidate();
       setEditingId(null);
     } finally {
       setSaving(false);

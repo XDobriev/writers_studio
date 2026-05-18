@@ -23,15 +23,13 @@
 
 - **Заход 14** (2026-05-18): RailNav → реальные инициалы из useAuth; ErrorBoundary подключён ко всем роутам через Guard-обёртку; loading states Characters/Map/Timeline заменены на CSS-спиннер; error-состояния переработаны в centered flex.
 - **Заход 15** (2026-05-18): drag-n-drop порядка глав в Outline. `@dnd-kit/core` + `@dnd-kit/sortable`. Оптимистичное обновление TanStack Query. Ручка-иконка `drag` в Icon.tsx. `reorderChapters` в `chapters.ts` — batch-обновление `position` параллельными запросами.
+- **Заход 16** (2026-05-18): Фаза 0 — все три критических фикса. `VITE_ADMIN_EMAIL` в env, миграция `0010_admin_rpc_security.sql` (таблица `app_config` + plpgsql-защита RPC), RightPanel → `useNotes()` + `invalidateQueries`.
 
-## Следующие шаги (Заход 14+)
+## Следующие шаги (Заход 16+)
 
-Приоритеты определены полным аудитом кодовой базы (2026-05-18). Подробный план с обоснованием — `docs/roadmap.md`.
+Подробный план — `docs/roadmap.md`.
 
-### Фаза 0 — Критические фиксы (делать первыми)
-1. Защитить RPC admin-функции на сервере (`SECURITY DEFINER` + проверка email)
-2. Убрать `ADMIN_EMAIL` из кода в `VITE_ADMIN_EMAIL`
-3. `RightPanel` — переключить на `useNotes()` из `queries.ts`
+### Фаза 0 — ЗАКРЫТА ✓
 
 ### Фаза 1 — До 10 июня
 4. Лендинг `/` — без него нет SEO и конверсии
