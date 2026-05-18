@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Icon } from './Icon';
 import { Sidebar, RightPanel, StatusBar, RailNav } from './Chrome';
 import { SAMPLE_PROSE } from '../data/sample';
@@ -172,6 +172,14 @@ export function EditorHybrid({
   const isPage = mode === 'page';
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
+
+  const prevSaveState = useRef<SaveState>(saveState);
+  useEffect(() => {
+    if (prevSaveState.current !== 'saved' && saveState === 'saved') {
+      writingStats.refetch();
+    }
+    prevSaveState.current = saveState;
+  }, [saveState, writingStats.refetch]);
 
   useEffect(() => {
     if (!isMobile) setShowMobileSidebar(false);

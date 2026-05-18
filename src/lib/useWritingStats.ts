@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabase';
 
 export interface WritingStats {
@@ -20,10 +20,10 @@ function pluralDays(n: number): string {
 
 export { pluralDays };
 
-export function useWritingStats(bookId: string | undefined): WritingStats {
+export function useWritingStats(bookId: string | undefined): WritingStats & { refetch: () => void } {
   const [stats, setStats] = useState<WritingStats>({ todayWords: 0, streak: 0 });
 
-  useEffect(() => {
+  const fetchStats = useCallback(() => {
     if (!bookId) return;
 
     const today = new Date();
@@ -71,5 +71,9 @@ export function useWritingStats(bookId: string | undefined): WritingStats {
       });
   }, [bookId]);
 
-  return stats;
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  return { ...stats, refetch: fetchStats };
 }
