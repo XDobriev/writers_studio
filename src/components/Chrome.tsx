@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNod
 import { Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
-import { NOVEL, SAMPLE_PROSE } from '../data/sample';
+import { NOVEL } from '../data/sample';
 import type { Chapter, ChapterStatus } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
 import { supabase } from '../lib/supabase';
@@ -481,20 +481,6 @@ export function StatusBar({ words = 4720, chars = 28140, savedAt = '14:32', stat
           )}
         </>
       )}
-    </div>
-  );
-}
-
-interface SheetProps { wide?: boolean }
-
-export function Sheet({ wide = false }: SheetProps) {
-  return (
-    <div className="sheet-wrap">
-      <div
-        className="sheet"
-        style={wide ? { width: 760 } : {}}
-        dangerouslySetInnerHTML={{ __html: SAMPLE_PROSE }}
-      />
     </div>
   );
 }
