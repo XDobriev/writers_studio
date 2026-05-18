@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Disallow: /books/
+Disallow: /admin/
+
+Sitemap: https://avtorskaya-studiya.vercel.app/sitemap.xml
