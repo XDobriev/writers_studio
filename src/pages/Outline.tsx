@@ -1,10 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
-import { createChapter, deleteChapter, type Chapter } from '../lib/chapters';
+import { createChapter, deleteChapter, reorderChapters, type Chapter } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
 
 const STATUS_COLOR: Record<Chapter['status'], string> = {
@@ -12,6 +27,157 @@ const STATUS_COLOR: Record<Chapter['status'], string> = {
   progress: 'var(--accent-2)',
   done: 'var(--ok)',
 };
+
+interface RowProps {
+  chapter: Chapter;
+  index: number;
+  bookId: string;
+  menuFor: string | null;
+  setMenuFor: (id: string | null) => void;
+  deleteConfirmFor: string | null;
+  setDeleteConfirmFor: (id: string | null) => void;
+  onDelete: (id: string) => void;
+  menuRef: React.RefObject<HTMLDivElement>;
+}
+
+function SortableChapterRow({
+  chapter: c,
+  index: i,
+  bookId,
+  menuFor,
+  setMenuFor,
+  deleteConfirmFor,
+  setDeleteConfirmFor,
+  onDelete,
+  menuRef,
+}: RowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.45 : 1,
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        borderRadius: 8,
+      }}
+    >
+      <button
+        type="button"
+        {...listeners}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 28,
+          height: 44,
+          flexShrink: 0,
+          background: 'transparent',
+          border: 'none',
+          cursor: isDragging ? 'grabbing' : 'grab',
+          color: 'var(--ink-4)',
+          padding: 0,
+        }}
+        title="Перетащить"
+      >
+        <Icon name="drag" size={12} />
+      </button>
+
+      <Link
+        to={`/books/${bookId}/editor?chapter=${c.id}`}
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 14,
+          padding: '12px 40px 12px 0',
+          borderRadius: 8,
+          textDecoration: 'none',
+        }}
+      >
+        <span style={{ font: '500 12px var(--font-mono)', color: c.status === 'draft' ? 'var(--ink-4)' : 'var(--accent)', letterSpacing: '0.04em', marginTop: 3, minWidth: 28 }}>
+          {String(i + 1).padStart(2, '0')}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ font: '500 15px var(--font-serif)', color: c.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)' }}>
+            {c.title || 'Без названия'}
+          </div>
+        </div>
+        <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 4 }}>
+          {c.words.toLocaleString('ru')} сл
+        </span>
+        <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 8, background: STATUS_COLOR[c.status] }} />
+      </Link>
+
+      <div
+        ref={menuFor === c.id ? menuRef : null}
+        style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)' }}
+      >
+        <button
+          type="button"
+          onClick={() => setMenuFor(menuFor === c.id ? null : c.id)}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 22, height: 22,
+            background: menuFor === c.id ? 'var(--bg-deep)' : 'transparent',
+            border: 'none', cursor: 'pointer', borderRadius: 4, color: 'var(--ink-3)',
+          }}
+          title="Действия"
+        >
+          <Icon name="moremenu" size={14} />
+        </button>
+
+        {menuFor === c.id && (
+          <div style={{
+            position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200,
+            background: 'var(--surface)', border: '1px solid var(--border-soft)',
+            borderRadius: 6, padding: 4, minWidth: 148,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+          }}>
+            {deleteConfirmFor === c.id ? (
+              <div style={{ padding: '6px 8px' }}>
+                <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 8, lineHeight: 1.4 }}>
+                  Удалить главу? Текст будет потерян.
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button
+                    type="button"
+                    onClick={() => void onDelete(c.id)}
+                    style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', font: '500 11px var(--font-ui)' }}
+                  >Удалить</button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirmFor(null)}
+                    style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--bg-deep)', color: 'var(--ink-2)', border: 'none', borderRadius: 4, cursor: 'pointer', font: '400 11px var(--font-ui)' }}
+                  >Отмена</button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (c.words > 0) {
+                    setDeleteConfirmFor(c.id);
+                  } else {
+                    void onDelete(c.id);
+                  }
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--danger)', border: 'none', textAlign: 'left' }}
+              >
+                Удалить главу
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Outline() {
   const { id: bookId } = useParams<{ id: string }>();
@@ -26,6 +192,10 @@ export default function Outline() {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
 
   useEffect(() => {
     if (!menuFor) {
@@ -60,7 +230,7 @@ export default function Outline() {
     setDeleteConfirmFor(null);
     if (bookId) {
       queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-        (prev ?? []).filter((c) => c.id !== id)
+        (prev ?? []).filter((c) => c.id !== id),
       );
     }
     try {
@@ -82,6 +252,24 @@ export default function Outline() {
       navigate(`/books/${bookId}/editor?chapter=${created.id}`);
     } catch (e) {
       setError((e as Error).message);
+    }
+  };
+
+  const onDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || !bookId || !chapters || active.id === over.id) return;
+
+    const oldIndex = chapters.findIndex((c) => c.id === active.id);
+    const newIndex = chapters.findIndex((c) => c.id === over.id);
+    const reordered = arrayMove(chapters, oldIndex, newIndex).map((c, i) => ({ ...c, position: i }));
+
+    queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), reordered);
+
+    try {
+      await reorderChapters(reordered.map((c) => ({ id: c.id, position: c.position })));
+    } catch (e) {
+      setError((e as Error).message);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
     }
   };
 
@@ -107,7 +295,7 @@ export default function Outline() {
             <button className="sb-tab sb-tab--on">Структура</button>
           </div>
           <div style={{ padding: '18px 18px 14px', color: 'var(--ink-3)', fontSize: 12 }}>
-            Дерево структуры показывает книгу целиком. Главы и сцены — настраиваются по мере работы.
+            Дерево структуры показывает книгу целиком. Перетащите главы, чтобы изменить порядок.
           </div>
           <div style={{ padding: '4px 14px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
             <button className="btn" onClick={onCreate}><Icon name="plus" size={13} /> Новая глава</button>
@@ -162,75 +350,25 @@ export default function Outline() {
                     {totals.done} готово · {totals.progress} в работе · {totals.draft} черновик
                   </span>
                 </div>
-                {chapters.map((c, i) => (
-                  <div key={c.id} style={{ position: 'relative', display: 'flex', alignItems: 'center', borderRadius: 8 }}>
-                    <Link
-                      to={`/books/${bookId}/editor?chapter=${c.id}`}
-                      style={{ flex: 1, display: 'flex', alignItems: 'flex-start', gap: 14, padding: '12px 40px 12px 28px', borderRadius: 8, textDecoration: 'none' }}
-                    >
-                      <span style={{ font: '500 12px var(--font-mono)', color: c.status === 'draft' ? 'var(--ink-4)' : 'var(--accent)', letterSpacing: '0.04em', marginTop: 3, minWidth: 28 }}>
-                        {String(i + 1).padStart(2, '0')}
-                      </span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ font: '500 15px var(--font-serif)', color: c.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)' }}>
-                          {c.title || 'Без названия'}
-                        </div>
-                      </div>
-                      <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 4 }}>{c.words.toLocaleString('ru')} сл</span>
-                      <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 8, background: STATUS_COLOR[c.status] }} />
-                    </Link>
-                    <div
-                      ref={menuFor === c.id ? menuRef : null}
-                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)' }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setMenuFor(menuFor === c.id ? null : c.id)}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, background: menuFor === c.id ? 'var(--bg-deep)' : 'transparent', border: 'none', cursor: 'pointer', borderRadius: 4, color: 'var(--ink-3)' }}
-                        title="Действия"
-                      >
-                        <Icon name="moremenu" size={14} />
-                      </button>
-                      {menuFor === c.id && (
-                        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px rgba(0,0,0,0.18)' }}>
-                          {deleteConfirmFor === c.id ? (
-                            <div style={{ padding: '6px 8px' }}>
-                              <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 8, lineHeight: 1.4 }}>
-                                Удалить главу? Текст будет потерян.
-                              </div>
-                              <div style={{ display: 'flex', gap: 4 }}>
-                                <button
-                                  type="button"
-                                  onClick={() => void onDelete(c.id)}
-                                  style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', font: '500 11px var(--font-ui)' }}
-                                >Удалить</button>
-                                <button
-                                  type="button"
-                                  onClick={() => setDeleteConfirmFor(null)}
-                                  style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--bg-deep)', color: 'var(--ink-2)', border: 'none', borderRadius: 4, cursor: 'pointer', font: '400 11px var(--font-ui)' }}
-                                >Отмена</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (c.words > 0) {
-                                  setDeleteConfirmFor(c.id);
-                                } else {
-                                  void onDelete(c.id);
-                                }
-                              }}
-                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--danger)', border: 'none', textAlign: 'left' }}
-                            >
-                              Удалить главу
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                  <SortableContext items={chapters.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                    {chapters.map((c, i) => (
+                      <SortableChapterRow
+                        key={c.id}
+                        chapter={c}
+                        index={i}
+                        bookId={bookId!}
+                        menuFor={menuFor}
+                        setMenuFor={setMenuFor}
+                        deleteConfirmFor={deleteConfirmFor}
+                        setDeleteConfirmFor={setDeleteConfirmFor}
+                        onDelete={onDelete}
+                        menuRef={menuRef}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               </div>
             )}
           </div>

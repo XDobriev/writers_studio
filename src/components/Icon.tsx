@@ -7,7 +7,7 @@ type IconName =
   | 'save' | 'book' | 'layout' | 'grid' | 'tree' | 'map' | 'clock'
   | 'user' | 'note' | 'plus' | 'chev' | 'chevd' | 'track' | 'history'
   | 'settings' | 'timer' | 'sound' | 'search' | 'eye' | 'panel'
-  | 'dot' | 'pin' | 'char' | 'arrows' | 'moremenu' | 'feather' | 'pencil' | 'trash';
+  | 'dot' | 'pin' | 'char' | 'arrows' | 'moremenu' | 'feather' | 'pencil' | 'trash' | 'drag';
 
 interface IconProps {
   name: IconName;
@@ -77,6 +77,7 @@ const PATHS: Record<IconName, JSX.Element> = {
   outdent: <><line x1="11" y1="6" x2="20" y2="6"/><line x1="11" y1="12" x2="20" y2="12"/><line x1="3" y1="18" x2="20" y2="18"/><polyline points="7 8 3 12 7 16"/></>,
   pencil: <><path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></>,
   trash: <><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></>,
+  drag: <><circle cx="9" cy="6" r="1.3"/><circle cx="15" cy="6" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="9" cy="18" r="1.3"/><circle cx="15" cy="18" r="1.3"/></>,
 };
 
 export function Icon({ name, size = 16 }: IconProps) {
