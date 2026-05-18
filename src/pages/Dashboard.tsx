@@ -170,6 +170,50 @@ export default function Dashboard() {
     return { cells, weeks, maxDelta, maxWeek, todayWords, streak, monthLabels, cumulativeLine };
   }, [snapshots]);
 
+  const recentChapters = useMemo(
+    () =>
+      chapters
+        ? [...chapters]
+            .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+            .slice(0, 6)
+        : [],
+    [chapters]
+  );
+
+  const statCards = useMemo(() => {
+    if (!book || !chapters || !characters || !stats) return [];
+    const protagonistCount = characters.filter((c) => c.role === 'protagonist').length;
+    const secondaryCount = characters.filter((c) => c.role === 'secondary').length;
+    return [
+      {
+        l: 'Слов написано',
+        v: fmtNumber(book.words),
+        sub: `из ${fmtNumber(book.goal)}`,
+        delta: `${stats.goalPct}% от цели`,
+      },
+      {
+        l: 'Глав',
+        v: `${chapters.length}`,
+        sub: chapters.length === 0 ? 'пока ничего не написано' : `${stats.done} готово · ${stats.progress} в работе`,
+        delta: stats.draft > 0 ? `${stats.draft} ${plural(stats.draft, 'черновик', 'черновика', 'черновиков')}` : '—',
+      },
+      {
+        l: 'Персонажей',
+        v: `${characters.length}`,
+        sub: characters.length === 0 ? 'картотека пуста' : `${protagonistCount} ${plural(protagonistCount, 'главный', 'главных', 'главных')}`,
+        delta: characters.length > 0 ? `${secondaryCount} ${plural(secondaryCount, 'второстепенный', 'второстепенных', 'второстепенных')}` : '—',
+      },
+      {
+        l: 'Дней в работе',
+        v: `${stats.daysActive}`,
+        sub: `с ${new Date(book.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`,
+        delta: book.words > 0
+          ? `в среднем ${fmtNumber(Math.round(book.words / stats.daysActive))} слов/день`
+          : '—',
+      },
+    ];
+  }, [book, chapters, characters, stats]);
+
   if (!id) return <Navigate to="/books" replace />;
 
   if (error) {
@@ -189,41 +233,6 @@ export default function Dashboard() {
   }
 
   const navTo = (path: string) => `/books/${id}${path}`;
-  const recentChapters = [...chapters]
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .slice(0, 6);
-
-  const protagonistCount = characters.filter((c) => c.role === 'protagonist').length;
-  const secondaryCount = characters.filter((c) => c.role === 'secondary').length;
-
-  const statCards = [
-    {
-      l: 'Слов написано',
-      v: fmtNumber(book.words),
-      sub: `из ${fmtNumber(book.goal)}`,
-      delta: `${stats.goalPct}% от цели`,
-    },
-    {
-      l: 'Глав',
-      v: `${chapters.length}`,
-      sub: chapters.length === 0 ? 'пока ничего не написано' : `${stats.done} готово · ${stats.progress} в работе`,
-      delta: stats.draft > 0 ? `${stats.draft} ${plural(stats.draft, 'черновик', 'черновика', 'черновиков')}` : '—',
-    },
-    {
-      l: 'Персонажей',
-      v: `${characters.length}`,
-      sub: characters.length === 0 ? 'картотека пуста' : `${protagonistCount} ${plural(protagonistCount, 'главный', 'главных', 'главных')}`,
-      delta: characters.length > 0 ? `${secondaryCount} ${plural(secondaryCount, 'второстепенный', 'второстепенных', 'второстепенных')}` : '—',
-    },
-    {
-      l: 'Дней в работе',
-      v: `${stats.daysActive}`,
-      sub: `с ${new Date(book.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`,
-      delta: book.words > 0
-        ? `в среднем ${fmtNumber(Math.round(book.words / stats.daysActive))} слов/день`
-        : '—',
-    },
-  ];
 
   return (
     <WithMode active="dashboard">

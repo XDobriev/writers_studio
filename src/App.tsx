@@ -23,6 +23,7 @@ const Split      = lazy(() => import('./pages/Split'));
 const Export     = lazy(() => import('./pages/Export'));
 const Notes      = lazy(() => import('./pages/Notes'));
 const Admin      = lazy(() => import('./pages/Admin'));
+const NotFound   = lazy(() => import('./pages/NotFound'));
 
 function PageFallback() {
   return (
@@ -62,7 +63,7 @@ export default function App() {
           <Route path="/books/:id/export" element={<Guard><Export /></Guard>} />
 
           <Route path="/admin" element={<Admin />} />
-          <Route path="*" element={<Navigate to="/books" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
       </BrowserRouter>
