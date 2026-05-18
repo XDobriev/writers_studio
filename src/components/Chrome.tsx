@@ -735,9 +735,9 @@ interface ScreenModeToggleProps {
 }
 
 function ScreenModeToggle({ mode, setMode }: ScreenModeToggleProps) {
-  const labels: Record<ScreenMode, [Parameters<typeof Icon>[0]['name'], string]> = {
-    studio: ['layout', 'Студия'],
-    page: ['focus', 'Страница'],
+  const labels: Record<ScreenMode, [Parameters<typeof Icon>[0]['name'], string, string]> = {
+    studio: ['layout', 'Фокус', 'Фокус — стандартный вид с боковой навигацией'],
+    page: ['focus', 'Страница', 'Страница — полноэкранный режим без панелей'],
   };
   const opts: ScreenMode[] = ['studio', 'page'];
   return (
@@ -748,11 +748,12 @@ function ScreenModeToggle({ mode, setMode }: ScreenModeToggleProps) {
       boxShadow: '0 8px 28px rgba(0,0,0,.35)',
     }}>
       {opts.map((k) => {
-        const [icn, l] = labels[k];
+        const [icn, l, tip] = labels[k];
         return (
           <button
             key={k}
             onClick={() => setMode(k)}
+            title={tip}
             className={'tb-btn' + (mode === k ? ' tb-btn--on' : '')}
             style={{ height: 26, padding: '0 10px', borderRadius: 7, gap: 5, color: mode === k ? 'var(--ink)' : 'var(--ink-3)' }}
           >

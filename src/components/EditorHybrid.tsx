@@ -32,10 +32,10 @@ const STATUS_LABEL: Record<Chapter['status'], string> = {
 
 function ModeSegmentInline({ mode, setMode }: ModeSegmentProps) {
   const opts: Array<[Mode, Parameters<typeof Icon>[0]['name'], string, string]> = [
-    ['studio', 'layout', 'Студия', 'Студия — обе боковые панели'],
-    ['left', 'panel', 'Сайдбар', 'Только левый сайдбар с главами'],
-    ['right', 'note', 'На полях', 'Только правая панель с заметками'],
-    ['page', 'focus', 'Страница', 'Только страница, без панелей'],
+    ['studio', 'layout', 'Фокус', 'Фокус — обе боковые панели рядом с текстом'],
+    ['left', 'panel', 'Структура', 'Структура — список глав, без правой панели'],
+    ['right', 'note', 'Сплит', 'Сплит — редактор и заметки рядом'],
+    ['page', 'focus', 'Страница', 'Страница — чистый лист, без боковых панелей'],
   ];
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-deep)', border: '1px solid var(--border-soft)' }}>
