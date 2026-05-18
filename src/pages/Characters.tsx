@@ -242,7 +242,7 @@ export default function Characters() {
   };
 
   return (
-    <WithMode active="characters">
+    <WithMode active="characters" bookId={bookId}>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <Sidebar book={book} subtitle={`персонажи · ${characters.length}`}>
           <div style={{ padding: '12px 14px 6px' }}>

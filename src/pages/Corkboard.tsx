@@ -221,7 +221,7 @@ export default function Corkboard() {
   ];
 
   return (
-    <WithMode active="outline">
+    <WithMode active="outline" bookId={bookId}>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <aside className="sb">
           <div className="sb-head">

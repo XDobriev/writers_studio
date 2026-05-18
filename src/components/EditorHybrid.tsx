@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Icon } from './Icon';
-import { Sidebar, RightPanel, StatusBar } from './Chrome';
+import { Sidebar, RightPanel, StatusBar, RailNav } from './Chrome';
 import { SAMPLE_PROSE } from '../data/sample';
 import { RichEditor, type Editor } from './RichEditor';
 import { EditorToolbar } from './EditorToolbar';
@@ -178,7 +178,7 @@ export function EditorHybrid({
   }, [isMobile]);
 
   const cols = isPage
-    ? '1fr'
+    ? (isMobile ? '1fr' : '56px 1fr')
     : showLeft && showRight
     ? '260px 1fr 320px'
     : showLeft
@@ -196,6 +196,8 @@ export function EditorHybrid({
 
   return (
     <div className="as" style={{ height: '100%', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative', transition: 'grid-template-columns 220ms cubic-bezier(.2,.7,.3,1)' }}>
+      {isPage && !isMobile && <RailNav active="editor" bookId={book?.id} style={{ position: 'relative', height: '100%' }} />}
+
       {showLeft && (
         <Sidebar
           book={book}

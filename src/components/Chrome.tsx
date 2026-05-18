@@ -669,11 +669,13 @@ type RailKey = 'editor' | 'characters' | 'map' | 'timeline' | 'notes' | 'dashboa
 
 interface RailNavProps {
   active?: RailKey;
+  bookId?: string;
   style?: CSSProperties;
 }
 
-export function RailNav({ active = 'editor', style }: RailNavProps) {
+export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
   const { user } = useAuth();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const displayName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email ?? '';
   const initials = displayName
     .split(/\s+/)
@@ -682,14 +684,18 @@ export function RailNav({ active = 'editor', style }: RailNavProps) {
     .map((w: string) => w[0].toUpperCase())
     .join('') || '?';
 
-  const items: Array<[RailKey, Parameters<typeof Icon>[0]['name']]> = [
-    ['editor', 'book'],
-    ['characters', 'char'],
-    ['map', 'map'],
-    ['timeline', 'clock'],
-    ['notes', 'note'],
-    ['dashboard', 'layout'],
+  const items: Array<[RailKey, Parameters<typeof Icon>[0]['name'], string, string]> = [
+    ['editor',     'book',   'Манускрипт', 'editor'],
+    ['characters', 'char',   'Персонажи',  'characters'],
+    ['map',        'map',    'Карта мира', 'map'],
+    ['timeline',   'clock',  'Хронология', 'timeline'],
+    ['notes',      'note',   'Заметки',    'notes'],
+    ['dashboard',  'layout', 'Дэшборд',   ''],
   ];
+
+  const href = (segment: string) =>
+    bookId ? `/books/${bookId}${segment ? `/${segment}` : ''}` : '#';
+
   return (
     <aside style={{
       position: 'absolute', left: 0, top: 0, bottom: 0, width: 56,
@@ -697,17 +703,26 @@ export function RailNav({ active = 'editor', style }: RailNavProps) {
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       padding: '14px 0', gap: 6, zIndex: 4, ...style,
     }}>
-      <div style={{ width: 24, height: 30, background: 'var(--accent)', borderRadius: '1px 4px 4px 1px', marginBottom: 8, position: 'relative' }}>
-        <span style={{ position: 'absolute', inset: 3, border: '0.5px solid oklch(0.98 0 0 / 0.5)' }} />
-      </div>
-      {items.map(([k, icn]) => (
-        <button key={k} className={'tb-btn' + (k === active ? ' tb-btn--on' : '')} style={{ width: 36, height: 36, borderRadius: 8 }}>
+      <Link to="/books" title="Библиотека" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+        <div style={{ width: 24, height: 30, background: 'var(--accent)', borderRadius: '1px 4px 4px 1px', position: 'relative' }}>
+          <span style={{ position: 'absolute', inset: 3, border: '0.5px solid oklch(0.98 0 0 / 0.5)' }} />
+        </div>
+      </Link>
+      {items.map(([k, icn, label, segment]) => (
+        <Link
+          key={k}
+          to={href(segment)}
+          title={label}
+          className={'tb-btn' + (k === active ? ' tb-btn--on' : '')}
+          style={{ width: 36, height: 36, borderRadius: 8 }}
+        >
           <Icon name={icn} size={17} />
-        </button>
+        </Link>
       ))}
       <div style={{ flex: 1 }} />
-      <button className="tb-btn" style={{ width: 36, height: 36, borderRadius: 8 }}><Icon name="settings" size={17} /></button>
+      <button className="tb-btn" title="Настройки" style={{ width: 36, height: 36, borderRadius: 8 }} onClick={() => setSettingsOpen(true)}><Icon name="settings" size={17} /></button>
       <div className="sb-avatar" style={{ width: 32, height: 32, fontSize: 11 }}>{initials}</div>
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </aside>
   );
 }
@@ -752,16 +767,17 @@ function ScreenModeToggle({ mode, setMode }: ScreenModeToggleProps) {
 
 interface WithModeProps {
   active?: RailKey;
+  bookId?: string;
   children: ReactNode;
 }
 
-export function WithMode({ active = 'editor', children }: WithModeProps) {
+export function WithMode({ active = 'editor', bookId, children }: WithModeProps) {
   const [mode, setMode] = useState<ScreenMode>('studio');
   const showToggle = active === 'editor';
   return (
     <div className={mode === 'page' ? 'mode-page' : ''} style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
       {children}
-      {mode === 'page' && <RailNav active={active} />}
+      {mode === 'page' && <RailNav active={active} bookId={bookId} />}
       {showToggle && <ScreenModeToggle mode={mode} setMode={setMode} />}
     </div>
   );

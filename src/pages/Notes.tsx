@@ -112,7 +112,7 @@ export default function Notes() {
   const filtered = filterKind === 'all' ? notes : (notes ?? []).filter((n) => n.kind === filterKind);
 
   return (
-    <WithMode active="notes">
+    <WithMode active="notes" bookId={bookId}>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <Sidebar
           book={book}

@@ -104,7 +104,7 @@ export default function Timeline() {
   }
 
   return (
-    <WithMode active="timeline">
+    <WithMode active="timeline" bookId={bookId}>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <Sidebar book={book} subtitle={`хронология · ${events.length}`}>
           <div className="sb-section"><span className="sb-section-title">Слои</span></div>
