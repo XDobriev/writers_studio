@@ -1,5 +1,5 @@
 import { useState, lazy, Suspense, type ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './lib/auth';
 import { AuthGuard } from './components/AuthGuard';
@@ -10,6 +10,7 @@ import Auth from './pages/Auth';
 import ResetPassword from './pages/ResetPassword';
 
 // Всё остальное — lazy: браузер скачает чанк только при переходе на маршрут
+const Landing    = lazy(() => import('./pages/Landing'));
 const Home       = lazy(() => import('./pages/Home'));
 const Dashboard  = lazy(() => import('./pages/Dashboard'));
 const Editor     = lazy(() => import('./pages/Editor'));
@@ -45,7 +46,7 @@ export default function App() {
       <BrowserRouter>
         <Suspense fallback={<PageFallback />}>
         <Routes>
-          <Route path="/" element={<Navigate to="/books" replace />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
