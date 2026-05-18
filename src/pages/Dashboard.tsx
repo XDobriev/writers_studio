@@ -37,6 +37,7 @@ export default function Dashboard() {
   const { data: characters, error: charsError } = useCharacters(id);
   const { data: snapshots, error: snapsError } = useWritingSnapshots(id);
   const error = (bookError ?? chaptersError ?? charsError ?? snapsError)?.message ?? null;
+  const isBookNotFound = (bookError as { code?: string } | null)?.code === 'PGRST116';
 
   const [editOpen, setEditOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -216,10 +217,41 @@ export default function Dashboard() {
 
   if (!id) return <Navigate to="/books" replace />;
 
+  if (isBookNotFound) {
+    return (
+      <div
+        className="as"
+        style={{
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg-deep)',
+          userSelect: 'none',
+        }}
+      >
+        <div style={{ font: '300 9rem/1 var(--font-serif)', color: 'var(--surface-3)', letterSpacing: '-0.04em', lineHeight: 1 }}>
+          404
+        </div>
+        <div style={{ font: '400 1.125rem var(--font-serif)', color: 'var(--ink-2)', marginTop: 20 }}>
+          Книга не найдена
+        </div>
+        <div style={{ font: '400 0.8125rem var(--font-ui)', color: 'var(--ink-4)', marginTop: 8, maxWidth: 300, textAlign: 'center', lineHeight: 1.5 }}>
+          Книга удалена или у вас нет к ней доступа.
+        </div>
+        <Link to="/books" className="btn btn--primary" style={{ textDecoration: 'none', marginTop: 28 }}>
+          ← К полке
+        </Link>
+      </div>
+    );
+  }
+
   if (error) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32 }}>
-        <div style={{ color: 'var(--danger)' }}>Ошибка: {error}</div>
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ color: 'var(--danger)', fontSize: 14 }}>Ошибка загрузки: {error}</div>
+        <Link to="/books" className="btn btn--ghost" style={{ textDecoration: 'none', alignSelf: 'flex-start' }}>← К полке</Link>
       </div>
     );
   }
