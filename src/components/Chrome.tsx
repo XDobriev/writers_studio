@@ -218,7 +218,6 @@ export function Sidebar({
     ['clock', 'Хронология', bid ? `/books/${bid}/timeline` : null],
     ['note', 'Заметки', bid ? `/books/${bid}/notes` : null],
     ['tree', 'Структура', bid ? `/books/${bid}/outline` : null],
-    ['grid', 'Доска', bid ? `/books/${bid}/corkboard` : null],
   ];
   function isNavActive(href: string | null): boolean {
     if (!href) return false;
@@ -717,7 +716,7 @@ export function RightPanel({ bookId }: RightPanelProps) {
   );
 }
 
-type RailKey = 'editor' | 'characters' | 'map' | 'timeline' | 'notes' | 'dashboard' | 'outline' | 'corkboard';
+type RailKey = 'editor' | 'characters' | 'map' | 'timeline' | 'notes' | 'dashboard' | 'outline';
 
 interface RailNavProps {
   active?: RailKey;

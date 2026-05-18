@@ -221,7 +221,7 @@ export default function Corkboard() {
   ];
 
   return (
-    <WithMode active="corkboard">
+    <WithMode active="outline">
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <aside className="sb">
           <div className="sb-head">
