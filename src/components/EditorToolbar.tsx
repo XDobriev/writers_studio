@@ -574,9 +574,9 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           right: 0,
           flexShrink: 0,
           marginLeft: 'auto',
-          paddingLeft: 10,
+          paddingLeft: 8,
+          borderLeft: '1px solid var(--border-soft)',
           background: 'var(--bg)',
-          boxShadow: '-10px 0 8px var(--bg)',
         }}>
           <ModeSegment mode={mode} setMode={setMode} />
         </div>

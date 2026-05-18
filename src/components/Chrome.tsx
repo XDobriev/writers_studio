@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
@@ -212,7 +212,7 @@ export function Sidebar({
     return () => document.removeEventListener('mousedown', handler);
   }, [statusMenuFor]);
   const bid = book?.id ?? '';
-  const navItems: Array<[Parameters<typeof Icon>[0]['name'], string, string | null]> = [
+  const navItems = useMemo<Array<[Parameters<typeof Icon>[0]['name'], string, string | null]>>(() => [
     ['layout', 'Дэшборд', bid ? `/books/${bid}` : null],
     ['book', 'Манускрипт', bid ? `/books/${bid}/editor` : null],
     ['char', 'Персонажи', bid ? `/books/${bid}/characters` : null],
@@ -220,7 +220,7 @@ export function Sidebar({
     ['clock', 'Хронология', bid ? `/books/${bid}/timeline` : null],
     ['note', 'Заметки', bid ? `/books/${bid}/notes` : null],
     ['tree', 'Структура', bid ? `/books/${bid}/outline` : null],
-  ];
+  ], [bid]);
   function isNavActive(href: string | null): boolean {
     if (!href) return false;
     if (href === `/books/${bid}`) return pathname === href;
