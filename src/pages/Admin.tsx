@@ -52,7 +52,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 }
 
 export default function Admin() {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -85,6 +85,12 @@ export default function Admin() {
         <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)' }}>admin</span>
         <span style={{ flex: 1 }} />
         <a href="/books" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', textDecoration: 'none' }}>← к полке</a>
+        <button
+          onClick={signOut}
+          style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 4 }}
+        >
+          Выйти
+        </button>
       </div>
 
       <div style={{ padding: '36px 40px', maxWidth: 1100 }}>

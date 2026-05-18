@@ -20,7 +20,7 @@ export default function NotFound() {
       <div
         style={{
           font: '300 9rem/1 var(--font-serif)',
-          color: 'var(--surface-3)',
+          color: 'var(--ink-4)',
           letterSpacing: '-0.04em',
           lineHeight: 1,
         }}
