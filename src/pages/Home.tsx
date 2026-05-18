@@ -8,6 +8,13 @@ const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? '';
 
 const COVERS = ['#7c1d1d', '#3d4a2e', '#1c3a4a', '#4a2e3c', '#2a4a3a', '#4a3a2a'];
 
+const ONBOARDING_FEATURES = [
+  { icon: 'feather' as const, title: 'Редактор глав', desc: 'Rich-text, фокусный режим, подсчёт слов в реальном времени' },
+  { icon: 'user' as const, title: 'Персонажи', desc: 'Карточки героев, связи между персонажами, описания' },
+  { icon: 'clock' as const, title: 'Хронология', desc: 'Все события книги на одной оси времени' },
+  { icon: 'map' as const, title: 'Карта мира', desc: 'Локации и места действия' },
+];
+
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
@@ -27,6 +34,7 @@ export default function Home() {
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   const [editBook, setEditBook] = useState<Book | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -78,6 +86,23 @@ export default function Home() {
     })();
     return () => { cancelled = true; };
   }, [user]);
+
+  useEffect(() => {
+    if (books !== null && books.length === 0 && !localStorage.getItem('as_onboarding_done')) {
+      setShowWelcome(true);
+    }
+  }, [books]);
+
+  const handleWelcomeCreate = () => {
+    localStorage.setItem('as_onboarding_done', '1');
+    setShowWelcome(false);
+    setShowCreate(true);
+  };
+
+  const dismissWelcome = () => {
+    localStorage.setItem('as_onboarding_done', '1');
+    setShowWelcome(false);
+  };
 
   const handleNewBookClick = () => {
     if (plan === 'free' && (books?.length ?? 0) >= 1) {
@@ -348,6 +373,57 @@ export default function Home() {
                 <button className="btn btn--ghost" onClick={() => setShowUpgrade(false)}>Отмена</button>
                 <button className="btn btn--primary" style={{ opacity: 0.5, cursor: 'not-allowed' }} disabled>Скоро</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWelcome && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'oklch(0 0 0 / 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={dismissWelcome}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 18, padding: '36px 40px', width: 520, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 80px oklch(0 0 0 / 0.55)' }}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => { if (e.key === 'Escape') dismissWelcome(); }}
+            tabIndex={-1}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: 28 }}>
+              <div style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, color: 'oklch(0.98 0 0)' }}>
+                <Icon name="feather" size={26} />
+              </div>
+              <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 10 }}>
+                Добро пожаловать в Авторскую студию
+              </h2>
+              <p style={{ font: '400 14px/1.65 var(--font-ui)', color: 'var(--ink-3)', maxWidth: 360 }}>
+                Всё необходимое для работы над книгой — от первой строки до экспорта.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 28 }}>
+              {ONBOARDING_FEATURES.map(({ icon, title, desc }) => (
+                <div key={title} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '10px 12px', borderRadius: 10, background: 'var(--surface)' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--accent)' }}>
+                    <Icon name={icon} size={16} />
+                  </div>
+                  <div>
+                    <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink-1)', marginBottom: 2 }}>{title}</div>
+                    <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn--primary" style={{ flex: 1, height: 42, fontSize: 14 }} onClick={handleWelcomeCreate}>
+                <Icon name="plus" size={15} /> Создать первую книгу
+              </button>
+              <button className="btn btn--ghost" style={{ height: 42, padding: '0 18px', fontSize: 14 }} onClick={dismissWelcome}>
+                Посмотрю позже
+              </button>
             </div>
           </div>
         </div>

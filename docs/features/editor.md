@@ -31,11 +31,11 @@ Color открывает popover (9 цветов + сброс), Highlight — 7 
 
 ## Sidebar в режиме Манускрипт
 
-**Баг #4** — навигационные пункты не кликабельны. Должно роутить на `/books/:id/characters`, `/books/:id/map`, `/books/:id/timeline`, `/books/:id`.
+Навигационные пункты рендерятся как `<Link>` с реальными путями `/books/:id/characters`, `/books/:id/map`, `/books/:id/timeline`, `/books/:id`. Если `bid` не определён — пункты задизейблены (`opacity: 0.5, cursor: default`).
 
 ## Статусная плашка
 
-**Баг #5** — «Сегодня · 348/1000 слов · серия 7 дней» — фейк из `SAMPLE_PROSE`. Нужна таблица `writing_snapshots` (миграция `0008` готова).
+Реальные данные: слова и знаки из активной главы, `todayWords` и `streak` из `writingStats` (хук в `EditorHybrid`). При `!isReal` (демо-режим) рендерится `<StatusBar />` с дефолтами.
 
 ## Bundle
 
