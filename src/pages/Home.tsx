@@ -4,6 +4,8 @@ import { Icon } from '../components/Icon';
 import { supabase, type Book } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? '';
+
 const COVERS = ['#7c1d1d', '#3d4a2e', '#1c3a4a', '#4a2e3c', '#2a4a3a', '#4a3a2a'];
 
 function formatDate(iso: string): string {
@@ -118,6 +120,24 @@ export default function Home() {
         <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
         <span style={{ flex: 1 }} />
         <span className="hide-sm" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{user?.email}</span>
+        {user?.email === ADMIN_EMAIL && (
+          <Link
+            to="/admin"
+            style={{
+              font: '500 10px var(--font-mono)',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: 'var(--accent)',
+              textDecoration: 'none',
+              padding: '3px 8px',
+              border: '1px solid var(--accent)',
+              borderRadius: 4,
+              opacity: 0.75,
+            }}
+          >
+            admin
+          </Link>
+        )}
       </div>
 
       <div style={{ flex: 1, padding: '40px 48px' }}>

@@ -219,7 +219,9 @@ export default function Dashboard() {
       l: 'Дней в работе',
       v: `${stats.daysActive}`,
       sub: `с ${new Date(book.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`,
-      delta: stats.totalChars > 0 ? `${fmtNumber(stats.totalChars)} символов` : '—',
+      delta: book.words > 0
+        ? `в среднем ${fmtNumber(Math.round(book.words / stats.daysActive))} слов/день`
+        : '—',
     },
   ];
 
