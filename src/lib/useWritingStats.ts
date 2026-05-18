@@ -3,11 +3,8 @@ import { supabase } from './supabase';
 
 export interface WritingStats {
   todayWords: number;
-  goalWords: number;
   streak: number;
 }
-
-const DAILY_GOAL = 1000;
 
 export function plural(n: number, one: string, few: string, many: string): string {
   const mod10 = n % 10;
@@ -24,7 +21,7 @@ function pluralDays(n: number): string {
 export { pluralDays };
 
 export function useWritingStats(bookId: string | undefined): WritingStats {
-  const [stats, setStats] = useState<WritingStats>({ todayWords: 0, goalWords: DAILY_GOAL, streak: 0 });
+  const [stats, setStats] = useState<WritingStats>({ todayWords: 0, streak: 0 });
 
   useEffect(() => {
     if (!bookId) return;
@@ -70,7 +67,7 @@ export function useWritingStats(bookId: string | undefined): WritingStats {
           }
         }
 
-        setStats({ todayWords, goalWords: DAILY_GOAL, streak });
+        setStats({ todayWords, streak });
       });
   }, [bookId]);
 

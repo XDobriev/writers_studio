@@ -141,6 +141,7 @@ interface EditorHybridProps {
   onDeleteChapter?: (id: string) => void;
   onContentChange?: (html: string) => void;
   onTitleChange?: (title: string) => void;
+  onGoalChange?: (goal: number) => void;
   saveState?: SaveState;
   savedAt?: Date | null;
 }
@@ -157,6 +158,7 @@ export function EditorHybrid({
   onDeleteChapter,
   onContentChange,
   onTitleChange,
+  onGoalChange,
   saveState = 'idle',
   savedAt = null,
 }: EditorHybridProps) {
@@ -272,8 +274,9 @@ export function EditorHybrid({
               chars={(activeChapter?.content ?? '').replace(/<[^>]+>/g, '').length}
               statusLabel={saveLabel(saveState, savedAt)}
               todayWords={writingStats.todayWords}
-              goalWords={writingStats.goalWords}
+              goalWords={book?.daily_goal ?? 1000}
               streak={writingStats.streak}
+              onGoalChange={onGoalChange}
             />
           ) : (
             <StatusBar />

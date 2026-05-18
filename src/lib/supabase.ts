@@ -28,6 +28,7 @@ export interface Book {
   genre: string | null;
   words: number;
   goal: number;
+  daily_goal: number;
   cover: string | null;
   created_at: string;
   updated_at: string;

@@ -152,6 +152,12 @@ export default function Editor() {
     }
   }, []);
 
+  const onGoalChange = useCallback(async (goal: number) => {
+    if (!bookId) return;
+    setBook((prev) => prev ? { ...prev, daily_goal: goal } : prev);
+    await supabase.from('books').update({ daily_goal: goal }).eq('id', bookId);
+  }, [bookId]);
+
   const onDeleteChapter = useCallback(async (id: string) => {
     try {
       await deleteChapter(id);
@@ -200,6 +206,7 @@ export default function Editor() {
           onDeleteChapter={onDeleteChapter}
           onContentChange={onContentChange}
           onTitleChange={onTitleChange}
+          onGoalChange={onGoalChange}
           saveState={saveState}
           savedAt={savedAt}
         />
