@@ -242,7 +242,7 @@ export default function Corkboard() {
             <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/outline`)}>Структура</button>
           </div>
           <div style={{ padding: '18px 18px 14px', color: 'var(--ink-3)', fontSize: 12, lineHeight: 1.6 }}>
-            На доске — главы как индексные карточки. Двойной щелчок — открыть в редакторе.
+            На доске — главы как индексные карточки. Щелчок по карточке — открыть в редакторе.
           </div>
           <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Фильтр</div>
