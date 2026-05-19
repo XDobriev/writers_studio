@@ -17,10 +17,17 @@ const KIND_LABELS: Record<NoteKind, string> = {
 const KIND_OPTIONS: NoteKind[] = ['idea', 'question', 'todo', 'important'];
 
 const KIND_COLORS: Record<NoteKind, string> = {
-  idea: 'var(--accent)',
-  question: 'oklch(0.72 0.18 260)',
-  todo: 'oklch(0.72 0.18 140)',
-  important: 'oklch(0.65 0.22 30)',
+  idea: 'var(--note-idea)',
+  question: 'var(--note-question)',
+  todo: 'var(--note-todo)',
+  important: 'var(--note-important)',
+};
+
+const KIND_COLORS_SOFT: Record<NoteKind, string> = {
+  idea: 'var(--note-idea-soft)',
+  question: 'var(--note-question-soft)',
+  todo: 'var(--note-todo-soft)',
+  important: 'var(--note-important-soft)',
 };
 
 export default function Notes() {
@@ -165,7 +172,7 @@ export default function Notes() {
                       style={{
                         fontSize: 12, padding: '4px 12px', borderRadius: 20,
                         border: `1px solid ${formKind === k ? KIND_COLORS[k] : 'var(--border)'}`,
-                        background: formKind === k ? `${KIND_COLORS[k]}22` : 'transparent',
+                        background: formKind === k ? KIND_COLORS_SOFT[k] : 'transparent',
                         color: formKind === k ? KIND_COLORS[k] : 'var(--ink-3)',
                         cursor: 'pointer',
                       }}
@@ -241,7 +248,7 @@ export default function Notes() {
                             style={{
                               fontSize: 11, padding: '3px 10px', borderRadius: 20,
                               border: `1px solid ${editKind === k ? KIND_COLORS[k] : 'var(--border)'}`,
-                              background: editKind === k ? `${KIND_COLORS[k]}22` : 'transparent',
+                              background: editKind === k ? KIND_COLORS_SOFT[k] : 'transparent',
                               color: editKind === k ? KIND_COLORS[k] : 'var(--ink-3)',
                               cursor: 'pointer',
                             }}
@@ -277,7 +284,7 @@ export default function Notes() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{
                           fontSize: 11, padding: '2px 8px', borderRadius: 20,
-                          background: `${KIND_COLORS[n.kind]}22`, color: KIND_COLORS[n.kind],
+                          background: KIND_COLORS_SOFT[n.kind], color: KIND_COLORS[n.kind],
                           fontWeight: 500,
                         }}>
                           {KIND_LABELS[n.kind]}

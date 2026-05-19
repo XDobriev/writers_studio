@@ -27,6 +27,16 @@
   --danger: oklch(0.65 0.18 25);
   --info: oklch(0.72 0.10 230);
 
+  /* note kind palette */
+  --note-idea: oklch(0.82 0.16 75);
+  --note-idea-soft: oklch(0.82 0.16 75 / 0.14);
+  --note-question: oklch(0.72 0.14 240);
+  --note-question-soft: oklch(0.72 0.14 240 / 0.14);
+  --note-todo: oklch(0.72 0.14 145);
+  --note-todo-soft: oklch(0.72 0.14 145 / 0.14);
+  --note-important: oklch(0.65 0.18 25);
+  --note-important-soft: oklch(0.65 0.18 25 / 0.14);
+
   /* paper / sheet */
   --paper: oklch(0.965 0.014 85);
   --paper-edge: oklch(0.92 0.018 80);
@@ -470,11 +480,11 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .mn::before {
   content: ''; position: absolute; left: -1px; top: 12px; bottom: 12px;
-  width: 2px; background: var(--accent-2); border-radius: 2px;
+  width: 2px; background: var(--note-idea); border-radius: 2px;
 }
-.mn--question::before { background: var(--info); }
-.mn--todo::before { background: var(--warn); }
-.mn--important::before { background: var(--danger); }
+.mn--question::before { background: var(--note-question); }
+.mn--todo::before { background: var(--note-todo); }
+.mn--important::before { background: var(--note-important); }
 .mn-head { display: flex; align-items: center; justify-content: space-between; }
 .mn-label {
   font: 500 9.5px/1 var(--font-mono);
