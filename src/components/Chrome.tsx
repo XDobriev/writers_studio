@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
+import { LogoMark } from './LogoMark';
 import { NOVEL } from '../data/sample';
 import type { Chapter, ChapterStatus } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
@@ -109,9 +110,7 @@ export function Sidebar({
     <aside className="sb">
       <div className="sb-head">
         <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, textDecoration: 'none' }}>
-          <span style={{ width: 18, height: 22, background: 'var(--accent)', borderRadius: '1px 4px 4px 1px', position: 'relative' }}>
-            <span style={{ position: 'absolute', left: 3, top: 3, right: 3, bottom: 3, border: '0.5px solid oklch(0.98 0 0 / 0.6)' }} />
-          </span>
+          <LogoMark size={20} />
           <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
         </Link>
         {bid ? (
@@ -321,9 +320,7 @@ export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
       padding: '14px 0', gap: 6, zIndex: 4, ...style,
     }}>
       <Link to="/books" title="Библиотека" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-        <div style={{ width: 24, height: 30, background: 'var(--accent)', borderRadius: '1px 4px 4px 1px', position: 'relative' }}>
-          <span style={{ position: 'absolute', inset: 3, border: '0.5px solid oklch(0.98 0 0 / 0.5)' }} />
-        </div>
+        <LogoMark size={28} />
       </Link>
       {items.map(([k, icn, label, segment]) => (
         <Link

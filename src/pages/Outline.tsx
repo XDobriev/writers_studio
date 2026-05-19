@@ -18,6 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
+import { LogoMark } from '../components/LogoMark';
 import { useAuth } from '../lib/auth';
 import { createChapter, deleteChapter, reorderChapters, type Chapter } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
@@ -279,9 +280,7 @@ export default function Outline() {
         <aside className="sb">
           <div className="sb-head">
             <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, textDecoration: 'none' }}>
-              <span style={{ width: 18, height: 22, background: 'var(--accent)', borderRadius: '1px 4px 4px 1px', position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 3, top: 3, right: 3, bottom: 3, border: '0.5px solid oklch(0.98 0 0 / 0.6)' }} />
-              </span>
+              <LogoMark size={20} />
               <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
             </Link>
             <div className="sb-book-title">{book?.title ?? '…'}</div>

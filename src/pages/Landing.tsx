@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { Icon } from '../components/Icon';
+import { LogoMark } from '../components/LogoMark';
 
 interface PublicStats {
   users_total: number;
@@ -96,9 +97,7 @@ function LandingNav() {
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, padding: 'clamp(16px,2vw,20px) clamp(20px,4vw,56px)', display: 'flex', alignItems: 'center', gap: 16 }}>
       <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-        <span style={{ width: 20, height: 24, background: 'var(--accent)', borderRadius: '1px 4px 4px 1px', position: 'relative', display: 'inline-block' }}>
-          <span style={{ position: 'absolute', inset: 3, border: '0.5px solid oklch(0.98 0 0 / 0.6)' }} />
-        </span>
+        <LogoMark size={22} />
         <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink)' }}>авторская студия</span>
       </Link>
       <div style={{ flex: 1 }} />
@@ -598,9 +597,7 @@ function LandingFooter() {
         <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', gap: 48, marginBottom: 40 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <span style={{ width: 18, height: 22, background: 'var(--accent)', borderRadius: '1px 4px 4px 1px', position: 'relative', display: 'inline-block' }}>
-                <span style={{ position: 'absolute', inset: 3, border: '0.5px solid oklch(0.98 0 0 / 0.6)' }} />
-              </span>
+              <LogoMark size={20} />
               <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
             </div>
             <p style={{ font: '400 14px/1.65 var(--font-serif)', color: 'var(--ink-3)', fontStyle: 'italic', maxWidth: 340 }}>

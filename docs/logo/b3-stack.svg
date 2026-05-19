@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="128" height="128">
+  <defs>
+    <linearGradient id="cover" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#bf5234"/>
+      <stop offset="1" stop-color="#9d3a1d"/>
+    </linearGradient>
+    <linearGradient id="coverDeep" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8e3318"/>
+      <stop offset="1" stop-color="#65200a"/>
+    </linearGradient>
+  </defs>
+  <!-- shadow -->
+  <ellipse cx="32" cy="58" rx="26" ry="1.5" fill="#000" opacity="0.16"/>
+  <!-- bottom book -->
+  <rect x="6" y="45" width="52" height="11" rx="1.8" fill="url(#coverDeep)"/>
+  <rect x="6" y="45" width="52" height="2.2" fill="#ad4527"/>
+  <rect x="12" y="50" width="22" height="1.6" rx="0.5" fill="#f7ead8" opacity="0.55"/>
+  <rect x="36" y="50.4" width="3" height="0.8" rx="0.4" fill="#c99662" opacity="0.7"/>
+  <!-- middle book -->
+  <rect x="10" y="30" width="44" height="12" rx="1.8" fill="url(#cover)"/>
+  <rect x="10" y="30" width="44" height="2.5" fill="#c95838"/>
+  <rect x="16" y="35.5" width="20" height="1.6" rx="0.5" fill="#f7ead8" opacity="0.7"/>
+  <rect x="38" y="35.7" width="3" height="0.8" rx="0.4" fill="#c99662" opacity="0.8"/>
+  <!-- top book, rotated -6° -->
+  <g transform="rotate(-6 32 22)">
+    <rect x="13" y="14" width="38" height="13" rx="1.8" fill="#c99662"/>
+    <rect x="13" y="14" width="38" height="2.8" fill="#7e2c14"/>
+    <rect x="18" y="20" width="18" height="1.6" rx="0.5" fill="#7e2c14" opacity="0.55"/>
+    <rect x="38" y="20.2" width="3" height="0.8" rx="0.4" fill="#7e2c14" opacity="0.8"/>
+  </g>
+</svg>
