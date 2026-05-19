@@ -171,6 +171,7 @@ export function EditorHybrid({
       writingStats.refetch();
     }
     prevSaveState.current = saveState;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveState, writingStats.refetch]);
 
   useEffect(() => {

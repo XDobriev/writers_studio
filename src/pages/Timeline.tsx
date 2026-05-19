@@ -93,6 +93,8 @@ export default function Timeline() {
     return events.filter((e) => e.type === filter);
   }, [events, filter]);
 
+  const isMobile = useWindowWidth() < 768;
+
   if (!bookId) return <Navigate to="/books" replace />;
 
   if (error) {
@@ -111,8 +113,6 @@ export default function Timeline() {
       </div>
     );
   }
-
-  const isMobile = useWindowWidth() < 768;
 
   return (
     <WithMode active="timeline" bookId={bookId}>

@@ -93,6 +93,8 @@ export default function MapScreen() {
     return locations.filter((l) => l.type === filter);
   }, [locations, filter]);
 
+  const isMobile = useWindowWidth() < 768;
+
   if (!bookId) return <Navigate to="/books" replace />;
 
   if (error) {
@@ -111,8 +113,6 @@ export default function MapScreen() {
       </div>
     );
   }
-
-  const isMobile = useWindowWidth() < 768;
 
   return (
     <WithMode active="map" bookId={bookId}>
