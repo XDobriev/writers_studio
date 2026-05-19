@@ -21,7 +21,7 @@ export default function Privacy() {
 
         <Section title="1. Оператор данных">
           <p>
-            Физическое лицо <strong>Добриев Хамзат Мусаевич</strong>, контактный адрес:{' '}
+            Физическое лицо <strong>Добриев Хамзат Юсупович</strong>, контактный адрес:{' '}
             <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--accent)' }}>frfrancuz@gmail.com</a>.
             Сервис: <strong>Авторская студия</strong> (avtorskaya-studiya.vercel.app).
           </p>

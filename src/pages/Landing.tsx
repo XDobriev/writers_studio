@@ -621,11 +621,11 @@ function LandingFooter() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 24, borderTop: '1px solid var(--border-soft)', font: '400 11.5px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.04em', flexWrap: 'wrap' }}>
           <span>© 2026 Авторская студия</span>
           <span>·</span>
-          <a style={{ cursor: 'pointer' }}>Договор-оферта</a>
-          <a style={{ cursor: 'pointer' }}>Конфиденциальность</a>
-          <a style={{ cursor: 'pointer' }}>Cookie</a>
+          <Link to="/terms" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Соглашение</Link>
+          <Link to="/privacy" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Конфиденциальность</Link>
           <span style={{ flex: 1 }} />
-          <span>Москва · Тбилиси · Сан-Франциско</span>
+          <span>Добриев Хамзат Юсупович ·</span>
+          <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--ink-4)' }}>frfrancuz@gmail.com</a>
         </div>
       </div>
     </footer>
