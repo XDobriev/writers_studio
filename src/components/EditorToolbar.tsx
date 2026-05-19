@@ -573,15 +573,16 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         background: 'var(--bg)',
         borderBottom: '1px solid var(--border-soft)',
         display: 'flex', alignItems: 'center',
+        position: 'relative',
       }}>
-        <div ref={scrollRef} className="tb" style={{ flex: 1, height: '100%', background: 'transparent', borderBottom: 'none', flexShrink: 'unset' } as React.CSSProperties}>
-          {buttons}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0, overflow: 'hidden' }}>
+          <div ref={scrollRef} className="tb" style={{ width: 680, maxWidth: '100%', flex: 'none', height: '100%', background: 'transparent', borderBottom: 'none' } as React.CSSProperties}>
+            {buttons}
+          </div>
         </div>
         {showModes && mode && setMode && (
           <div style={{
-            flexShrink: 0, display: 'flex', alignItems: 'center',
-            paddingLeft: 8, paddingRight: 14,
-            borderLeft: '1px solid var(--border-soft)',
+            position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
           }}>
             <ModeSegment mode={mode} setMode={setMode} />
           </div>
