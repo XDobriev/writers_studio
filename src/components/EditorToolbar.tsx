@@ -13,6 +13,31 @@ interface ToolbarProps {
   showModes?: boolean;
 }
 
+function ModeSegment({ mode, setMode }: { mode: EditorMode; setMode: (m: EditorMode) => void }) {
+  const opts: Array<[EditorMode, Parameters<typeof Icon>[0]['name'], string]> = [
+    ['studio', 'layout', 'Фокус — обе боковые панели рядом с текстом'],
+    ['left', 'panel', 'Структура — список глав, без правой панели'],
+    ['right', 'note', 'Сплит — редактор и заметки рядом'],
+    ['page', 'focus', 'Страница — чистый лист, без боковых панелей'],
+  ];
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-deep)', border: '1px solid var(--border-soft)' }}>
+      {opts.map(([k, icn, tip]) => (
+        <button
+          key={k}
+          type="button"
+          onClick={() => setMode(k)}
+          title={tip}
+          className={'tb-btn' + (mode === k ? ' tb-btn--on' : '')}
+          style={{ height: 24, padding: '0 6px', borderRadius: 6, color: mode === k ? 'var(--ink)' : 'var(--ink-3)' }}
+        >
+          <Icon name={icn} size={14} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 const TEXT_COLORS: Array<{ label: string; value: string }> = [
   { label: 'Чёрный',          value: '#0f172a' },
   { label: 'Тёмно-серый',     value: '#374151' },
@@ -402,31 +427,6 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
   );
 }
 
-function ModeSegment({ mode, setMode }: { mode: EditorMode; setMode: (m: EditorMode) => void }) {
-  const opts: Array<[EditorMode, Parameters<typeof Icon>[0]['name'], string]> = [
-    ['studio', 'layout', 'Фокус — обе боковые панели рядом с текстом'],
-    ['left', 'panel', 'Структура — список глав, без правой панели'],
-    ['right', 'note', 'Сплит — редактор и заметки рядом'],
-    ['page', 'focus', 'Страница — чистый лист, без боковых панелей'],
-  ];
-  return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-deep)', border: '1px solid var(--border-soft)' }}>
-      {opts.map(([k, icn, tip]) => (
-        <button
-          key={k}
-          type="button"
-          onClick={() => setMode(k)}
-          title={tip}
-          className={'tb-btn' + (mode === k ? ' tb-btn--on' : '')}
-          style={{ height: 24, padding: '0 6px', borderRadius: 6, color: mode === k ? 'var(--ink)' : 'var(--ink-3)' }}
-        >
-          <Icon name={icn} size={14} />
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showModes = true }: ToolbarProps) {
   const can = editor !== null;
   const run = (fn: (e: Editor) => void) => (ev: React.MouseEvent) => {
@@ -581,9 +581,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           </div>
         </div>
         {showModes && mode && setMode && (
-          <div style={{
-            position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-          }}>
+          <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }}>
             <ModeSegment mode={mode} setMode={setMode} />
           </div>
         )}

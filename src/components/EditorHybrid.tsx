@@ -17,60 +17,31 @@ interface ModeSegmentProps {
   setMode: (m: Mode) => void;
 }
 
-interface PageHeaderProps extends ModeSegmentProps {
-  bookTitle?: string;
-  chapterTitle?: string;
-  chapterIndex?: number;
-  status?: Chapter['status'];
-  words?: number;
-}
-
-const STATUS_LABEL: Record<Chapter['status'], string> = {
-  draft: 'черновик',
-  progress: 'в работе',
-  done: 'готово',
-};
 
 function ModeSegmentInline({ mode, setMode }: ModeSegmentProps) {
-  const opts: Array<[Mode, Parameters<typeof Icon>[0]['name'], string, string]> = [
-    ['studio', 'layout', 'Фокус', 'Фокус — обе боковые панели рядом с текстом'],
-    ['left', 'panel', 'Структура', 'Структура — список глав, без правой панели'],
-    ['right', 'note', 'Сплит', 'Сплит — редактор и заметки рядом'],
-    ['page', 'focus', 'Страница', 'Страница — чистый лист, без боковых панелей'],
+  const opts: Array<[Mode, Parameters<typeof Icon>[0]['name'], string]> = [
+    ['studio', 'layout', 'Фокус — обе боковые панели рядом с текстом'],
+    ['left', 'panel', 'Структура — список глав, без правой панели'],
+    ['right', 'note', 'Сплит — редактор и заметки рядом'],
+    ['page', 'focus', 'Страница — чистый лист, без боковых панелей'],
   ];
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-deep)', border: '1px solid var(--border-soft)' }}>
-      {opts.map(([k, icn, l, tip]) => (
+      {opts.map(([k, icn, tip]) => (
         <button
           key={k}
           onClick={() => setMode(k)}
           title={tip}
           className={'tb-btn' + (mode === k ? ' tb-btn--on' : '')}
-          style={{ height: 24, padding: '0 8px', borderRadius: 6, gap: 4, color: mode === k ? 'var(--ink)' : 'var(--ink-3)', whiteSpace: 'nowrap' }}
+          style={{ height: 24, padding: '0 6px', borderRadius: 6, color: mode === k ? 'var(--ink)' : 'var(--ink-3)' }}
         >
-          <Icon name={icn} size={13} />
-          <span style={{ fontSize: 11, letterSpacing: '0.01em' }}>{l}</span>
+          <Icon name={icn} size={14} />
         </button>
       ))}
     </div>
   );
 }
 
-function PageHeader({ mode, setMode, bookTitle, chapterTitle, chapterIndex, status, words }: PageHeaderProps) {
-  return (
-    <div style={{ height: 54, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 28px', gap: 12, borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)' }}>
-      <span style={{ font: '400 12px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{bookTitle ?? 'Книга'}</span>
-      <span style={{ color: 'var(--ink-4)' }}>›</span>
-      <span style={{ font: '500 13px var(--font-serif)', color: 'var(--ink)' }}>
-        {chapterIndex != null && `${String(chapterIndex + 1).padStart(2, '0')}. `}{chapterTitle ?? 'Без главы'}
-      </span>
-      <div style={{ flex: 1 }} />
-      {status && <span className="chip">{STATUS_LABEL[status]} · {(words ?? 0).toLocaleString('ru')} сл</span>}
-      <span style={{ width: 1, height: 18, background: 'var(--border-soft)', margin: '0 4px' }} />
-      <ModeSegmentInline mode={mode} setMode={setMode} />
-    </div>
-  );
-}
 
 interface ChapterSheetProps {
   chapter: Chapter;
@@ -191,9 +162,6 @@ export function EditorHybrid({
   const sheetWidth = isMobile ? '100%' : (isPage ? 740 : 680);
   const sheetPad = isMobile ? '24px 20px 80px' : (isPage ? '64px 80px 80px' : '48px 64px 80px');
 
-  const chapterIndex = isReal && activeChapter
-    ? chapters!.findIndex((c) => c.id === activeChapter.id)
-    : -1;
 
   return (
     <div className="as" style={{ height: '100%', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative', transition: 'grid-template-columns 220ms cubic-bezier(.2,.7,.3,1)' }}>
@@ -232,15 +200,9 @@ export function EditorHybrid({
           </div>
         )}
         {isPage ? (
-          <PageHeader
-            mode={mode}
-            setMode={setMode}
-            bookTitle={book?.title}
-            chapterTitle={activeChapter?.title}
-            chapterIndex={chapterIndex >= 0 ? chapterIndex : undefined}
-            status={activeChapter?.status}
-            words={activeChapter?.words}
-          />
+          <div style={{ height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 16px', borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)' }}>
+            <ModeSegmentInline mode={mode} setMode={setMode} />
+          </div>
         ) : (
           <EditorToolbar editor={editor} mode={mode} setMode={setMode} variant="studio" showModes={!isMobile} />
         )}

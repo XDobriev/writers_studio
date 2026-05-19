@@ -341,59 +341,16 @@ export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
   );
 }
 
-type ScreenMode = 'studio' | 'page';
-
-interface ScreenModeToggleProps {
-  mode: ScreenMode;
-  setMode: (m: ScreenMode) => void;
-}
-
-function ScreenModeToggle({ mode, setMode }: ScreenModeToggleProps) {
-  const labels: Record<ScreenMode, [Parameters<typeof Icon>[0]['name'], string, string]> = {
-    studio: ['layout', 'Фокус', 'Фокус — стандартный вид с боковой навигацией'],
-    page: ['focus', 'Страница', 'Страница — полноэкранный режим без панелей'],
-  };
-  const opts: ScreenMode[] = ['studio', 'page'];
-  return (
-    <div style={{
-      position: 'absolute', bottom: 14, right: 14, zIndex: 10,
-      display: 'inline-flex', gap: 2, padding: 3, borderRadius: 10,
-      background: 'var(--bg-deep)', border: '1px solid var(--border)',
-      boxShadow: '0 8px 28px rgba(0,0,0,.35)',
-    }}>
-      {opts.map((k) => {
-        const [icn, l, tip] = labels[k];
-        return (
-          <button
-            key={k}
-            onClick={() => setMode(k)}
-            title={tip}
-            className={'tb-btn' + (mode === k ? ' tb-btn--on' : '')}
-            style={{ height: 26, padding: '0 10px', borderRadius: 7, gap: 5, color: mode === k ? 'var(--ink)' : 'var(--ink-3)' }}
-          >
-            <Icon name={icn} size={14} />
-            <span style={{ fontSize: 11.5, fontWeight: 500 }}>{l}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 interface WithModeProps {
   active?: RailKey;
   bookId?: string;
   children: ReactNode;
 }
 
-export function WithMode({ active = 'editor', bookId, children }: WithModeProps) {
-  const [mode, setMode] = useState<ScreenMode>('studio');
-  const showToggle = active === 'editor';
+export function WithMode({ children }: WithModeProps) {
   return (
-    <div className={mode === 'page' ? 'mode-page' : ''} style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
       {children}
-      {mode === 'page' && <RailNav active={active} bookId={bookId} />}
-      {showToggle && <ScreenModeToggle mode={mode} setMode={setMode} />}
     </div>
   );
 }
