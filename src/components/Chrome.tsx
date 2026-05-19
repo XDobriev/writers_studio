@@ -4,8 +4,15 @@ import { Icon } from './Icon';
 import { NOVEL } from '../data/sample';
 import type { Chapter, ChapterStatus } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { SettingsModal } from './SettingsModal';
+
+const PLAN_LABEL: Record<string, string> = {
+  free: 'Свободный план',
+  pro: 'Pro',
+  lifetime: 'Lifetime',
+};
 
 export { StatusBar } from './StatusBar';
 export { RightPanel } from './RightPanel';
@@ -58,9 +65,16 @@ export function Sidebar({
     .map((w: string) => w[0].toUpperCase())
     .join('') || '?';
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [plan, setPlan] = useState<string>('free');
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('plan').eq('user_id', user.id).single()
+      .then(({ data }) => { if (data?.plan) setPlan(data.plan); });
+  }, [user]);
 
   useEffect(() => {
     if (!statusMenuFor) {
@@ -259,7 +273,7 @@ export function Sidebar({
         <div className="sb-avatar">{initials}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="sb-foot-name">{displayName || '—'}</div>
-          <div className="sb-foot-meta">Свободный план</div>
+          <div className="sb-foot-meta">{PLAN_LABEL[plan] ?? plan}</div>
         </div>
         <button className="tb-btn" onClick={() => setSettingsOpen(true)} title="Настройки"><Icon name="settings" size={15} /></button>
       </div>

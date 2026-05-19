@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { supabase, type Book } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
@@ -143,6 +144,8 @@ export default function Home() {
   const [createCover, setCreateCover] = useState(COVERS[0]);
   const [createUploading, setCreateUploading] = useState(false);
   const [editUploading, setEditUploading] = useState(false);
+  const [confirmDeleteBook, setConfirmDeleteBook] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const uploadCover = async (file: File, setter: (url: string) => void, setUploading: (v: boolean) => void) => {
     setUploading(true);
@@ -157,6 +160,22 @@ export default function Home() {
       // оставляем текущее значение при ошибке
     } finally {
       setUploading(false);
+    }
+  };
+
+  const deleteBook = async () => {
+    if (!editBook) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from('books').delete().eq('id', editBook.id);
+      if (error) throw error;
+      setBooks((prev) => prev?.filter((b) => b.id !== editBook.id) ?? prev);
+      setEditBook(null);
+      setConfirmDeleteBook(false);
+    } catch {
+      // оставляем диалог открытым при ошибке
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -453,16 +472,27 @@ export default function Home() {
             {editError && (
               <div style={{ fontSize: 12, color: 'var(--danger)' }}>{editError}</div>
             )}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn--ghost" onClick={() => setEditBook(null)}>Отмена</button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <button
                 type="button"
-                className="btn btn--primary"
-                onClick={saveEditBook}
-                disabled={editSaving || !editTitle.trim()}
+                onClick={() => setConfirmDeleteBook(true)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', font: '400 13px var(--font-ui)', color: 'var(--danger)', padding: '4px 0', opacity: 0.8 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.8'; }}
               >
-                {editSaving ? 'Сохранение…' : 'Сохранить'}
+                Удалить книгу
               </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" className="btn btn--ghost" onClick={() => setEditBook(null)}>Отмена</button>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={saveEditBook}
+                  disabled={editSaving || !editTitle.trim()}
+                >
+                  {editSaving ? 'Сохранение…' : 'Сохранить'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -563,6 +593,14 @@ export default function Home() {
             </div>
           </div>
         </div>
+      )}
+
+      {confirmDeleteBook && editBook && (
+        <ConfirmDialog
+          message={`Удалить книгу «${editBook.title}»? Это действие необратимо — все главы, персонажи и данные будут удалены навсегда.`}
+          onConfirm={deleteBook}
+          onCancel={() => { if (!deleting) setConfirmDeleteBook(false); }}
+        />
       )}
 
       {showCreate && (
