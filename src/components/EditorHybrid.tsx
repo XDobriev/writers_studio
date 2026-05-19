@@ -160,7 +160,7 @@ export function EditorHybrid({
   const windowWidth = useWindowWidth();
   const isMobile = windowWidth < 768;
   const showLeft = !isMobile && (mode === 'studio' || mode === 'left');
-  const showRight = (mode === 'studio' && windowWidth >= 1024) || mode === 'right';
+  const showRight = (mode === 'studio' && windowWidth >= 1200) || mode === 'right';
   const isPage = mode === 'page';
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
