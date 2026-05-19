@@ -6,7 +6,11 @@ import { useAuth } from '../lib/auth';
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? '';
 
-const COVERS = ['#7c1d1d', '#3d4a2e', '#1c3a4a', '#4a2e3c', '#2a4a3a', '#4a3a2a'];
+const COVERS = [
+  '#7c1d1d', '#3d4a2e', '#1c3a4a', '#4a2e3c',
+  '#2a4a3a', '#4a3a2a', '#1e2a4a', '#3a2a4a',
+  '#4a2a1e', '#2a3a4a', '#1c4a32', '#4a1c3a',
+];
 
 const ONBOARDING_FEATURES = [
   { icon: 'feather' as const, title: 'Редактор глав', desc: 'Rich-text, фокусный режим, подсчёт слов в реальном времени' },
@@ -14,6 +18,98 @@ const ONBOARDING_FEATURES = [
   { icon: 'clock' as const, title: 'Хронология', desc: 'Все события книги на одной оси времени' },
   { icon: 'map' as const, title: 'Карта мира', desc: 'Локации и места действия' },
 ];
+
+const isImageUrl = (v: string) => v.startsWith('http') || v.startsWith('blob:');
+
+function CoverPicker({
+  value, onChange, uploading, onFileSelect,
+}: {
+  value: string;
+  onChange: (c: string) => void;
+  uploading?: boolean;
+  onFileSelect?: (f: File) => void;
+}) {
+  const hasImage = isImageUrl(value);
+  return (
+    <div>
+      <label className="label">Обложка</label>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6, alignItems: 'center' }}>
+        {COVERS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => onChange(c)}
+            style={{
+              width: 36, height: 36, borderRadius: 8, cursor: 'pointer', padding: 0,
+              background: `linear-gradient(160deg, ${c}, oklch(0.20 0.02 50))`,
+              border: !hasImage && value === c ? '2px solid var(--accent)' : '2px solid transparent',
+              outline: !hasImage && value === c ? '2px solid var(--accent)' : 'none',
+              outlineOffset: 2,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'outline 0.12s, border-color 0.12s',
+            }}
+          >
+            {!hasImage && value === c && (
+              <span style={{ color: 'oklch(0.97 0.01 80)', fontSize: 15, fontWeight: 700, lineHeight: 1 }}>✓</span>
+            )}
+          </button>
+        ))}
+
+        {onFileSelect && (
+          <label
+            title="Загрузить изображение"
+            style={{
+              width: 36, height: 36, borderRadius: 8, cursor: uploading ? 'default' : 'pointer',
+              border: hasImage ? '2px solid var(--accent)' : '2px dashed var(--border)',
+              outline: hasImage ? '2px solid var(--accent)' : 'none',
+              outlineOffset: 2,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: hasImage ? `url(${value}) center/cover` : 'var(--surface-2)',
+              color: 'var(--ink-3)',
+              flexShrink: 0,
+              transition: 'border-color 0.12s',
+              position: 'relative', overflow: 'hidden',
+            }}
+          >
+            {!hasImage && !uploading && <Icon name="camera" size={16} />}
+            {uploading && (
+              <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>…</span>
+            )}
+            {hasImage && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'oklch(0 0 0 / 0.35)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span style={{ color: 'white', fontSize: 15, fontWeight: 700 }}>✓</span>
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              style={{ display: 'none' }}
+              disabled={uploading}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onFileSelect(f);
+                e.target.value = '';
+              }}
+            />
+          </label>
+        )}
+      </div>
+      {hasImage && (
+        <button
+          type="button"
+          onClick={() => onChange(COVERS[0])}
+          style={{ marginTop: 6, fontSize: 11, color: 'var(--ink-3)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+        >
+          Удалить изображение
+        </button>
+      )}
+    </div>
+  );
+}
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -40,14 +136,36 @@ export default function Home() {
   const [editTitle, setEditTitle] = useState('');
   const [editGenre, setEditGenre] = useState('');
   const [editGoal, setEditGoal] = useState(0);
+  const [editCover, setEditCover] = useState(COVERS[0]);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  const [createCover, setCreateCover] = useState(COVERS[0]);
+  const [createUploading, setCreateUploading] = useState(false);
+  const [editUploading, setEditUploading] = useState(false);
+
+  const uploadCover = async (file: File, setter: (url: string) => void, setUploading: (v: boolean) => void) => {
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg';
+      const path = `${user!.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from('book-covers').upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data } = supabase.storage.from('book-covers').getPublicUrl(path);
+      setter(data.publicUrl);
+    } catch {
+      // оставляем текущее значение при ошибке
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const openEditBook = (b: Book) => {
     setEditBook(b);
     setEditTitle(b.title);
     setEditGenre(b.genre ?? '');
     setEditGoal(b.goal);
+    setEditCover(b.cover ?? COVERS[0]);
     setEditError(null);
   };
 
@@ -58,7 +176,7 @@ export default function Home() {
     try {
       const { data, error } = await supabase
         .from('books')
-        .update({ title: editTitle.trim(), genre: editGenre.trim() || null, goal: Math.max(0, editGoal) })
+        .update({ title: editTitle.trim(), genre: editGenre.trim() || null, goal: Math.max(0, editGoal), cover: editCover })
         .eq('id', editBook.id)
         .select()
         .single();
@@ -120,10 +238,9 @@ export default function Home() {
     const genre = String(fd.get('genre') ?? '').trim() || null;
     const goal = Number(fd.get('goal') ?? 80000) || 80000;
     if (!title) return;
-    const cover = COVERS[Math.floor(Math.random() * COVERS.length)];
     const { data, error } = await supabase
       .from('books')
-      .insert({ user_id: user.id, title, genre, goal, words: 0, cover })
+      .insert({ user_id: user.id, title, genre, goal, words: 0, cover: createCover })
       .select()
       .single();
     if (error) {
@@ -132,6 +249,7 @@ export default function Home() {
     }
     setBooks((prev) => [data as Book, ...(prev ?? [])]);
     setShowCreate(false);
+    setCreateCover(COVERS[0]);
   };
 
   const totalWords = (books ?? []).reduce((s, b) => s + b.words, 0);
@@ -224,7 +342,19 @@ export default function Home() {
                 onMouseLeave={() => setHoveredId(null)}
               >
                 <Link to={`/books/${b.id}`} style={{ background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border-soft)', overflow: 'hidden', display: 'flex', flexDirection: 'column', textDecoration: 'none' }}>
-                  <div style={{ height: 180, background: `linear-gradient(160deg, ${b.cover ?? '#3a3a4a'}, oklch(0.20 0.02 50))`, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '18px 20px', borderBottom: '1px solid var(--border-soft)' }}>
+                  <div style={{
+                    height: 180,
+                    ...(b.cover && isImageUrl(b.cover)
+                      ? { backgroundImage: `url(${b.cover})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                      : { background: `linear-gradient(160deg, ${b.cover ?? '#3a3a4a'}, oklch(0.20 0.02 50))` }
+                    ),
+                    display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+                    padding: '18px 20px', borderBottom: '1px solid var(--border-soft)',
+                    position: 'relative',
+                  }}>
+                    {b.cover && isImageUrl(b.cover) && (
+                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, oklch(0.08 0.01 50 / 0.85) 0%, transparent 55%)' }} />
+                    )}
                     <div style={{ font: '500 10px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'oklch(0.95 0.008 80 / 0.7)', marginBottom: 6 }}>
                       {b.genre || 'Без жанра'}
                     </div>
@@ -313,6 +443,12 @@ export default function Home() {
                   onKeyDown={(e) => { if (e.key === 'Escape') setEditBook(null); }}
                 />
               </div>
+              <CoverPicker
+                value={editCover}
+                onChange={setEditCover}
+                uploading={editUploading}
+                onFileSelect={(f) => uploadCover(f, setEditCover, setEditUploading)}
+              />
             </div>
             {editError && (
               <div style={{ fontSize: 12, color: 'var(--danger)' }}>{editError}</div>
@@ -450,6 +586,12 @@ export default function Home() {
                 <label className="label">Цель по словам</label>
                 <input className="input" name="goal" type="number" min={1000} step={1000} defaultValue={80000} />
               </div>
+              <CoverPicker
+                value={createCover}
+                onChange={setCreateCover}
+                uploading={createUploading}
+                onFileSelect={(f) => uploadCover(f, setCreateCover, setCreateUploading)}
+              />
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 22 }}>
               <button type="button" className="btn btn--ghost" onClick={() => setShowCreate(false)}>Отмена</button>
