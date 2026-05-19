@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useWindowWidth } from '../lib/useWindowWidth';
 import { Icon } from './Icon';
 import { Sidebar, RightPanel, StatusBar, RailNav } from './Chrome';
 import { SAMPLE_PROSE } from '../data/sample';
@@ -107,15 +108,6 @@ function ChapterSheet({ chapter, onContentChange, onTitleChange, onEditor, width
   );
 }
 
-function useWindowWidth(): number {
-  const [width, setWidth] = useState(() => window.innerWidth);
-  useEffect(() => {
-    const handler = () => setWidth(window.innerWidth);
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  }, []);
-  return width;
-}
 
 function formatTime(d: Date): string {
   return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });

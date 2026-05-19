@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useWindowWidth } from '../lib/useWindowWidth';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
@@ -50,7 +51,7 @@ export default function Characters() {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const activeId = search.get('character');
-
+  const isMobile = useWindowWidth() < 768;
 
   const filtered = useMemo(() => {
     if (!characters) return [];
@@ -63,6 +64,7 @@ export default function Characters() {
   }, [characters, roleFilter, query]);
 
   useEffect(() => {
+    if (isMobile) return;
     if (!characters || characters.length === 0) return;
     const exists = activeId && characters.some((c) => c.id === activeId);
     if (!exists) {
@@ -71,7 +73,7 @@ export default function Characters() {
       next.set('character', first.id);
       setSearch(next, { replace: true });
     }
-  }, [characters, filtered, activeId, search, setSearch]);
+  }, [isMobile, characters, filtered, activeId, search, setSearch]);
 
   const active = useMemo(
     () => (characters && activeId ? characters.find((c) => c.id === activeId) ?? null : null),
@@ -81,6 +83,12 @@ export default function Characters() {
   const selectCharacter = useCallback((id: string) => {
     const next = new URLSearchParams(search);
     next.set('character', id);
+    setSearch(next, { replace: false });
+  }, [search, setSearch]);
+
+  const clearCharacter = useCallback(() => {
+    const next = new URLSearchParams(search);
+    next.delete('character');
     setSearch(next, { replace: false });
   }, [search, setSearch]);
 
@@ -242,10 +250,13 @@ export default function Characters() {
     error: 'Ошибка сохранения',
   };
 
+  const showSidebar = !isMobile || !activeId;
+  const showMain = !isMobile || Boolean(activeId);
+
   return (
     <WithMode active="characters" bookId={bookId}>
-      <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
-        <Sidebar book={book} subtitle={`персонажи · ${characters.length}`}>
+      <div className="as as-app as-app--no-right" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
+        {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${characters.length}`}>
           <div style={{ padding: '12px 14px 6px' }}>
             <div style={{ height: 32, padding: '0 10px', border: '1px solid var(--border-soft)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink-3)', fontSize: 12 }}>
               <Icon name="search" size={13} />
@@ -297,11 +308,18 @@ export default function Characters() {
           <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border-soft)' }}>
             <button onClick={onCreate} className="btn" style={{ width: '100%', justifyContent: 'center' }}><Icon name="plus" size={13} /> Новый персонаж</button>
           </div>
-        </Sidebar>
+        </Sidebar>}
 
-        <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
+        {showMain && <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>
-            <span style={{ font: '500 13px var(--font-ui)' }}>Картотека персонажей</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {isMobile && (
+                <button className="tb-btn" onClick={clearCharacter} title="К списку персонажей">
+                  <Icon name="arrows" size={16} />
+                </button>
+              )}
+              <span style={{ font: '500 13px var(--font-ui)' }}>Картотека персонажей</span>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ font: '400 12px var(--font-ui)', color: saveState === 'error' ? 'var(--danger)' : 'var(--ink-3)' }}>{saveLabel[saveState]}</span>
             </div>
@@ -354,7 +372,7 @@ export default function Characters() {
               <button onClick={onCreate} className="btn"><Icon name="plus" size={13} /> Создать</button>
             </div>
           )}
-        </main>
+        </main>}
       </div>
 
       {confirmDelete && active && (

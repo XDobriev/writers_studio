@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useWindowWidth } from '../lib/useWindowWidth';
 import { Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
@@ -111,10 +112,12 @@ export default function Timeline() {
     );
   }
 
+  const isMobile = useWindowWidth() < 768;
+
   return (
     <WithMode active="timeline" bookId={bookId}>
-      <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
-        <Sidebar book={book} subtitle={`хронология · ${events.length}`}>
+      <div className="as as-app as-app--no-right" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
+        {!isMobile && <Sidebar book={book} subtitle={`хронология · ${events.length}`}>
           <div className="sb-section"><span className="sb-section-title">Слои</span></div>
           <div style={{ padding: '4px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
             {TYPE_FILTERS.map((f) => (
@@ -130,7 +133,7 @@ export default function Timeline() {
               </button>
             ))}
           </div>
-        </Sidebar>
+        </Sidebar>}
 
         <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>
@@ -139,6 +142,21 @@ export default function Timeline() {
               <button onClick={onCreate} className="btn"><Icon name="plus" size={14} /> Событие</button>
             </div>
           </div>
+          {isMobile && (
+            <div style={{ display: 'flex', gap: 4, padding: '6px 12px', borderBottom: '1px solid var(--border-soft)', overflowX: 'auto', flexShrink: 0 }}>
+              {TYPE_FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  className={'sb-tab' + (filter === f.value ? ' sb-tab--on' : '')}
+                  onClick={() => setFilter(f.value)}
+                  style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}
+                >
+                  {f.value !== 'all' && <span style={{ width: 8, height: 8, borderRadius: 2, background: TYPE_COLORS[f.value], flexShrink: 0 }} />}
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
             {filtered.length === 0 ? (

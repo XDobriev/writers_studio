@@ -178,7 +178,7 @@ export function Sidebar({
                     type="button"
                     onClick={() => setStatusMenuFor(statusMenuFor === c.id ? null : c.id)}
                     title={`Статус: ${SB_STATUS_LABEL[c.status]}`}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, margin: -4, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4 }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, margin: -4, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4 }}
                   >
                     <span style={{ width: 6, height: 6, borderRadius: 999, background: SB_STATUS_COLOR[c.status], display: 'block' }} />
                   </button>
