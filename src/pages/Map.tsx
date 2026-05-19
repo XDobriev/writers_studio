@@ -3,6 +3,7 @@ import { Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useAuth } from '../lib/auth';
 import {
   createLocation,
@@ -38,6 +39,7 @@ export default function MapScreen() {
   const [mutationError, setError] = useState<string | null>(null);
   const error = locationsQueryError?.message ?? mutationError;
   const [filter, setFilter] = useState<TypeFilter>('all');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const onCreate = useCallback(async () => {
     if (!bookId || !user) return;
@@ -66,8 +68,14 @@ export default function MapScreen() {
     }
   }, [bookId, queryClient]);
 
-  const onDelete = useCallback(async (id: string) => {
-    if (!bookId || !window.confirm('Удалить локацию? Действие нельзя отменить.')) return;
+  const onDelete = useCallback((id: string) => {
+    setConfirmDeleteId(id);
+  }, []);
+
+  const onDeleteConfirmed = useCallback(async () => {
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
+    if (!bookId || !id) return;
     try {
       await deleteLocation(id);
       queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), (prev) =>
@@ -76,7 +84,7 @@ export default function MapScreen() {
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [bookId, queryClient]);
+  }, [bookId, confirmDeleteId, queryClient]);
 
   const filtered = useMemo(() => {
     if (!locations) return [];
@@ -159,6 +167,13 @@ export default function MapScreen() {
           </div>
         </main>
       </div>
+      {confirmDeleteId && (
+        <ConfirmDialog
+          message="Удалить локацию? Действие нельзя отменить."
+          onConfirm={onDeleteConfirmed}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
+      )}
     </WithMode>
   );
 }

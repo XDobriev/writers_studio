@@ -158,6 +158,10 @@ _Обновлён: 2026-05-19. Горизонт активной разрабо�
 
 - [ ] **Несогласованный `useCallback`** — в `Editor.tsx` все обработчики завёрнуты в `useCallback`, в `RichEditor.tsx` — `applyColor`, `runFmt`, `applySuggestion` — обычные функции. Не баг, но стиль непоследователен.
 
+### Закрытые (2026-05-19)
+
+- ~~`window.confirm` в Timeline и Map~~ — заменён на `ConfirmDialog` из `src/components/ConfirmDialog.tsx`. Компонент вынесен из Characters.tsx в shared.
+
 ---
 
 ## Telegram OAuth (backlog)
