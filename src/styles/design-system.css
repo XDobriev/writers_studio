@@ -237,7 +237,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   background: var(--bg);
   border-bottom: 1px solid var(--border-soft);
   display: flex; align-items: center;
-  padding: 0 14px; gap: 4px;
+  padding: 0 8px; gap: 2px;
   overflow-x: auto; overflow-y: hidden;
   scrollbar-width: none;
 }
@@ -245,9 +245,9 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .tb--wrap { flex-wrap: nowrap; }
 .tb > * { flex-shrink: 0; }
 .tb-grp { display: flex; align-items: center; gap: 1px; }
-.tb-sep { width: 1px; height: 18px; background: var(--border-soft); margin: 0 4px; flex-shrink: 0; }
+.tb-sep { width: 1px; height: 18px; background: var(--border-soft); margin: 0 2px; flex-shrink: 0; }
 .tb-btn {
-  height: 28px; min-width: 28px; padding: 0 7px;
+  height: 28px; min-width: 28px; padding: 0 5px;
   border-radius: var(--r-1);
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   color: var(--ink-2); font-size: 12px;
@@ -552,6 +552,14 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .input:focus { border-color: var(--accent); }
 .input--err { border-color: var(--danger); }
+input[type="number"].input::-webkit-inner-spin-button,
+input[type="number"].input::-webkit-outer-spin-button {
+  opacity: 0.4;
+  height: 24px;
+  cursor: pointer;
+}
+input[type="number"].input:hover::-webkit-inner-spin-button,
+input[type="number"].input:hover::-webkit-outer-spin-button { opacity: 0.8; }
 select.input {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");

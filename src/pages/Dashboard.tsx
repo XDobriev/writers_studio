@@ -189,8 +189,8 @@ export default function Dashboard() {
       {
         l: 'Слов написано',
         v: fmtNumber(book.words),
-        sub: `из ${fmtNumber(book.goal)}`,
-        delta: `${stats.goalPct}% от цели`,
+        sub: book.goal > 0 ? `из ${fmtNumber(book.goal)}` : 'цель не задана',
+        delta: book.goal > 0 ? `${stats.goalPct}% от цели` : '—',
       },
       {
         l: 'Глав',
@@ -292,20 +292,22 @@ export default function Dashboard() {
               ))}
             </div>
 
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
-                <div style={{ font: '500 13px var(--font-ui)' }}>Цель по словам</div>
-                <span style={{ font: '500 11.5px var(--font-mono)', color: 'var(--ink)' }}>{fmtNumber(book.words)} / {fmtNumber(book.goal)} · {stats.goalPct}%</span>
-              </div>
-              <div style={{ height: 8, background: 'var(--surface-2)', borderRadius: 999, position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', inset: 0, width: `${stats.goalPct}%`, background: 'linear-gradient(90deg, oklch(0.50 0.14 30), var(--accent))' }} />
-              </div>
-              {book.goal > book.words && (
-                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--ink-3)' }}>
-                  Осталось <span style={{ color: 'var(--ink-2)' }}>{fmtNumber(book.goal - book.words)}</span> слов до цели.
+            {book.goal > 0 && (
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+                  <div style={{ font: '500 13px var(--font-ui)' }}>Цель по словам</div>
+                  <span style={{ font: '500 11.5px var(--font-mono)', color: 'var(--ink)' }}>{fmtNumber(book.words)} / {fmtNumber(book.goal)} · {stats.goalPct}%</span>
                 </div>
-              )}
-            </div>
+                <div style={{ height: 8, background: 'var(--surface-2)', borderRadius: 999, position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ position: 'absolute', inset: 0, width: `${stats.goalPct}%`, background: 'linear-gradient(90deg, oklch(0.50 0.14 30), var(--accent))' }} />
+                </div>
+                {book.goal > book.words && (
+                  <div style={{ marginTop: 10, fontSize: 12, color: 'var(--ink-3)' }}>
+                    Осталось <span style={{ color: 'var(--ink-2)' }}>{fmtNumber(book.goal - book.words)}</span> слов до цели.
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
@@ -505,15 +507,20 @@ export default function Dashboard() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label className="label">Целевой объём (слов)</label>
+              <label className="label">Цель по словам</label>
               <input
                 className="input"
                 type="number"
                 min={0}
-                value={editGoal}
-                onChange={(e) => setEditGoal(Number(e.target.value))}
+                step={1000}
+                value={editGoal || ''}
+                placeholder="необязательно"
+                onChange={(e) => setEditGoal(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
                 onKeyDown={(e) => { if (e.key === 'Escape') setEditOpen(false); }}
               />
+              <div style={{ fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                Рассказ 1–10 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпическое фэнтези 120–300 тыс. слов
+              </div>
             </div>
 
             {editError && (

@@ -435,11 +435,8 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
   };
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const id = requestAnimationFrame(() => { el.scrollLeft = 0; });
-    return () => cancelAnimationFrame(id);
-  }, [editor]);
+    if (scrollRef.current) scrollRef.current.scrollLeft = 0;
+  }, []);
 
   const buttons = (
     <>
@@ -577,7 +574,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         borderBottom: '1px solid var(--border-soft)',
         display: 'flex', alignItems: 'center',
       }}>
-        <div ref={scrollRef} className="tb" style={{ flex: 1, minWidth: 0, height: '100%', background: 'transparent', borderBottom: 'none', flexShrink: 'unset', overflowX: 'hidden' } as React.CSSProperties}>
+        <div ref={scrollRef} className="tb" style={{ flex: 1, height: '100%', background: 'transparent', borderBottom: 'none', flexShrink: 'unset' } as React.CSSProperties}>
           {buttons}
         </div>
         {showModes && mode && setMode && (

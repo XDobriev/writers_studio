@@ -184,12 +184,18 @@ export default function Focus() {
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 14, font: '400 11px var(--font-mono)', color: 'var(--ink-4)' }}>
         <span>фокус-режим</span>
         <span style={{ flex: 1 }} />
-        <span>{activeChapter.words.toLocaleString('ru-RU')} / {book.goal.toLocaleString('ru-RU')} в книге</span>
-        <svg width="120" height="6" viewBox="0 0 120 6">
-          <rect x="0" y="2" width="120" height="2" fill="var(--surface-2)" />
-          <rect x="0" y="2" width={Math.min(120, (book.words / Math.max(1, book.goal)) * 120)} height="2" fill="var(--accent)" />
-        </svg>
-        <span style={{ color: 'var(--accent)' }}>{book.words.toLocaleString('ru-RU')}/{book.goal.toLocaleString('ru-RU')}</span>
+        {book.goal > 0 ? (
+          <>
+            <span>{activeChapter.words.toLocaleString('ru-RU')} / {book.goal.toLocaleString('ru-RU')} в книге</span>
+            <svg width="120" height="6" viewBox="0 0 120 6">
+              <rect x="0" y="2" width="120" height="2" fill="var(--surface-2)" />
+              <rect x="0" y="2" width={Math.min(120, (book.words / book.goal) * 120)} height="2" fill="var(--accent)" />
+            </svg>
+            <span style={{ color: 'var(--accent)' }}>{book.words.toLocaleString('ru-RU')}/{book.goal.toLocaleString('ru-RU')}</span>
+          </>
+        ) : (
+          <span>{book.words.toLocaleString('ru-RU')} слов в книге</span>
+        )}
       </div>
     </div>
   );

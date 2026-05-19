@@ -256,7 +256,8 @@ export default function Home() {
     const fd = new FormData(e.currentTarget);
     const title = String(fd.get('title') ?? '').trim();
     const genre = String(fd.get('genre') ?? '').trim() || null;
-    const goal = Number(fd.get('goal') ?? 80000) || 80000;
+    const goalRaw = String(fd.get('goal') ?? '').trim();
+    const goal = goalRaw ? Math.max(0, Number(goalRaw)) : 0;
     if (!title) return;
     const { data, error } = await supabase
       .from('books')
@@ -383,12 +384,20 @@ export default function Home() {
                   </div>
                   <div style={{ padding: '14px 20px 16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>
-                      <span>{b.words.toLocaleString('ru')} / {b.goal.toLocaleString('ru')}</span>
-                      <span>{Math.round((b.words / Math.max(1, b.goal)) * 100)}%</span>
+                      {b.goal > 0 ? (
+                        <>
+                          <span>{b.words.toLocaleString('ru')} / {b.goal.toLocaleString('ru')}</span>
+                          <span>{Math.round((b.words / b.goal) * 100)}%</span>
+                        </>
+                      ) : (
+                        <span>{b.words.toLocaleString('ru')} сл.</span>
+                      )}
                     </div>
-                    <div style={{ height: 3, background: 'var(--surface-3)', borderRadius: 999, overflow: 'hidden', marginBottom: 12 }}>
-                      <div style={{ width: `${(b.words / Math.max(1, b.goal)) * 100}%`, minWidth: 4, height: '100%', background: b.words > 0 ? 'var(--accent)' : 'var(--ink-4)' }} />
-                    </div>
+                    {b.goal > 0 && (
+                      <div style={{ height: 3, background: 'var(--surface-3)', borderRadius: 999, overflow: 'hidden', marginBottom: 12 }}>
+                        <div style={{ width: `${(b.words / b.goal) * 100}%`, minWidth: 4, height: '100%', background: b.words > 0 ? 'var(--accent)' : 'var(--ink-4)' }} />
+                      </div>
+                    )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)' }}>
                       <span>{dayDiff(b.created_at)} дн. в работе</span>
                       <span>изм. {formatDate(b.updated_at)}</span>
@@ -445,7 +454,7 @@ export default function Home() {
                   className="input"
                   value={editGenre}
                   onChange={(e) => setEditGenre(e.target.value)}
-                  placeholder="Фэнтези, Детектив, Роман…"
+                  placeholder="Фэнтези, Детектив, Триллер…"
                   onKeyDown={(e) => { if (e.key === 'Escape') setEditBook(null); }}
                 />
               </div>
@@ -456,10 +465,14 @@ export default function Home() {
                   type="number"
                   min={0}
                   step={1000}
-                  value={editGoal}
-                  onChange={(e) => setEditGoal(Number(e.target.value))}
+                  value={editGoal || ''}
+                  placeholder="необязательно"
+                  onChange={(e) => setEditGoal(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
                   onKeyDown={(e) => { if (e.key === 'Escape') setEditBook(null); }}
                 />
+                <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                  Рассказ 1–10 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпическое фэнтези 120–300 тыс. слов
+                </div>
               </div>
               <CoverPicker
                 value={editCover}
@@ -621,7 +634,10 @@ export default function Home() {
               </div>
               <div>
                 <label className="label">Цель по словам</label>
-                <input className="input" name="goal" type="number" min={1000} step={1000} defaultValue={80000} />
+                <input className="input" name="goal" type="number" min={0} step={1000} placeholder="необязательно" />
+                <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                  Рассказ 1–10 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпическое фэнтези 120–300 тыс. слов
+                </div>
               </div>
               <CoverPicker
                 value={createCover}
