@@ -10,7 +10,7 @@ import { useAuth } from '../lib/auth';
 import { SettingsModal } from './SettingsModal';
 
 const PLAN_LABEL: Record<string, string> = {
-  free: 'Свободный план',
+  free: 'Free',
   pro: 'Pro',
   lifetime: 'Lifetime',
 };

@@ -278,9 +278,9 @@ export default function Admin() {
                           outline: 'none',
                         }}
                       >
-                        <option value="free">free</option>
-                        <option value="pro">pro</option>
-                        <option value="lifetime">lifetime</option>
+                        <option value="free">Free</option>
+                        <option value="pro">Pro</option>
+                        <option value="lifetime">Lifetime</option>
                       </select>
                     </td>
                   </tr>

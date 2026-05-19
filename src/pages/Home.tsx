@@ -531,8 +531,8 @@ export default function Home() {
 
             <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
               <div>
-                <div style={{ font: '600 28px var(--font-serif)', letterSpacing: '-0.02em' }}>390 ₽<span style={{ font: '400 14px var(--font-ui)', color: 'var(--ink-3)', letterSpacing: 0 }}>/мес</span></div>
-                <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', marginTop: 2 }}>или 2 900 ₽/год — экономия 40%</div>
+                <div style={{ font: '600 28px var(--font-serif)', letterSpacing: '-0.02em' }}>290 ₽<span style={{ font: '400 14px var(--font-ui)', color: 'var(--ink-3)', letterSpacing: 0 }}>/мес</span></div>
+                <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', marginTop: 2 }}>или 2 900 ₽/год — 2 месяца в подарок</div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn--ghost" onClick={() => setShowUpgrade(false)}>Отмена</button>
