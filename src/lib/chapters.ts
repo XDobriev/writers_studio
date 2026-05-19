@@ -39,12 +39,6 @@ export async function listChapters(bookId: string): Promise<Chapter[]> {
   return (data ?? []) as Chapter[];
 }
 
-export async function getChapter(id: string): Promise<Chapter | null> {
-  const { data, error } = await supabase.from('chapters').select('*').eq('id', id).maybeSingle();
-  if (error) throw error;
-  return (data as Chapter | null) ?? null;
-}
-
 export async function createChapter(
   bookId: string,
   userId: string,

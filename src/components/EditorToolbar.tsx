@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import type { Editor } from './RichEditor';
 import { Icon } from './Icon';
 
-export type EditorMode = 'studio' | 'left' | 'right' | 'page';
+type EditorMode = 'studio' | 'left' | 'right' | 'page';
 
 interface ToolbarProps {
   editor: Editor | null;

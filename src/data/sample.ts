@@ -1,32 +1,32 @@
-export type ChapterStatus = 'draft' | 'progress' | 'done';
+type ChapterStatus = 'draft' | 'progress' | 'done';
 
-export interface SampleChapter {
+interface SampleChapter {
   num: number;
   title: string;
   words: number;
   status: ChapterStatus;
 }
 
-export interface SampleCharacter {
+interface SampleCharacter {
   initials: string;
   name: string;
   role: 'protagonist' | 'secondary' | 'minor';
   sub: string;
 }
 
-export interface SampleLocation {
+interface SampleLocation {
   name: string;
   type: 'city' | 'village' | 'forest' | 'sea' | 'castle' | 'other';
   note: string;
 }
 
-export interface SampleTimelineEntry {
+interface SampleTimelineEntry {
   era: string;
   title: string;
   type: 'world' | 'plot' | 'character' | 'other';
 }
 
-export interface SampleMargin {
+interface SampleMargin {
   id: number;
   kind: 'idea' | 'question' | 'todo' | 'important';
   time: string;
@@ -34,14 +34,14 @@ export interface SampleMargin {
   quote: string;
 }
 
-export interface SampleVersion {
+interface SampleVersion {
   date: string;
   words: number;
   label: string;
   active?: boolean;
 }
 
-export interface SampleNovel {
+interface SampleNovel {
   title: string;
   author: string;
   genre: string;
