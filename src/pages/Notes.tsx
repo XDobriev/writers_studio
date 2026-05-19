@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { useState, useCallback } from 'react';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
@@ -32,6 +32,7 @@ const KIND_COLORS_SOFT: Record<NoteKind, string> = {
 
 export default function Notes() {
   const { id: bookId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: book, error: bookError } = useBook(bookId);
@@ -50,6 +51,10 @@ export default function Notes() {
   const [editText, setEditText] = useState('');
 
   const [filterKind, setFilterKind] = useState<NoteKind | 'all'>('all');
+
+  const handleSelectChapter = useCallback((id: string) => {
+    navigate(`/books/${bookId}/editor?chapter=${id}`);
+  }, [bookId, navigate]);
 
   const handleAdd = async () => {
     if (!bookId || !formText.trim()) return;
@@ -125,6 +130,7 @@ export default function Notes() {
           book={book}
           chapters={chapters}
           bookHref={`/books/${bookId}/editor`}
+          onSelectChapter={handleSelectChapter}
         />
         <main className="as-main" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           <div style={{
