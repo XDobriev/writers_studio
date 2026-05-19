@@ -301,12 +301,13 @@ export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
     .join('') || '?';
 
   const items: Array<[RailKey, Parameters<typeof Icon>[0]['name'], string, string]> = [
+    ['dashboard',  'layout', 'Дэшборд',   ''],
     ['editor',     'book',   'Манускрипт', 'editor'],
     ['characters', 'char',   'Персонажи',  'characters'],
     ['map',        'map',    'Карта мира', 'map'],
     ['timeline',   'clock',  'Хронология', 'timeline'],
     ['notes',      'note',   'Заметки',    'notes'],
-    ['dashboard',  'layout', 'Дэшборд',   ''],
+    ['outline',    'tree',   'Структура',  'outline'],
   ];
 
   const href = (segment: string) =>

@@ -353,7 +353,6 @@ export default function Outline() {
             </div>
           </div>
           <div className="sb-tabs">
-            <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/editor`)}>Список</button>
             <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/corkboard`)}>Доска</button>
             <button className="sb-tab sb-tab--on">Структура</button>
           </div>
@@ -364,7 +363,12 @@ export default function Outline() {
             <button className="btn" onClick={onCreate}><Icon name="plus" size={13} /> Новая глава</button>
           </div>
           {bookId && (
-            <div style={{ padding: '12px 14px 0' }}>
+            <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Link to={`/books/${bookId}/editor`} className="sb-item" style={{ color: 'var(--ink-3)' }}>
+                <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="pencil" size={14} /></span>
+                <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>В редактор</span>
+                <span />
+              </Link>
               <Link to={`/books/${bookId}`} className="sb-item" style={{ color: 'var(--ink-3)' }}>
                 <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="arrows" size={14} /></span>
                 <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>← К дэшборду</span>
