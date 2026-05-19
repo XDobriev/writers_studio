@@ -433,17 +433,13 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
     ev.preventDefault();
     if (editor) fn(editor);
   };
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollLeft = 0;
+  }, []);
 
-  const wrapper = variant === 'pill' ? {
-    display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap' as const,
-    background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 18,
-    padding: '6px 10px', boxShadow: '0 8px 28px rgba(0,0,0,.35)',
-    maxWidth: '100%',
-    overflowX: 'auto' as const, overflowY: 'hidden' as const, scrollbarWidth: 'none' as const,
-  } : undefined;
-
-  return (
-    <div className={variant === 'studio' ? 'tb tb--wrap' : undefined} style={wrapper}>
+  const buttons = (
+    <>
       <button
         type="button"
         title="Отменить (Ctrl+Z)"
@@ -567,21 +563,41 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
       <span className="tb-sep" />
 
       <LinkPopover editor={editor} />
+    </>
+  );
 
-      {showModes && mode && setMode && (
-        <div style={{
-          position: 'sticky',
-          right: 0,
-          flexShrink: 0,
-          marginLeft: 'auto',
-          paddingLeft: 8,
-          borderLeft: '1px solid var(--border-soft)',
-          background: 'var(--bg)',
-        }}>
-          <ModeSegment mode={mode} setMode={setMode} />
+  if (variant === 'studio') {
+    return (
+      <div style={{
+        height: 44, flexShrink: 0,
+        background: 'var(--bg)',
+        borderBottom: '1px solid var(--border-soft)',
+        display: 'flex', alignItems: 'center',
+      }}>
+        <div ref={scrollRef} className="tb" style={{ flex: 1, height: '100%', background: 'transparent', borderBottom: 'none', flexShrink: 'unset' } as React.CSSProperties}>
+          {buttons}
         </div>
-      )}
+        {showModes && mode && setMode && (
+          <div style={{
+            flexShrink: 0, display: 'flex', alignItems: 'center',
+            paddingLeft: 8, paddingRight: 14,
+            borderLeft: '1px solid var(--border-soft)',
+          }}>
+            <ModeSegment mode={mode} setMode={setMode} />
+          </div>
+        )}
+      </div>
+    );
+  }
 
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap',
+      background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 18,
+      padding: '6px 10px', boxShadow: '0 8px 28px rgba(0,0,0,.35)',
+      maxWidth: '100%', overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'none',
+    } as React.CSSProperties}>
+      {buttons}
     </div>
   );
 }

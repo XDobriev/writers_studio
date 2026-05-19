@@ -242,6 +242,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   color: var(--ink-2); font-size: 12px;
   background: transparent; border: none; cursor: pointer;
+  overflow: hidden;
 }
 .tb-btn:hover { background: var(--surface); color: var(--ink); }
 .tb-btn--on { background: var(--surface-2); color: var(--ink); }

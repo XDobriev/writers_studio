@@ -573,7 +573,8 @@ function RelationsBlock({ activeId, characters, relations, onCreate, onDelete, o
           <select
             value={toId}
             onChange={(e) => setToId(e.target.value)}
-            style={{ flex: '0 0 200px', height: 32, padding: '0 8px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+            className="input"
+            style={{ flex: '0 0 200px', height: 32 }}
           >
             {candidates.map((c) => (
               <option key={c.id} value={c.id}>{c.name || 'Без имени'}</option>
@@ -585,7 +586,8 @@ function RelationsBlock({ activeId, characters, relations, onCreate, onDelete, o
             placeholder="Кто кому? (наставник, спутник, сестра…)"
             onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setAdding(false); }}
             autoFocus
-            style={{ flex: 1, height: 32, padding: '0 10px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+            className="input"
+            style={{ flex: 1, height: 32 }}
           />
           <button onClick={submit} className="btn btn--primary" style={{ fontSize: 12 }}>Добавить</button>
           <button onClick={() => setAdding(false)} className="btn btn--ghost" style={{ fontSize: 12 }}>Отмена</button>

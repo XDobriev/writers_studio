@@ -95,6 +95,7 @@ export function Icon({ name, size = 16 }: IconProps) {
       strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
+      style={{ display: 'block', overflow: 'hidden', flexShrink: 0 }}
     >
       {PATHS[name] ?? null}
     </svg>
