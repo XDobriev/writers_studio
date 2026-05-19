@@ -135,13 +135,6 @@ export default function MapScreen() {
           </div>
 
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
-            <div style={{ background: 'oklch(0.96 0.01 80 / 0.05)', border: '1px dashed var(--border-soft)', borderRadius: 12, padding: '16px 20px', marginBottom: 20 }}>
-              <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Визуальная карта</div>
-              <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
-                Графическое расположение локаций по координатам появится в следующем заходе. Сейчас — список с inline-редактированием.
-              </div>
-            </div>
-
             {filtered.length === 0 ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'var(--ink-3)', padding: '48px 0' }}>
                 <div style={{ font: '500 14px var(--font-ui)' }}>

@@ -48,6 +48,34 @@
   --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
   --font-serif: 'Source Serif 4', Georgia, serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  color-scheme: dark;
+}
+
+/* ─── Светлая тема ─────────────────────────────────────────────────────── */
+/* Применяется когда на <html> выставлен data-theme="light".
+   Переопределяем только поверхности и текст; акценты и paper-переменные
+   одинаково работают в обеих темах. */
+[data-theme="light"] {
+  /* surfaces — тёплый пергамент/льняная бумага */
+  --bg-deep: oklch(0.89 0.012 65);
+  --bg:      oklch(0.96 0.008 70);
+  --surface:   oklch(0.93 0.010 65);
+  --surface-2: oklch(0.88 0.012 60);
+  --surface-3: oklch(0.83 0.012 55);
+
+  /* borders — видимы, но не перегружают */
+  --border:        oklch(0.79 0.010 50);
+  --border-soft:   oklch(0.87 0.008 55);
+  --border-strong: oklch(0.69 0.012 50);
+
+  /* ink — тёмно-коричневый charcoal, не чистый чёрный */
+  --ink:   oklch(0.18 0.022 60);
+  --ink-2: oklch(0.36 0.018 60);
+  --ink-3: oklch(0.52 0.014 60);
+  --ink-4: oklch(0.64 0.012 60);
+
+  color-scheme: light;
 }
 
 html, body, #root {

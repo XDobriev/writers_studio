@@ -396,7 +396,10 @@ function HeroBlock({ character, onChange }: {
         <div style={{ position: 'relative', font: '600 56px var(--font-serif)', color: 'oklch(0.95 0.01 80 / 0.9)', letterSpacing: '-0.02em' }}>
           {initialsFromName(name)}
         </div>
-        <div style={{ position: 'absolute', top: 8, left: 8, right: 8, font: '400 9px var(--font-mono)', color: 'oklch(0.95 0.01 80 / 0.5)', letterSpacing: '0.14em' }}>ПОРТРЕТ — НЕТ</div>
+        <div style={{ position: 'absolute', top: 10, right: 10, color: 'oklch(0.95 0.01 80 / 0.35)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+          <Icon name="camera" size={16} />
+          <span style={{ font: '400 8px var(--font-ui)', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>без портрета</span>
+        </div>
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>

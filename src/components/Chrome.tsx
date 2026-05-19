@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
 import { useNotes, QUERY_KEYS } from '../lib/queries';
 import { useAuth } from '../lib/auth';
+import { applyTheme, getStoredTheme, type Theme } from '../lib/theme';
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
   const { user, signOut, updatePassword } = useAuth();
@@ -20,7 +21,13 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   const [passSaving, setPassSaving] = useState(false);
   const [passError, setPassError] = useState<string | null>(null);
   const [passSaved, setPassSaved] = useState(false);
+  const [theme, setTheme] = useState<Theme>(getStoredTheme);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  const handleTheme = (next: Theme) => {
+    setTheme(next);
+    applyTheme(next);
+  };
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -110,6 +117,32 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
               </div>
               {passError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', marginTop: 6 }}>{passError}</span>}
               {passSaved && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ok)', marginTop: 6 }}>Пароль изменён</span>}
+            </div>
+          </section>
+
+          <hr style={HR} />
+
+          {/* ИНТЕРФЕЙС */}
+          <section style={{ marginTop: 20 }}>
+            <div style={SL}>Интерфейс</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={FL}>Тема</span>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button
+                  onClick={() => handleTheme('dark')}
+                  className={'btn' + (theme === 'dark' ? ' btn--primary' : ' btn--ghost')}
+                  style={{ fontSize: 12, gap: 5 }}
+                >
+                  <Icon name="moon" size={13} /> Тёмная
+                </button>
+                <button
+                  onClick={() => handleTheme('light')}
+                  className={'btn' + (theme === 'light' ? ' btn--primary' : ' btn--ghost')}
+                  style={{ fontSize: 12, gap: 5 }}
+                >
+                  <Icon name="sun" size={13} /> Светлая
+                </button>
+              </div>
             </div>
           </section>
 
