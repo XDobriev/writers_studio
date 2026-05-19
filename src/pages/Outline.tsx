@@ -20,8 +20,9 @@ import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
 import { LogoMark } from '../components/LogoMark';
 import { useAuth } from '../lib/auth';
-import { createChapter, deleteChapter, reorderChapters, type Chapter } from '../lib/chapters';
+import { createChapter, deleteChapter, reorderChapters, updateChapter, type Chapter } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
+import { plural } from '../lib/useWritingStats';
 
 const STATUS_COLOR: Record<Chapter['status'], string> = {
   draft: 'var(--ink-4)',
@@ -39,7 +40,17 @@ interface RowProps {
   setDeleteConfirmFor: (id: string | null) => void;
   onDelete: (id: string) => void;
   menuRef: React.RefObject<HTMLDivElement>;
+  renameFor: string | null;
+  setRenameFor: (id: string | null) => void;
+  onRename: (id: string, title: string) => void;
 }
+
+const MENU_ITEM: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 8,
+  padding: '6px 8px', width: '100%', borderRadius: 4,
+  background: 'transparent', cursor: 'pointer',
+  font: '400 12px var(--font-ui)', border: 'none', textAlign: 'left',
+};
 
 function SortableChapterRow({
   chapter: c,
@@ -51,8 +62,28 @@ function SortableChapterRow({
   setDeleteConfirmFor,
   onDelete,
   menuRef,
+  renameFor,
+  setRenameFor,
+  onRename,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id });
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  useEffect(() => {
+    if (renameFor === c.id) {
+      setRenameValue(c.title);
+      setTimeout(() => renameInputRef.current?.select(), 0);
+    }
+  }, [renameFor, c.id, c.title]);
+
+  const commitRename = () => {
+    const trimmed = renameValue.trim();
+    if (trimmed && trimmed !== c.title) onRename(c.id, trimmed);
+    setRenameFor(null);
+  };
+
+  const isRenaming = renameFor === c.id;
 
   return (
     <div
@@ -72,48 +103,60 @@ function SortableChapterRow({
         type="button"
         {...listeners}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 28,
-          height: 44,
-          flexShrink: 0,
-          background: 'transparent',
-          border: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 28, height: 44, flexShrink: 0,
+          background: 'transparent', border: 'none',
           cursor: isDragging ? 'grabbing' : 'grab',
-          color: 'var(--ink-4)',
-          padding: 0,
+          color: 'var(--ink-4)', padding: 0,
         }}
         title="Перетащить"
       >
         <Icon name="drag" size={12} />
       </button>
 
-      <Link
-        to={`/books/${bookId}/editor?chapter=${c.id}`}
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 14,
-          padding: '12px 40px 12px 0',
-          borderRadius: 8,
-          textDecoration: 'none',
-        }}
-      >
-        <span style={{ font: '500 12px var(--font-mono)', color: c.status === 'draft' ? 'var(--ink-4)' : 'var(--accent)', letterSpacing: '0.04em', marginTop: 3, minWidth: 28 }}>
-          {String(i + 1).padStart(2, '0')}
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ font: '500 15px var(--font-serif)', color: c.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)' }}>
-            {c.title || 'Без названия'}
-          </div>
+      {isRenaming ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 14, padding: '8px 40px 8px 0' }}>
+          <span style={{ font: '500 12px var(--font-mono)', color: 'var(--accent)', letterSpacing: '0.04em', minWidth: 28 }}>
+            {String(i + 1).padStart(2, '0')}
+          </span>
+          <input
+            ref={renameInputRef}
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitRename();
+              if (e.key === 'Escape') setRenameFor(null);
+            }}
+            style={{
+              flex: 1, font: '500 15px var(--font-serif)', color: 'var(--ink)',
+              background: 'var(--bg-deep)', border: '1px solid var(--accent)',
+              borderRadius: 4, padding: '2px 6px', outline: 'none',
+            }}
+          />
         </div>
-        <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 4 }}>
-          {c.words.toLocaleString('ru')} сл
-        </span>
-        <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 8, background: STATUS_COLOR[c.status] }} />
-      </Link>
+      ) : (
+        <Link
+          to={`/books/${bookId}/editor?chapter=${c.id}`}
+          style={{
+            flex: 1, display: 'flex', alignItems: 'flex-start', gap: 14,
+            padding: '12px 40px 12px 0', borderRadius: 8, textDecoration: 'none',
+          }}
+        >
+          <span style={{ font: '500 12px var(--font-mono)', color: c.status === 'draft' ? 'var(--ink-4)' : 'var(--accent)', letterSpacing: '0.04em', marginTop: 3, minWidth: 28 }}>
+            {String(i + 1).padStart(2, '0')}
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ font: '500 15px var(--font-serif)', color: c.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)' }}>
+              {c.title || 'Без названия'}
+            </div>
+          </div>
+          <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 4 }}>
+            {c.words.toLocaleString('ru')} сл
+          </span>
+          <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 8, background: STATUS_COLOR[c.status] }} />
+        </Link>
+      )}
 
       <div
         ref={menuFor === c.id ? menuRef : null}
@@ -136,9 +179,9 @@ function SortableChapterRow({
         {menuFor === c.id && (
           <div style={{
             position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200,
-            background: 'var(--surface)', border: '1px solid var(--border-soft)',
-            borderRadius: 6, padding: 4, minWidth: 148,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+            background: 'var(--bg-deep)', border: '1px solid var(--border-strong)',
+            borderRadius: 6, padding: 4, minWidth: 160,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
           }}>
             {deleteConfirmFor === c.id ? (
               <div style={{ padding: '6px 8px' }}>
@@ -154,24 +197,31 @@ function SortableChapterRow({
                   <button
                     type="button"
                     onClick={() => setDeleteConfirmFor(null)}
-                    style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--bg-deep)', color: 'var(--ink-2)', border: 'none', borderRadius: 4, cursor: 'pointer', font: '400 11px var(--font-ui)' }}
+                    style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--surface)', color: 'var(--ink-2)', border: 'none', borderRadius: 4, cursor: 'pointer', font: '400 11px var(--font-ui)' }}
                   >Отмена</button>
                 </div>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  if (c.words > 0) {
-                    setDeleteConfirmFor(c.id);
-                  } else {
-                    void onDelete(c.id);
-                  }
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--danger)', border: 'none', textAlign: 'left' }}
-              >
-                Удалить главу
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => { setRenameFor(c.id); setMenuFor(null); }}
+                  style={{ ...MENU_ITEM, color: 'var(--ink)' }}
+                >
+                  Переименовать
+                </button>
+                <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (c.words > 0) setDeleteConfirmFor(c.id);
+                    else void onDelete(c.id);
+                  }}
+                  style={{ ...MENU_ITEM, color: 'var(--danger)' }}
+                >
+                  Удалить главу
+                </button>
+              </>
             )}
           </div>
         )}
@@ -192,6 +242,7 @@ export default function Outline() {
   const error = chaptersError?.message ?? mutationError;
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
+  const [renameFor, setRenameFor] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
@@ -253,6 +304,19 @@ export default function Outline() {
       navigate(`/books/${bookId}/editor?chapter=${created.id}`);
     } catch (e) {
       setError((e as Error).message);
+    }
+  };
+
+  const onRename = async (id: string, title: string) => {
+    if (!bookId) return;
+    queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+      (prev ?? []).map((c) => (c.id === id ? { ...c, title } : c)),
+    );
+    try {
+      await updateChapter(id, { title });
+    } catch (e) {
+      setError((e as Error).message);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
     }
   };
 
@@ -346,7 +410,7 @@ export default function Outline() {
                   <h2 style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em' }}>Главы</h2>
                   <span style={{ flex: 1 }} />
                   <span style={{ font: '400 11.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em' }}>
-                    {totals.done} готово · {totals.progress} в работе · {totals.draft} черновик
+                    {totals.done} готово · {totals.progress} в работе · {totals.draft} {plural(totals.draft, 'черновик', 'черновика', 'черновиков')}
                   </span>
                 </div>
 
@@ -364,6 +428,9 @@ export default function Outline() {
                         setDeleteConfirmFor={setDeleteConfirmFor}
                         onDelete={onDelete}
                         menuRef={menuRef}
+                        renameFor={renameFor}
+                        setRenameFor={setRenameFor}
+                        onRename={onRename}
                       />
                     ))}
                   </SortableContext>

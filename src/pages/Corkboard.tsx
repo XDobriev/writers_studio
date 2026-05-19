@@ -7,6 +7,7 @@ import { LogoMark } from '../components/LogoMark';
 import { useAuth } from '../lib/auth';
 import { createChapter, deleteChapter, updateChapter, type Chapter } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
+import { plural } from '../lib/useWritingStats';
 
 type Filter = 'all' | Chapter['status'];
 
@@ -274,7 +275,7 @@ export default function Corkboard() {
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Доска глав</span>
-              <span className="chip">{counts.done} готово · {counts.progress} в работе · {counts.draft} черновик</span>
+              <span className="chip">{counts.done} готово · {counts.progress} в работе · {counts.draft} {plural(counts.draft, 'черновик', 'черновика', 'черновиков')}</span>
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button className="btn" onClick={onCreate}><Icon name="plus" size={14} /> Новая глава</button>
