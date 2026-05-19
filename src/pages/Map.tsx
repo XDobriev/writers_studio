@@ -162,14 +162,22 @@ export default function MapScreen() {
 
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
             {filtered.length === 0 ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'var(--ink-3)', padding: '48px 0' }}>
-                <div style={{ font: '500 14px var(--font-ui)' }}>
-                  {locations.length === 0 ? 'На карте ещё нет локаций' : 'Нет локаций этого типа'}
+              locations.length === 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
+                  <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'var(--surface)', color: 'var(--ink-4)', border: '1px solid var(--border-soft)' }}>
+                    <Icon name="map" size={22} />
+                  </div>
+                  <div style={{ textAlign: 'center', maxWidth: 260 }}>
+                    <div style={{ font: '500 14px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 6 }}>На карте ещё нет локаций</div>
+                    <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.6 }}>Создавайте места вашего мира — города, леса, замки и другие локации</div>
+                  </div>
+                  <button onClick={onCreate} className="btn btn--primary"><Icon name="plus" size={13} /> Создать локацию</button>
                 </div>
-                {locations.length === 0 && (
-                  <button onClick={onCreate} className="btn"><Icon name="plus" size={13} /> Создать первую</button>
-                )}
-              </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: 'var(--ink-3)', padding: '48px 0' }}>
+                  <div style={{ font: '500 14px var(--font-ui)' }}>Нет локаций этого типа</div>
+                </div>
+              )
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
                 {filtered.map((loc) => (

@@ -200,9 +200,24 @@ export default function Notes() {
             )}
 
             {filtered.length === 0 && !showForm && (
-              <div style={{ color: 'var(--ink-4)', fontSize: 13, textAlign: 'center', paddingTop: 48 }}>
-                {filterKind === 'all' ? 'Нет заметок. Нажмите «Добавить».' : `Нет заметок типа «${KIND_LABELS[filterKind]}».`}
-              </div>
+              filterKind === 'all' ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
+                  <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'var(--surface)', color: 'var(--ink-4)', border: '1px solid var(--border-soft)' }}>
+                    <Icon name="note" size={22} />
+                  </div>
+                  <div style={{ textAlign: 'center', maxWidth: 260 }}>
+                    <div style={{ font: '500 14px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 6 }}>Заметок пока нет</div>
+                    <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.6 }}>Записывайте идеи, вопросы и важные мысли по ходу работы над книгой</div>
+                  </div>
+                  <button className="btn btn--primary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowForm(true)}>
+                    <Icon name="plus" size={13} /> Добавить заметку
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-4)', fontSize: 13, paddingTop: 48 }}>
+                  {`Нет заметок типа «${KIND_LABELS[filterKind]}».`}
+                </div>
+              )
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
