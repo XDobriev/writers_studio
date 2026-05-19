@@ -1,19 +1,10 @@
-import { type ComponentProps, type ReactNode, useEffect, useState } from 'react';
+import { type ComponentProps, type ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { supabase } from '../lib/supabase';
 import { Icon } from '../components/Icon';
 import { LogoMark } from '../components/LogoMark';
 
-interface PublicStats {
-  users_total: number;
-  books_total: number;
-  words_total: number;
-}
-
 type IName = ComponentProps<typeof Icon>['name'];
-
-const STATS_MIN = 20;
 
 const MC = [
   { num: 1, title: 'Город, которого нет', status: 'done' as const },
@@ -34,17 +25,8 @@ const MS = [
 
 export default function Landing() {
   const { session } = useAuth();
-  const [stats, setStats] = useState<PublicStats | null>(null);
-
-  useEffect(() => {
-    supabase.rpc('get_public_stats').then(({ data }) => {
-      if (data) setStats(data as PublicStats);
-    });
-  }, []);
 
   if (session) return <Navigate to="/books" replace />;
-
-  const showStats = stats !== null && stats.users_total >= STATS_MIN;
 
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)' }}>
@@ -79,10 +61,10 @@ export default function Landing() {
         }
       `}</style>
       <LandingNav />
-      <LandingHero stats={showStats ? stats! : null} />
+      <LandingHero />
       <LandingFeatures />
       <LandingProcess />
-      <LandingTestimonials />
+      <LandingPrinciples />
       <LandingPricing />
       <LandingFAQ />
       <LandingCTA />
@@ -116,7 +98,7 @@ function LandingNav() {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
-function LandingHero({ stats }: { stats: PublicStats | null }) {
+function LandingHero() {
   return (
     <section style={{ position: 'relative', padding: 'clamp(120px,14vw,160px) clamp(20px,4vw,56px) clamp(64px,8vw,80px)', background: 'var(--bg-deep)', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, opacity: 0.08, backgroundImage: 'linear-gradient(oklch(0.95 0.01 80) 1px,transparent 1px),linear-gradient(90deg,oklch(0.95 0.01 80) 1px,transparent 1px)', backgroundSize: '56px 56px', pointerEvents: 'none' }} />
@@ -142,13 +124,11 @@ function LandingHero({ stats }: { stats: PublicStats | null }) {
                 <Icon name="eye" size={15} /> Войти в студию
               </Link>
             </div>
-            {stats && (
-              <div style={{ display: 'flex', gap: 28, paddingTop: 24, borderTop: '1px solid var(--border-soft)', flexWrap: 'wrap' }}>
-                <HStat n={stats.users_total.toLocaleString('ru')} l={pluralRu(stats.users_total, 'автор', 'автора', 'авторов')} />
-                <HStat n={stats.books_total.toLocaleString('ru')} l={pluralRu(stats.books_total, 'книга', 'книги', 'книг')} />
-                <HStat n={formatWords(stats.words_total)} l={wordsLabel(stats.words_total)} />
-              </div>
-            )}
+            <div style={{ paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
+              <p style={{ font: '400 14px/1.6 var(--font-serif)', color: 'var(--ink-3)', maxWidth: 420, margin: 0 }}>
+                Сейчас в студии работают первые авторы — именно сейчас можно попасть в самое начало.
+              </p>
+            </div>
           </div>
           <div className="lnd-hero-sheet" style={{ position: 'relative', height: 540 }}>
             <FloatingSheet />
@@ -167,14 +147,6 @@ function LandingHero({ stats }: { stats: PublicStats | null }) {
   );
 }
 
-function HStat({ n, l }: { n: string; l: string }) {
-  return (
-    <div>
-      <div style={{ font: '600 22px var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{n}</div>
-      <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>{l}</div>
-    </div>
-  );
-}
 
 function FloatingSheet() {
   return (
@@ -412,32 +384,45 @@ function LandingProcess() {
   );
 }
 
-// ─── Testimonials ─────────────────────────────────────────────────────────────
+// ─── Principles ───────────────────────────────────────────────────────────────
 
-function LandingTestimonials() {
-  const quotes = [
-    { text: 'Я двенадцать лет писала в Word, потом четыре в Scrivener, и впервые мне не нужно держать в голове, в каком файле какая глава. Это редкий случай, когда инструмент не мешает.', author: 'Елена Гроздова', meta: 'роман «Долгое лето в Колпино», в работе', who: 'ЕГ' },
-    { text: 'Карточки сцен на доске — это, по сути, мой бумажный архив за пятнадцать лет. Переставить главы и не сломать нумерацию — мелочь, которой нет нигде.', author: 'Юрий Стречнев', meta: 'автор четырёх детективных романов', who: 'ЮС' },
-    { text: 'Серия дней меня не подгоняет, не пишет «вы не открывали 3 дня». Просто молча считает. Это всё, что мне было нужно от трекера.', author: 'Кариса Войт', meta: 'эссеистка, автор «Памяти места»', who: 'КВ' },
-    { text: 'Хронология в одном клике от текста — оказалось, именно этого мне всю жизнь не хватало в Notion. Слежу за своими событиями, не вылезая из главы.', author: 'Тимур Пастухов', meta: 'фэнтези-цикл «Тёмный январь»', who: 'ТП' },
-  ];
+const PRINCIPLES = [
+  {
+    icon: 'edit' as IName,
+    title: 'Студия не пишет за вас',
+    body: 'Никакого автодополнения, «улучши абзац», генерации текста. Если когда-нибудь появится — отдельным режимом с явным выключателем.',
+  },
+  {
+    icon: 'layers' as IName,
+    title: 'Всё рядом с рукописью',
+    body: 'Карта мира, картотека персонажей, хронология — не в другом приложении, не в другой вкладке. Открыли главу — рядом её мир.',
+  },
+  {
+    icon: 'clock' as IName,
+    title: 'Серия молчит',
+    body: 'Трекер считает дни подряд. Но не пишет «вы не открывали студию 4 дня» и не гасит полосу. Писатель и без этого знает.',
+  },
+  {
+    icon: 'lock' as IName,
+    title: 'Ваши книги — ваши',
+    body: 'Перестали платить — данные остаются. Экспорт всегда доступен. Рукописи не в заложниках.',
+  },
+];
+
+function LandingPrinciples() {
   return (
     <section style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
       <div className="lnd-max">
-        <SectionLabel align="center" kicker="03 · Что говорят авторы" title="Отзывы — как на обложке." subtitle="Бета-тестеры пишут собственные книги. Их слова — не маркетинговая копия." />
+        <SectionLabel align="center" kicker="03 · На чём это построено" title="Принципы, а не обещания." subtitle="Четыре решения, которые мы приняли до первой строчки кода." />
         <div className="lnd-quotes">
-          {quotes.map((q, i) => (
-            <figure key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div style={{ font: '500 28px var(--font-serif)', color: 'var(--accent)', lineHeight: 0.8, marginBottom: -12 }}>«</div>
-              <blockquote style={{ font: '400 17px/1.55 var(--font-serif)', color: 'var(--ink)', margin: 0, fontStyle: 'italic' }}>{q.text}</blockquote>
-              <figcaption style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 14, borderTop: '1px solid var(--border-soft)' }}>
-                <div style={{ width: 38, height: 38, borderRadius: 999, background: 'linear-gradient(135deg,var(--accent),var(--accent-2))', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 12px var(--font-ui)', color: 'var(--bg-deep)', flexShrink: 0 }}>{q.who}</div>
-                <div>
-                  <div style={{ font: '500 14px var(--font-ui)', color: 'var(--ink)' }}>{q.author}</div>
-                  <div style={{ font: '400 12px var(--font-mono)', color: 'var(--ink-3)', marginTop: 2, letterSpacing: '0.02em' }}>{q.meta}</div>
-                </div>
-              </figcaption>
-            </figure>
+          {PRINCIPLES.map((p) => (
+            <div key={p.title} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ color: 'var(--accent-2)', display: 'flex' }}><Icon name={p.icon} size={18} /></span>
+              </div>
+              <div style={{ font: '600 17px/1.25 var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{p.title}</div>
+              <p style={{ font: '400 15px/1.6 var(--font-serif)', color: 'var(--ink-2)', margin: 0 }}>{p.body}</p>
+            </div>
           ))}
         </div>
       </div>
@@ -632,24 +617,3 @@ function LandingFooter() {
   );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function pluralRu(n: number, one: string, few: string, many: string): string {
-  const abs = Math.abs(Math.round(n)) % 100;
-  const rem = abs % 10;
-  if (abs >= 11 && abs <= 19) return many;
-  if (rem === 1) return one;
-  if (rem >= 2 && rem <= 4) return few;
-  return many;
-}
-
-function formatWords(n: number): string {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1).replace('.', ',')} млрд`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')} млн`;
-  return n.toLocaleString('ru');
-}
-
-function wordsLabel(n: number): string {
-  if (n >= 1_000_000) return 'слов';
-  return pluralRu(n, 'слово', 'слова', 'слов');
-}
