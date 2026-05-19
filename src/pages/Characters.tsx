@@ -398,9 +398,22 @@ function HeroBlock({ character, onChange }: {
 }) {
   const [name, setName] = useState(character.name);
   const [quote, setQuote] = useState(character.quote);
+  const [editingQuote, setEditingQuote] = useState(false);
+  const quoteRef = useRef<HTMLTextAreaElement>(null);
+
+  const autoResize = (el: HTMLTextAreaElement) => {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  };
 
   useEffect(() => { setName(character.name); }, [character.id, character.name]);
   useEffect(() => { setQuote(character.quote); }, [character.id, character.quote]);
+  useEffect(() => {
+    if (editingQuote && quoteRef.current) {
+      autoResize(quoteRef.current);
+      quoteRef.current.focus();
+    }
+  }, [editingQuote]);
 
   const onNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
@@ -411,6 +424,7 @@ function HeroBlock({ character, onChange }: {
     const v = e.target.value;
     setQuote(v);
     onChange({ quote: v });
+    autoResize(e.target);
   };
   const onRoleChange = (role: CharacterRole) => onChange({ role });
 
@@ -448,13 +462,26 @@ function HeroBlock({ character, onChange }: {
           style={{ width: '100%', font: '600 44px var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 6, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', padding: '4px 0' }}
         />
 
-        <textarea
-          value={quote}
-          onChange={onQuoteChange}
-          placeholder="Цитата или девиз персонажа"
-          rows={2}
-          style={{ width: '100%', maxWidth: 560, font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', fontStyle: 'italic', background: 'transparent', border: 'none', outline: 'none', resize: 'vertical', padding: 0 }}
-        />
+        {editingQuote ? (
+          <textarea
+            ref={quoteRef}
+            value={quote}
+            onChange={onQuoteChange}
+            onBlur={() => setEditingQuote(false)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setEditingQuote(false); }}
+            placeholder="Цитата или девиз персонажа"
+            rows={1}
+            style={{ width: '100%', maxWidth: 560, font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', fontStyle: 'italic', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-soft)', outline: 'none', resize: 'none', overflow: 'hidden', padding: '0 0 6px 0', display: 'block' }}
+          />
+        ) : (
+          <div
+            onClick={() => setEditingQuote(true)}
+            title="Нажмите, чтобы редактировать"
+            style={{ width: '100%', maxWidth: 560, font: '400 15px/1.65 var(--font-serif)', color: quote ? 'var(--ink-2)' : 'var(--ink-4)', fontStyle: 'italic', borderBottom: '1px solid var(--border-soft)', padding: '0 0 6px 0', cursor: 'text', whiteSpace: 'pre-wrap', minHeight: '1.65em' }}
+          >
+            {quote || 'Цитата или девиз персонажа'}
+          </div>
+        )}
 
       </div>
     </div>
