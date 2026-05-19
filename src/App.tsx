@@ -5,6 +5,7 @@ import { AuthProvider } from './lib/auth';
 import { AuthGuard } from './components/AuthGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineBanner } from './components/OfflineBanner';
+import { CookieBanner } from './components/CookieBanner';
 
 // Критический путь — eager: эти страницы нужны до любой навигации
 import Auth from './pages/Auth';
@@ -47,6 +48,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <OfflineBanner />
+        <CookieBanner />
         <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<Landing />} />
