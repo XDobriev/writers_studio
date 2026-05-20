@@ -276,6 +276,7 @@ export default function Dashboard() {
             <span style={{ font: '500 13px var(--font-ui)' }}>Дэшборд · {book.title}</span>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button className="btn btn--ghost" onClick={openEdit}><Icon name="pencil" size={14} /> Изменить</button>
+              <Link to={navTo('/export')} className="btn btn--ghost" style={{ textDecoration: 'none' }}><Icon name="download" size={14} /> Экспорт</Link>
               <Link to={navTo('/editor')} className="btn btn--primary" style={{ textDecoration: 'none' }}><Icon name="book" size={14} /> Открыть редактор</Link>
             </div>
           </div>

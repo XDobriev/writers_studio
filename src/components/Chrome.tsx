@@ -5,6 +5,7 @@ import { LogoMark } from './LogoMark';
 import { NOVEL } from '../data/sample';
 import type { Chapter, ChapterStatus, ChapterActions } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { SettingsModal } from './SettingsModal';
 
@@ -54,6 +55,37 @@ export function Sidebar({
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
+  const [shareToken, setShareToken] = useState<string | null>(book?.share_token ?? null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setShareToken(book?.share_token ?? null);
+  }, [book?.share_token]);
+
+  async function handleShare() {
+    if (!book?.id) return;
+    const token = crypto.randomUUID();
+    const { error } = await supabase.from('books').update({ share_token: token }).eq('id', book.id);
+    if (!error) {
+      setShareToken(token);
+      void navigator.clipboard.writeText(`${window.location.origin}/share/${token}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  async function handleCopy() {
+    if (!shareToken) return;
+    void navigator.clipboard.writeText(`${window.location.origin}/share/${shareToken}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleDisable() {
+    if (!book?.id) return;
+    const { error } = await supabase.from('books').update({ share_token: null }).eq('id', book.id);
+    if (!error) { setShareToken(null); setCopied(false); }
+  }
 
   useEffect(() => {
     if (!statusMenuFor) {
@@ -99,6 +131,38 @@ export function Sidebar({
         <div className="sb-book-author">
           {subtitle ?? (book ? [book.author, book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`)}
         </div>
+        {book?.id && (
+          <div style={{ marginTop: 8, display: 'flex', gap: 4 }}>
+            {shareToken ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void handleCopy()}
+                  title="Скопировать ссылку"
+                  style={{ flex: 1, font: '500 11px var(--font-ui)', color: copied ? 'var(--ok)' : 'var(--ink-2)', background: 'var(--bg-deep)', border: '1px solid var(--border-soft)', borderRadius: 5, padding: '4px 6px', cursor: 'pointer', transition: 'color 0.15s' }}
+                >
+                  {copied ? '✓ Скопировано' : '🔗 Ссылка'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDisable()}
+                  title="Отключить доступ по ссылке"
+                  style={{ font: '500 11px var(--font-ui)', color: 'var(--danger)', background: 'var(--bg-deep)', border: '1px solid var(--border-soft)', borderRadius: 5, padding: '4px 8px', cursor: 'pointer' }}
+                >
+                  Откл.
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void handleShare()}
+                style={{ font: '500 11px var(--font-ui)', color: 'var(--ink-3)', background: 'var(--bg-deep)', border: '1px solid var(--border-soft)', borderRadius: 5, padding: '4px 8px', cursor: 'pointer', width: '100%' }}
+              >
+                Поделиться
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <nav style={{ padding: '10px 8px 4px', display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -241,6 +305,16 @@ export function Sidebar({
           <Link to="/books" className="sb-item" style={{ color: 'var(--ink-3)' }}>
             <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="arrows" size={14} /></span>
             <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>← Все книги</span>
+            <span />
+          </Link>
+        </div>
+      )}
+
+      {bid && (
+        <div style={{ padding: '4px 12px 0' }}>
+          <Link to={`/books/${bid}/export`} className="sb-item" style={{ color: 'var(--ink-4)' }}>
+            <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-4)' }}><Icon name="download" size={14} /></span>
+            <span className="sb-item-title" style={{ color: 'var(--ink-4)' }}>Экспорт</span>
             <span />
           </Link>
         </div>
