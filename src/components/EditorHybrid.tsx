@@ -8,7 +8,7 @@ import { SAMPLE_PROSE } from '../data/sample';
 import { RichEditor, type Editor } from './RichEditor';
 import { EditorToolbar } from './EditorToolbar';
 import type { Book } from '../lib/supabase';
-import type { Chapter } from '../lib/chapters';
+import type { Chapter, ChapterActions } from '../lib/chapters';
 import { useWritingStats } from '../lib/useWritingStats';
 
 type Mode = 'studio' | 'left' | 'right' | 'page';
@@ -100,10 +100,7 @@ interface EditorHybridProps {
   chapters?: Chapter[];
   activeChapter?: Chapter | null;
   bookHref?: string;
-  onSelectChapter?: (id: string) => void;
-  onCreateChapter?: () => void;
-  onStatusChange?: (id: string, status: Chapter['status']) => void;
-  onDeleteChapter?: (id: string) => void;
+  chapterActions?: ChapterActions;
   onContentChange?: (html: string) => void;
   onTitleChange?: (title: string) => void;
   onGoalChange?: (goal: number) => void;
@@ -117,10 +114,7 @@ export function EditorHybrid({
   chapters,
   activeChapter,
   bookHref,
-  onSelectChapter,
-  onCreateChapter,
-  onStatusChange,
-  onDeleteChapter,
+  chapterActions,
   onContentChange,
   onTitleChange,
   onGoalChange,
@@ -157,10 +151,7 @@ export function EditorHybrid({
           book={book}
           chapters={chapters}
           activeChapterId={activeChapter?.id ?? null}
-          onSelectChapter={onSelectChapter}
-          onCreateChapter={onCreateChapter}
-          onStatusChange={onStatusChange}
-          onDeleteChapter={onDeleteChapter}
+          chapterActions={chapterActions}
           bookHref={bookHref}
         />
       )}
@@ -207,7 +198,7 @@ export function EditorHybrid({
               <div className="sheet" style={{ width: sheetWidth, padding: sheetPad, color: 'var(--ink-3)', textAlign: 'center' }}>
                 <div style={{ font: '500 18px var(--font-serif)', color: 'var(--ink-2)', marginBottom: 8 }}>Глав пока нет.</div>
                 <div style={{ marginBottom: 18, fontSize: 13 }}>Создайте первую главу — она появится в боковой панели.</div>
-                <button className="btn btn--primary" onClick={onCreateChapter}>
+                <button className="btn btn--primary" onClick={chapterActions?.onCreateChapter}>
                   <Icon name="plus" size={14} /> Новая глава
                 </button>
               </div>
@@ -248,10 +239,10 @@ export function EditorHybrid({
               book={book}
               chapters={chapters}
               activeChapterId={activeChapter?.id ?? null}
-              onSelectChapter={(id) => { onSelectChapter?.(id); setShowMobileSidebar(false); }}
-              onCreateChapter={onCreateChapter}
-              onStatusChange={onStatusChange}
-              onDeleteChapter={onDeleteChapter}
+              chapterActions={chapterActions ? {
+                ...chapterActions,
+                onSelectChapter: (id) => { chapterActions.onSelectChapter?.(id); setShowMobileSidebar(false); },
+              } : undefined}
               bookHref={bookHref}
             />
           </div>

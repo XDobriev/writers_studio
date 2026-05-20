@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
 import { LogoMark } from './LogoMark';
 import { NOVEL } from '../data/sample';
-import type { Chapter, ChapterStatus } from '../lib/chapters';
+import type { Chapter, ChapterStatus, ChapterActions } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { SettingsModal } from './SettingsModal';
@@ -31,10 +31,7 @@ interface SidebarProps {
   book?: Book | null;
   chapters?: Chapter[];
   activeChapterId?: string | null;
-  onSelectChapter?: (id: string) => void;
-  onCreateChapter?: () => void;
-  onStatusChange?: (id: string, status: ChapterStatus) => void;
-  onDeleteChapter?: (id: string) => void;
+  chapterActions?: ChapterActions;
   bookHref?: string;
   subtitle?: string;
   children?: ReactNode;
@@ -44,14 +41,12 @@ export function Sidebar({
   book,
   chapters,
   activeChapterId,
-  onSelectChapter,
-  onCreateChapter,
-  onStatusChange,
-  onDeleteChapter,
+  chapterActions,
   bookHref,
   subtitle,
   children,
 }: SidebarProps) {
+  const { onSelectChapter, onCreateChapter, onStatusChange, onDeleteChapter } = chapterActions ?? {};
   const isReal = Boolean(chapters);
   const { pathname } = useLocation();
   const { displayName, initials, plan } = useUserDisplay();

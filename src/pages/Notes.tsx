@@ -130,7 +130,7 @@ export default function Notes() {
           book={book}
           chapters={chapters}
           bookHref={`/books/${bookId}/editor`}
-          onSelectChapter={handleSelectChapter}
+          chapterActions={{ onSelectChapter: handleSelectChapter }}
         />
         <main className="as-main" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           <div style={{

@@ -17,6 +17,13 @@ export interface Chapter {
 
 export type ChapterPatch = Partial<Pick<Chapter, 'title' | 'content' | 'words' | 'status' | 'position'>>;
 
+export interface ChapterActions {
+  onSelectChapter?: (id: string) => void;
+  onCreateChapter?: () => void;
+  onStatusChange?: (id: string, status: ChapterStatus) => void;
+  onDeleteChapter?: (id: string) => void;
+}
+
 export function countWords(html: string): number {
   if (!html) return 0;
   const text = html

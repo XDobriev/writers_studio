@@ -192,10 +192,7 @@ export default function Editor() {
         chapters={chapters}
         activeChapter={activeChapter}
         bookHref={`/books/${bookId}`}
-        onSelectChapter={selectChapter}
-        onCreateChapter={onCreateChapter}
-        onStatusChange={onStatusChange}
-        onDeleteChapter={onDeleteChapter}
+        chapterActions={{ onSelectChapter: selectChapter, onCreateChapter, onStatusChange, onDeleteChapter }}
         onContentChange={onContentChange}
         onTitleChange={onTitleChange}
         onGoalChange={onGoalChange}
