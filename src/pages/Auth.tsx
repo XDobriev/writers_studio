@@ -2,13 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth, type TelegramAuthData } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
-import { supabase, supabaseConfigured } from '../lib/supabase';
-
-interface PublicStats {
-  users_total: number;
-  books_total: number;
-  words_total: number;
-}
+import { supabaseConfigured } from '../lib/supabase';
 
 type Tab = 'signin' | 'signup';
 type Flow = 'auth' | 'reset-request' | 'reset-sent';
@@ -49,14 +43,7 @@ export default function Auth() {
   const [oauthBusy, setOauthBusy] = useState<'google' | 'telegram' | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [stats, setStats] = useState<PublicStats | null>(null);
   const tgSlotRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    supabase.rpc('get_public_stats').then(({ data }) => {
-      if (data) setStats(data as PublicStats);
-    });
-  }, []);
 
   useEffect(() => {
     if (!TG_BOT_USERNAME || !tgSlotRef.current) return;
@@ -145,21 +132,15 @@ export default function Auth() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: 32, paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
-          {stats ? (
-            <>
-              <StatCell value={stats.users_total.toLocaleString('ru')} label={pluralRu(stats.users_total, 'автор', 'автора', 'авторов')} />
-              <StatCell value={stats.books_total.toLocaleString('ru')} label={pluralRu(stats.books_total, 'книга написана', 'книги написано', 'книг написано')} />
-              <StatCell value={formatWords(stats.words_total)} label={wordsLabel(stats.words_total)} />
-            </>
-          ) : (
-            <>
-              <StatCell value="—" label="авторов" />
-              <StatCell value="—" label="книг написано" />
-              <StatCell value="—" label="слов" />
-            </>
-          )}
+        <div style={{ paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
+          <p style={{ font: '400 14px/1.6 var(--font-serif)', color: 'var(--ink-3)', fontStyle: 'italic', margin: 0 }}>
+            «Писать надо только тогда, когда не можешь не писать.»
+          </p>
+          <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4, var(--ink-3))', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>
+            А. П. Чехов
+          </div>
         </div>
+
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48 }}>
@@ -385,35 +366,6 @@ export default function Auth() {
 
         </form>
       </div>
-    </div>
-  );
-}
-
-function formatWords(n: number): string {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1).replace('.', ',')} млрд`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')} млн`;
-  return n.toLocaleString('ru');
-}
-
-function pluralRu(n: number, one: string, few: string, many: string): string {
-  const abs = Math.abs(Math.round(n)) % 100;
-  const rem = abs % 10;
-  if (abs >= 11 && abs <= 19) return many;
-  if (rem === 1) return one;
-  if (rem >= 2 && rem <= 4) return few;
-  return many;
-}
-
-function wordsLabel(n: number): string {
-  if (n >= 1_000_000) return 'слов';
-  return pluralRu(n, 'слово', 'слова', 'слов');
-}
-
-function StatCell({ value, label }: { value: string; label: string }) {
-  return (
-    <div>
-      <div style={{ font: '500 22px var(--font-serif)', color: 'var(--ink)' }}>{value}</div>
-      <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>{label}</div>
     </div>
   );
 }
