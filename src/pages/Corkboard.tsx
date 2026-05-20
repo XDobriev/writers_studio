@@ -237,8 +237,8 @@ export default function Corkboard() {
             </div>
           </div>
           <div className="sb-tabs">
-            <button className="sb-tab sb-tab--on">Доска</button>
             <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/outline`)}>Структура</button>
+            <button className="sb-tab sb-tab--on">Доска</button>
           </div>
           <div style={{ padding: '18px 18px 14px', color: 'var(--ink-3)', fontSize: 12, lineHeight: 1.6 }}>
             На доске — главы как индексные карточки. Щелчок по карточке — открыть в редакторе.
@@ -260,12 +260,7 @@ export default function Corkboard() {
             ))}
           </div>
           {bookId && (
-            <div style={{ padding: '12px 14px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Link to={`/books/${bookId}/editor`} className="sb-item" style={{ color: 'var(--ink-3)' }}>
-                <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="pencil" size={14} /></span>
-                <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>В редактор</span>
-                <span />
-              </Link>
+            <div style={{ padding: '12px 14px 0' }}>
               <Link to={`/books/${bookId}`} className="sb-item" style={{ color: 'var(--ink-3)' }}>
                 <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="arrows" size={14} /></span>
                 <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>← К дэшборду</span>
