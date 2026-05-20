@@ -143,7 +143,7 @@ export function EditorHybrid({
 
 
   return (
-    <div className="as" style={{ height: '100%', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative', transition: 'grid-template-columns 220ms cubic-bezier(.2,.7,.3,1)' }}>
+    <div className="as" style={{ height: '100%', overflow: 'hidden', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative', transition: 'grid-template-columns 220ms cubic-bezier(.2,.7,.3,1)' }}>
       {isPage && !isMobile && <RailNav active="editor" bookId={book?.id} style={{ position: 'relative', height: '100%' }} />}
 
       {showLeft && (
@@ -156,7 +156,7 @@ export function EditorHybrid({
         />
       )}
 
-      <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
+      <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
         {isMobile && !isPage && (
           <div style={{ display: 'flex', alignItems: 'center', height: 44, padding: '0 12px', gap: 8, borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)', flexShrink: 0 }}>
             <button

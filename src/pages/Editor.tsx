@@ -186,7 +186,7 @@ export default function Editor() {
   }
 
   return (
-    <div style={{ height: '100vh' }}>
+    <div style={{ height: '100dvh', overflow: 'hidden' }}>
       <EditorHybrid
         defaultMode="studio"
         book={book}

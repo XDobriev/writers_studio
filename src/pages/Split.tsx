@@ -119,8 +119,8 @@ export default function Split() {
   }
 
   return (
-    <div className="as as-app" style={{ height: '100vh' }}>
-      <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--bg)' }}>
+    <div className="as as-app" style={{ height: '100dvh', overflow: 'hidden' }}>
+      <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, background: 'var(--bg)', overflow: 'hidden' }}>
         <div className="tb" style={{ justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Link to={`/books/${bookId}`} className="btn btn--ghost" style={{ textDecoration: 'none', fontSize: 12 }}>← {book.title}</Link>

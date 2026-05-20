@@ -148,7 +148,7 @@ export default function Focus() {
     'outline:none;font-family:var(--font-serif);color:oklch(0.92 0.014 85);font-size:18px;line-height:1.85;letter-spacing:0.005em;';
 
   return (
-    <div className="as" style={{ height: '100vh', background: 'oklch(0.10 0.012 50)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+    <div className="as" style={{ height: '100dvh', background: 'oklch(0.10 0.012 50)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', top: 18, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 8, background: 'oklch(0.20 0.014 50 / 0.7)', backdropFilter: 'blur(8px)', border: '1px solid var(--border-soft)', borderRadius: 999, padding: '6px 12px' }}>
         <span style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>{book.title} · {String(idx + 1).padStart(2, '0')} · {activeChapter.title}</span>
         <span style={{ width: 1, height: 14, background: 'var(--border-soft)' }} />

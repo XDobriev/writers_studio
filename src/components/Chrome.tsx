@@ -196,6 +196,7 @@ export function Sidebar({
         })}
       </nav>
 
+      <div className="sb-body">
       {isReal ? (
         <>
           <div className="sb-section">
@@ -322,6 +323,7 @@ export function Sidebar({
           </Link>
         </div>
       )}
+      </div>{/* /sb-body */}
 
       <div className="sb-foot">
         <div className="sb-avatar">{initials}</div>

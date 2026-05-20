@@ -151,7 +151,8 @@ html, body, #root {
   background: var(--bg-deep);
   border-right: 1px solid var(--border-soft);
   display: flex; flex-direction: column;
-  min-width: 0;
+  min-width: 0; min-height: 0;
+  overflow: hidden;
 }
 .sb-head {
   padding: 18px 20px 14px;
@@ -216,8 +217,14 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .sb-item-dot--progress { background: var(--accent-2); }
 .sb-item-dot--done { background: var(--ok); }
 
+.sb-body {
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
 .sb-foot {
-  margin-top: auto;
   padding: 12px 14px;
   border-top: 1px solid var(--border-soft);
   display: flex; align-items: center; gap: 10px;
