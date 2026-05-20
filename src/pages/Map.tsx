@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { WorldMap } from '../components/WorldMap';
 import { useAuth } from '../lib/auth';
 import {
   createLocation,
@@ -41,12 +42,13 @@ export default function MapScreen() {
   const error = locationsQueryError?.message ?? mutationError;
   const [filter, setFilter] = useState<TypeFilter>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
 
-  const onCreate = useCallback(async () => {
+  const onCreate = useCallback(async (x?: number, y?: number) => {
     if (!bookId || !user) return;
     const position = locations?.length ?? 0;
     try {
-      const created = await createLocation(bookId, user.id, { position });
+      const created = await createLocation(bookId, user.id, { position, x, y });
       queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), (prev) => [...(prev ?? []), created]);
     } catch (e) {
       setError((e as Error).message);
@@ -141,7 +143,25 @@ export default function MapScreen() {
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <span style={{ font: '500 13px var(--font-ui)' }}>Карта «{book.title}»</span>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={onCreate} className="btn"><Icon name="plus" size={14} /> Локация</button>
+              <div style={{ display: 'flex', background: 'var(--surface-2)', borderRadius: 6, padding: 2, gap: 1 }}>
+                <button
+                  className={'btn btn--ghost' + (viewMode === 'map' ? ' btn--active' : '')}
+                  style={{ padding: '3px 10px', fontSize: 12, borderRadius: 4 }}
+                  onClick={() => setViewMode('map')}
+                >
+                  Карта
+                </button>
+                <button
+                  className={'btn btn--ghost' + (viewMode === 'list' ? ' btn--active' : '')}
+                  style={{ padding: '3px 10px', fontSize: 12, borderRadius: 4 }}
+                  onClick={() => setViewMode('list')}
+                >
+                  Список
+                </button>
+              </div>
+              {viewMode === 'list' && (
+                <button onClick={() => onCreate()} className="btn"><Icon name="plus" size={14} /> Локация</button>
+              )}
             </div>
           </div>
           {isMobile && (
@@ -160,37 +180,45 @@ export default function MapScreen() {
             </div>
           )}
 
-          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
-            {filtered.length === 0 ? (
-              locations.length === 0 ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
-                  <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'var(--surface)', color: 'var(--ink-4)', border: '1px solid var(--border-soft)' }}>
-                    <Icon name="map" size={22} />
+          {viewMode === 'map' ? (
+            <WorldMap
+              locations={locations}
+              onUpdate={onUpdate}
+              onCreate={(x, y) => { void onCreate(x, y); }}
+            />
+          ) : (
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
+              {filtered.length === 0 ? (
+                locations.length === 0 ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
+                    <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'var(--surface)', color: 'var(--ink-4)', border: '1px solid var(--border-soft)' }}>
+                      <Icon name="map" size={22} />
+                    </div>
+                    <div style={{ textAlign: 'center', maxWidth: 260 }}>
+                      <div style={{ font: '500 14px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 6 }}>На карте ещё нет локаций</div>
+                      <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.6 }}>Создавайте места вашего мира — города, леса, замки и другие локации</div>
+                    </div>
+                    <button onClick={() => onCreate()} className="btn btn--primary"><Icon name="plus" size={13} /> Создать локацию</button>
                   </div>
-                  <div style={{ textAlign: 'center', maxWidth: 260 }}>
-                    <div style={{ font: '500 14px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 6 }}>На карте ещё нет локаций</div>
-                    <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.6 }}>Создавайте места вашего мира — города, леса, замки и другие локации</div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: 'var(--ink-3)', padding: '48px 0' }}>
+                    <div style={{ font: '500 14px var(--font-ui)' }}>Нет локаций этого типа</div>
                   </div>
-                  <button onClick={onCreate} className="btn btn--primary"><Icon name="plus" size={13} /> Создать локацию</button>
-                </div>
+                )
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: 'var(--ink-3)', padding: '48px 0' }}>
-                  <div style={{ font: '500 14px var(--font-ui)' }}>Нет локаций этого типа</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
+                  {filtered.map((loc) => (
+                    <LocationCard
+                      key={loc.id}
+                      location={loc}
+                      onUpdate={(patch) => onUpdate(loc.id, patch)}
+                      onDelete={() => onDelete(loc.id)}
+                    />
+                  ))}
                 </div>
-              )
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
-                {filtered.map((loc) => (
-                  <LocationCard
-                    key={loc.id}
-                    location={loc}
-                    onUpdate={(patch) => onUpdate(loc.id, patch)}
-                    onDelete={() => onDelete(loc.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
       {confirmDeleteId && (
