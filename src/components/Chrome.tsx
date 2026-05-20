@@ -5,8 +5,7 @@ import { LogoMark } from './LogoMark';
 import { NOVEL } from '../data/sample';
 import type { Chapter, ChapterStatus } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../lib/auth';
+import { useUserDisplay } from '../lib/useUserDisplay';
 import { SettingsModal } from './SettingsModal';
 
 const PLAN_LABEL: Record<string, string> = {
@@ -15,8 +14,6 @@ const PLAN_LABEL: Record<string, string> = {
   lifetime: 'Lifetime',
 };
 
-export { StatusBar } from './StatusBar';
-export { RightPanel } from './RightPanel';
 
 const SB_STATUS_LABEL: Record<ChapterStatus, string> = {
   draft: 'Черновик',
@@ -57,25 +54,11 @@ export function Sidebar({
 }: SidebarProps) {
   const isReal = Boolean(chapters);
   const { pathname } = useLocation();
-  const { user } = useAuth();
-  const displayName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email ?? '';
-  const initials = displayName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w: string) => w[0].toUpperCase())
-    .join('') || '?';
+  const { displayName, initials, plan } = useUserDisplay();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [plan, setPlan] = useState<string>('free');
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase.from('profiles').select('plan').eq('user_id', user.id).single()
-      .then(({ data }) => { if (data?.plan) setPlan(data.plan); });
-  }, [user]);
 
   useEffect(() => {
     if (!statusMenuFor) {
@@ -290,15 +273,8 @@ interface RailNavProps {
 }
 
 export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
-  const { user } = useAuth();
+  const { initials } = useUserDisplay();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const displayName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email ?? '';
-  const initials = displayName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w: string) => w[0].toUpperCase())
-    .join('') || '?';
 
   const items: Array<[RailKey, Parameters<typeof Icon>[0]['name'], string, string]> = [
     ['dashboard',  'layout', 'Дэшборд',   ''],

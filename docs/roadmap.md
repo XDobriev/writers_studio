@@ -188,6 +188,20 @@ _Нет активных багов._
 
 ---
 
+## Скиллы skills.sh — запланированные
+
+Установить когда дойдёт до соответствующей фазы:
+
+| Скилл | Команда | Когда |
+|---|---|---|
+| `web-design-guidelines` | `npx skills add coreyhaines31/marketingskills@web-design-guidelines` | При доработке design system или лендинга |
+| `seo-audit` | искать: `npx skills search seo` | Перед публичным запуском, вместе с лендингом |
+| `copywriting` | искать: `npx skills search copywriting` | Перед публичным запуском, тексты лендинга |
+| `ai-image-generation` | искать: `npx skills search ai-image` | Фаза 2 — генерация обложек книг и портретов персонажей |
+| `writing-plans` | искать: `npx skills search writing-plans` | При проектировании фич для писателей |
+
+---
+
 ## Telegram OAuth (backlog)
 
 Кнопка скрыта — `VITE_TELEGRAM_BOT_USERNAME=authorsStudioBot` в Vercel env. Вернуть после прохождения anti-fraud ревью.

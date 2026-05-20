@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { useWindowWidth } from '../lib/useWindowWidth';
+import { useEditorLayout } from '../lib/useEditorLayout';
 import { Icon } from './Icon';
-import { Sidebar, RightPanel, StatusBar, RailNav } from './Chrome';
+import { Sidebar, RailNav } from './Chrome';
+import { StatusBar } from './StatusBar';
+import { RightPanel } from './RightPanel';
 import { SAMPLE_PROSE } from '../data/sample';
 import { RichEditor, type Editor } from './RichEditor';
 import { EditorToolbar } from './EditorToolbar';
@@ -128,11 +130,7 @@ export function EditorHybrid({
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
-  const windowWidth = useWindowWidth();
-  const isMobile = windowWidth < 768;
-  const showLeft = !isMobile && (mode === 'studio' || mode === 'left');
-  const showRight = (mode === 'studio' && windowWidth >= 1200) || mode === 'right';
-  const isPage = mode === 'page';
+  const { isMobile, showLeft, showRight, isPage, cols, sheetWidth, sheetPad } = useEditorLayout(mode);
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
 
@@ -148,19 +146,6 @@ export function EditorHybrid({
   useEffect(() => {
     if (!isMobile) setShowMobileSidebar(false);
   }, [isMobile]);
-
-  const cols = isPage
-    ? (isMobile ? '1fr' : '56px 1fr')
-    : showLeft && showRight
-    ? '260px 1fr 320px'
-    : showLeft
-    ? '260px 1fr'
-    : showRight
-    ? '1fr 320px'
-    : '1fr';
-
-  const sheetWidth = isMobile ? '100%' : (isPage ? 740 : 680);
-  const sheetPad = isMobile ? '24px 20px 80px' : (isPage ? '64px 80px 80px' : '48px 64px 80px');
 
 
   return (
