@@ -81,3 +81,11 @@ export const TYPE_COLORS: Record<TimelineEventType, string> = {
   world: 'var(--ok)',
   other: 'var(--ink-3)',
 };
+
+export async function reorderTimelineEvents(updates: { id: string; position: number }[]): Promise<void> {
+  await Promise.all(
+    updates.map(({ id, position }) =>
+      supabase.from('timeline_events').update({ position }).eq('id', id)
+    )
+  );
+}

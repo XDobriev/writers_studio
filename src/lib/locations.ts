@@ -35,7 +35,7 @@ export async function listLocations(bookId: string): Promise<Location[]> {
 export async function createLocation(
   bookId: string,
   userId: string,
-  patch: { name?: string; type?: LocationType; position?: number } = {},
+  patch: { name?: string; type?: LocationType; position?: number; x?: number; y?: number } = {},
 ): Promise<Location> {
   const { data, error } = await supabase
     .from('locations')
@@ -45,6 +45,8 @@ export async function createLocation(
       name: patch.name ?? 'Новая локация',
       type: patch.type ?? 'city',
       position: patch.position ?? 0,
+      ...(patch.x != null && { x: patch.x }),
+      ...(patch.y != null && { y: patch.y }),
     })
     .select('*')
     .single();
