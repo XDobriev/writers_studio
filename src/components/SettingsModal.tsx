@@ -24,12 +24,16 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [passSaved, setPassSaved] = useState(false);
   const [theme, setTheme] = useState<Theme>(getStoredTheme);
   const [plan, setPlan] = useState<Plan>('free');
+  const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('plan').eq('user_id', user.id).single()
-      .then(({ data }) => { if (data?.plan) setPlan(data.plan as Plan); });
+    supabase.from('profiles').select('plan, plan_expires_at').eq('user_id', user.id).single()
+      .then(({ data }) => {
+        if (data?.plan) setPlan(data.plan as Plan);
+        if (data?.plan_expires_at) setPlanExpiresAt(data.plan_expires_at as string);
+      });
   }, [user]);
 
   const handleTheme = (next: Theme) => {
@@ -155,12 +159,42 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
           <section>
             <div style={SL}>Подписка</div>
-            <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 2 }}>{PLAN_META[plan].name}</div>
-                <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{PLAN_META[plan].desc}</div>
+            <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 2 }}>{PLAN_META[plan].name}</div>
+                  <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{PLAN_META[plan].desc}</div>
+                  {plan === 'pro' && planExpiresAt && (
+                    <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginTop: 4 }}>
+                      Активна до {new Date(planExpiresAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                  )}
+                </div>
               </div>
-              <button className="btn btn--ghost" style={{ fontSize: 12, padding: '5px 12px', opacity: 0.35, flexShrink: 0 }} disabled>Управление</button>
+              {plan === 'free' && (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <a
+                    href="https://avtorskaya-studiya.vercel.app/#pricing"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn--primary"
+                    style={{ fontSize: 12, padding: '5px 14px', textDecoration: 'none' }}
+                  >
+                    Апгрейд до Pro
+                  </a>
+                </div>
+              )}
+              {plan === 'pro' && (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <a
+                    href={`mailto:support@avtorskaya-studiya.ru?subject=Отмена подписки&body=Прошу отменить мою подписку Pro. Email аккаунта: ${user?.email ?? ''}`}
+                    className="btn btn--ghost"
+                    style={{ fontSize: 12, padding: '5px 12px', textDecoration: 'none', color: 'var(--ink-3)' }}
+                  >
+                    Отменить подписку
+                  </a>
+                </div>
+              )}
             </div>
           </section>
 
