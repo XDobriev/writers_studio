@@ -7,20 +7,24 @@ import { Sidebar } from '../components/Chrome';
 import { createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
 import { QUERY_KEYS, useBook, useChapters, useNotes } from '../lib/queries';
 
+type BaseKind = 'idea' | 'question' | 'todo' | 'important';
+
+const BASE_KINDS: BaseKind[] = ['idea', 'question', 'todo', 'important'];
+
 const KIND_LABELS: Record<NoteKind, string> = {
   idea: 'Идея',
   question: 'Вопрос',
   todo: 'TODO',
   important: 'Важно',
+  custom: 'Своё',
 };
-
-const KIND_OPTIONS: NoteKind[] = ['idea', 'question', 'todo', 'important'];
 
 const KIND_COLORS: Record<NoteKind, string> = {
   idea: 'var(--note-idea)',
   question: 'var(--note-question)',
   todo: 'var(--note-todo)',
   important: 'var(--note-important)',
+  custom: 'var(--note-idea)',
 };
 
 const KIND_COLORS_SOFT: Record<NoteKind, string> = {
@@ -28,7 +32,20 @@ const KIND_COLORS_SOFT: Record<NoteKind, string> = {
   question: 'var(--note-question-soft)',
   todo: 'var(--note-todo-soft)',
   important: 'var(--note-important-soft)',
+  custom: 'var(--note-idea-soft)',
 };
+
+function noteColor(n: Note): string {
+  if (n.kind === 'custom' && n.custom_color) return KIND_COLORS[n.custom_color as NoteKind] ?? KIND_COLORS.idea;
+  return KIND_COLORS[n.kind];
+}
+function noteColorSoft(n: Note): string {
+  if (n.kind === 'custom' && n.custom_color) return KIND_COLORS_SOFT[n.custom_color as NoteKind] ?? KIND_COLORS_SOFT.idea;
+  return KIND_COLORS_SOFT[n.kind];
+}
+function noteLabel(n: Note): string {
+  return n.kind === 'custom' ? (n.custom_label || 'Своё') : KIND_LABELS[n.kind];
+}
 
 export default function Notes() {
   const { id: bookId } = useParams<{ id: string }>();
@@ -44,11 +61,15 @@ export default function Notes() {
   const [showForm, setShowForm] = useState(false);
   const [formKind, setFormKind] = useState<NoteKind>('idea');
   const [formText, setFormText] = useState('');
+  const [formCustomLabel, setFormCustomLabel] = useState('');
+  const [formCustomColor, setFormCustomColor] = useState<BaseKind>('idea');
   const [saving, setSaving] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<NoteKind>('idea');
   const [editText, setEditText] = useState('');
+  const [editCustomLabel, setEditCustomLabel] = useState('');
+  const [editCustomColor, setEditCustomColor] = useState<BaseKind>('idea');
 
   const [filterKind, setFilterKind] = useState<NoteKind | 'all'>('all');
 
@@ -60,9 +81,15 @@ export default function Notes() {
     if (!bookId || !formText.trim()) return;
     setSaving(true);
     try {
-      const note = await createNote(bookId, formKind, formText.trim());
+      const note = await createNote(
+        bookId, formKind, formText.trim(),
+        formKind === 'custom' ? formCustomLabel : undefined,
+        formKind === 'custom' ? formCustomColor : undefined,
+      );
       queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), (prev) => [note, ...(prev ?? [])]);
       setFormText('');
+      setFormCustomLabel('');
+      setFormCustomColor('idea');
       setShowForm(false);
     } catch (e) {
       setError((e as Error).message);
@@ -83,13 +110,19 @@ export default function Notes() {
     setEditingId(n.id);
     setEditKind(n.kind);
     setEditText(n.text);
+    setEditCustomLabel(n.custom_label ?? '');
+    setEditCustomColor((n.custom_color as BaseKind) ?? 'idea');
   };
 
   const handleUpdate = async () => {
     if (!editingId || !editText.trim() || !bookId) return;
     setSaving(true);
     try {
-      const updated = await updateNote(editingId, editKind, editText.trim());
+      const updated = await updateNote(
+        editingId, editKind, editText.trim(),
+        editKind === 'custom' ? editCustomLabel : undefined,
+        editKind === 'custom' ? editCustomColor : undefined,
+      );
       queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), (prev) =>
         prev?.map((n) => (n.id === editingId ? updated : n)) ?? []
       );
@@ -123,6 +156,62 @@ export default function Notes() {
 
   const filtered = filterKind === 'all' ? notes : (notes ?? []).filter((n) => n.kind === filterKind);
 
+  const colorSwatch = (color: BaseKind, selected: string, onSelect: (c: BaseKind) => void) => (
+    <button
+      key={color}
+      onClick={() => onSelect(color)}
+      title={KIND_LABELS[color]}
+      style={{
+        width: 16, height: 16, borderRadius: '50%',
+        background: KIND_COLORS[color],
+        border: `2px solid ${selected === color ? 'var(--ink)' : 'transparent'}`,
+        outline: selected === color ? '1px solid var(--bg)' : 'none',
+        outlineOffset: -3,
+        cursor: 'pointer', flexShrink: 0,
+      }}
+    />
+  );
+
+  const kindChips = (
+    activeKind: NoteKind,
+    onSelect: (k: NoteKind) => void,
+    size: 'sm' | 'xs' = 'sm',
+  ) => {
+    const pad = size === 'xs' ? '3px 10px' : '4px 12px';
+    const fs = size === 'xs' ? 11 : 12;
+    return (
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        {BASE_KINDS.map((k) => (
+          <button
+            key={k}
+            onClick={() => onSelect(k)}
+            style={{
+              fontSize: fs, padding: pad, borderRadius: 20,
+              border: `1px solid ${activeKind === k ? KIND_COLORS[k] : 'var(--border)'}`,
+              background: activeKind === k ? KIND_COLORS_SOFT[k] : 'transparent',
+              color: activeKind === k ? KIND_COLORS[k] : 'var(--ink-3)',
+              cursor: 'pointer',
+            }}
+          >
+            {KIND_LABELS[k]}
+          </button>
+        ))}
+        <button
+          onClick={() => onSelect('custom')}
+          style={{
+            fontSize: fs, padding: pad, borderRadius: 20,
+            border: `1px solid ${activeKind === 'custom' ? 'var(--ink-3)' : 'var(--border)'}`,
+            background: activeKind === 'custom' ? 'var(--surface)' : 'transparent',
+            color: activeKind === 'custom' ? 'var(--ink)' : 'var(--ink-3)',
+            cursor: 'pointer',
+          }}
+        >
+          + Тип
+        </button>
+      </div>
+    );
+  };
+
   return (
     <WithMode active="notes" bookId={bookId}>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
@@ -142,7 +231,7 @@ export default function Notes() {
             <span style={{ font: '13px var(--font)', color: 'var(--ink-4)' }}>{notes.length}</span>
             <div style={{ flex: 1 }} />
             <div style={{ display: 'flex', gap: 4 }}>
-              {(['all', ...KIND_OPTIONS] as Array<NoteKind | 'all'>).map((k) => (
+              {(['all', ...BASE_KINDS, 'custom'] as Array<NoteKind | 'all'>).map((k) => (
                 <button
                   key={k}
                   className={'btn btn--ghost' + (filterKind === k ? ' btn--active' : '')}
@@ -170,23 +259,22 @@ export default function Notes() {
                 borderRadius: 10, padding: '16px', marginBottom: 16,
                 display: 'flex', flexDirection: 'column', gap: 12,
               }}>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {KIND_OPTIONS.map((k) => (
-                    <button
-                      key={k}
-                      onClick={() => setFormKind(k)}
-                      style={{
-                        fontSize: 12, padding: '4px 12px', borderRadius: 20,
-                        border: `1px solid ${formKind === k ? KIND_COLORS[k] : 'var(--border)'}`,
-                        background: formKind === k ? KIND_COLORS_SOFT[k] : 'transparent',
-                        color: formKind === k ? KIND_COLORS[k] : 'var(--ink-3)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {KIND_LABELS[k]}
-                    </button>
-                  ))}
-                </div>
+                {kindChips(formKind, setFormKind)}
+                {formKind === 'custom' && (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      className="input"
+                      placeholder="Название типа…"
+                      value={formCustomLabel}
+                      onChange={(e) => setFormCustomLabel(e.target.value)}
+                      style={{ fontSize: 12, flex: 1, padding: '5px 10px' }}
+                      maxLength={32}
+                    />
+                    <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                      {BASE_KINDS.map((c) => colorSwatch(c, formCustomColor, setFormCustomColor))}
+                    </div>
+                  </div>
+                )}
                 <textarea
                   className="input"
                   rows={3}
@@ -200,7 +288,7 @@ export default function Notes() {
                   <button
                     className="btn btn--ghost"
                     style={{ fontSize: 12, padding: '5px 14px' }}
-                    onClick={() => { setShowForm(false); setFormText(''); }}
+                    onClick={() => { setShowForm(false); setFormText(''); setFormCustomLabel(''); setFormCustomColor('idea'); setFormKind('idea'); }}
                   >Отмена</button>
                   <button
                     className="btn btn--primary"
@@ -239,30 +327,29 @@ export default function Notes() {
                   key={n.id}
                   style={{
                     background: 'var(--bg-2)', border: `1px solid var(--border)`,
-                    borderLeft: `3px solid ${KIND_COLORS[n.kind]}`,
+                    borderLeft: `3px solid ${noteColor(n)}`,
                     borderRadius: 8, padding: '14px 16px',
                     display: 'flex', flexDirection: 'column', gap: 10,
                   }}
                 >
                   {editingId === n.id ? (
                     <>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {KIND_OPTIONS.map((k) => (
-                          <button
-                            key={k}
-                            onClick={() => setEditKind(k)}
-                            style={{
-                              fontSize: 11, padding: '3px 10px', borderRadius: 20,
-                              border: `1px solid ${editKind === k ? KIND_COLORS[k] : 'var(--border)'}`,
-                              background: editKind === k ? KIND_COLORS_SOFT[k] : 'transparent',
-                              color: editKind === k ? KIND_COLORS[k] : 'var(--ink-3)',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {KIND_LABELS[k]}
-                          </button>
-                        ))}
-                      </div>
+                      {kindChips(editKind, setEditKind, 'xs')}
+                      {editKind === 'custom' && (
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <input
+                            className="input"
+                            placeholder="Название типа…"
+                            value={editCustomLabel}
+                            onChange={(e) => setEditCustomLabel(e.target.value)}
+                            style={{ fontSize: 11, flex: 1, padding: '4px 8px' }}
+                            maxLength={32}
+                          />
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                            {BASE_KINDS.map((c) => colorSwatch(c, editCustomColor, setEditCustomColor))}
+                          </div>
+                        </div>
+                      )}
                       <textarea
                         className="input"
                         rows={3}
@@ -290,10 +377,10 @@ export default function Notes() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{
                           fontSize: 11, padding: '2px 8px', borderRadius: 20,
-                          background: KIND_COLORS_SOFT[n.kind], color: KIND_COLORS[n.kind],
+                          background: noteColorSoft(n), color: noteColor(n),
                           fontWeight: 500,
                         }}>
-                          {KIND_LABELS[n.kind]}
+                          {noteLabel(n)}
                         </span>
                         <span style={{ flex: 1 }} />
                         <button
