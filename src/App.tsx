@@ -7,11 +7,9 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineBanner } from './components/OfflineBanner';
 import { CookieBanner } from './components/CookieBanner';
 
-// Критический путь — eager: эти страницы нужны до любой навигации
-import Auth from './pages/Auth';
-import ResetPassword from './pages/ResetPassword';
-
-// Всё остальное — lazy: браузер скачает чанк только при переходе на маршрут
+// Все страницы — lazy: браузер скачает чанк только при переходе на маршрут
+const Auth          = lazy(() => import('./pages/Auth'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Landing    = lazy(() => import('./pages/Landing'));
 const Home       = lazy(() => import('./pages/Home'));
 const Dashboard  = lazy(() => import('./pages/Dashboard'));
