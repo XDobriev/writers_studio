@@ -19,6 +19,14 @@
 - Фильтр по типу в sidebar.
 - Вертикальная timeline-лента с цветной шкалой по типу.
 
-## Следующий шаг
+## Режимы отображения
 
-Горизонтальная timeline-визуализация по полю `pos`.
+Переключатель **Список / Лента** в тулбаре (сохраняется в `localStorage` ключ `timeline-view`).
+
+### Лента (горизонтальная визуализация)
+
+- `TimelineLane` — горизонтальная ось с узлами по `position`.
+- `SortableNode` — узел: карточки чередуются выше/ниже оси (`index % 2`), цветной кружок на оси = тип события.
+- Drag-and-drop через `@dnd-kit/sortable` (`horizontalListSortingStrategy`). Drag отключён при активном фильтре — в этом случае `useSortable({ disabled: true })`.
+- При клике на узел — боковая панель `EventDetailPanel` с полным inline-редактированием (`EventCard`).
+- `reorderTimelineEvents` в `timeline.ts` — batch-update `position` для всех событий после drag.
