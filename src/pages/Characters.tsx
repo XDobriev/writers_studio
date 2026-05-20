@@ -11,6 +11,7 @@ import {
   initialsFromName,
   ROLE_LABELS,
   updateCharacter,
+  uploadCharacterAvatar,
   type Character,
   type CharacterPatch,
   type CharacterRole,
@@ -295,7 +296,11 @@ export default function Characters() {
                   className={'sb-item' + (on ? ' sb-item--on' : '')}
                   style={{ height: 'auto', padding: '8px 10px', width: '100%', textAlign: 'left', gridTemplateColumns: '34px 1fr auto' }}
                 >
-                  <span style={{ width: 28, height: 28, borderRadius: 999, background: on ? 'var(--accent)' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 10px var(--font-ui)', color: on ? 'oklch(0.98 0 0)' : 'var(--ink)' }}>{initialsFromName(c.name || 'Без имени')}</span>
+                  <span style={{ width: 28, height: 28, borderRadius: 999, background: on ? 'var(--accent)' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 10px var(--font-ui)', color: on ? 'oklch(0.98 0 0)' : 'var(--ink)', overflow: 'hidden', flexShrink: 0 }}>
+                    {c.avatar_url
+                      ? <img src={c.avatar_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : initialsFromName(c.name || 'Без имени')}
+                  </span>
                   <div style={{ minWidth: 0 }}>
                     <div className="sb-item-title">{c.name || 'Без имени'}</div>
                     <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em' }}>{ROLE_LABELS[c.role]}</div>
@@ -327,7 +332,7 @@ export default function Characters() {
 
           {active ? (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
-              <HeroBlock character={active} onChange={(patch) => scheduleSave(active.id, patch)} />
+              <HeroBlock character={active} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} />
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
                 <FieldCard
@@ -392,14 +397,18 @@ export default function Characters() {
   );
 }
 
-function HeroBlock({ character, onChange }: {
+function HeroBlock({ character, onChange, onError }: {
   character: Character;
   onChange: (patch: CharacterPatch) => void;
+  onError: (msg: string) => void;
 }) {
   const [name, setName] = useState(character.name);
   const [quote, setQuote] = useState(character.quote);
   const [editingQuote, setEditingQuote] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarHovered, setAvatarHovered] = useState(false);
   const quoteRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const autoResize = (el: HTMLTextAreaElement) => {
     el.style.height = 'auto';
@@ -428,17 +437,51 @@ function HeroBlock({ character, onChange }: {
   };
   const onRoleChange = (role: CharacterRole) => onChange({ role });
 
+  const onFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    if (file.size > 2 * 1024 * 1024) { onError('Файл слишком большой. Максимум 2 МБ.'); return; }
+    setAvatarUploading(true);
+    try {
+      const url = await uploadCharacterAvatar(character.id, character.user_id, file);
+      onChange({ avatar_url: url });
+    } catch (err) {
+      onError((err as Error).message);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start', marginBottom: 36 }}>
-      <div style={{ width: 160, height: 200, borderRadius: 8, background: 'linear-gradient(160deg, oklch(0.45 0.04 50), oklch(0.25 0.02 50))', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 18, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(135deg, oklch(0.40 0.04 50) 0 6px, oklch(0.36 0.04 50) 6px 12px)', opacity: 0.4 }} />
-        <div style={{ position: 'relative', font: '600 56px var(--font-serif)', color: 'oklch(0.95 0.01 80 / 0.9)', letterSpacing: '-0.02em' }}>
-          {initialsFromName(name)}
-        </div>
-        <div style={{ position: 'absolute', top: 10, right: 10, color: 'oklch(0.95 0.01 80 / 0.35)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-          <Icon name="camera" size={16} />
-          <span style={{ font: '400 8px var(--font-ui)', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>без портрета</span>
-        </div>
+      <div
+        onClick={() => fileInputRef.current?.click()}
+        onMouseEnter={() => setAvatarHovered(true)}
+        onMouseLeave={() => setAvatarHovered(false)}
+        title={character.avatar_url ? 'Сменить портрет' : 'Загрузить портрет'}
+        style={{ width: 160, height: 200, borderRadius: 8, background: 'linear-gradient(160deg, oklch(0.45 0.04 50), oklch(0.25 0.02 50))', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 18, position: 'relative', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}
+      >
+        {!character.avatar_url && (
+          <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(135deg, oklch(0.40 0.04 50) 0 6px, oklch(0.36 0.04 50) 6px 12px)', opacity: 0.4 }} />
+        )}
+        {character.avatar_url && (
+          <img src={character.avatar_url} alt={name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+        )}
+        {!character.avatar_url && (
+          <div style={{ position: 'relative', font: '600 56px var(--font-serif)', color: 'oklch(0.95 0.01 80 / 0.9)', letterSpacing: '-0.02em' }}>
+            {initialsFromName(name)}
+          </div>
+        )}
+        {(avatarHovered || avatarUploading) && (
+          <div style={{ position: 'absolute', inset: 0, background: 'oklch(0 0 0 / 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 6, color: 'white' }}>
+            {avatarUploading
+              ? <span style={{ font: '400 11px var(--font-ui)' }}>Загрузка…</span>
+              : <><Icon name="camera" size={20} /><span style={{ font: '400 10px var(--font-ui)', letterSpacing: '0.04em' }}>{character.avatar_url ? 'Сменить' : 'Загрузить'}</span></>
+            }
+          </div>
+        )}
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={(e) => { void onFileChange(e); }} />
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -649,7 +692,11 @@ function RelationRow({ relation, partner, onDelete, onLabelChange }: {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
-      <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 12px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0 }}>{initialsFromName(partner.name || 'Без имени')}</div>
+      <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 12px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0, overflow: 'hidden' }}>
+        {partner.avatar_url
+          ? <img src={partner.avatar_url} alt={partner.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : initialsFromName(partner.name || 'Без имени')}
+      </div>
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ font: '500 13px var(--font-ui)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{partner.name || 'Без имени'}</div>
         <input

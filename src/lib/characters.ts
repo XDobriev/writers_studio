@@ -15,12 +15,13 @@ export interface Character {
   backstory: string;
   notes: string;
   position: number;
+  avatar_url: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export type CharacterPatch = Partial<
-  Pick<Character, 'name' | 'role' | 'age' | 'quote' | 'appearance' | 'personality' | 'backstory' | 'notes' | 'position'>
+  Pick<Character, 'name' | 'role' | 'age' | 'quote' | 'appearance' | 'personality' | 'backstory' | 'notes' | 'position' | 'avatar_url'>
 >;
 
 export async function listCharacters(bookId: string): Promise<Character[]> {
@@ -68,6 +69,17 @@ export async function updateCharacter(id: string, patch: CharacterPatch): Promis
 export async function deleteCharacter(id: string): Promise<void> {
   const { error } = await supabase.from('characters').delete().eq('id', id);
   if (error) throw error;
+}
+
+export async function uploadCharacterAvatar(characterId: string, userId: string, file: File): Promise<string> {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const path = `${userId}/${characterId}.${ext}`;
+  const { error } = await supabase.storage
+    .from('character-avatars')
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from('character-avatars').getPublicUrl(path);
+  return data.publicUrl;
 }
 
 export function initialsFromName(name: string): string {
