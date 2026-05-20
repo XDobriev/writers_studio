@@ -6,7 +6,11 @@ export function useUserDisplay() {
   const { user } = useAuth();
   const [plan, setPlan] = useState<string>('free');
 
-  const displayName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email ?? '';
+  const meta = user?.user_metadata;
+  const tgName = meta?.provider === 'telegram'
+    ? ([meta?.first_name, meta?.last_name].filter(Boolean).join(' ') || (meta?.telegram_username ? `@${meta.telegram_username}` : null))
+    : null;
+  const displayName = meta?.full_name ?? meta?.name ?? tgName ?? user?.email ?? '';
   const initials = displayName
     .split(/\s+/)
     .filter(Boolean)

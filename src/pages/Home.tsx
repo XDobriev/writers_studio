@@ -5,6 +5,7 @@ import { LogoMark } from '../components/LogoMark';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { supabase, type Book } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { useUserDisplay } from '../lib/useUserDisplay';
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? '';
 
@@ -126,6 +127,7 @@ type Plan = 'free' | 'pro' | 'lifetime';
 
 export default function Home() {
   const { user } = useAuth();
+  const { displayName } = useUserDisplay();
   const [books, setBooks] = useState<Book[] | null>(null);
   const [plan, setPlan] = useState<Plan>('free');
   const [err, setErr] = useState<string | null>(null);
@@ -281,7 +283,7 @@ export default function Home() {
         <LogoMark size={20} />
         <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
         <span style={{ flex: 1 }} />
-        <span className="hide-sm" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{user?.email}</span>
+        <span className="hide-sm" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{displayName}</span>
         {user?.email === ADMIN_EMAIL && (
           <Link
             to="/admin"

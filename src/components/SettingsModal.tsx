@@ -14,7 +14,12 @@ const PLAN_META: Record<Plan, { name: string; desc: string }> = {
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
   const { user, signOut, updatePassword } = useAuth();
-  const [name, setName] = useState(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '');
+  const isTelegram = user?.user_metadata?.provider === 'telegram';
+  const accountLabel = isTelegram ? 'Telegram' : 'Email';
+  const accountDisplay = isTelegram
+    ? (user?.user_metadata?.telegram_username ? `@${user.user_metadata.telegram_username}` : `Telegram ID: ${user?.user_metadata?.telegram_id ?? ''}`)
+    : (user?.email ?? '');
+  const [name, setName] = useState(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.user_metadata?.first_name ?? '');
   const [nameSaving, setNameSaving] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
@@ -107,8 +112,8 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                 {nameError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', marginTop: 6 }}>{nameError}</span>}
               </div>
               <div style={FG}>
-                <span style={FL}>Email</span>
-                <input className="input" value={user?.email ?? ''} readOnly style={{ fontSize: 13, opacity: 0.5, cursor: 'default' }} />
+                <span style={FL}>{accountLabel}</span>
+                <input className="input" value={accountDisplay} readOnly style={{ fontSize: 13, opacity: 0.5, cursor: 'default' }} />
               </div>
             </div>
           </section>
