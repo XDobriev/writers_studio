@@ -1,7 +1,7 @@
-import { useState, lazy, Suspense, type ReactNode } from 'react';
+import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './lib/auth';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { AuthProvider, useAuth } from './lib/auth';
 import { AuthGuard } from './components/AuthGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineBanner } from './components/OfflineBanner';
@@ -41,12 +41,39 @@ function Guard({ children }: { children: ReactNode }) {
   return <AuthGuard><ErrorBoundary key={pathname}>{children}</ErrorBoundary></AuthGuard>;
 }
 
+// Сбрасывает кэш React Query при выходе/истечении сессии,
+// чтобы запросы с протухшим токеном не долетали до рендера.
+function AuthQuerySync() {
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!session) {
+      queryClient.cancelQueries();
+      queryClient.clear();
+    }
+  }, [session, queryClient]);
+  return null;
+}
+
 export default function App() {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        gcTime: 15 * 60_000,
+        retry: (count, error) => {
+          const code = (error as { code?: string })?.code;
+          if (code === 'PGRST301' || code === 'PGRST116') return false;
+          if ((error as { status?: number })?.status === 401) return false;
+          return count < 2;
+        },
+      },
+    },
+  }));
   return (
     <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <BrowserRouter>
+        <AuthQuerySync />
         <OfflineBanner />
         <CookieBanner />
         <Suspense fallback={<PageFallback />}>

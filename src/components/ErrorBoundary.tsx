@@ -1,4 +1,4 @@
-import { Component, type ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -15,6 +15,12 @@ export class ErrorBoundary extends Component<Props, State> {
   static getDerivedStateFromError(error: Error): State {
     return { error };
   }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[ErrorBoundary] Uncaught error:', error.message, '\n', error.stack, '\nComponent stack:', info.componentStack);
+  }
+
+  reset = () => this.setState({ error: null });
 
   render() {
     if (this.state.error) {
@@ -46,14 +52,14 @@ export class ErrorBoundary extends Component<Props, State> {
             Что-то пошло не так
           </div>
           <div style={{ font: '400 0.8125rem var(--font-ui)', color: 'var(--ink-4)', maxWidth: 300, textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>
-            Произошла непредвиденная ошибка. Попробуйте вернуться назад или обновить страницу.
+            Произошла непредвиденная ошибка. Попробуйте ещё раз или обновите страницу.
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
             <button
               className="btn btn--ghost"
-              onClick={() => window.history.back()}
+              onClick={this.reset}
             >
-              ← Назад
+              Попробовать снова
             </button>
             <button
               className="btn btn--primary"
