@@ -5,7 +5,7 @@ import { LogoMark } from './LogoMark';
 import { NOVEL } from '../data/sample';
 import type { Chapter, ChapterStatus, ChapterActions } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
-import { supabase } from '../lib/supabase';
+import { updateBook } from '../lib/books';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { SettingsModal } from './SettingsModal';
 
@@ -58,19 +58,17 @@ export function Sidebar({
   const [shareToken, setShareToken] = useState<string | null>(book?.share_token ?? null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    setShareToken(book?.share_token ?? null);
-  }, [book?.share_token]);
-
   async function handleShare() {
     if (!book?.id) return;
     const token = crypto.randomUUID();
-    const { error } = await supabase.from('books').update({ share_token: token }).eq('id', book.id);
-    if (!error) {
+    try {
+      await updateBook(book.id, { share_token: token });
       setShareToken(token);
       void navigator.clipboard.writeText(`${window.location.origin}/share/${token}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // оставляем текущее состояние при ошибке
     }
   }
 
@@ -83,8 +81,13 @@ export function Sidebar({
 
   async function handleDisable() {
     if (!book?.id) return;
-    const { error } = await supabase.from('books').update({ share_token: null }).eq('id', book.id);
-    if (!error) { setShareToken(null); setCopied(false); }
+    try {
+      await updateBook(book.id, { share_token: null });
+      setShareToken(null);
+      setCopied(false);
+    } catch {
+      // оставляем текущее состояние при ошибке
+    }
   }
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type CSSProperties } from 'react';
 import { Icon } from './Icon';
 import { supabase } from '../lib/supabase';
+import { getProfile } from '../lib/profiles';
 import { useAuth } from '../lib/auth';
 import { applyTheme, getStoredTheme, type Theme } from '../lib/theme';
 
@@ -34,11 +35,10 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('plan, plan_expires_at').eq('user_id', user.id).single()
-      .then(({ data }) => {
-        if (data?.plan) setPlan(data.plan as Plan);
-        if (data?.plan_expires_at) setPlanExpiresAt(data.plan_expires_at as string);
-      });
+    getProfile(user.id).then((profile) => {
+      if (profile?.plan) setPlan(profile.plan as Plan);
+      if (profile?.plan_expires_at) setPlanExpiresAt(profile.plan_expires_at);
+    });
   }, [user]);
 
   const handleTheme = (next: Theme) => {

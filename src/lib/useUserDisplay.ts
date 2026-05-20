@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './auth';
-import { supabase } from './supabase';
+import { getProfile } from './profiles';
 
 export function useUserDisplay() {
   const { user } = useAuth();
@@ -20,8 +20,7 @@ export function useUserDisplay() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('plan').eq('user_id', user.id).single()
-      .then(({ data }) => { if (data?.plan) setPlan(data.plan); });
+    getProfile(user.id).then((profile) => { if (profile?.plan) setPlan(profile.plan); });
   }, [user]);
 
   return { displayName, initials, plan };

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { RichEditor } from '../components/RichEditor';
-import { supabase, type Book } from '../lib/supabase';
+import { type Book } from '../lib/supabase';
+import { getBook } from '../lib/books';
 import {
   countWords,
   listChapters,
@@ -28,13 +29,12 @@ export default function Split() {
     let cancelled = false;
     (async () => {
       try {
-        const [bookRes, list] = await Promise.all([
-          supabase.from('books').select('*').eq('id', bookId).single(),
+        const [book, list] = await Promise.all([
+          getBook(bookId),
           listChapters(bookId),
         ]);
         if (cancelled) return;
-        if (bookRes.error) throw bookRes.error;
-        setBook(bookRes.data as Book);
+        setBook(book);
         setChapters(list);
       } catch (e) {
         if (!cancelled) setError((e as Error).message);

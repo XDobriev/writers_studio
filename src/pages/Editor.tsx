@@ -3,7 +3,8 @@ import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { EditorHybrid } from '../components/EditorHybrid';
 import { useAuth } from '../lib/auth';
-import { supabase, type Book } from '../lib/supabase';
+import { type Book } from '../lib/supabase';
+import { updateBook } from '../lib/books';
 import {
   countWords,
   createChapter,
@@ -146,7 +147,7 @@ export default function Editor() {
     queryClient.setQueryData<Book>(QUERY_KEYS.book(bookId), (prev) =>
       prev ? { ...prev, daily_goal: goal } : prev
     );
-    await supabase.from('books').update({ daily_goal: goal }).eq('id', bookId);
+    await updateBook(bookId, { daily_goal: goal });
   }, [bookId, queryClient]);
 
   const onDeleteChapter = useCallback(async (id: string) => {

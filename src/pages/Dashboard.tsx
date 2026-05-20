@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
-import { supabase, type Book } from '../lib/supabase';
+import { updateBook } from '../lib/books';
 import { type Chapter } from '../lib/chapters';
 import { pluralDays, plural } from '../lib/useWritingStats';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useWritingSnapshots } from '../lib/queries';
@@ -60,14 +60,8 @@ export default function Dashboard() {
     setEditSaving(true);
     setEditError(null);
     try {
-      const { data, error: err } = await supabase
-        .from('books')
-        .update({ title: editTitle.trim(), genre: editGenre.trim() || null, goal: Math.max(0, editGoal) })
-        .eq('id', id)
-        .select()
-        .single();
-      if (err) throw err;
-      queryClient.setQueryData(QUERY_KEYS.book(id), data as Book);
+      const data = await updateBook(id, { title: editTitle.trim(), genre: editGenre.trim() || null, goal: Math.max(0, editGoal) });
+      queryClient.setQueryData(QUERY_KEYS.book(id), data);
       setEditOpen(false);
     } catch (e) {
       setEditError((e as Error).message);

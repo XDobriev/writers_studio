@@ -11,7 +11,8 @@ import {
 } from 'docx';
 import JSZip from 'jszip';
 import { Icon } from '../components/Icon';
-import { supabase, type Book } from '../lib/supabase';
+import { type Book } from '../lib/supabase';
+import { getBook } from '../lib/books';
 import { listChapters, type Chapter } from '../lib/chapters';
 
 type Format = 'epub' | 'fb2' | 'docx' | 'html' | 'txt' | 'md';
@@ -512,13 +513,12 @@ export default function Export() {
     let cancelled = false;
     (async () => {
       try {
-        const [bookRes, list] = await Promise.all([
-          supabase.from('books').select('*').eq('id', bookId).single(),
+        const [book, list] = await Promise.all([
+          getBook(bookId),
           listChapters(bookId),
         ]);
         if (cancelled) return;
-        if (bookRes.error) throw bookRes.error;
-        setBook(bookRes.data as Book);
+        setBook(book);
         setChapters(list);
       } catch (e) {
         if (!cancelled) setError((e as Error).message);

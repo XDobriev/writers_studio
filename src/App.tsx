@@ -26,6 +26,7 @@ const Notes      = lazy(() => import('./pages/Notes'));
 const Admin      = lazy(() => import('./pages/Admin'));
 const Privacy    = lazy(() => import('./pages/Privacy'));
 const Terms      = lazy(() => import('./pages/Terms'));
+const ShareBook  = lazy(() => import('./pages/ShareBook'));
 const NotFound   = lazy(() => import('./pages/NotFound'));
 
 function PageFallback() {
@@ -48,8 +49,13 @@ function AuthQuerySync() {
   const queryClient = useQueryClient();
   useEffect(() => {
     if (!session) {
+      // setDefaultOptions(enabled:false) закрывает race condition:
+      // новые запросы не стартуют пока сессии нет, уже летящие отменяются.
+      queryClient.setDefaultOptions({ queries: { enabled: false } });
       queryClient.cancelQueries();
       queryClient.clear();
+    } else {
+      queryClient.setDefaultOptions({ queries: { enabled: true } });
     }
   }, [session, queryClient]);
   return null;
@@ -95,6 +101,7 @@ export default function App() {
           <Route path="/books/:id/notes" element={<Guard><Notes /></Guard>} />
           <Route path="/books/:id/export" element={<Guard><Export /></Guard>} />
 
+          <Route path="/share/:token" element={<ShareBook />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />

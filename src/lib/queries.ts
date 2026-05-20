@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase, type Book } from './supabase';
+import { getBook, listWritingSnapshots } from './books';
 import { listChapters, type Chapter } from './chapters';
 import { listCharacters, type Character } from './characters';
 import { listRelations, type CharacterRelation } from './character_relations';
@@ -21,11 +21,7 @@ export const QUERY_KEYS = {
 export function useBook(id: string | undefined) {
   return useQuery({
     queryKey: id ? QUERY_KEYS.book(id) : ['book', null],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('books').select('*').eq('id', id!).single();
-      if (error) throw error;
-      return data as Book;
-    },
+    queryFn: () => getBook(id!),
     enabled: !!id,
     staleTime: 5 * 60_000,
   });
@@ -74,16 +70,7 @@ export function useWritingSnapshots(bookId: string | undefined) {
 
   return useQuery({
     queryKey: bookId ? QUERY_KEYS.writingSnapshots(bookId) : ['writing-snapshots', null],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('writing_snapshots')
-        .select('date, words')
-        .eq('book_id', bookId!)
-        .gte('date', fromStr)
-        .order('date', { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as { date: string; words: number }[];
-    },
+    queryFn: () => listWritingSnapshots(bookId!, fromStr),
     enabled: !!bookId,
     staleTime: 5 * 60_000,
   });

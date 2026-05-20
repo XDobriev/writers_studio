@@ -4,6 +4,8 @@ import { Icon } from '../components/Icon';
 import { LogoMark } from '../components/LogoMark';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { supabase, type Book } from '../lib/supabase';
+import { listBooks, createBook, updateBook, deleteBook as deleteBookApi } from '../lib/books';
+import { getProfile } from '../lib/profiles';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 
@@ -170,8 +172,7 @@ export default function Home() {
     if (!editBook) return;
     setDeleting(true);
     try {
-      const { error } = await supabase.from('books').delete().eq('id', editBook.id);
-      if (error) throw error;
+      await deleteBookApi(editBook.id);
       setBooks((prev) => prev?.filter((b) => b.id !== editBook.id) ?? prev);
       setEditBook(null);
       setConfirmDeleteBook(false);
@@ -196,14 +197,8 @@ export default function Home() {
     setEditSaving(true);
     setEditError(null);
     try {
-      const { data, error } = await supabase
-        .from('books')
-        .update({ title: editTitle.trim(), genre: editGenre.trim() || null, goal: Math.max(0, editGoal), cover: editCover })
-        .eq('id', editBook.id)
-        .select()
-        .single();
-      if (error) throw error;
-      setBooks((prev) => prev?.map((b) => b.id === editBook.id ? data as Book : b) ?? prev);
+      const data = await updateBook(editBook.id, { title: editTitle.trim(), genre: editGenre.trim() || null, goal: Math.max(0, editGoal), cover: editCover });
+      setBooks((prev) => prev?.map((b) => b.id === editBook.id ? data : b) ?? prev);
       setEditBook(null);
     } catch (e) {
       setEditError((e as Error).message);
@@ -215,14 +210,17 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [booksRes, profileRes] = await Promise.all([
-        supabase.from('books').select('*').order('updated_at', { ascending: false }),
-        supabase.from('profiles').select('plan').eq('user_id', user!.id).single(),
-      ]);
-      if (cancelled) return;
-      if (booksRes.error) setErr(booksRes.error.message);
-      else setBooks((booksRes.data ?? []) as Book[]);
-      if (profileRes.data) setPlan(profileRes.data.plan as Plan);
+      try {
+        const [books, profile] = await Promise.all([
+          listBooks(),
+          getProfile(user!.id),
+        ]);
+        if (cancelled) return;
+        setBooks(books);
+        if (profile?.plan) setPlan(profile.plan as Plan);
+      } catch (e) {
+        if (!cancelled) setErr((e as Error).message);
+      }
     })();
     return () => { cancelled = true; };
   }, [user]);
@@ -261,18 +259,14 @@ export default function Home() {
     const goalRaw = String(fd.get('goal') ?? '').trim();
     const goal = goalRaw ? Math.max(0, Number(goalRaw)) : 0;
     if (!title) return;
-    const { data, error } = await supabase
-      .from('books')
-      .insert({ user_id: user.id, title, genre, goal, words: 0, cover: createCover })
-      .select()
-      .single();
-    if (error) {
-      setErr(error.message);
-      return;
+    try {
+      const data = await createBook({ user_id: user.id, title, genre, goal, words: 0, cover: createCover });
+      setBooks((prev) => [data, ...(prev ?? [])]);
+      setShowCreate(false);
+      setCreateCover(COVERS[0]);
+    } catch (e) {
+      setErr((e as Error).message);
     }
-    setBooks((prev) => [data as Book, ...(prev ?? [])]);
-    setShowCreate(false);
-    setCreateCover(COVERS[0]);
   };
 
   const totalWords = (books ?? []).reduce((s, b) => s + b.words, 0);
