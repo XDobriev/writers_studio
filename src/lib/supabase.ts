@@ -29,6 +29,7 @@ export interface Book {
   goal: number;
   daily_goal: number;
   cover: string | null;
+  share_token: string | null;
   created_at: string;
   updated_at: string;
 }
