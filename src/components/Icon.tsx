@@ -8,7 +8,7 @@ type IconName =
   | 'user' | 'note' | 'plus' | 'chev' | 'chevd' | 'track' | 'history'
   | 'settings' | 'timer' | 'sound' | 'search' | 'eye' | 'panel'
   | 'dot' | 'pin' | 'char' | 'arrows' | 'moremenu' | 'feather' | 'pencil' | 'trash' | 'drag'
-  | 'sun' | 'moon' | 'camera';
+  | 'sun' | 'moon' | 'camera' | 'log-out';
 
 interface IconProps {
   name: IconName;
@@ -82,6 +82,7 @@ const PATHS: Record<IconName, JSX.Element> = {
   sun: <><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>,
   moon: <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>,
   camera: <><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></>,
+  'log-out': <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
 };
 
 export function Icon({ name, size = 16 }: IconProps) {

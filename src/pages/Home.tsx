@@ -126,7 +126,7 @@ function dayDiff(iso: string): number {
 type Plan = 'free' | 'pro' | 'lifetime';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { displayName } = useUserDisplay();
   const [books, setBooks] = useState<Book[] | null>(null);
   const [plan, setPlan] = useState<Plan>('free');
@@ -302,6 +302,25 @@ export default function Home() {
             admin
           </Link>
         )}
+        <button
+          onClick={signOut}
+          title="Выйти из аккаунта"
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px 6px',
+            borderRadius: 6,
+            color: 'var(--ink-3)',
+            display: 'flex',
+            alignItems: 'center',
+            transition: 'color 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-1)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-3)'; }}
+        >
+          <Icon name="log-out" size={16} />
+        </button>
       </div>
 
       <div style={{ flex: 1, padding: '40px 48px' }}>
