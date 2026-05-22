@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import { supabase } from '../lib/supabase';
 import type { Book } from '../lib/supabase';
 import { LogoMark } from '../components/LogoMark';
@@ -26,26 +27,14 @@ export default function ShareBook() {
 
     let cancelled = false;
     async function load() {
-      const { data: bookData, error: bookErr } = await supabase
-        .from('books')
-        .select('*')
-        .eq('share_token', token)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('get_shared_book', { p_token: token });
 
       if (cancelled) return;
-      if (bookErr || !bookData) { setState(bookErr ? 'error' : 'not_found'); return; }
+      if (error || !data) { setState(error ? 'error' : 'not_found'); return; }
 
-      const { data: chapData, error: chapErr } = await supabase
-        .from('chapters')
-        .select('id, title, position, content, words')
-        .eq('book_id', bookData.id)
-        .order('position');
-
-      if (cancelled) return;
-      if (chapErr) { setState('error'); return; }
-
-      setBook(bookData as Book);
-      const chaps = (chapData ?? []) as Chapter[];
+      const { book: bookData, chapters: chapData } = data as { book: Book; chapters: Chapter[] };
+      setBook(bookData);
+      const chaps = chapData ?? [];
       setChapters(chaps);
       if (chaps.length > 0) setActiveId(chaps[0].id);
       setState('found');
@@ -158,7 +147,7 @@ export default function ShareBook() {
               <div
                 className="tiptap"
                 style={{ font: '400 17px/1.75 var(--font-serif)', color: 'var(--ink)', maxWidth: 640 }}
-                dangerouslySetInnerHTML={{ __html: active.content }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(active.content) }}
               />
               <div style={{ display: 'flex', gap: 8, marginTop: 40, paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
                 {chapters.findIndex(c => c.id === activeId) > 0 && (

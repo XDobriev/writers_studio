@@ -102,7 +102,7 @@ export default function App() {
           <Route path="/books/:id/export" element={<Guard><Export /></Guard>} />
 
           <Route path="/share/:token" element={<ShareBook />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin" element={<Guard><Admin /></Guard>} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="*" element={<NotFound />} />

@@ -129,7 +129,7 @@ export default function Admin() {
 
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.email !== ADMIN_EMAIL) return <Navigate to="/books" replace />;
+  if (!ADMIN_EMAIL || user.email !== ADMIN_EMAIL) return <Navigate to="/books" replace />;
 
   const filtered = (users ?? [])
     .filter((u) => !search || u.email.toLowerCase().includes(search.toLowerCase()))
