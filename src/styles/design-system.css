@@ -662,6 +662,11 @@ select.input {
 /* text cursor inside editor is sufficient focus indicator */
 .tiptap:focus-visible { outline: none; }
 
+/* book card — карточка книги на Home */
+.book-card { position: relative; }
+.book-card__edit { display: none; }
+.book-card:hover .book-card__edit { display: flex; }
+
 @media (max-width: 639px) {
   .hide-sm { display: none !important; }
 }

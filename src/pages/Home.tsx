@@ -136,7 +136,6 @@ export default function Home() {
   const [err, setErr] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
 
   const [editBook, setEditBook] = useState<Book | null>(null);
@@ -379,9 +378,7 @@ export default function Home() {
             {books.map((b) => (
               <div
                 key={b.id}
-                style={{ position: 'relative' }}
-                onMouseEnter={() => setHoveredId(b.id)}
-                onMouseLeave={() => setHoveredId(null)}
+                className="book-card"
               >
                 <Link to={`/books/${b.id}`} style={{ background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border-soft)', overflow: 'hidden', display: 'flex', flexDirection: 'column', textDecoration: 'none' }}>
                   <div style={{
@@ -430,6 +427,7 @@ export default function Home() {
                 <button
                   onClick={() => openEditBook(b)}
                   title="Редактировать"
+                  className="book-card__edit"
                   style={{
                     position: 'absolute', top: 10, right: 10, zIndex: 1,
                     width: 28, height: 28, borderRadius: 6,
@@ -437,7 +435,6 @@ export default function Home() {
                     border: '1px solid oklch(1 0 0 / 0.12)',
                     backdropFilter: 'blur(6px)',
                     cursor: 'pointer',
-                    display: hoveredId === b.id ? 'flex' : 'none',
                     alignItems: 'center', justifyContent: 'center',
                     color: 'oklch(0.95 0.01 80)',
                   }}
