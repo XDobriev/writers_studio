@@ -668,7 +668,7 @@ function TimelineLane({
               })}
             </div>
           </SortableContext>
-          <DragOverlay dropAnimation={{ duration: 160, easing: 'ease' }}>
+          <DragOverlay dropAnimation={null}>
             {draggingEvent ? <DragCard event={draggingEvent} /> : null}
           </DragOverlay>
         </DndContext>
