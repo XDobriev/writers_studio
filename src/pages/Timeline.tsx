@@ -13,7 +13,7 @@ import {
 import {
   SortableContext,
   useSortable,
-  horizontalListSortingStrategy,
+  rectSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -50,6 +50,7 @@ const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
 const LANE_ZONE_H = 120;  // top / bottom card zone height
 const LANE_CONN_H = 18;   // connector from zone to dot
 const LANE_DOT_D = 12;    // dot diameter
+const LANE_NODE_W = 168;  // node width
 const LANE_NODE_H = LANE_ZONE_H * 2 + LANE_CONN_H * 2 + LANE_DOT_D; // 288px
 const LANE_AXIS_Y = LANE_ZONE_H + LANE_CONN_H + LANE_DOT_D / 2;     // 144px from node top
 
@@ -469,6 +470,12 @@ export default function Timeline() {
 
 // ─── Horizontal Lane ───────────────────────────────────────────────────────────
 
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+    arr.slice(i * size, (i + 1) * size)
+  );
+}
+
 function TimelineLane({
   events,
   sensors,
@@ -486,15 +493,30 @@ function TimelineLane({
   onDragEnd: (e: DragEndEvent) => void;
   onAdd: () => void;
 }) {
-  const PAD_V = 24; // vertical padding around lane
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const eventsPerRow = containerWidth > 0 ? Math.max(3, Math.floor((containerWidth - 80) / LANE_NODE_W)) : 0;
+  const rows = eventsPerRow > 0 ? chunkArray(events, eventsPerRow) : [];
 
   return (
-    <div style={{ flex: 1, minHeight: 0, overflowX: 'auto', overflowY: 'hidden', position: 'relative' }}>
+    <div
+      ref={containerRef}
+      style={{ flex: 1, minHeight: 0, overflowX: 'hidden', overflowY: 'auto', position: 'relative' }}
+    >
       {!dragEnabled && (
         <div
           style={{
             position: 'absolute',
-            top: PAD_V / 2,
+            top: 12,
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 10,
@@ -512,74 +534,127 @@ function TimelineLane({
         </div>
       )}
 
-      <div
-        style={{
-          height: LANE_NODE_H + PAD_V * 2,
-          minWidth: 'max-content',
-          position: 'relative',
-          padding: `${PAD_V}px 40px`,
-          display: 'flex',
-          alignItems: 'flex-start',
-          boxSizing: 'border-box',
-        }}
-      >
-        {/* Axis line */}
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: PAD_V + LANE_AXIS_Y,
-            height: 2,
-            background: 'var(--border-soft)',
-            pointerEvents: 'none',
-            zIndex: 0,
-          }}
-        />
-
+      {containerWidth > 0 && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <SortableContext items={events.map((e) => e.id)} strategy={horizontalListSortingStrategy}>
-            <div style={{ display: 'flex', gap: 0, position: 'relative', zIndex: 1 }}>
-              {events.map((ev, i) => (
-                <SortableNode
-                  key={ev.id}
-                  event={ev}
-                  index={i}
-                  isSelected={activeEventId === ev.id}
-                  dragEnabled={dragEnabled}
-                  onSelect={() => onSelect(ev.id)}
-                />
-              ))}
+          <SortableContext items={events.map((e) => e.id)} strategy={rectSortingStrategy}>
+            <div style={{ padding: '24px 40px' }}>
+              {rows.map((rowEvents, rowIndex) => {
+                const isLastRow = rowIndex === rows.length - 1;
+                return (
+                  <div key={rowIndex}>
+                    {/* Row header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span
+                        style={{
+                          font: '400 10px var(--font-mono)',
+                          color: 'var(--ink-4)',
+                          letterSpacing: '0.04em',
+                          flexShrink: 0,
+                        }}
+                      >
+                        строка {rowIndex + 1}
+                      </span>
+                      <div
+                        style={{
+                          flex: 1,
+                          height: 1,
+                          background:
+                            'repeating-linear-gradient(90deg, var(--border-soft) 0, var(--border-soft) 4px, transparent 4px, transparent 10px)',
+                        }}
+                      />
+                    </div>
+
+                    {/* Nodes */}
+                    <div style={{ position: 'relative', height: LANE_NODE_H }}>
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          top: LANE_AXIS_Y,
+                          height: 2,
+                          background: 'var(--border-soft)',
+                          pointerEvents: 'none',
+                          zIndex: 0,
+                        }}
+                      />
+                      <div style={{ display: 'flex', position: 'relative', zIndex: 1 }}>
+                        {rowEvents.map((ev, rowEventIndex) => (
+                          <SortableNode
+                            key={ev.id}
+                            event={ev}
+                            index={rowIndex * eventsPerRow + rowEventIndex}
+                            isSelected={activeEventId === ev.id}
+                            dragEnabled={dragEnabled}
+                            onSelect={() => onSelect(ev.id)}
+                          />
+                        ))}
+                        {isLastRow && (
+                          <button
+                            onClick={onAdd}
+                            title="Добавить событие"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: 34,
+                              height: 34,
+                              borderRadius: 999,
+                              background: 'var(--surface)',
+                              border: '1px dashed var(--border-strong)',
+                              color: 'var(--ink-3)',
+                              cursor: 'pointer',
+                              flexShrink: 0,
+                              marginLeft: 16,
+                              alignSelf: 'flex-start',
+                              position: 'relative',
+                              zIndex: 1,
+                              marginTop: LANE_AXIS_Y - 17,
+                            }}
+                          >
+                            <Icon name="plus" size={15} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Row separator / continuation */}
+                    {isLastRow ? (
+                      <div style={{ height: 24 }} />
+                    ) : (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '6px 0 16px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            flex: 1,
+                            height: 1,
+                            background:
+                              'repeating-linear-gradient(90deg, var(--border-soft) 0, var(--border-soft) 4px, transparent 4px, transparent 10px)',
+                          }}
+                        />
+                        <span
+                          style={{
+                            font: '400 10px var(--font-mono)',
+                            color: 'var(--ink-4)',
+                          }}
+                        >
+                          ↓ строка {rowIndex + 2}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </SortableContext>
         </DndContext>
-
-        {/* Add button at the end of lane */}
-        <button
-          onClick={onAdd}
-          title="Добавить событие"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 34,
-            height: 34,
-            borderRadius: 999,
-            background: 'var(--surface)',
-            border: '1px dashed var(--border-strong)',
-            color: 'var(--ink-3)',
-            cursor: 'pointer',
-            flexShrink: 0,
-            marginLeft: 16,
-            alignSelf: 'center',
-            position: 'relative',
-            zIndex: 1,
-            marginTop: LANE_AXIS_Y - 17,
-          }}
-        >
-          <Icon name="plus" size={15} />
-        </button>
-      </div>
+      )}
     </div>
   );
 }
@@ -615,7 +690,7 @@ function SortableNode({
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    width: 168,
+    width: LANE_NODE_W,
     flexShrink: 0,
     height: LANE_NODE_H,
     position: 'relative',
