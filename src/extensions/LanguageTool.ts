@@ -12,7 +12,7 @@ interface YaError {
   s: string[];
 }
 
-async function fetchErrors(text: string): Promise<YaError[]> {
+async function fetchErrors(text: string, signal: AbortSignal): Promise<YaError[]> {
   try {
     const res = await fetch(
       'https://speller.yandex.net/services/spellservice.json/checkText',
@@ -20,6 +20,7 @@ async function fetchErrors(text: string): Promise<YaError[]> {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ text, lang: 'ru' }),
+        signal,
       }
     );
     if (!res.ok) return [];
@@ -103,15 +104,18 @@ export const LanguageTool = Extension.create({
 
         view: (editorView) => {
           let destroyed = false;
+          let controller: AbortController | null = null;
 
           const run = () => {
             if (timer) clearTimeout(timer);
             timer = setTimeout(async () => {
+              controller?.abort();
+              controller = new AbortController();
               const { doc } = editorView.state;
               const { plain } = buildTextMap(doc);
               if (!plain.trim()) return;
 
-              const errors = await fetchErrors(plain);
+              const errors = await fetchErrors(plain, controller.signal);
               if (destroyed) return;
 
               const decos = makeDecorations(editorView.state.doc, errors);
@@ -128,6 +132,7 @@ export const LanguageTool = Extension.create({
             destroy() {
               destroyed = true;
               if (timer) clearTimeout(timer);
+              controller?.abort();
             },
           };
         },

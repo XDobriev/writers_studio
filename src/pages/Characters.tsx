@@ -255,7 +255,7 @@ export default function Characters() {
   const showMain = !isMobile || Boolean(activeId);
 
   return (
-    <WithMode active="characters" bookId={bookId}>
+    <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
         {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${characters.length}`}>
           <div style={{ padding: '12px 14px 6px' }}>

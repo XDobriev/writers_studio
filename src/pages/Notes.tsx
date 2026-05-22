@@ -213,7 +213,7 @@ export default function Notes() {
   };
 
   return (
-    <WithMode active="notes" bookId={bookId}>
+    <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <Sidebar
           book={book}

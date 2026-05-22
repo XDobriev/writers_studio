@@ -82,5 +82,9 @@ export async function deleteChapter(id: string): Promise<void> {
 }
 
 export async function reorderChapters(updates: { id: string; position: number }[]): Promise<void> {
-  await Promise.all(updates.map(({ id, position }) => updateChapter(id, { position })));
+  if (updates.length === 0) return;
+  const { error } = await supabase
+    .from('chapters')
+    .upsert(updates.map(({ id, position }) => ({ id, position })), { onConflict: 'id' });
+  if (error) throw error;
 }

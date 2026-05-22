@@ -252,7 +252,7 @@ export default function Timeline() {
   const showLane = view === 'lane' && !isMobile;
 
   return (
-    <WithMode active="timeline" bookId={bookId}>
+    <WithMode>
       <div
         className="as as-app as-app--no-right"
         style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}

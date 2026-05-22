@@ -63,14 +63,16 @@ export function useRelations(bookId: string | undefined) {
   });
 }
 
-export function useWritingSnapshots(bookId: string | undefined) {
-  const from = new Date();
-  from.setDate(from.getDate() - 366);
-  const fromStr = from.toISOString().slice(0, 10);
+const SNAPSHOTS_FROM = (() => {
+  const d = new Date();
+  d.setDate(d.getDate() - 366);
+  return d.toISOString().slice(0, 10);
+})();
 
+export function useWritingSnapshots(bookId: string | undefined) {
   return useQuery({
     queryKey: bookId ? QUERY_KEYS.writingSnapshots(bookId) : ['writing-snapshots', null],
-    queryFn: () => listWritingSnapshots(bookId!, fromStr),
+    queryFn: () => listWritingSnapshots(bookId!, SNAPSHOTS_FROM),
     enabled: !!bookId,
     staleTime: 5 * 60_000,
   });

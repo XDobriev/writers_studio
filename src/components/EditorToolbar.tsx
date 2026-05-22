@@ -13,7 +13,7 @@ interface ToolbarProps {
   showModes?: boolean;
 }
 
-function ModeSegment({ mode, setMode }: { mode: EditorMode; setMode: (m: EditorMode) => void }) {
+export function ModeSegment({ mode, setMode }: { mode: EditorMode; setMode: (m: EditorMode) => void }) {
   const opts: Array<[EditorMode, Parameters<typeof Icon>[0]['name'], string]> = [
     ['studio', 'layout', 'Фокус — обе боковые панели рядом с текстом'],
     ['left', 'panel', 'Структура — список глав, без правой панели'],

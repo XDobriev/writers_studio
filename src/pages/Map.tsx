@@ -117,7 +117,7 @@ export default function MapScreen() {
   }
 
   return (
-    <WithMode active="map" bookId={bookId}>
+    <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
         {!isMobile && <Sidebar book={book} subtitle={`карта мира · ${locations.length}`}>
           <div className="sb-section"><span className="sb-section-title">Тип локации</span></div>

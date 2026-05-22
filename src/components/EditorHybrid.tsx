@@ -6,44 +6,13 @@ import { StatusBar } from './StatusBar';
 import { RightPanel } from './RightPanel';
 import { SAMPLE_PROSE } from '../data/sample';
 import { RichEditor, type Editor } from './RichEditor';
-import { EditorToolbar } from './EditorToolbar';
+import { EditorToolbar, ModeSegment } from './EditorToolbar';
 import type { Book } from '../lib/supabase';
 import type { Chapter, ChapterActions } from '../lib/chapters';
 import { useWritingStats } from '../lib/useWritingStats';
 
 type Mode = 'studio' | 'left' | 'right' | 'page';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
-
-interface ModeSegmentProps {
-  mode: Mode;
-  setMode: (m: Mode) => void;
-}
-
-
-function ModeSegmentInline({ mode, setMode }: ModeSegmentProps) {
-  const opts: Array<[Mode, Parameters<typeof Icon>[0]['name'], string]> = [
-    ['studio', 'layout', 'Фокус — обе боковые панели рядом с текстом'],
-    ['left', 'panel', 'Структура — список глав, без правой панели'],
-    ['right', 'note', 'Сплит — редактор и заметки рядом'],
-    ['page', 'focus', 'Страница — чистый лист, без боковых панелей'],
-  ];
-  return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-deep)', border: '1px solid var(--border-soft)' }}>
-      {opts.map(([k, icn, tip]) => (
-        <button
-          key={k}
-          onClick={() => setMode(k)}
-          title={tip}
-          className={'tb-btn' + (mode === k ? ' tb-btn--on' : '')}
-          style={{ height: 24, padding: '0 6px', borderRadius: 6, color: mode === k ? 'var(--ink)' : 'var(--ink-3)' }}
-        >
-          <Icon name={icn} size={14} />
-        </button>
-      ))}
-    </div>
-  );
-}
-
 
 interface ChapterSheetProps {
   chapter: Chapter;
@@ -135,7 +104,6 @@ export function EditorHybrid({
       writingStats.refetch();
     }
     prevSaveState.current = saveState;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveState, writingStats.refetch]);
 
   useEffect(() => {
@@ -178,7 +146,7 @@ export function EditorHybrid({
         )}
         {isPage ? (
           <div style={{ height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 16px', borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)' }}>
-            <ModeSegmentInline mode={mode} setMode={setMode} />
+            <ModeSegment mode={mode} setMode={setMode} />
           </div>
         ) : (
           <EditorToolbar editor={editor} mode={mode} setMode={setMode} variant="studio" showModes={!isMobile} />

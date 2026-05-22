@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
 
 export interface WritingStats {
@@ -20,60 +21,67 @@ function pluralDays(n: number): string {
 
 export { pluralDays };
 
+function computeStats(data: Array<{ date: string; words: number }>): WritingStats {
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+  const yday = new Date(today);
+  yday.setDate(yday.getDate() - 1);
+  const ydayStr = yday.toISOString().slice(0, 10);
+
+  const snap: Record<string, number> = {};
+  for (const row of data) snap[row.date] = row.words;
+
+  const todayTotal = snap[todayStr] ?? 0;
+  const ydayTotal = snap[ydayStr] ?? 0;
+  const todayWords = Math.max(0, todayTotal - ydayTotal);
+
+  let streak = 0;
+  const cur = new Date(today);
+  for (let i = 0; i < 31; i++) {
+    const curStr = cur.toISOString().slice(0, 10);
+    const prev = new Date(cur);
+    prev.setDate(prev.getDate() - 1);
+    const prevStr = prev.toISOString().slice(0, 10);
+    if ((snap[curStr] ?? 0) > (snap[prevStr] ?? 0)) {
+      streak++;
+      cur.setDate(cur.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  return { todayWords, streak };
+}
+
 export function useWritingStats(bookId: string | undefined): WritingStats & { refetch: () => void } {
-  const [stats, setStats] = useState<WritingStats>({ todayWords: 0, streak: 0 });
+  const queryClient = useQueryClient();
 
-  const fetchStats = useCallback(() => {
-    if (!bookId) return;
+  const { data } = useQuery({
+    queryKey: ['writing-stats', bookId],
+    queryFn: async () => {
+      const today = new Date();
+      const from = new Date(today);
+      from.setDate(from.getDate() - 31);
+      const fromStr = from.toISOString().slice(0, 10);
 
-    const today = new Date();
-    const from = new Date(today);
-    from.setDate(from.getDate() - 31);
+      const { data, error } = await supabase
+        .from('writing_snapshots')
+        .select('date, words')
+        .eq('book_id', bookId!)
+        .gte('date', fromStr)
+        .order('date', { ascending: false });
 
-    supabase
-      .from('writing_snapshots')
-      .select('date, words')
-      .eq('book_id', bookId)
-      .gte('date', from.toISOString().slice(0, 10))
-      .order('date', { ascending: false })
-      .then(({ data, error }) => {
-        if (error || !data || data.length === 0) return;
+      if (error || !data) return [];
+      return data as Array<{ date: string; words: number }>;
+    },
+    enabled: !!bookId,
+    staleTime: 60_000,
+  });
 
-        const snap: Record<string, number> = {};
-        for (const row of data) snap[row.date as string] = row.words as number;
+  const refetch = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['writing-stats', bookId] });
+  }, [queryClient, bookId]);
 
-        const todayStr = today.toISOString().slice(0, 10);
-        const yday = new Date(today);
-        yday.setDate(yday.getDate() - 1);
-        const ydayStr = yday.toISOString().slice(0, 10);
-
-        const todayTotal = snap[todayStr] ?? 0;
-        const ydayTotal = snap[ydayStr] ?? 0;
-        const todayWords = Math.max(0, todayTotal - ydayTotal);
-
-        // streak: считаем с сегодня назад, пока слова растут
-        let streak = 0;
-        const cur = new Date(today);
-        for (let i = 0; i < 31; i++) {
-          const curStr = cur.toISOString().slice(0, 10);
-          const prev = new Date(cur);
-          prev.setDate(prev.getDate() - 1);
-          const prevStr = prev.toISOString().slice(0, 10);
-          if ((snap[curStr] ?? 0) > (snap[prevStr] ?? 0)) {
-            streak++;
-            cur.setDate(cur.getDate() - 1);
-          } else {
-            break;
-          }
-        }
-
-        setStats({ todayWords, streak });
-      });
-  }, [bookId]);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
-  return { ...stats, refetch: fetchStats };
+  const stats = data ? computeStats(data) : { todayWords: 0, streak: 0 };
+  return { ...stats, refetch };
 }

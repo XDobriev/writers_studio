@@ -393,8 +393,6 @@ export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
 }
 
 interface WithModeProps {
-  active?: RailKey;
-  bookId?: string;
   children: ReactNode;
 }
 

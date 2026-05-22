@@ -261,7 +261,7 @@ export default function Dashboard() {
   const navTo = (path: string) => `/books/${id}${path}`;
 
   return (
-    <WithMode active="dashboard" bookId={id}>
+    <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <Sidebar book={book} />
 
