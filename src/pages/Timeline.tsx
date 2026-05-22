@@ -4,11 +4,13 @@ import { Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -504,6 +506,13 @@ function TimelineLane({
     return () => ro.disconnect();
   }, []);
 
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const draggingEvent = events.find((e) => e.id === draggingId) ?? null;
+
+  const handleDragStart = (e: DragStartEvent) => setDraggingId(String(e.active.id));
+  const handleDragEnd = (e: DragEndEvent) => { setDraggingId(null); onDragEnd(e); };
+  const handleDragCancel = () => setDraggingId(null);
+
   const eventsPerRow = containerWidth > 0 ? Math.max(3, Math.floor((containerWidth - 80) / LANE_NODE_W)) : 0;
   const rows = eventsPerRow > 0 ? chunkArray(events, eventsPerRow) : [];
 
@@ -535,7 +544,13 @@ function TimelineLane({
       )}
 
       {containerWidth > 0 && (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
           <SortableContext items={events.map((e) => e.id)} strategy={rectSortingStrategy}>
             <div style={{ padding: '24px 40px' }}>
               {rows.map((rowEvents, rowIndex) => {
@@ -653,8 +668,60 @@ function TimelineLane({
               })}
             </div>
           </SortableContext>
+          <DragOverlay dropAnimation={{ duration: 160, easing: 'ease' }}>
+            {draggingEvent ? <DragCard event={draggingEvent} /> : null}
+          </DragOverlay>
         </DndContext>
       )}
+    </div>
+  );
+}
+
+// ─── Drag overlay card ─────────────────────────────────────────────────────────
+
+function DragCard({ event }: { event: TimelineEvent }) {
+  const color = TYPE_COLORS[event.type];
+  return (
+    <div
+      style={{
+        width: 148,
+        background: 'var(--surface-2)',
+        border: `1px solid ${color}`,
+        borderTop: `3px solid ${color}`,
+        borderRadius: 8,
+        padding: '10px 12px',
+        cursor: 'grabbing',
+        boxShadow: `0 8px 28px oklch(0 0 0 / 0.45), 0 0 0 2px ${color}44`,
+        pointerEvents: 'none',
+      }}
+    >
+      {event.era && (
+        <div
+          style={{
+            font: '400 10px var(--font-mono)',
+            color: 'var(--ink-3)',
+            marginBottom: 4,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {event.era}
+        </div>
+      )}
+      <div
+        style={{
+          font: '500 12px var(--font-ui)',
+          color: 'var(--ink)',
+          lineHeight: 1.4,
+          overflow: 'hidden',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+        }}
+      >
+        {event.title}
+      </div>
     </div>
   );
 }
