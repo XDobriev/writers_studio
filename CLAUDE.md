@@ -91,6 +91,21 @@ npm run preview    # превью продакшен-сборки
 - `/supabase-postgres-best-practices` — RLS, индексы, структура запросов
 - `/systematic-debugging` — методология отладки, особенно TipTap + Supabase
 - `/improve-codebase-architecture` — анализ и рефакторинг архитектуры компонентов
+- `/impeccable` — дизайн-аудит: critique, audit, polish, colorize, typeset (23 команды)
+
+## Установленные скиллы (~/.claude/skills/ — глобальные)
+
+- `gstack` — браузерный агент для QA: скриншоты, тест форм, проверка деплоя (❗ `/browse` не работает — нужен нативный Bun)
+
+## Скиллы — установить самому (нужно действие в UI)
+
+- `superpowers` — полный цикл: plan → implement → review → ship. Ввести `/plugin install superpowers@claude-plugins-official` в чате Claude Code.
+
+## Скиллы — установить позже (подробности в docs/roadmap.md)
+
+- SEO/GEO — перед публичным запуском
+- Frontend Slides — перед питчем/демо
+- Expense Tracker Market — при запуске монетизации §3
 
 ## Документация (читать по задаче)
 
