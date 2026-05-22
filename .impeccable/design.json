@@ -1,0 +1,302 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-22T00:00:00Z",
+  "title": "Design System: Авторская студия",
+  "extensions": {
+    "colorMeta": {
+      "sienna-ink": {
+        "role": "primary",
+        "displayName": "Sienna Ink",
+        "canonical": "oklch(0.63 0.16 30)",
+        "tonalRamp": [
+          "oklch(0.12 0.04 30)",
+          "oklch(0.22 0.08 30)",
+          "oklch(0.35 0.12 30)",
+          "oklch(0.45 0.15 30)",
+          "oklch(0.55 0.16 30)",
+          "oklch(0.63 0.16 30)",
+          "oklch(0.74 0.12 30)",
+          "oklch(0.88 0.06 30)"
+        ]
+      },
+      "lamplight-amber": {
+        "role": "secondary",
+        "displayName": "Lamplight Amber",
+        "canonical": "oklch(0.78 0.10 90)",
+        "tonalRamp": [
+          "oklch(0.14 0.03 90)",
+          "oklch(0.25 0.06 90)",
+          "oklch(0.38 0.09 90)",
+          "oklch(0.52 0.10 90)",
+          "oklch(0.65 0.10 90)",
+          "oklch(0.78 0.10 90)",
+          "oklch(0.87 0.07 90)",
+          "oklch(0.94 0.04 90)"
+        ]
+      },
+      "oak-dark": {
+        "role": "neutral",
+        "displayName": "Oak Family (shell surfaces)",
+        "canonical": "oklch(0.205 0.014 50)",
+        "tonalRamp": [
+          "oklch(0.08 0.004 50)",
+          "oklch(0.12 0.008 50)",
+          "oklch(0.165 0.012 50)",
+          "oklch(0.205 0.014 50)",
+          "oklch(0.245 0.014 50)",
+          "oklch(0.295 0.012 50)",
+          "oklch(0.345 0.012 50)",
+          "oklch(0.42 0.012 50)"
+        ]
+      },
+      "writing-cream": {
+        "role": "neutral",
+        "displayName": "Writing Cream (paper surface)",
+        "canonical": "oklch(0.965 0.014 85)",
+        "tonalRamp": [
+          "oklch(0.55 0.018 85)",
+          "oklch(0.65 0.018 85)",
+          "oklch(0.74 0.016 85)",
+          "oklch(0.80 0.016 85)",
+          "oklch(0.86 0.014 85)",
+          "oklch(0.92 0.018 80)",
+          "oklch(0.945 0.016 85)",
+          "oklch(0.965 0.014 85)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink (shell text, primary)",
+        "canonical": "oklch(0.95 0.008 80)",
+        "tonalRamp": [
+          "oklch(0.18 0.010 75)",
+          "oklch(0.28 0.012 78)",
+          "oklch(0.38 0.012 78)",
+          "oklch(0.46 0.012 60)",
+          "oklch(0.58 0.012 70)",
+          "oklch(0.78 0.012 80)",
+          "oklch(0.88 0.010 80)",
+          "oklch(0.95 0.008 80)"
+        ]
+      },
+      "manuscript-ink": {
+        "role": "neutral",
+        "displayName": "Manuscript Ink (paper text)",
+        "canonical": "oklch(0.22 0.020 60)",
+        "tonalRamp": [
+          "oklch(0.10 0.012 60)",
+          "oklch(0.22 0.020 60)",
+          "oklch(0.35 0.020 60)",
+          "oklch(0.42 0.020 60)",
+          "oklch(0.56 0.018 65)",
+          "oklch(0.70 0.016 70)",
+          "oklch(0.84 0.014 75)",
+          "oklch(0.96 0.010 80)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display — Chapter Title",
+        "purpose": "Chapter headings on the manuscript surface. Used once per chapter view. The most authoritative typographic moment in the product."
+      },
+      "headline": {
+        "displayName": "Headline — Document H2",
+        "purpose": "H2 headings within manuscript body text."
+      },
+      "title": {
+        "displayName": "Title — Document H3",
+        "purpose": "H3 within documents; in-product headings in dialogs and settings."
+      },
+      "body": {
+        "displayName": "Body — Manuscript Prose",
+        "purpose": "All prose on the paper surface. The most-read text in the product. Max line length enforced by 720px sheet container (~65–72ch)."
+      },
+      "body-ui": {
+        "displayName": "Body UI — Shell Chrome",
+        "purpose": "All text in the application shell: sidebar titles, panel copy, button labels, navigation items."
+      },
+      "label": {
+        "displayName": "Label — Mono Counter",
+        "purpose": "Section headers (uppercase), chapter numbers, word counts, timestamps, metadata. Monospace signals systematic measurement, not prose."
+      }
+    },
+    "shadows": [
+      {
+        "name": "floating",
+        "value": "0 12px 32px oklch(0 0 0 / 0.5), 0 1px 0 oklch(1 0 0 / 0.07) inset",
+        "purpose": "The bubble format menu and any future floating element (tooltip, popover, dropdown). The only shadow in the system. Deep ambient drop plus inner highlight."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "0.12s ease-out",
+        "purpose": "Default state transitions: button hover, input focus, sidebar item hover. Fast, directional, unobtrusive."
+      },
+      {
+        "name": "ease-spring",
+        "value": "0.13s cubic-bezier(0.22, 0.68, 0, 1.2)",
+        "purpose": "Bubble menu entry animation. Slight spring overshoot — the only choreographic moment in the system."
+      },
+      {
+        "name": "ease-slide",
+        "value": "0.15s ease-out",
+        "purpose": "Panel slide-ins, sidebar item colour transitions."
+      },
+      {
+        "name": "spinner",
+        "value": "0.75s linear infinite",
+        "purpose": "Page loading spinner rotation."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "639px",
+        "purpose": "Hide secondary elements (hide-sm class). Below this, the layout collapses to a single column."
+      },
+      {
+        "name": "md",
+        "value": "768px",
+        "purpose": "Touch target expansion for toolbar buttons (44×44px minimum)."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single most important action on a surface: Save, Publish, Confirm. Sienna Ink fill, used sparingly.",
+      "html": "<button class=\"ds-btn-primary\">Save Chapter</button>",
+      "css": ".ds-btn-primary { height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid oklch(0.63 0.16 30); background: oklch(0.63 0.16 30); color: oklch(0.98 0 0); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: background 0.12s; } .ds-btn-primary:hover { background: oklch(0.68 0.16 30); border-color: oklch(0.68 0.16 30); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(0.63 0.16 30); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "Secondary actions: Export, Share, Cancel. Border-only, transparent at rest.",
+      "html": "<button class=\"ds-btn\">Export EPUB</button>",
+      "css": ".ds-btn { height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid oklch(0.34 0.012 50); background: transparent; color: oklch(0.95 0.008 80); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: background 0.12s; } .ds-btn:hover { background: oklch(0.245 0.014 50); } .ds-btn:focus-visible { outline: 2px solid oklch(0.63 0.16 30); outline-offset: 2px; } .ds-btn:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Toolbar-area actions where even a border would compete with content.",
+      "html": "<button class=\"ds-btn-ghost\">Settings</button>",
+      "css": ".ds-btn-ghost { height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: oklch(0.78 0.012 80); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: background 0.12s, color 0.12s; } .ds-btn-ghost:hover { background: oklch(0.245 0.014 50); color: oklch(0.95 0.008 80); } .ds-btn-ghost:focus-visible { outline: 2px solid oklch(0.63 0.16 30); outline-offset: 2px; }"
+    },
+    {
+      "name": "Input with Label",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Form field with uppercase mono label. Used in auth, book creation, settings.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-label\">Chapter Title</label><input class=\"ds-input\" type=\"text\" placeholder=\"The Departure\" /></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; } .ds-label { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 500; color: oklch(0.58 0.012 70); letter-spacing: 0.10em; text-transform: uppercase; display: block; margin-bottom: 6px; } .ds-input { height: 38px; padding: 0 12px; border: 1px solid oklch(0.34 0.012 50); border-radius: 8px; background: oklch(0.245 0.014 50); color: oklch(0.95 0.008 80); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13.5px; outline: none; transition: border-color 0.12s; } .ds-input:focus { border-color: oklch(0.63 0.16 30); } .ds-input::placeholder { color: oklch(0.46 0.012 60); } .ds-input--error { border-color: oklch(0.65 0.18 25); }"
+    },
+    {
+      "name": "Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Categorical state labels. Default = neutral, Accent = active/selected, Ok = completed.",
+      "html": "<div style=\"display:flex;gap:6px;align-items:center\"><span class=\"ds-chip\">Fantasy</span><span class=\"ds-chip ds-chip--accent\">In Progress</span><span class=\"ds-chip ds-chip--ok\">Published</span></div>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; border: 1px solid oklch(0.34 0.012 50); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 11px; color: oklch(0.78 0.012 80); background: transparent; } .ds-chip--accent { border-color: oklch(0.63 0.16 30); color: oklch(0.63 0.16 30); background: oklch(0.63 0.16 30 / 0.16); } .ds-chip--ok { border-color: oklch(0.72 0.14 145 / 0.5); color: oklch(0.72 0.14 145); background: oklch(0.72 0.14 145 / 0.12); }"
+    },
+    {
+      "name": "Sidebar Chapter Item",
+      "kind": "nav",
+      "refersTo": "toolbar-button",
+      "description": "Chapter list entry: mono chapter number, sans title, mono word count. Active number turns Sienna Ink.",
+      "html": "<div style=\"background:oklch(0.165 0.012 50);padding:8px;border-radius:4px;width:240px\"><div class=\"ds-sb-item ds-sb-item--active\"><span class=\"ds-sb-num\">01</span><span class=\"ds-sb-title\">The Departure</span><span class=\"ds-sb-meta\">3.2k</span></div><div class=\"ds-sb-item\"><span class=\"ds-sb-num\">02</span><span class=\"ds-sb-title\">Into the Valley</span><span class=\"ds-sb-meta\">2.8k</span></div><div class=\"ds-sb-item\"><span class=\"ds-sb-num\">03</span><span class=\"ds-sb-title\">The First Winter</span><span class=\"ds-sb-meta\">1.1k</span></div></div>",
+      "css": ".ds-sb-item { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 4px; cursor: pointer; min-height: 32px; transition: background 0.1s; } .ds-sb-item:hover { background: oklch(0.245 0.014 50); } .ds-sb-item--active { background: oklch(0.245 0.014 50); } .ds-sb-num { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; font-weight: 500; color: oklch(0.46 0.012 60); text-align: right; transition: color 0.1s; } .ds-sb-item--active .ds-sb-num { color: oklch(0.63 0.16 30); } .ds-sb-title { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; color: oklch(0.95 0.008 80); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-sb-meta { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10.5px; color: oklch(0.46 0.012 60); }"
+    },
+    {
+      "name": "Bubble Format Menu",
+      "kind": "custom",
+      "refersTo": "button-ghost",
+      "description": "Floating format toolbar that appears above selected text. The only component in the system with elevation (box-shadow). Spring entry animation.",
+      "html": "<div class=\"ds-bubble\"><div class=\"ds-bubble-fmt\"><button class=\"ds-bubble-btn ds-bubble-btn--on\" title=\"Bold\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z\"></path><path d=\"M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z\"></path></svg></button><button class=\"ds-bubble-btn\" title=\"Italic\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"19\" y1=\"4\" x2=\"10\" y2=\"4\"></line><line x1=\"14\" y1=\"20\" x2=\"5\" y2=\"20\"></line><line x1=\"15\" y1=\"4\" x2=\"9\" y2=\"20\"></line></svg></button><button class=\"ds-bubble-btn\" title=\"Underline\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 4v6a6 6 0 0 0 12 0V4\"></path><line x1=\"4\" y1=\"20\" x2=\"20\" y2=\"20\"></line></svg></button></div><div class=\"ds-bubble-sep\"></div><button class=\"ds-bubble-btn\" title=\"Link\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71\"></path><path d=\"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71\"></path></svg></button></div>",
+      "css": "@keyframes ds-bubble-in { from { opacity: 0; transform: translateY(5px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } } .ds-bubble { display: flex; align-items: center; gap: 6px; padding: 5px 8px; background: oklch(0.11 0.014 50 / 0.94); backdrop-filter: blur(20px) saturate(1.4); border: 1px solid oklch(1 0 0 / 0.10); border-radius: 11px; box-shadow: 0 12px 32px oklch(0 0 0 / 0.5), 0 1px 0 oklch(1 0 0 / 0.07) inset; animation: ds-bubble-in 0.13s cubic-bezier(0.22, 0.68, 0, 1.2) both; } .ds-bubble-fmt { display: flex; align-items: center; gap: 1px; } .ds-bubble-btn { width: 28px; height: 28px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: none; color: oklch(0.78 0.012 80); cursor: pointer; transition: background 0.1s, color 0.1s; } .ds-bubble-btn:hover { background: oklch(1 0 0 / 0.10); color: oklch(0.95 0.008 80); } .ds-bubble-btn--on { background: oklch(0.63 0.16 30); color: #fff; } .ds-bubble-sep { width: 1px; height: 18px; background: oklch(1 0 0 / 0.13); flex-shrink: 0; }"
+    },
+    {
+      "name": "Margin Note Card",
+      "kind": "card",
+      "refersTo": "button-ghost",
+      "description": "Sidebar annotation card with categorical left strip. Lamplight Amber = idea, blue = question, green = todo, Sienna = important.",
+      "html": "<div class=\"ds-mn\"><div class=\"ds-mn-head\"><span class=\"ds-mn-label\">Idea</span><span class=\"ds-mn-time\">2m ago</span></div><p class=\"ds-mn-text\">Consider foreshadowing the betrayal here — the river metaphor is perfect.</p><blockquote class=\"ds-mn-quote\">\"the water moved as if it remembered something\"</blockquote></div>",
+      "css": ".ds-mn { background: oklch(0.245 0.014 50); border: 1px solid oklch(0.28 0.010 50); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; position: relative; overflow: hidden; } .ds-mn::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 2px; background: oklch(0.78 0.10 90); border-radius: 2px; } .ds-mn-head { display: flex; align-items: center; justify-content: space-between; } .ds-mn-label { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: oklch(0.58 0.012 70); } .ds-mn-time { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: oklch(0.46 0.012 60); } .ds-mn-text { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 12.5px; color: oklch(0.95 0.008 80); line-height: 1.55; margin: 0; } .ds-mn-quote { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 11.5px; color: oklch(0.58 0.012 70); font-style: italic; line-height: 1.45; padding-left: 8px; border-left: 1.5px solid oklch(0.34 0.012 50); margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Author's Atelier",
+    "overview": "A craftsman's studio at the edge of midnight — warm oak shelves, the smell of paper, a single lamp cutting the dark. The interface is the room: controlled, quiet, designed around one purpose. The manuscript is the work on the desk. Everything else earns its presence by serving it.\n\nThis is not a productivity suite. It is not a content platform, a wiki engine, or a document editor. It is a purpose-built writing environment where the act of authorship is treated as a serious craft. The chrome is subordinate, restrained, nearly invisible. The paper surface is generous, readable, luminous.\n\nThe palette lives in two worlds simultaneously: a warm-dark oak shell where tools wait in shadow, and a cream manuscript surface that glows in contrast. These two zones never bleed into each other. The shell stays dark; the page stays bright. Tension between them creates the sense of a focused workspace — a room built for writing.",
+    "keyCharacteristics": [
+      "Warm dark shell (oak-stained, amber-tinted) framing a luminous cream manuscript surface",
+      "Three typefaces in strict jurisdictions: IBM Plex Sans for chrome, Source Serif 4 for the page, IBM Plex Mono for counters and metadata",
+      "One accent colour (Sienna Ink) used with discipline; a second (Lamplight Amber) for progress and warmth signals",
+      "Flat tonal elevation: depth through luminance steps, not box shadows",
+      "Restrained component vocabulary: everything quiet at rest, responsive on interaction"
+    ],
+    "rules": [
+      {
+        "name": "The Rarity Doctrine",
+        "body": "Sienna Ink occupies ≤10% of any given screen. Active chapter number, focus ring, one button, one tab underline. Its scarcity is the point. The moment it appears everywhere, it appears nowhere.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two-World Rule",
+        "body": "Shell neutrals (Oak family) and manuscript neutrals (Writing Cream, Manuscript Ink) never mix. Do not use oak-surface as a background in the editor; do not use writing-cream as a panel background in the chrome.",
+        "section": "colors"
+      },
+      {
+        "name": "The Warm Neutral Doctrine",
+        "body": "Every neutral in this system — dark or light — carries a fractional chroma toward hue 50–85 (amber-warm). Pure achromatic greys are forbidden. The warmth is what makes the studio feel like a room, not a UI kit.",
+        "section": "colors"
+      },
+      {
+        "name": "The Serif Jurisdiction Rule",
+        "body": "Source Serif 4 lives on the paper surface and nowhere else. It is forbidden in toolbar buttons, sidebar section headers, status bars, or panel labels. The moment a serif appears in chrome, the boundary between studio and manuscript dissolves.",
+        "section": "typography"
+      },
+      {
+        "name": "The Mono Counter Rule",
+        "body": "Every number that quantifies rather than narrates belongs in IBM Plex Mono: word counts, chapter numbers, timestamps, progress percentages. This is a typographic signal that the number is a measurement, not prose.",
+        "section": "typography"
+      },
+      {
+        "name": "The Shadowless Default Rule",
+        "body": "At rest, all surfaces are differentiated by background luminance, not by elevation. Borders mark edges; tonal steps mark hierarchy. A box shadow is a signal that an element has left its context. Use it only for genuinely floating elements.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Quiet Interface Rule",
+        "body": "Buttons, inputs, and toolbar elements make no visual claims at rest. They darken on hover; they brighten only when active. The manuscript is louder than any control.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do keep Sienna Ink as the single interactive accent — one primary button, one active number, one focus ring per screen.",
+      "Do express depth through background luminance: oak-void → oak-dark → oak-surface → oak-surface-2 → oak-surface-3. Step through these levels in order.",
+      "Do keep Source Serif 4 exclusively on the manuscript surface.",
+      "Do use IBM Plex Mono for all numeric metadata: chapter counts, word counts, timestamps, progress percentages, section labels in uppercase.",
+      "Do tint every neutral toward amber (hue 50–85). Chroma 0.008–0.014 is enough.",
+      "Do enforce first-line indent (1.4em) on body prose paragraphs, reset to zero after headings and scene breaks.",
+      "Do use WCAG AA contrast minimums — 4.5:1 for body text, 3:1 for large text and UI components — in both dark and light themes independently.",
+      "Do verify prefers-reduced-motion: disable the bubble-menu animation; preserve colour transitions."
+    ],
+    "donts": [
+      "Don't use Notion's block-based page metaphor — no /commands, no drag-to-restructure blocks, no database tables.",
+      "Don't make this feel like Google Docs or Word — no ribbon toolbar, no track-changes mess, no document-property sidebars.",
+      "Don't build Scrivener-style cork boards, index-card grids, or project binder tree navigators.",
+      "Don't add blog-platform affordances — no read-time, subscriber counts, or public-first document framing.",
+      "Don't use pure achromatic colours (#888, oklch(0.5 0 0), gray-500). Every neutral must carry a fractional amber tint.",
+      "Don't use border-left greater than 1px as a coloured accent stripe on cards or list items.",
+      "Don't use gradient text (background-clip: text with a gradient).",
+      "Don't mix paper and shell neutrals — writing-cream is reserved for the manuscript surface only.",
+      "Don't add a SaaS metric dashboard — no hero numbers, progress rings, or productivity widgets.",
+      "Don't add decorative shadows or glassmorphism to shell panels — floating shadow exists for one element only: the bubble menu."
+    ]
+  }
+}
