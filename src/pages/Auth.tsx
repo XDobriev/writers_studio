@@ -45,6 +45,14 @@ export default function Auth() {
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const tgSlotRef = useRef<HTMLDivElement | null>(null);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
     if (!TG_BOT_USERNAME || !tgSlotRef.current) return;
@@ -129,8 +137,8 @@ export default function Auth() {
   };
 
   return (
-    <div className="as" style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1.05fr 1fr', background: 'var(--bg)' }}>
-      <div style={{ position: 'relative', padding: '56px 64px', background: 'var(--bg-deep)', borderRight: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+    <div className="as" style={{ minHeight: '100dvh', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.05fr 1fr', background: 'var(--bg)' }}>
+      <div style={{ position: 'relative', padding: isMobile ? '32px 24px' : '56px 64px', background: 'var(--bg-deep)', borderRight: isMobile ? 'none' : '1px solid var(--border-soft)', borderBottom: isMobile ? '1px solid var(--border-soft)' : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: isMobile ? 32 : 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <LogoMark size={20} />
           <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
@@ -138,25 +146,27 @@ export default function Auth() {
 
         <div>
           <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.2em', color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 18 }}>Редактор для писателей · 2026</div>
-          <h1 style={{ font: '600 56px/1.05 var(--font-serif)', letterSpacing: '-0.02em', marginBottom: 24 }}>Здесь<br />пишутся книги.</h1>
+          <h1 style={{ font: `600 ${isMobile ? '36px' : '56px'}/1.05 var(--font-serif)`, letterSpacing: '-0.02em', marginBottom: 24 }}>Здесь{isMobile ? ' ' : <br />}пишутся книги.</h1>
           <p style={{ font: '400 16px/1.65 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 480 }}>
             Один строит миры: карта локаций, живые персонажи, хронология событий. Другому нужна только тишина и чистый лист. Авторская студия не навязывает стиль — берите столько инструментов, сколько нужно. Всё в одном месте, всё связано, ничего лишнего.
           </p>
         </div>
 
-        <div style={{ paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
-          <p style={{ font: '400 14px/1.6 var(--font-serif)', color: 'var(--ink-3)', fontStyle: 'italic', margin: 0 }}>
-            «Писать надо только тогда, когда не можешь не писать.»
-          </p>
-          <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4, var(--ink-3))', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>
-            А. П. Чехов
+        {!isMobile && (
+          <div style={{ paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
+            <p style={{ font: '400 14px/1.6 var(--font-serif)', color: 'var(--ink-3)', fontStyle: 'italic', margin: 0 }}>
+              «Писать надо только тогда, когда не можешь не писать.»
+            </p>
+            <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4, var(--ink-3))', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>
+              А. П. Чехов
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48 }}>
-        <form onSubmit={onSubmit} method="post" action="#" style={{ width: 380 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '32px 24px' : 48 }}>
+        <form onSubmit={onSubmit} method="post" action="#" style={{ width: '100%', maxWidth: 380 }}>
 
           {/* ── reset-sent ── */}
           {flow === 'reset-sent' && (

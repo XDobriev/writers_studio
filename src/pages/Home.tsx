@@ -132,6 +132,7 @@ export default function Home() {
   const { displayName } = useUserDisplay();
   const [books, setBooks] = useState<Book[] | null>(null);
   const [plan, setPlan] = useState<Plan>('free');
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [err, setErr] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -206,6 +207,13 @@ export default function Home() {
       setEditSaving(false);
     }
   };
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -310,14 +318,14 @@ export default function Home() {
             alignItems: 'center',
             transition: 'color 0.15s',
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-1)'; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink)'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-3)'; }}
         >
           <Icon name="log-out" size={16} />
         </button>
       </div>
 
-      <div style={{ flex: 1, padding: '40px 48px' }}>
+      <div style={{ flex: 1, padding: isMobile ? '24px 16px' : '40px 48px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28 }}>
           <div>
             <h1 style={{ font: '600 36px var(--font-serif)', letterSpacing: '-0.012em' }}>Мои книги</h1>
@@ -448,7 +456,7 @@ export default function Home() {
           onClick={() => setEditBook(null)}
         >
           <div
-            style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px 28px', width: 460, display: 'flex', flexDirection: 'column', gap: 18, boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}
+            style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px 28px', width: 460, display: 'flex', flexDirection: 'column', gap: 18, boxShadow: '0 24px 60px oklch(0.05 0.01 50 / 0.4)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <h2 style={{ font: '600 20px var(--font-serif)' }}>Редактировать книгу</h2>
@@ -531,7 +539,7 @@ export default function Home() {
           onClick={() => setShowUpgrade(false)}
         >
           <div
-            style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 36px', width: 480, display: 'flex', flexDirection: 'column', gap: 24, boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}
+            style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 36px', width: 480, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 24, boxShadow: '0 24px 60px oklch(0.05 0.01 50 / 0.5)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div>
@@ -603,7 +611,7 @@ export default function Home() {
                     <Icon name={icon} size={16} />
                   </div>
                   <div>
-                    <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink-1)', marginBottom: 2 }}>{title}</div>
+                    <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 2 }}>{title}</div>
                     <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{desc}</div>
                   </div>
                 </div>

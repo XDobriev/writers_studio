@@ -62,8 +62,12 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, tod
             </span>
           ) : (
             <span
+              role="button"
+              tabIndex={0}
+              aria-label={`Дневная цель: ${goalWords.toLocaleString('ru')} слов. Нажмите, чтобы изменить`}
               title="Нажмите, чтобы изменить цель"
               onClick={() => { setGoalInput(String(goalWords)); setEditingGoal(true); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGoalInput(String(goalWords)); setEditingGoal(true); } }}
               style={{ cursor: 'pointer', borderBottom: '1px dashed var(--border)' }}
             >
               сегодня · {todayWords.toLocaleString('ru')}/{goalWords.toLocaleString('ru')} слов

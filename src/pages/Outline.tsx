@@ -181,7 +181,7 @@ function SortableChapterRow({
             position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200,
             background: 'var(--bg-deep)', border: '1px solid var(--border-strong)',
             borderRadius: 6, padding: 4, minWidth: 160,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+            boxShadow: '0 8px 24px oklch(0.05 0.01 50 / 0.35)',
           }}>
             {deleteConfirmFor === c.id ? (
               <div style={{ padding: '6px 8px' }}>

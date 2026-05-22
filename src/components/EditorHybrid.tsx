@@ -62,6 +62,7 @@ function ChapterSheet({ chapter, onContentChange, onTitleChange, onEditor, width
         value={chapter.title}
         onChange={(e) => onTitleChange(e.target.value)}
         placeholder="Без названия"
+        aria-label="Название главы"
         style={{
           width: '100%', background: 'transparent', border: 'none', outline: 'none',
           font: '600 30px var(--font-serif)', letterSpacing: '-0.012em', color: 'var(--paper-ink)',
@@ -143,7 +144,7 @@ export function EditorHybrid({
 
 
   return (
-    <div className="as" style={{ height: '100%', overflow: 'hidden', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative', transition: 'grid-template-columns 220ms cubic-bezier(.2,.7,.3,1)' }}>
+    <div className="as" style={{ height: '100%', overflow: 'hidden', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative', transition: 'none' }}>
       {isPage && !isMobile && <RailNav active="editor" bookId={book?.id} style={{ position: 'relative', height: '100%' }} />}
 
       {showLeft && (
@@ -232,9 +233,9 @@ export function EditorHybrid({
           <div
             role="presentation"
             onClick={() => setShowMobileSidebar(false)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 40 }}
+            style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
           />
-          <div style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px rgba(0,0,0,0.35)' }}>
+          <div style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)' }}>
             <Sidebar
               book={book}
               chapters={chapters}

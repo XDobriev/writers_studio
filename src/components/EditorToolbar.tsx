@@ -171,7 +171,7 @@ function HeadingDropdown({ editor }: { editor: Editor | null }) {
         <PortalDropdown anchor={btnRef.current} onClose={() => setOpen(false)}>
           <div style={{
             background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 8,
-            padding: 4, boxShadow: '0 12px 28px rgba(0,0,0,.35)',
+            padding: 4, boxShadow: '0 12px 28px oklch(0.05 0.01 50 / 0.35)',
             minWidth: 160, display: 'flex', flexDirection: 'column', gap: 2,
           }}>
             <button
@@ -246,7 +246,7 @@ function ColorPopover({ editor, kind }: ColorPopoverProps) {
         <PortalDropdown anchor={btnRef.current} onClose={() => setOpen(false)}>
           <div style={{
             background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 8,
-            padding: 8, boxShadow: '0 12px 28px rgba(0,0,0,.35)',
+            padding: 8, boxShadow: '0 12px 28px oklch(0.05 0.01 50 / 0.35)',
             display: 'flex', flexDirection: 'column', gap: 6,
           }}>
             <button
@@ -273,7 +273,7 @@ function ColorPopover({ editor, kind }: ColorPopoverProps) {
                   onMouseDown={apply(c.value)}
                   style={{
                     width: 22, height: 22, borderRadius: 5,
-                    border: '1px solid rgba(0,0,0,0.12)',
+                    border: '1px solid oklch(0 0 0 / 0.15)',
                     background: c.value,
                     cursor: 'pointer',
                   }}
@@ -368,7 +368,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
             ),
             left: rect.left, zIndex: 1000,
             background: 'var(--bg-deep)', border: '1px solid var(--border)',
-            borderRadius: 10, padding: 10, boxShadow: '0 12px 28px rgba(0,0,0,.35)',
+            borderRadius: 10, padding: 10, boxShadow: '0 12px 28px oklch(0.05 0.01 50 / 0.35)',
             minWidth: 280, display: 'flex', flexDirection: 'column', gap: 6,
           }}
           onMouseDown={e => e.stopPropagation()}
@@ -593,7 +593,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
     <div style={{
       display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap',
       background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 18,
-      padding: '6px 10px', boxShadow: '0 8px 28px rgba(0,0,0,.35)',
+      padding: '6px 10px', boxShadow: '0 8px 28px oklch(0.05 0.01 50 / 0.35)',
       maxWidth: '100%', overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'none',
     } as React.CSSProperties}>
       {buttons}

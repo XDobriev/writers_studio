@@ -69,7 +69,7 @@ export function RightPanel({ bookId }: RightPanelProps) {
       <div className="rp-head">
         <span className="rp-tab rp-tab--on">Заметки на полях</span>
         <span style={{ flex: 1 }} />
-        <button className="tb-btn" onClick={() => setShowForm((v) => !v)} title="Добавить заметку">
+        <button className="tb-btn" onClick={() => setShowForm((v) => !v)} title="Добавить заметку" aria-label="Добавить заметку">
           <Icon name="plus" size={14} />
         </button>
       </div>
@@ -161,13 +161,15 @@ export function RightPanel({ bookId }: RightPanelProps) {
                   <button
                     className="tb-btn"
                     onClick={() => startEdit(n)}
-                    title="Редактировать"
+                    title="Редактировать заметку"
+                    aria-label="Редактировать заметку"
                     style={{ opacity: 0.5, padding: '2px 5px', minWidth: 24 }}
                   ><Icon name="pencil" size={11} /></button>
                   <button
                     className="tb-btn"
                     onClick={() => handleDelete(n.id)}
-                    title="Удалить"
+                    title="Удалить заметку"
+                    aria-label="Удалить заметку"
                     style={{ opacity: 0.5, fontSize: 14, lineHeight: 1, padding: '2px 6px', minWidth: 24 }}
                   >×</button>
                 </div>

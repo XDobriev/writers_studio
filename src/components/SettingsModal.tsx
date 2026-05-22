@@ -32,6 +32,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [plan, setPlan] = useState<Plan>('free');
   const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -49,6 +50,9 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
+    // Focus first interactive element on open
+    const firstFocusable = dialogRef.current?.querySelector<HTMLElement>('button, input, a[href]');
+    firstFocusable?.focus();
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
@@ -86,9 +90,27 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     <div
       ref={overlayRef}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
     >
-      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, width: 440, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 32px 80px rgba(0,0,0,0.55)', display: 'flex', flexDirection: 'column' }}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Настройки"
+        style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, width: 440, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 32px 80px oklch(0.05 0.01 50 / 0.55)', display: 'flex', flexDirection: 'column' }}
+        onKeyDown={(e) => {
+          if (e.key !== 'Tab') return;
+          const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])') ?? [];
+          const arr = Array.from(focusable);
+          if (!arr.length) return;
+          const first = arr[0];
+          const last = arr[arr.length - 1];
+          if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
+            e.preventDefault();
+            (e.shiftKey ? last : first).focus();
+          }
+        }}
+      >
 
         <div style={{ display: 'flex', alignItems: 'center', padding: '18px 24px 16px', borderBottom: '1px solid var(--border-soft)' }}>
           <span style={{ font: '600 14px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Настройки</span>
