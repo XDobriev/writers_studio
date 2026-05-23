@@ -14,6 +14,7 @@ import { Icon } from '../components/Icon';
 import { type Book } from '../lib/supabase';
 import { getBook } from '../lib/books';
 import { listChapters, type Chapter } from '../lib/chapters';
+import { fetchNotes, type Note } from '../lib/notes';
 
 type Format = 'epub' | 'fb2' | 'docx' | 'html' | 'txt' | 'md';
 
@@ -32,6 +33,14 @@ const FORMAT_TEXT: { value: Format; label: string; ext: string }[] = [
 const FORMAT_EXT: Record<Format, string> = {
   epub: 'epub', fb2: 'fb2', docx: 'docx', html: 'html', md: 'md', txt: 'txt',
 };
+
+const KIND_LABELS: Record<string, string> = {
+  idea: 'Идея', question: 'Вопрос', todo: 'Задача', important: 'Важно',
+};
+
+function noteLabel(n: Note): string {
+  return n.kind === 'custom' ? (n.custom_label || 'Заметка') : (KIND_LABELS[n.kind] ?? 'Заметка');
+}
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -101,6 +110,32 @@ function htmlToMarkdown(html: string): string {
   return s.replace(/\n{3,}/g, '\n\n').trim();
 }
 
+// ─── Notes renderers ─────────────────────────────────────────────────────────
+
+function chapterNotes(notes: Note[], chapterId: string): Note[] {
+  return notes.filter((n) => n.chapter_id === chapterId);
+}
+
+function bookNotes(notes: Note[]): Note[] {
+  return notes.filter((n) => !n.chapter_id);
+}
+
+function notesBlockHtml(notes: Note[]): string {
+  if (!notes.length) return '';
+  const items = notes.map((n) =>
+    `<p class="note-item"><em>${escapeHtml(noteLabel(n))}:</em> ${escapeHtml(n.text)}</p>`
+  ).join('');
+  return `<div class="chapter-notes"><p class="chapter-notes-title">Примечания автора</p>${items}</div>`;
+}
+
+function notesBlockFb2(notes: Note[]): string {
+  if (!notes.length) return '';
+  const items = notes.map((n) =>
+    `<p><emphasis>${escapeXml(noteLabel(n))}:</emphasis> ${escapeXml(n.text)}</p>`
+  ).join('\n');
+  return `<cite>\n<subtitle>Примечания автора</subtitle>\n${items}\n</cite>`;
+}
+
 // ─── Plain builders ───────────────────────────────────────────────────────────
 
 const HTML_STYLE = `
@@ -110,12 +145,17 @@ const HTML_STYLE = `
   h2.chapter-title{font-size:22px;letter-spacing:-0.01em;margin:56px 0 24px;padding-top:32px;border-top:1px solid #e6dfd4}
   p{margin:0 0 1em;text-indent:1.4em}p.no-indent,p:first-of-type{text-indent:0}
   blockquote{margin:1.4em 1em;padding-left:1em;border-left:3px solid #c8b89a;color:#4a443f;font-style:italic}
+  .chapter-notes{margin:2em 0 0;padding:1em 1.2em;background:#f5f0e8;border-left:3px solid #c8b89a;border-radius:4px}
+  .chapter-notes-title{margin:0 0 0.6em;font:600 11px system-ui,sans-serif;color:#8a7d70;text-transform:uppercase;letter-spacing:0.08em}
+  .note-item{margin:0 0 0.4em;font-size:14px;color:#4a443f;text-indent:0}
 `;
 
 interface BuildOpts {
   includeChapterTitles: boolean;
   includeTitlePage: boolean;
   language: string;
+  includeNotes: boolean;
+  notes: Note[];
 }
 
 function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): string {
@@ -125,8 +165,10 @@ function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): string 
   ].filter(Boolean).join(' · ');
   const body = chapters.map((ch) => {
     const title = opts.includeChapterTitles ? `<h2 class="chapter-title">${escapeHtml(ch.title)}</h2>` : '';
-    return title + (ch.content || '');
+    const notesHtml = opts.includeNotes ? notesBlockHtml(chapterNotes(opts.notes, ch.id)) : '';
+    return title + (ch.content || '') + notesHtml;
   }).join('\n');
+  const bookNotesHtml = opts.includeNotes ? notesBlockHtml(bookNotes(opts.notes)) : '';
   return `<!doctype html>
 <html lang="${opts.language}">
 <head><meta charset="utf-8"><title>${escapeHtml(book.title)}</title><style>${HTML_STYLE}</style></head>
@@ -134,6 +176,7 @@ function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): string 
 <h1 class="book-title">${escapeHtml(book.title)}</h1>
 ${meta ? `<div class="book-meta">${meta}</div>` : ''}
 ${body}
+${bookNotesHtml}
 </body>
 </html>`;
 }
@@ -253,6 +296,28 @@ function parseHtmlToParagraphs(html: string): Paragraph[] {
   return result;
 }
 
+function notesParagraphs(notes: Note[]): Paragraph[] {
+  if (!notes.length) return [];
+  const result: Paragraph[] = [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_3,
+      children: [new TextRun('Примечания автора')],
+      spacing: { before: 480, after: 120 },
+    }),
+  ];
+  for (const n of notes) {
+    result.push(new Paragraph({
+      children: [
+        new TextRun({ text: `${noteLabel(n)}: `, bold: true, italics: true }),
+        new TextRun({ text: n.text, italics: true }),
+      ],
+      spacing: { after: 60 },
+      indent: { left: 360 },
+    }));
+  }
+  return result;
+}
+
 async function buildDocxBlob(book: Book, chapters: Chapter[], opts: BuildOpts): Promise<Blob> {
   const children: Paragraph[] = [];
 
@@ -276,6 +341,15 @@ async function buildDocxBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
     }
     const body = parseHtmlToParagraphs(ch.content ?? '');
     children.push(...(body.length ? body : [new Paragraph({ children: [new TextRun('')] })]));
+    if (opts.includeNotes) children.push(...notesParagraphs(chapterNotes(opts.notes, ch.id)));
+  }
+
+  if (opts.includeNotes) {
+    const bn = bookNotes(opts.notes);
+    if (bn.length) {
+      children.push(new Paragraph({ children: [new PageBreak()] }));
+      children.push(...notesParagraphs(bn));
+    }
   }
 
   return Packer.toBlob(new Document({ sections: [{ properties: {}, children }] }));
@@ -330,8 +404,12 @@ function buildFb2Doc(book: Book, chapters: Chapter[], opts: BuildOpts): string {
   const lastName = rest.join(' ');
   const sections = chapters.map((ch) => {
     const title = opts.includeChapterTitles ? `<title><p>${escapeXml(ch.title)}</p></title>\n` : '';
-    return `<section>\n${title}${htmlToFb2Content(ch.content ?? '')}\n</section>`;
+    const notesBlock = opts.includeNotes ? notesBlockFb2(chapterNotes(opts.notes, ch.id)) : '';
+    return `<section>\n${title}${htmlToFb2Content(ch.content ?? '')}${notesBlock ? '\n' + notesBlock : ''}\n</section>`;
   }).join('\n');
+  const bookNotesBlock = opts.includeNotes && bookNotes(opts.notes).length
+    ? `\n<section>\n<title><p>Примечания автора</p></title>\n${notesBlockFb2(bookNotes(opts.notes))}\n</section>`
+    : '';
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0"
@@ -353,7 +431,7 @@ function buildFb2Doc(book: Book, chapters: Chapter[], opts: BuildOpts): string {
   </document-info>
 </description>
 <body>
-${opts.includeTitlePage ? `<title><p>${escapeXml(book.title)}</p>${book.author ? `<p>${escapeXml(book.author)}</p>` : ''}</title>\n` : ''}${sections}
+${opts.includeTitlePage ? `<title><p>${escapeXml(book.title)}</p>${book.author ? `<p>${escapeXml(book.author)}</p>` : ''}</title>\n` : ''}${sections}${bookNotesBlock}
 </body>
 </FictionBook>`;
 }
@@ -369,15 +447,26 @@ p{margin:0 0 0.9em;text-indent:1.4em}
 p.no-indent{text-indent:0}
 blockquote{margin:1em 2em;font-style:italic;border-left:3px solid #bbb;padding-left:1em}
 strong{font-weight:bold}em{font-style:italic}
+.chapter-notes{margin:2em 0 0;padding:0.8em 1em;background:#f5f0e8;border-left:3px solid #c8b89a}
+.chapter-notes-title{margin:0 0 0.5em;font-size:0.75em;color:#8a7d70;text-transform:uppercase;letter-spacing:0.08em;font-weight:600}
+.note-item{margin:0 0 0.35em;font-size:0.88em;color:#4a443f;text-indent:0}
 `;
 
-function chapterXhtml(title: string, html: string, lang: string, includeTitle: boolean): string {
+function notesBlockEpub(notes: Note[]): string {
+  if (!notes.length) return '';
+  const items = notes.map((n) =>
+    `<p class="note-item"><em>${escapeHtml(noteLabel(n))}:</em> ${escapeHtml(n.text)}</p>`
+  ).join('');
+  return `<div class="chapter-notes"><p class="chapter-notes-title">Примечания автора</p>${items}</div>`;
+}
+
+function chapterXhtml(title: string, html: string, lang: string, includeTitle: boolean, notesHtml = ''): string {
   const heading = includeTitle ? `<h2>${escapeHtml(title)}</h2>\n  ` : '';
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="${lang}" xml:lang="${lang}">
 <head><meta charset="utf-8"/><title>${escapeHtml(title)}</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
-<body><section>${heading}${html || '<p> </p>'}</section></body>
+<body><section>${heading}${html || '<p> </p>'}${notesHtml}</section></body>
 </html>`;
 }
 
@@ -408,7 +497,10 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
     href: `ch${String(i + 1).padStart(3, '0')}.xhtml`,
     title: ch.title,
     content: ch.content ?? '',
+    chapterId: ch.id,
   }));
+
+  const hasBookNotes = opts.includeNotes && bookNotes(opts.notes).length > 0;
 
   const manifestParts = [
     `<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>`,
@@ -416,10 +508,12 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
     `<item id="css" href="styles.css" media-type="text/css"/>`,
     ...(opts.includeTitlePage ? [`<item id="title" href="title.xhtml" media-type="application/xhtml+xml"/>`] : []),
     ...chs.map((c) => `<item id="${c.id}" href="${c.href}" media-type="application/xhtml+xml"/>`),
+    ...(hasBookNotes ? [`<item id="booknotes" href="notes.xhtml" media-type="application/xhtml+xml"/>`] : []),
   ];
   const spineParts = [
     ...(opts.includeTitlePage ? [`<itemref idref="title"/>`] : []),
     ...chs.map((c) => `<itemref idref="${c.id}"/>`),
+    ...(hasBookNotes ? [`<itemref idref="booknotes"/>`] : []),
   ];
 
   let po = 1;
@@ -433,6 +527,10 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
   for (const c of chs) {
     navLi.push(`<li><a href="${c.href}">${escapeHtml(c.title)}</a></li>`);
     ncxPts.push(`<navPoint id="${c.id}" playOrder="${po++}"><navLabel><text>${escapeXml(c.title)}</text></navLabel><content src="${c.href}"/></navPoint>`);
+  }
+  if (hasBookNotes) {
+    navLi.push(`<li><a href="notes.xhtml">Примечания автора</a></li>`);
+    ncxPts.push(`<navPoint id="booknotes" playOrder="${po++}"><navLabel><text>Примечания автора</text></navLabel><content src="notes.xhtml"/></navPoint>`);
   }
 
   const opf = `<?xml version="1.0" encoding="UTF-8"?>
@@ -475,7 +573,24 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
   zip.file('OEBPS/toc.ncx', ncx);
   zip.file('OEBPS/styles.css', EPUB_CSS);
   if (opts.includeTitlePage) zip.file('OEBPS/title.xhtml', titleXhtml(book, lang));
-  for (const c of chs) zip.file(`OEBPS/${c.href}`, chapterXhtml(c.title, c.content, lang, opts.includeChapterTitles));
+  for (const c of chs) {
+    const nHtml = opts.includeNotes ? notesBlockEpub(chapterNotes(opts.notes, c.chapterId)) : '';
+    zip.file(`OEBPS/${c.href}`, chapterXhtml(c.title, c.content, lang, opts.includeChapterTitles, nHtml));
+  }
+
+  if (opts.includeNotes) {
+    const bn = bookNotes(opts.notes);
+    if (bn.length) {
+      const bnHtml = notesBlockEpub(bn);
+      const bnXhtml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="${lang}" xml:lang="${lang}">
+<head><meta charset="utf-8"/><title>Примечания автора</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
+<body><section><h2>Примечания автора</h2>${bnHtml}</section></body>
+</html>`;
+      zip.file('OEBPS/notes.xhtml', bnXhtml);
+    }
+  }
 
   return zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' });
 }
@@ -499,12 +614,14 @@ export default function Export() {
 
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[] | null>(null);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const [format, setFormat] = useState<Format>('epub');
   const [doneOnly, setDoneOnly] = useState(false);
   const [includeChapterTitles, setIncludeChapterTitles] = useState(true);
   const [includeTitlePage, setIncludeTitlePage] = useState(true);
+  const [includeNotes, setIncludeNotes] = useState(false);
   const [language, setLanguage] = useState('ru-RU');
   const [busy, setBusy] = useState(false);
 
@@ -513,13 +630,15 @@ export default function Export() {
     let cancelled = false;
     (async () => {
       try {
-        const [book, list] = await Promise.all([
+        const [book, list, notesList] = await Promise.all([
           getBook(bookId),
           listChapters(bookId),
+          fetchNotes(bookId),
         ]);
         if (cancelled) return;
         setBook(book);
         setChapters(list);
+        setNotes(notesList);
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
       }
@@ -549,7 +668,7 @@ export default function Export() {
     if (selectedChapters.length === 0) { setError('Нет глав для экспорта.'); return; }
     setBusy(true);
     setError(null);
-    const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language };
+    const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes };
     try {
       if (format === 'docx') {
         triggerDownload(await buildDocxBlob(book, selectedChapters, opts), filename);
@@ -569,7 +688,7 @@ export default function Export() {
     } finally {
       setBusy(false);
     }
-  }, [book, selectedChapters, format, includeChapterTitles, includeTitlePage, language, filename]);
+  }, [book, selectedChapters, format, includeChapterTitles, includeTitlePage, includeNotes, notes, language, filename]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
@@ -706,7 +825,14 @@ export default function Export() {
               on={includeChapterTitles}
               onChange={setIncludeChapterTitles}
             />
-            <ToggleRow label="Заметки на полях как сноски" on={false} onChange={() => {}} disabled last />
+            <ToggleRow
+              label="Заметки на полях как примечания автора"
+              hint={notes.length ? `— ${notes.length} ${pluralNotes(notes.length)}` : '— нет заметок'}
+              on={includeNotes && notes.length > 0}
+              onChange={(v) => notes.length > 0 && setIncludeNotes(v)}
+              disabled={notes.length === 0}
+              last
+            />
           </div>
 
           {error && <div style={{ color: 'var(--danger)', fontSize: 12.5, marginBottom: 8 }}>{error}</div>}
@@ -733,6 +859,14 @@ export default function Export() {
       </div>
     </div>
   );
+}
+
+function pluralNotes(n: number): string {
+  const m = n % 10, h = n % 100;
+  if (h >= 11 && h <= 19) return 'заметок';
+  if (m === 1) return 'заметка';
+  if (m >= 2 && m <= 4) return 'заметки';
+  return 'заметок';
 }
 
 function pluralChapters(n: number): string {
