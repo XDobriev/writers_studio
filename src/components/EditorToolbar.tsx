@@ -11,6 +11,7 @@ interface ToolbarProps {
   setMode?: (m: EditorMode) => void;
   variant?: 'studio' | 'pill';
   showModes?: boolean;
+  isMobile?: boolean;
 }
 
 export function ModeSegment({ mode, setMode }: { mode: EditorMode; setMode: (m: EditorMode) => void }) {
@@ -427,7 +428,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
   );
 }
 
-export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showModes = true }: ToolbarProps) {
+export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showModes = true, isMobile = false }: ToolbarProps) {
   const can = editor !== null;
   const run = (fn: (e: Editor) => void) => (ev: React.MouseEvent) => {
     ev.preventDefault();
@@ -480,55 +481,63 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         disabled={!can}
         onMouseDown={run((e) => e.chain().focus().toggleUnderline().run())}
       ><Icon name="underline" /></button>
-      <button
-        type="button"
-        title="Зачёркнутый"
-        className={btnCls(!!editor?.isActive('strike'))}
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().toggleStrike().run())}
-      ><Icon name="strike" /></button>
-      <button
-        type="button"
-        title="Очистить форматирование"
-        className="tb-btn"
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().unsetAllMarks().clearNodes().run())}
-      ><Icon name="clear" /></button>
+      {!isMobile && (
+        <>
+          <button
+            type="button"
+            title="Зачёркнутый"
+            className={btnCls(!!editor?.isActive('strike'))}
+            disabled={!can}
+            onMouseDown={run((e) => e.chain().focus().toggleStrike().run())}
+          ><Icon name="strike" /></button>
+          <button
+            type="button"
+            title="Очистить форматирование"
+            className="tb-btn"
+            disabled={!can}
+            onMouseDown={run((e) => e.chain().focus().unsetAllMarks().clearNodes().run())}
+          ><Icon name="clear" /></button>
+        </>
+      )}
       <span className="tb-sep" />
 
       <ColorPopover editor={editor} kind="text" />
-      <ColorPopover editor={editor} kind="highlight" />
+      {!isMobile && <ColorPopover editor={editor} kind="highlight" />}
       <span className="tb-sep" />
 
-      <button
-        type="button"
-        title="По левому краю"
-        className={btnCls(!!editor?.isActive({ textAlign: 'left' }))}
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().setTextAlign('left').run())}
-      ><Icon name="align" /></button>
-      <button
-        type="button"
-        title="По центру"
-        className={btnCls(!!editor?.isActive({ textAlign: 'center' }))}
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().setTextAlign('center').run())}
-      ><Icon name="aligncenter" /></button>
-      <button
-        type="button"
-        title="По правому краю"
-        className={btnCls(!!editor?.isActive({ textAlign: 'right' }))}
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().setTextAlign('right').run())}
-      ><Icon name="alignright" /></button>
-      <button
-        type="button"
-        title="По ширине"
-        className={btnCls(!!editor?.isActive({ textAlign: 'justify' }))}
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().setTextAlign('justify').run())}
-      ><Icon name="alignjustify" /></button>
-      <span className="tb-sep" />
+      {!isMobile && (
+        <>
+          <button
+            type="button"
+            title="По левому краю"
+            className={btnCls(!!editor?.isActive({ textAlign: 'left' }))}
+            disabled={!can}
+            onMouseDown={run((e) => e.chain().focus().setTextAlign('left').run())}
+          ><Icon name="align" /></button>
+          <button
+            type="button"
+            title="По центру"
+            className={btnCls(!!editor?.isActive({ textAlign: 'center' }))}
+            disabled={!can}
+            onMouseDown={run((e) => e.chain().focus().setTextAlign('center').run())}
+          ><Icon name="aligncenter" /></button>
+          <button
+            type="button"
+            title="По правому краю"
+            className={btnCls(!!editor?.isActive({ textAlign: 'right' }))}
+            disabled={!can}
+            onMouseDown={run((e) => e.chain().focus().setTextAlign('right').run())}
+          ><Icon name="alignright" /></button>
+          <button
+            type="button"
+            title="По ширине"
+            className={btnCls(!!editor?.isActive({ textAlign: 'justify' }))}
+            disabled={!can}
+            onMouseDown={run((e) => e.chain().focus().setTextAlign('justify').run())}
+          ><Icon name="alignjustify" /></button>
+          <span className="tb-sep" />
+        </>
+      )}
 
       <button
         type="button"
@@ -546,21 +555,25 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
       ><Icon name="olist" /></button>
       <span className="tb-sep" />
 
-      <button
-        type="button"
-        title="Цитата"
-        className={btnCls(!!editor?.isActive('blockquote'))}
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().toggleBlockquote().run())}
-      ><Icon name="quote" /></button>
-      <button
-        type="button"
-        title="Горизонтальная линия"
-        className="tb-btn"
-        disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().setHorizontalRule().run())}
-      ><Icon name="hr" /></button>
-      <span className="tb-sep" />
+      {!isMobile && (
+        <>
+          <button
+            type="button"
+            title="Цитата"
+            className={btnCls(!!editor?.isActive('blockquote'))}
+            disabled={!can}
+            onMouseDown={run((e) => e.chain().focus().toggleBlockquote().run())}
+          ><Icon name="quote" /></button>
+          <button
+            type="button"
+            title="Горизонтальная линия"
+            className="tb-btn"
+            disabled={!can}
+            onMouseDown={run((e) => e.chain().focus().setHorizontalRule().run())}
+          ><Icon name="hr" /></button>
+          <span className="tb-sep" />
+        </>
+      )}
 
       <LinkPopover editor={editor} />
     </>
@@ -575,8 +588,8 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         display: 'flex', alignItems: 'center',
         position: 'relative',
       }}>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0, overflow: 'hidden' }}>
-          <div ref={scrollRef} className="tb" style={{ width: 680, maxWidth: '100%', flex: 'none', height: '100%', background: 'transparent', borderBottom: 'none' } as React.CSSProperties}>
+        <div style={{ flex: 1, display: 'flex', justifyContent: isMobile ? 'flex-start' : 'center', minWidth: 0, overflow: 'visible' }}>
+          <div ref={scrollRef} className="tb" style={{ width: isMobile ? '100%' : 680, maxWidth: '100%', flex: 'none', height: '100%', background: 'transparent', borderBottom: 'none' } as React.CSSProperties}>
             {buttons}
           </div>
         </div>

@@ -151,11 +151,31 @@ export function EditorHybrid({
           </div>
         )}
         {isPage ? (
-          <div style={{ height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 16px', borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)' }}>
-            <ModeSegment mode={mode} setMode={setMode} />
-          </div>
+          isMobile ? (
+            <div style={{ display: 'flex', alignItems: 'center', height: 44, padding: '0 12px', gap: 8, borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)', flexShrink: 0 }}>
+              <button
+                type="button"
+                className="tb-btn"
+                onClick={() => setShowMobileSidebar(true)}
+                title="Главы"
+                style={{ flexShrink: 0 }}
+              >
+                <Icon name="panel" size={16} />
+              </button>
+              {activeChapter && (
+                <span style={{ font: '500 13px var(--font-serif)', color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {activeChapter.title || 'Без названия'}
+                </span>
+              )}
+              <ModeSegment mode={mode} setMode={setMode} />
+            </div>
+          ) : (
+            <div style={{ height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 16px', borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)' }}>
+              <ModeSegment mode={mode} setMode={setMode} />
+            </div>
+          )
         ) : (
-          <EditorToolbar editor={editor} mode={mode} setMode={setMode} variant="studio" showModes={!isMobile} />
+          <EditorToolbar editor={editor} mode={mode} setMode={setMode} variant="studio" showModes={!isMobile} isMobile={isMobile} />
         )}
 
         <div className="sheet-wrap" style={{ padding: isMobile ? '16px 8px 0' : (isPage ? '48px 56px 0' : '36px 32px 0') }}>
