@@ -975,7 +975,7 @@ function EventDetailPanel({
             ×
           </button>
         </div>
-        <div style={{ flex: 1, overflow: 'auto', padding: '20px 18px' }}>
+        <div style={{ flex: 1, overflow: 'auto', padding: '20px 18px 20px 28px' }}>
           <EventCard
             event={event}
             chapters={chapters}
