@@ -10,6 +10,7 @@ import { EditorToolbar, ModeSegment } from './EditorToolbar';
 import type { Book } from '../lib/supabase';
 import type { ChapterMeta, ChapterActions } from '../lib/chapters';
 import { useWritingStats } from '../lib/useWritingStats';
+import { useUserDisplay } from '../lib/useUserDisplay';
 
 type Mode = 'studio' | 'left' | 'right' | 'page';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -100,6 +101,8 @@ export function EditorHybrid({
   const { isMobile, showLeft, showRight, isPage, cols, sheetWidth, sheetPad } = useEditorLayout(mode);
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
+  const { plan } = useUserDisplay();
+  const isPro = plan === 'pro' || plan === 'lifetime';
 
   const prevSaveState = useRef<SaveState>(saveState);
   useEffect(() => {
@@ -198,7 +201,15 @@ export function EditorHybrid({
         )}
       </main>
 
-      {showRight && <RightPanel bookId={book?.id} />}
+      {showRight && (
+        <RightPanel
+          bookId={book?.id}
+          chapterId={activeChapter?.id}
+          userId={activeChapter?.user_id}
+          currentContent={activeContent}
+          isPro={isPro}
+        />
+      )}
 
       {isMobile && showMobileSidebar && (
         <>
