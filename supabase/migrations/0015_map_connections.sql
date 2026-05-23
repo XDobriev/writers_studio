@@ -19,11 +19,18 @@ create index if not exists lconn_book_idx on public.location_connections(book_id
 
 alter table public.location_connections enable row level security;
 
+drop policy if exists "lconn select own" on public.location_connections;
 create policy "lconn select own" on public.location_connections
   for select using (auth.uid() = user_id);
+
+drop policy if exists "lconn insert own" on public.location_connections;
 create policy "lconn insert own" on public.location_connections
   for insert with check (auth.uid() = user_id);
+
+drop policy if exists "lconn update own" on public.location_connections;
 create policy "lconn update own" on public.location_connections
   for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "lconn delete own" on public.location_connections;
 create policy "lconn delete own" on public.location_connections
   for delete using (auth.uid() = user_id);
