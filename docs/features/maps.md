@@ -4,42 +4,35 @@
 
 ## Компоненты
 
-- `src/pages/Map.tsx` — страница с toggle «Карта / Список» и CRUD.
-- `src/components/WorldMap.tsx` — интерактивная SVG-карта.
+- `src/pages/Map.tsx` — тулбар с режимами, handlers для локаций/связей/bg-upload.
+- `src/components/WorldMap.tsx` — SVG-холст: zoom/pan, пины, связи, popup, mobile bottom sheet.
 
 ## БД
 
-- Таблица `locations`: поля `type` (city/village/forest/sea/castle/other), `name`, `role`, `description`, `x` (nullable float 0–1), `y` (nullable float 0–1).
-- Миграция: `0007_locations.sql`.
+- Таблица `locations`: `type`, `name`, `role`, `description`, `x` (float 0–1), `y` (float 0–1).
+- Таблица `location_connections`: `from_id`, `to_id`, `label`, `style` (road/river/path/border).
+- Поле `books.map_bg_url` — публичный URL фона из Storage бакета `map-backgrounds`.
+- Миграции: `0007_locations.sql`, `0015_map_connections.sql`.
 
-## Функции
+## Режимы карты (MapMode)
 
-- Создание/удаление локаций.
-- Inline-edit: тип, имя, роль, описание (в режиме Список).
-- Фильтр по типу в sidebar (в режиме Список).
-- Grid карточек (режим Список).
-- Графическая карта с пинами (режим Карта).
+| Режим | Действие на холсте | Действие на пине |
+|---|---|---|
+| `place` | Клик → создать локацию | Клик → popup редактирования |
+| `connect` | Клик → сброс источника | Клик 1 → источник, Клик 2 → создать связь |
+| `pan` | Drag → pan | Drag → переместить пин |
 
-## WorldMap — взаимодействие
+## Связи (CONNECTION_STYLES)
 
-| Действие | Результат |
-|---|---|
-| Клик на пустое место | Создаёт локацию с координатами |
-| Drag пина | Обновляет x/y локации |
-| Клик на пин | Открывает popup-карточку |
-| Колесо мыши | Zoom (0.15× — 5×) |
-| Drag по пустому | Pan холста |
-| «+» рядом с незаразмещённой | Режим pendingPlace → клик ставит локацию |
-| «Снять с карты» в popup | Обнуляет x/y |
-| Esc | Отменяет pendingPlace |
+`road` — дорога (gold dash) · `river` — река (teal solid) · `path` — тропа (gray dot) · `border` — граница (dark dash)
 
-## Координаты
+## Мобиль (< 768px)
 
-- Хранятся как нормализованные float [0, 1].
-- Логический холст: 1600×900 (SVG viewBox). На экране масштабируется автоматически.
-- Локации без x/y показываются в панели «Не размещены» справа.
+- Тулбар: только иконки.
+- Popup → bottom sheet при тапе на пин.
+- Панель «Не размещены» → floating badge → bottom sheet.
+- Zoom: pinch-to-zoom (два пальца).
 
-## Следующий шаг
+## Storage
 
-- Inline-edit полей (name, type, role, description) прямо в popup на карте.
-- Фоновое изображение карты (upload через Supabase Storage).
+Бакет `map-backgrounds` (public read). Путь: `{user_id}/{book_id}/background`.
