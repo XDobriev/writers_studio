@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мокап — История версий</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ── design-system tokens ── */
+:root {
+  --bg-deep:      oklch(0.165 0.012 50);
+  --bg:           oklch(0.205 0.014 50);
+  --surface:      oklch(0.245 0.014 50);
+  --surface-2:    oklch(0.295 0.012 50);
+  --surface-3:    oklch(0.345 0.012 50);
+  --border:       oklch(0.34  0.012 50);
+  --border-soft:  oklch(0.28  0.010 50);
+  --border-strong:oklch(0.42  0.012 50);
+  --ink:          oklch(0.95  0.008 80);
+  --ink-2:        oklch(0.78  0.012 80);
+  --ink-3:        oklch(0.58  0.012 70);
+  --ink-4:        oklch(0.46  0.012 60);
+  --accent:       oklch(0.63  0.16  30);
+  --accent-soft:  oklch(0.63  0.16  30 / 0.16);
+  --accent-2:     oklch(0.78  0.10  90);
+  --ok:           oklch(0.72  0.14  145);
+  --paper:        oklch(0.965 0.014 85);
+  --paper-ink:    oklch(0.22  0.020 60);
+  --paper-ink-2:  oklch(0.42  0.020 60);
+  --r-1: 4px; --r-2: 8px; --r-3: 12px;
+  --font-ui:   'IBM Plex Sans', system-ui, sans-serif;
+  --font-serif:'Source Serif 4', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%; background: var(--bg);
+  font-family: var(--font-ui); color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── layout ── */
+.as-app {
+  display: grid;
+  grid-template-columns: 220px 1fr 300px;
+  height: 100vh;
+}
+
+/* ── sidebar ── */
+.sb {
+  background: var(--bg-deep);
+  border-right: 1px solid var(--border-soft);
+  display: flex; flex-direction: column;
+}
+.sb-head {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.sb-book-title {
+  font-family: var(--font-serif);
+  font-size: 15px; font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+}
+.sb-book-author {
+  font-size: 11px; color: var(--ink-3);
+  letter-spacing: 0.04em; text-transform: uppercase;
+  margin-top: 3px;
+}
+.sb-section {
+  padding: 14px 14px 8px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sb-section-title {
+  font-size: 10.5px; color: var(--ink-3);
+  letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500;
+}
+.sb-list { padding: 0 8px 8px; display: flex; flex-direction: column; gap: 1px; }
+.sb-item {
+  display: grid; grid-template-columns: 22px 1fr auto;
+  align-items: center; gap: 8px;
+  padding: 7px 8px; border-radius: var(--r-1);
+  cursor: pointer;
+}
+.sb-item:hover { background: var(--surface); }
+.sb-item--on { background: var(--surface); }
+.sb-item--on .sb-item-num { color: var(--accent); }
+.sb-item-num { font: 500 11px var(--font-mono); color: var(--ink-4); text-align: right; }
+.sb-item-title { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-item-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--ink-4); }
+.sb-item-dot--progress { background: var(--accent-2); }
+.sb-item-dot--done { background: var(--ok); }
+
+/* ── editor center ── */
+.editor-col {
+  display: flex; flex-direction: column; min-height: 0;
+}
+.tb {
+  height: 44px; flex-shrink: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-soft);
+  display: flex; align-items: center;
+  padding: 0 8px; gap: 2px;
+}
+.tb-btn {
+  height: 28px; min-width: 28px; padding: 0 5px;
+  border-radius: var(--r-1);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-2); font-size: 12px;
+  background: transparent; border: none; cursor: pointer;
+}
+.tb-btn:hover { background: var(--surface); color: var(--ink); }
+.tb-sep { width: 1px; height: 18px; background: var(--border-soft); margin: 0 4px; }
+.tb-spacer { flex: 1; }
+
+.sheet-wrap {
+  flex: 1; min-height: 0;
+  background: var(--bg);
+  overflow-y: auto;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 36px 48px 0;
+}
+.sheet {
+  width: 640px; max-width: 100%;
+  background: var(--paper);
+  color: var(--paper-ink);
+  font-family: var(--font-serif);
+  font-size: 16px; line-height: 1.78;
+  padding: 52px 68px 72px;
+  border-radius: 4px 4px 0 0;
+}
+.sheet .ch-num {
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--paper-ink-2); margin-bottom: 14px;
+}
+.sheet .ch-title {
+  font-family: var(--font-serif);
+  font-size: 28px; font-weight: 600;
+  line-height: 1.15; letter-spacing: -0.012em;
+  margin-bottom: 28px; color: var(--paper-ink);
+}
+.sheet .ch-rule {
+  width: 36px; height: 1px;
+  background: var(--paper-ink); opacity: 0.3;
+  margin-bottom: 24px;
+}
+.sheet p { margin: 0 0 1em; text-indent: 1.4em; }
+.sheet p.no-indent { text-indent: 0; }
+
+.status {
+  height: 30px; flex-shrink: 0;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg-deep);
+  display: flex; align-items: center;
+  padding: 0 14px;
+  font: 400 11px var(--font-mono);
+  color: var(--ink-3); gap: 14px;
+}
+.status-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--ok); flex-shrink: 0; }
+
+/* ── right panel ── */
+.rp {
+  background: var(--bg-deep);
+  border-left: 1px solid var(--border-soft);
+  display: flex; flex-direction: column;
+}
+.rp-head {
+  height: 44px; flex-shrink: 0;
+  display: flex; align-items: center; padding: 0 14px;
+  border-bottom: 1px solid var(--border-soft);
+  gap: 14px;
+}
+.rp-tab {
+  font-size: 12px; color: var(--ink-3);
+  padding: 4px 0; position: relative;
+  cursor: pointer; background: none; border: none;
+  font-family: var(--font-ui);
+}
+.rp-tab--on { color: var(--ink); }
+.rp-tab--on::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -13px;
+  height: 1.5px; background: var(--accent);
+}
+.rp-body {
+  flex: 1; overflow-y: auto;
+  padding: 12px 10px;
+  display: flex; flex-direction: column; gap: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+/* ── section header inside rp ── */
+.rp-section {
+  padding: 8px 4px 4px;
+  font: 500 9.5px var(--font-mono);
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+/* ── version card (mirrors .mn pattern) ── */
+.ver-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-2);
+  padding: 9px 11px;
+  display: flex; flex-direction: column; gap: 4px;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.ver-card:hover { background: var(--surface-2); border-color: var(--border); }
+.ver-card--named { border-left: 2px solid var(--accent); padding-left: 10px; }
+.ver-card-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ver-card-label {
+  font-size: 12.5px; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1;
+}
+.ver-card-label--named { color: var(--accent); font-weight: 500; }
+.ver-card-meta {
+  font: 400 10.5px var(--font-mono);
+  color: var(--ink-4);
+}
+.ver-card-trigger {
+  font: 400 10px var(--font-mono);
+  color: var(--ink-4);
+}
+
+/* ── btn ── */
+.btn {
+  height: 30px; padding: 0 12px;
+  border-radius: var(--r-2);
+  border: 1px solid var(--border);
+  font-size: 12.5px; color: var(--ink);
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-ui);
+}
+.btn:hover { background: var(--surface); }
+.btn--primary { background: var(--accent); border-color: var(--accent); color: oklch(0.98 0 0); }
+.btn--primary:hover { background: oklch(0.68 0.16 30); }
+.btn--ghost { border-color: transparent; color: var(--ink-2); }
+.btn--ghost:hover { background: var(--surface); }
+.btn--dashed {
+  width: 100%; height: 30px;
+  border: 1px dashed var(--border);
+  border-radius: var(--r-2);
+  font-size: 12px; color: var(--ink-3);
+  background: none; cursor: pointer;
+  font-family: var(--font-ui);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: color 0.12s, border-color 0.12s;
+  margin-top: 2px;
+}
+.btn--dashed:hover { color: var(--ink); border-color: var(--border-strong); }
+
+/* ── chip ── */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 18px; padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 10px; color: var(--ink-3);
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.chip--accent { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* ── upsell ── */
+.upsell-banner {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-2);
+  padding: 10px 12px;
+  font-size: 12px; color: var(--ink-3); line-height: 1.5;
+  margin-top: 2px;
+}
+.upsell-banner strong { color: var(--accent); }
+
+/* ── modal overlay ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: oklch(0 0 0 / 0.65);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50;
+}
+.modal {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  width: 520px; max-height: 72vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px oklch(0 0 0 / 0.5);
+}
+.modal-head {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  display: flex; align-items: flex-start; justify-content: space-between;
+}
+.modal-head-info h3 { font-size: 14px; font-weight: 600; color: var(--ink); }
+.modal-head-info p { font: 400 11px var(--font-mono); color: var(--ink-4); margin-top: 2px; }
+.modal-close {
+  background: none; border: none; color: var(--ink-3);
+  font-size: 18px; cursor: pointer; padding: 2px 4px;
+  border-radius: var(--r-1); line-height: 1;
+}
+.modal-close:hover { color: var(--ink); background: var(--surface); }
+.modal-body {
+  flex: 1; overflow-y: auto;
+  padding: 20px 20px;
+  background: var(--paper);
+}
+.modal-body p {
+  font-family: var(--font-serif);
+  font-size: 15px; line-height: 1.78;
+  color: var(--paper-ink);
+  text-indent: 1.4em;
+  margin-bottom: 1em;
+}
+.modal-body p.no-indent { text-indent: 0; }
+.modal-body em { font-style: italic; color: var(--paper-ink-2); }
+.modal-foot {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border-soft);
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+
+/* ── preview tabs (top switcher for mockup only) ── */
+.demo-tabs {
+  position: fixed; top: 0; left: 0; right: 0; height: 36px;
+  background: oklch(0.12 0.012 50);
+  border-bottom: 1px solid oklch(0.22 0.010 50);
+  display: flex; align-items: center; padding: 0 16px; gap: 4px;
+  z-index: 100;
+  font-size: 11px;
+}
+.demo-tab {
+  padding: 4px 12px; border-radius: 999px;
+  color: oklch(0.55 0.010 70);
+  cursor: pointer; border: none; background: none;
+  font-family: var(--font-ui); font-size: 11px;
+  transition: all 0.1s;
+}
+.demo-tab:hover { color: oklch(0.80 0.010 70); }
+.demo-tab--on {
+  background: oklch(0.22 0.012 50);
+  color: oklch(0.90 0.010 70);
+}
+.demo-label {
+  font: 500 10px var(--font-mono);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: oklch(0.38 0.010 60);
+  margin-right: 8px;
+}
+
+body { padding-top: 36px; }
+</style>
+</head>
+<body>
+
+<!-- demo switcher -->
+<div class="demo-tabs">
+  <span class="demo-label">Мокап</span>
+  <button class="demo-tab demo-tab--on" onclick="show('free')">Free — Резервные копии</button>
+  <button class="demo-tab" onclick="show('pro')">Pro — История версий</button>
+  <button class="demo-tab" onclick="show('modal')">Просмотр версии</button>
+</div>
+
+<!-- ════════ APP SHELL ════════ -->
+<div class="as-app" id="app-shell" style="height: calc(100vh - 36px)">
+
+  <!-- sidebar -->
+  <div class="sb">
+    <div class="sb-head">
+      <div class="sb-book-title">Тени Серебряного Леса</div>
+      <div class="sb-book-author">Демиен Рейн</div>
+    </div>
+    <div class="sb-section">
+      <span class="sb-section-title">Главы</span>
+    </div>
+    <div class="sb-list">
+      <div class="sb-item">
+        <span class="sb-item-num">1</span>
+        <span class="sb-item-title">Пролог</span>
+        <span class="sb-item-dot sb-item-dot--done"></span>
+      </div>
+      <div class="sb-item">
+        <span class="sb-item-num">2</span>
+        <span class="sb-item-title">Приход в Митарру</span>
+        <span class="sb-item-dot sb-item-dot--progress"></span>
+      </div>
+      <div class="sb-item sb-item--on">
+        <span class="sb-item-num">3</span>
+        <span class="sb-item-title">Первая встреча</span>
+        <span class="sb-item-dot"></span>
+      </div>
+      <div class="sb-item">
+        <span class="sb-item-num">4</span>
+        <span class="sb-item-title">Без названия</span>
+        <span class="sb-item-dot"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- editor -->
+  <div class="editor-col">
+    <div class="tb">
+      <button class="tb-btn">↩</button>
+      <button class="tb-btn">↪</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" style="font-weight:700">B</button>
+      <button class="tb-btn" style="font-style:italic">I</button>
+      <button class="tb-btn" style="text-decoration:underline">U</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn">H1</button>
+      <button class="tb-btn">H2</button>
+      <div class="tb-spacer"></div>
+      <span style="font:400 11px var(--font-mono);color:var(--ink-4)">1 240 сл.</span>
+    </div>
+
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <div class="ch-num">Глава 3</div>
+        <div class="ch-title">Первая встреча</div>
+        <div class="ch-rule"></div>
+        <p class="no-indent">Дэмиен вошёл в таверну, когда солнце уже клонилось к закату. Запах смолы и старого дерева встретил его у порога, смешавшись с дымом очага и чем-то кисловатым — пролитым пивом или чужими тайнами.</p>
+        <p>За стойкой стоял широкоплечий трактирщик с руками, привыкшими гнуть подковы. Он не поднял головы, когда Дэмиен подошёл, только молча поставил перед ним кружку.</p>
+        <p>— Ищу человека, — сказал Дэмиен.</p>
+        <p>— Здесь все кого-то ищут, — ответил трактирщик и наконец посмотрел на него. Взгляд был такой, что Дэмиен понял: разговор окончен раньше, чем начался.</p>
+      </div>
+    </div>
+
+    <div class="status">
+      <div class="status-dot"></div>
+      <span>Сохранено только что</span>
+      <span style="margin-left:auto">≈ 6 мин чтения</span>
+    </div>
+  </div>
+
+  <!-- right panel — FREE -->
+  <div class="rp" id="rp-free">
+    <div class="rp-head">
+      <button class="rp-tab">Заметки</button>
+      <button class="rp-tab rp-tab--on">Резервные копии</button>
+    </div>
+    <div class="rp-body">
+
+      <div class="rp-section">Сегодня</div>
+
+      <div class="ver-card" onclick="openModal('Сегодня, 14:32', 'при закрытии вкладки · 1 240 сл.')">
+        <div class="ver-card-row">
+          <span class="ver-card-label">14:32</span>
+          <span class="chip">при закрытии</span>
+        </div>
+        <div class="ver-card-meta">1 240 сл.</div>
+      </div>
+
+      <div class="ver-card" onclick="openModal('Сегодня, 12:00', 'авто · 1 180 сл.')">
+        <div class="ver-card-row">
+          <span class="ver-card-label">12:00</span>
+          <span class="chip">авто</span>
+        </div>
+        <div class="ver-card-meta">1 180 сл.</div>
+      </div>
+
+      <div class="ver-card" onclick="openModal('Сегодня, 10:00', 'авто · 1 050 сл.')">
+        <div class="ver-card-row">
+          <span class="ver-card-label">10:00</span>
+          <span class="chip">авто</span>
+        </div>
+        <div class="ver-card-meta">1 050 сл.</div>
+      </div>
+
+      <div class="rp-section" style="margin-top:4px">Вчера</div>
+
+      <div class="ver-card" onclick="openModal('Вчера, 21:15', 'смена главы · 920 сл.')">
+        <div class="ver-card-row">
+          <span class="ver-card-label">21:15</span>
+          <span class="chip">смена главы</span>
+        </div>
+        <div class="ver-card-meta">920 сл.</div>
+      </div>
+
+      <div class="ver-card" onclick="openModal('Вчера, 18:45', 'авто · 870 сл.')">
+        <div class="ver-card-row">
+          <span class="ver-card-label">18:45</span>
+          <span class="chip">авто</span>
+        </div>
+        <div class="ver-card-meta">870 сл.</div>
+      </div>
+
+      <div class="upsell-banner" style="margin-top:6px">
+        Хранятся последние 10 копий.<br>
+        Именованные вехи и 30 дней истории — <strong>Pro</strong>.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- right panel — PRO -->
+  <div class="rp" id="rp-pro" style="display:none">
+    <div class="rp-head">
+      <button class="rp-tab">Заметки</button>
+      <button class="rp-tab rp-tab--on">История версий</button>
+      <span style="margin-left:auto"><span class="chip chip--accent">Pro</span></span>
+    </div>
+    <div class="rp-body">
+
+      <div class="rp-section">Именованные вехи</div>
+
+      <div class="ver-card ver-card--named" onclick="openModal('До правки редактора', '23 мая · именованная веха · 1 420 сл.')">
+        <div class="ver-card-row">
+          <span class="ver-card-label ver-card-label--named">До правки редактора</span>
+        </div>
+        <div class="ver-card-meta">23 мая · 1 420 сл.</div>
+      </div>
+
+      <div class="ver-card ver-card--named" onclick="openModal('Финальный черновик', '15 мая · именованная веха · 1 380 сл.')">
+        <div class="ver-card-row">
+          <span class="ver-card-label ver-card-label--named">Финальный черновик</span>
+        </div>
+        <div class="ver-card-meta">15 мая · 1 380 сл.</div>
+      </div>
+
+      <div class="rp-section" style="margin-top:4px">Авто-снимки · сегодня</div>
+
+      <div class="ver-card" onclick="openModal('Сегодня, 14:32', 'при закрытии вкладки · 1 240 сл.')">
+        <div class="ver-card-row">
+          <span class="ver-card-label">14:32</span>
+          <span class="chip">при закрытии</span>
+        </div>
+        <div class="ver-card-meta">1 240 сл.</div>
+      </div>
+
+      <div class="ver-card" onclick="openModal('Сегодня, 14:00', 'авто · 1 220 сл.')">
+        <div class="ver-card-row">
+          <span class="ver-card-label">14:00</span>
+          <span class="chip">авто</span>
+        </div>
+        <div class="ver-card-meta">1 220 сл.</div>
+      </div>
+
+      <div class="ver-card" onclick="openModal('Сегодня, 13:30', 'авто · 1 190 сл.')">
+        <div class="ver-card-row">
+          <span class="ver-card-label">13:30</span>
+          <span class="chip">авто</span>
+        </div>
+        <div class="ver-card-meta">1 190 сл.</div>
+      </div>
+
+      <button class="btn--dashed" onclick="alert('Введите название версии...')">
+        + Сохранить текущую версию
+      </button>
+
+    </div>
+  </div>
+
+</div><!-- /as-app -->
+
+<!-- ════════ MODAL ════════ -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-head-info">
+        <h3 id="modal-title">Версия</h3>
+        <p id="modal-meta"></p>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="no-indent">Дэмиен вошёл в таверну, когда солнце уже клонилось к закату. Запах смолы и старого дерева встретил его у порога — тогда здесь ещё не было этой тяжести в воздухе.</p>
+      <p>За стойкой стоял широкоплечий трактирщик. Дэмиен подошёл, положил монету на доску.</p>
+      <p>— Ищу человека по имени Кай, — сказал он тихо.</p>
+      <p>Трактирщик медленно поднял взгляд. Долгая пауза.</p>
+      <p>— Не знаю такого.</p>
+      <p><em>(Эта версия немного отличается от текущей — диалог был переписан позже.)</em></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn--ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn btn--primary" onclick="closeModal()">Восстановить эту версию</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const tabs = document.querySelectorAll('.demo-tab');
+
+function show(mode) {
+  tabs.forEach((t, i) => {
+    t.classList.toggle('demo-tab--on',
+      (mode === 'free' && i === 0) ||
+      (mode === 'pro'  && i === 1) ||
+      (mode === 'modal' && i === 2)
+    );
+  });
+  document.getElementById('rp-free').style.display = (mode === 'free') ? '' : 'none';
+  document.getElementById('rp-pro').style.display  = (mode === 'pro')  ? '' : 'none';
+  if (mode === 'modal') {
+    document.getElementById('rp-free').style.display = '';
+    openModal('До правки редактора', '23 мая · именованная веха · 1 420 сл.');
+  } else {
+    document.getElementById('modal').style.display = 'none';
+  }
+}
+
+function openModal(title, meta) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-meta').textContent  = meta;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal')) {
+    document.getElementById('modal').style.display = 'none';
+    document.querySelectorAll('.demo-tab')[2].classList.remove('demo-tab--on');
+    const cur = document.getElementById('rp-pro').style.display === '' ? 1 : 0;
+    document.querySelectorAll('.demo-tab')[cur].classList.add('demo-tab--on');
+  }
+}
+</script>
+</body>
+</html>
