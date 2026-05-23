@@ -84,6 +84,7 @@ export default function Editor() {
   const sessionTokenRef = useRef<string | null>(null);
   const currentContentRef = useRef<string>('');
   const planRef = useRef<string>('free');
+  const lastVersionContentRef = useRef<Map<string, string>>(new Map());
   const { plan } = useUserDisplay();
   const isPro = plan === 'pro' || plan === 'lifetime';
 
@@ -189,7 +190,8 @@ export default function Editor() {
       const prevId = lastActiveIdRef.current;
       const userId = user?.id;
       const content = currentContentRef.current;
-      if (userId && content) {
+      if (userId && content && lastVersionContentRef.current.get(prevId) !== content) {
+        lastVersionContentRef.current.set(prevId, content);
         void createVersion(prevId, userId, content, countWords(content), 'chapter_switch', planRef.current === 'pro' || planRef.current === 'lifetime');
       }
     }
@@ -209,6 +211,8 @@ export default function Editor() {
     const id = setInterval(() => {
       const content = currentContentRef.current;
       if (!content) return;
+      if (lastVersionContentRef.current.get(chapterId) === content) return;
+      lastVersionContentRef.current.set(chapterId, content);
       void createVersion(chapterId, userId, content, countWords(content), 'timer', planRef.current === 'pro' || planRef.current === 'lifetime');
     }, intervalMs);
     return () => clearInterval(id);
