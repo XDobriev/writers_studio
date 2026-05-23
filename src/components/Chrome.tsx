@@ -109,10 +109,10 @@ export function Sidebar({
     ['layout', 'Дэшборд', bid ? `/books/${bid}` : null],
     ['book', 'Манускрипт', bid ? `/books/${bid}/editor` : null],
     ['char', 'Персонажи', bid ? `/books/${bid}/characters` : null],
-    ['map', 'Карта мира', bid ? `/books/${bid}/map` : null],
     ['clock', 'Хронология', bid ? `/books/${bid}/timeline` : null],
     ['note', 'Заметки', bid ? `/books/${bid}/notes` : null],
     ['tree', 'Структура', bid ? `/books/${bid}/outline` : null],
+    ['map', 'Карта мира', bid ? `/books/${bid}/map` : null],
   ], [bid]);
   function isNavActive(href: string | null): boolean {
     if (!href) return false;
@@ -354,10 +354,10 @@ export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
     ['dashboard',  'layout', 'Дэшборд',   ''],
     ['editor',     'book',   'Манускрипт', 'editor'],
     ['characters', 'char',   'Персонажи',  'characters'],
-    ['map',        'map',    'Карта мира', 'map'],
     ['timeline',   'clock',  'Хронология', 'timeline'],
     ['notes',      'note',   'Заметки',    'notes'],
     ['outline',    'tree',   'Структура',  'outline'],
+    ['map',        'map',    'Карта мира', 'map'],
   ];
 
   const href = (segment: string) =>

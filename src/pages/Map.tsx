@@ -1,8 +1,10 @@
 import { useCallback, useRef, useState, type ChangeEvent } from 'react';
 import { useWindowWidth } from '../lib/useWindowWidth';
-import { Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { WithMode } from '../components/Chrome';
+import { LogoMark } from '../components/LogoMark';
+import { Icon } from '../components/Icon';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { WorldMap } from '../components/WorldMap';
 import { useAuth } from '../lib/auth';
@@ -37,6 +39,7 @@ export default function MapScreen() {
   const { data: connections, error: connErr } = useConnections(bookId);
 
   const [mutationError, setError] = useState<string | null>(null);
+  const [bgModalOpen, setBgModalOpen] = useState(false);
   const error = locErr?.message ?? connErr?.message ?? mutationError;
 
   const [mode, setMode] = useState<MapMode>('place');
@@ -176,14 +179,44 @@ export default function MapScreen() {
 
   return (
     <WithMode>
-      <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
+      {/* Hidden file input — единственный экземпляр */}
+      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={onFileChange} />
+
+      <div className="as as-app as-app--no-right" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
+
+        {/* Sidebar */}
+        {!isMobile && (
+          <aside className="sb">
+            <div className="sb-head">
+              <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, textDecoration: 'none' }}>
+                <LogoMark size={20} />
+                <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
+              </Link>
+              <div className="sb-book-title">{book.title}</div>
+              <div className="sb-book-author">карта мира · {locations.length} лок.</div>
+            </div>
+
+            {bookId && (
+              <div style={{ padding: '12px 14px 0' }}>
+                <Link to={`/books/${bookId}`} className="sb-item" style={{ color: 'var(--ink-3)' }}>
+                  <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="arrows" size={14} /></span>
+                  <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>← К дэшборду</span>
+                  <span />
+                </Link>
+              </div>
+            )}
+          </aside>
+        )}
+
         <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
 
           {/* Toolbar */}
           <div className="tb" style={{ justifyContent: 'space-between', gap: 8 }}>
-            <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0 }}>
-              {!isMobile && `Карта · `}{book.title}
-            </span>
+            {isMobile && (
+              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0 }}>
+                {book.title}
+              </span>
+            )}
 
             <div style={{ display: 'flex', background: 'var(--surface-2)', borderRadius: 6, padding: 2, gap: 1 }}>
               {modeButtons.map(m => (
@@ -199,28 +232,14 @@ export default function MapScreen() {
               ))}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={onFileChange}
-              />
-              <button
-                className="btn"
-                onClick={() => fileInputRef.current?.click()}
-                style={{ fontSize: 12, gap: 4, display: 'flex', alignItems: 'center' }}
-              >
-                <span>🖼</span>
-                {!isMobile && <span>Загрузить фон</span>}
-              </button>
-              {!isMobile && (
-                <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4)' }}>
-                  {locations.length} лок.
-                </span>
-              )}
-            </div>
+            <button
+              className="btn btn--ghost"
+              onClick={() => setBgModalOpen(true)}
+              style={{ fontSize: 12, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}
+            >
+              <span>🖼</span>
+              {!isMobile && <span>Загрузить фон</span>}
+            </button>
           </div>
 
           {/* Canvas */}
@@ -238,6 +257,41 @@ export default function MapScreen() {
           />
         </main>
       </div>
+
+      {/* Background upload modal */}
+      {bgModalOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setBgModalOpen(false)}
+        >
+          <div
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '24px 28px', width: 340, boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <span style={{ font: '500 14px var(--font-ui)', color: 'var(--ink)' }}>Фон карты</span>
+              <button onClick={() => setBgModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '20px var(--font-ui)', lineHeight: 1, padding: '0 2px' }}>×</button>
+            </div>
+
+            <p style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.65, margin: '0 0 14px' }}>
+              Нарисуйте карту в <strong style={{ color: 'var(--ink-2)' }}>Inkarnate</strong>, Dungeon Fog или любом другом редакторе и загрузите как фон. Затем расставьте локации пинами.
+            </p>
+
+            <div style={{ background: 'var(--surface-2)', borderRadius: 8, padding: '10px 14px', marginBottom: 20, font: '400 11px var(--font-mono)', color: 'var(--ink-3)', lineHeight: 1.8 }}>
+              JPG / PNG / WebP · до 5 МБ<br />
+              рекомендуется <strong>1600 × 900 px</strong> (16:9)
+            </div>
+
+            <button
+              className="btn"
+              style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: 6 }}
+              onClick={() => { setBgModalOpen(false); fileInputRef.current?.click(); }}
+            >
+              <span>🖼</span> Выбрать файл
+            </button>
+          </div>
+        </div>
+      )}
 
       {confirmDeleteId && (
         <ConfirmDialog
