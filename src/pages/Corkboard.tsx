@@ -271,7 +271,7 @@ export default function Corkboard() {
           )}
         </aside>
 
-        <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+        <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: 'var(--bg)' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Доска глав</span>
