@@ -97,7 +97,7 @@ export function VersionModal({
   const overlayRef = useRef<HTMLDivElement>(null);
 
   const diff = useMemo(
-    () => (!loading && content !== null && currentContent ? computeDiff(content, currentContent) : null),
+    () => (!loading && content !== null ? computeDiff(content, currentContent) : null),
     [loading, content, currentContent],
   );
 

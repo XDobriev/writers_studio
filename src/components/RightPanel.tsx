@@ -12,10 +12,9 @@ interface RightPanelProps {
   userId?: string;
   currentContent?: string;
   isPro?: boolean;
-  planLoaded?: boolean;
 }
 
-export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, planLoaded }: RightPanelProps) {
+export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro }: RightPanelProps) {
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно' };
   const queryClient = useQueryClient();
   const { data: notes = [] } = useNotes(bookId);
@@ -85,7 +84,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
           className={'rp-tab' + (activeTab === 'versions' ? ' rp-tab--on' : '')}
           onClick={() => setActiveTab('versions')}
         >
-          {!planLoaded ? 'Версии' : isPro ? 'История версий' : 'Резервные копии'}
+          Версии
         </button>
         <span style={{ flex: 1 }} />
         {activeTab === 'notes' && (

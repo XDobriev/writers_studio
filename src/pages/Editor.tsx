@@ -99,7 +99,6 @@ export default function Editor() {
   }, []);
 
   useEffect(() => { planRef.current = plan; }, [plan]);
-  useEffect(() => { currentContentRef.current = activeContent; }, [activeContent]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -197,6 +196,13 @@ export default function Editor() {
     }
     lastActiveIdRef.current = newId;
   }, [activeChapter, flush, user?.id]);
+
+  // ВАЖНО: этот effect должен быть ПОСЛЕ chapter_switch effect выше.
+  // Оба могут сработать в одном цикле рендера (когда activeChapter и activeContent
+  // меняются одновременно при переходе на закэшированную главу).
+  // Порядок объявления = порядок выполнения: chapter_switch читает currentContentRef
+  // до того, как он будет перезаписан контентом новой главы.
+  useEffect(() => { currentContentRef.current = activeContent; }, [activeContent]);
 
   useEffect(() => () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
