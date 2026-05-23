@@ -3,15 +3,21 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
 import { createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
 import { useNotes, QUERY_KEYS } from '../lib/queries';
+import { VersionsPanel } from './VersionsPanel';
 
 interface RightPanelProps {
   bookId?: string;
+  chapterId?: string;
+  userId?: string;
+  currentContent?: string;
+  isPro?: boolean;
 }
 
-export function RightPanel({ bookId }: RightPanelProps) {
+export function RightPanel({ bookId, chapterId, userId, currentContent, isPro }: RightPanelProps) {
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно' };
   const queryClient = useQueryClient();
   const { data: notes = [] } = useNotes(bookId);
+  const [activeTab, setActiveTab] = useState<'notes' | 'versions'>('notes');
   const [showForm, setShowForm] = useState(false);
   const [formKind, setFormKind] = useState<NoteKind>('idea');
   const [formText, setFormText] = useState('');
@@ -67,54 +73,85 @@ export function RightPanel({ bookId }: RightPanelProps) {
   return (
     <aside className="rp">
       <div className="rp-head">
-        <span className="rp-tab rp-tab--on">Заметки на полях</span>
-        <span style={{ flex: 1 }} />
-        <button className="tb-btn" onClick={() => setShowForm((v) => !v)} title="Добавить заметку" aria-label="Добавить заметку">
-          <Icon name="plus" size={14} />
+        <button
+          className={'rp-tab' + (activeTab === 'notes' ? ' rp-tab--on' : '')}
+          onClick={() => setActiveTab('notes')}
+        >
+          Заметки
         </button>
+        <button
+          className={'rp-tab' + (activeTab === 'versions' ? ' rp-tab--on' : '')}
+          onClick={() => setActiveTab('versions')}
+        >
+          {isPro ? 'История версий' : 'Резервные копии'}
+        </button>
+        <span style={{ flex: 1 }} />
+        {activeTab === 'notes' && (
+          <button className="tb-btn" onClick={() => setShowForm((v) => !v)} title="Добавить заметку" aria-label="Добавить заметку">
+            <Icon name="plus" size={14} />
+          </button>
+        )}
       </div>
       <div className="rp-body">
-        {showForm && (
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <select
-              value={formKind}
-              onChange={(e) => setFormKind(e.target.value as NoteKind)}
-              className="input"
-              style={{ fontSize: 12 }}
-            >
-              <option value="idea">Идея</option>
-              <option value="question">Вопрос</option>
-              <option value="todo">TODO</option>
-              <option value="important">Важно</option>
-            </select>
-            <textarea
-              className="input"
-              rows={3}
-              placeholder="Текст заметки…"
-              value={formText}
-              onChange={(e) => setFormText(e.target.value)}
-              style={{ fontSize: 12, resize: 'vertical' }}
-              autoFocus
-            />
-            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-              <button
-                className="btn btn--ghost"
-                style={{ fontSize: 12, padding: '4px 10px' }}
-                onClick={() => { setShowForm(false); setFormText(''); }}
-              >Отмена</button>
-              <button
-                className="btn btn--primary"
-                style={{ fontSize: 12, padding: '4px 10px' }}
-                onClick={handleAdd}
-                disabled={saving || !formText.trim()}
-              >Сохранить</button>
-            </div>
+        {activeTab === 'versions' && chapterId && bookId && userId && (
+          <VersionsPanel
+            chapterId={chapterId}
+            bookId={bookId}
+            userId={userId}
+            currentContent={currentContent ?? ''}
+            isPro={isPro ?? false}
+          />
+        )}
+        {activeTab === 'versions' && !chapterId && (
+          <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>
+            Выберите главу
           </div>
         )}
-        {notes.length === 0 && !showForm && (
-          <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>Нет заметок</div>
+        {activeTab === 'notes' && (
+          <>
+            {showForm && (
+              <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <select
+                  value={formKind}
+                  onChange={(e) => setFormKind(e.target.value as NoteKind)}
+                  className="input"
+                  style={{ fontSize: 12 }}
+                >
+                  <option value="idea">Идея</option>
+                  <option value="question">Вопрос</option>
+                  <option value="todo">TODO</option>
+                  <option value="important">Важно</option>
+                </select>
+                <textarea
+                  className="input"
+                  rows={3}
+                  placeholder="Текст заметки…"
+                  value={formText}
+                  onChange={(e) => setFormText(e.target.value)}
+                  style={{ fontSize: 12, resize: 'vertical' }}
+                  autoFocus
+                />
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                  <button
+                    className="btn btn--ghost"
+                    style={{ fontSize: 12, padding: '4px 10px' }}
+                    onClick={() => { setShowForm(false); setFormText(''); }}
+                  >Отмена</button>
+                  <button
+                    className="btn btn--primary"
+                    style={{ fontSize: 12, padding: '4px 10px' }}
+                    onClick={handleAdd}
+                    disabled={saving || !formText.trim()}
+                  >Сохранить</button>
+                </div>
+              </div>
+            )}
+            {notes.length === 0 && !showForm && (
+              <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>Нет заметок</div>
+            )}
+          </>
         )}
-        {notes.map((n) => (
+        {activeTab === 'notes' && notes.map((n) => (
           <div key={n.id} className={'mn' + (n.kind !== 'idea' ? ' mn--' + n.kind : '')}>
             {editingId === n.id ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
