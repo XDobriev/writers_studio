@@ -6,6 +6,7 @@ import { listRelations, type CharacterRelation } from './character_relations';
 import { fetchNotes, type Note } from './notes';
 import { listLocations, type Location } from './locations';
 import { listTimelineEvents, type TimelineEvent } from './timeline';
+import { listConnections, type LocationConnection } from './connections';
 
 export const QUERY_KEYS = {
   book: (id: string) => ['book', id] as const,
@@ -17,6 +18,7 @@ export const QUERY_KEYS = {
   writingSnapshots: (bookId: string) => ['writing-snapshots', bookId] as const,
   locations: (bookId: string) => ['locations', bookId] as const,
   timelineEvents: (bookId: string) => ['timeline-events', bookId] as const,
+  connections: (bookId: string) => ['connections', bookId] as const,
 };
 
 export function useBook(id: string | undefined) {
@@ -101,6 +103,15 @@ export function useTimelineEvents(bookId: string | undefined) {
   return useQuery<TimelineEvent[]>({
     queryKey: bookId ? QUERY_KEYS.timelineEvents(bookId) : ['timeline-events', null],
     queryFn: () => listTimelineEvents(bookId!),
+    enabled: !!bookId,
+    staleTime: 2 * 60_000,
+  });
+}
+
+export function useConnections(bookId: string | undefined) {
+  return useQuery<LocationConnection[]>({
+    queryKey: bookId ? QUERY_KEYS.connections(bookId) : ['connections', null],
+    queryFn: () => listConnections(bookId!),
     enabled: !!bookId,
     staleTime: 2 * 60_000,
   });

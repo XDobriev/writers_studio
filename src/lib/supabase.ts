@@ -30,6 +30,7 @@ export interface Book {
   daily_goal: number;
   cover: string | null;
   share_token: string | null;
+  map_bg_url: string | null;
   created_at: string;
   updated_at: string;
 }
