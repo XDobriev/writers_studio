@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
@@ -49,7 +49,6 @@ function noteLabel(n: Note): string {
 
 export default function Notes() {
   const { id: bookId } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: book, error: bookError } = useBook(bookId);
@@ -72,10 +71,11 @@ export default function Notes() {
   const [editCustomColor, setEditCustomColor] = useState<BaseKind>('idea');
 
   const [filterKind, setFilterKind] = useState<NoteKind | 'all'>('all');
+  const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
 
   const handleSelectChapter = useCallback((id: string) => {
-    navigate(`/books/${bookId}/editor?chapter=${id}`);
-  }, [bookId, navigate]);
+    setActiveChapterId(prev => prev === id ? null : id);
+  }, []);
 
   const handleAdd = async () => {
     if (!bookId || !formText.trim()) return;
@@ -85,6 +85,7 @@ export default function Notes() {
         bookId, formKind, formText.trim(),
         formKind === 'custom' ? formCustomLabel : undefined,
         formKind === 'custom' ? formCustomColor : undefined,
+        activeChapterId ?? undefined,
       );
       queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), (prev) => [note, ...(prev ?? [])]);
       setFormText('');
@@ -154,7 +155,9 @@ export default function Notes() {
     );
   }
 
-  const filtered = filterKind === 'all' ? notes : (notes ?? []).filter((n) => n.kind === filterKind);
+  const chapterFiltered = activeChapterId ? (notes ?? []).filter(n => n.chapter_id === activeChapterId) : (notes ?? []);
+  const filtered = filterKind === 'all' ? chapterFiltered : chapterFiltered.filter((n) => n.kind === filterKind);
+  const activeChapter = chapters?.find(c => c.id === activeChapterId) ?? null;
 
   const colorSwatch = (color: BaseKind, selected: string, onSelect: (c: BaseKind) => void) => (
     <button
@@ -218,6 +221,7 @@ export default function Notes() {
         <Sidebar
           book={book}
           chapters={chapters}
+          activeChapterId={activeChapterId}
           bookHref={`/books/${bookId}/editor`}
           chapterActions={{ onSelectChapter: handleSelectChapter }}
         />
@@ -228,7 +232,17 @@ export default function Notes() {
             flexShrink: 0,
           }}>
             <span style={{ font: '600 15px var(--font)', color: 'var(--ink)' }}>Заметки</span>
-            <span style={{ font: '13px var(--font)', color: 'var(--ink-4)' }}>{notes.length}</span>
+            <span style={{ font: '13px var(--font)', color: 'var(--ink-4)' }}>{filtered.length}</span>
+            {activeChapter && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px 3px 10px', borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-2)' }}>
+                <span>{activeChapter.title || 'Без названия'}</span>
+                <button
+                  onClick={() => setActiveChapterId(null)}
+                  style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: '0 2px', fontSize: 14, lineHeight: 1 }}
+                  title="Сбросить фильтр"
+                >×</button>
+              </div>
+            )}
             <div style={{ flex: 1 }} />
             <div style={{ display: 'flex', gap: 4 }}>
               {(['all', ...BASE_KINDS, 'custom'] as Array<NoteKind | 'all'>).map((k) => (
@@ -301,7 +315,24 @@ export default function Notes() {
             )}
 
             {filtered.length === 0 && !showForm && (
-              filterKind === 'all' ? (
+              filterKind !== 'all' ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-4)', fontSize: 13, paddingTop: 48 }}>
+                  {`Нет заметок типа «${KIND_LABELS[filterKind]}».`}
+                </div>
+              ) : activeChapterId ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
+                  <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'var(--surface)', color: 'var(--ink-4)', border: '1px solid var(--border-soft)' }}>
+                    <Icon name="note" size={22} />
+                  </div>
+                  <div style={{ textAlign: 'center', maxWidth: 260 }}>
+                    <div style={{ font: '500 14px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 6 }}>Заметок для этой главы нет</div>
+                    <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.6 }}>Добавьте первую заметку — она сразу привяжется к текущей главе</div>
+                  </div>
+                  <button className="btn btn--primary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowForm(true)}>
+                    <Icon name="plus" size={13} /> Добавить заметку
+                  </button>
+                </div>
+              ) : (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
                   <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'var(--surface)', color: 'var(--ink-4)', border: '1px solid var(--border-soft)' }}>
                     <Icon name="note" size={22} />
@@ -313,10 +344,6 @@ export default function Notes() {
                   <button className="btn btn--primary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowForm(true)}>
                     <Icon name="plus" size={13} /> Добавить заметку
                   </button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-4)', fontSize: 13, paddingTop: 48 }}>
-                  {`Нет заметок типа «${KIND_LABELS[filterKind]}».`}
                 </div>
               )
             )}

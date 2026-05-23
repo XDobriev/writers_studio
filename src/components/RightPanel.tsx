@@ -17,7 +17,8 @@ interface RightPanelProps {
 export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro }: RightPanelProps) {
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно' };
   const queryClient = useQueryClient();
-  const { data: notes = [] } = useNotes(bookId);
+  const { data: allNotes = [] } = useNotes(bookId);
+  const notes = chapterId ? allNotes.filter(n => n.chapter_id === chapterId) : allNotes;
   const [activeTab, setActiveTab] = useState<'notes' | 'versions'>('notes');
   const [showForm, setShowForm] = useState(false);
   const [formKind, setFormKind] = useState<NoteKind>('idea');
@@ -35,7 +36,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
     if (!bookId || !formText.trim()) return;
     setSaving(true);
     try {
-      await createNote(bookId, formKind, formText.trim());
+      await createNote(bookId, formKind, formText.trim(), undefined, undefined, chapterId);
       invalidate();
       setFormText('');
       setShowForm(false);
@@ -149,7 +150,9 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
               </div>
             )}
             {notes.length === 0 && !showForm && (
-              <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>Нет заметок</div>
+              <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>
+                {chapterId ? 'Заметок для этой главы нет' : 'Нет заметок'}
+              </div>
             )}
           </>
         )}

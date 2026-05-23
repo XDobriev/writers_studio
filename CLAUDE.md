@@ -16,8 +16,11 @@
 npm run dev        # dev-сервер на 127.0.0.1:5273
 npm run build      # продакшен-сборка в dist/
 npm run typecheck  # только TS, без сборки
+npm run lint       # ESLint: типы + react-hooks/rules-of-hooks (ловит хуки после return)
 npm run preview    # превью продакшен-сборки
 ```
+
+> **После изменений в React-компонентах всегда запускать оба:** `typecheck` + `lint`.
 
 ## Архитектура
 

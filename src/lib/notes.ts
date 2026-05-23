@@ -6,6 +6,7 @@ export interface Note {
   id: string;
   user_id: string;
   book_id: string;
+  chapter_id?: string | null;
   kind: NoteKind;
   text: string;
   custom_label?: string;
@@ -29,6 +30,7 @@ export async function createNote(
   text: string,
   customLabel?: string,
   customColor?: string,
+  chapterId?: string,
 ): Promise<Note> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('not authenticated');
@@ -40,6 +42,7 @@ export async function createNote(
       kind,
       text,
       ...(kind === 'custom' && { custom_label: customLabel, custom_color: customColor }),
+      ...(chapterId && { chapter_id: chapterId }),
     })
     .select()
     .single();
