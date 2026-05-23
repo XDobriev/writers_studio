@@ -69,6 +69,8 @@ export function VersionModal({
   const meta = version.label
     ? `${formatDateFull(version.created_at)} · ${version.word_count ?? 0} сл.`
     : `${triggerLabel(version.trigger)} · ${version.word_count ?? 0} сл.`;
+  const currentWords = countWords(currentContent);
+  const delta = (version.word_count ?? 0) - currentWords;
 
   return (
     <>
@@ -97,7 +99,19 @@ export function VersionModal({
           }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{label}</div>
-              <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4)', marginTop: 2 }}>{meta}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4)' }}>{meta}</span>
+                {delta !== 0 && (
+                  <span style={{
+                    font: '500 10px var(--font-mono)',
+                    color: delta > 0 ? 'var(--accent)' : 'var(--danger, #c0392b)',
+                    background: delta > 0 ? 'oklch(from var(--accent) l c h / 0.1)' : 'oklch(0.4 0.15 25 / 0.1)',
+                    padding: '1px 6px', borderRadius: 4,
+                  }}>
+                    {delta > 0 ? '+' : ''}{delta} сл.
+                  </span>
+                )}
+              </div>
             </div>
             <button className="tb-btn" onClick={onClose} style={{ color: 'var(--ink-3)' }}>✕</button>
           </div>
