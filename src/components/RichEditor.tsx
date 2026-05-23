@@ -14,7 +14,6 @@ import { TaskItem } from '@tiptap/extension-task-item';
 import { Subscript } from '@tiptap/extension-subscript';
 import { Superscript } from '@tiptap/extension-superscript';
 import { LanguageTool, LT_KEY } from '../extensions/LanguageTool';
-import { DecorationSet } from '@tiptap/pm/view';
 
 export type { Editor };
 
@@ -137,9 +136,20 @@ export function RichEditor({
 
   const applySuggestion = (suggestion: string) => {
     if (!spellPopup || !editor) return;
-    editor.chain().focus().command(({ tr }) => {
-      tr.replaceWith(spellPopup.from, spellPopup.to, editor.schema.text(suggestion));
-      tr.setMeta(LT_KEY, DecorationSet.empty);
+    const { from, to } = spellPopup;
+    editor.chain().focus().command(({ tr, state }) => {
+      tr.replaceWith(from, to, state.schema.text(suggestion));
+      // Маппируем существующие декорации через изменения транзакции
+      // и удаляем только декорацию исправленного слова —
+      // остальные подчёркивания остаются на месте без мерцания.
+      const old = LT_KEY.getState(state);
+      if (old) {
+        const mapped = old.map(tr.mapping, tr.doc);
+        const mFrom = tr.mapping.map(from, -1);
+        const mTo   = tr.mapping.map(to,   1);
+        const toRemove = mapped.find(mFrom, mTo);
+        tr.setMeta(LT_KEY, toRemove.length ? mapped.remove(toRemove) : mapped);
+      }
       return true;
     }).run();
     setSpellPopup(null);
