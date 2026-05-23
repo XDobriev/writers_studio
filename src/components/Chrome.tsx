@@ -201,6 +201,14 @@ export function Sidebar({
         <>
           <div className="sb-section">
             <span className="sb-section-title">Главы</span>
+            <button
+              type="button"
+              onClick={onCreateChapter}
+              title="Новая глава"
+              className="sb-section-add"
+            >
+              <Icon name="plus" size={13} />
+            </button>
           </div>
           <div className="sb-list">
             {chapters!.length === 0 && (
@@ -283,16 +291,6 @@ export function Sidebar({
                 </div>
               </div>
             ))}
-            <button
-              type="button"
-              onClick={onCreateChapter}
-              className="sb-item"
-              style={{ width: '100%', textAlign: 'left', cursor: 'pointer', color: 'var(--ink-3)' }}
-            >
-              <span className="sb-item-num"><Icon name="plus" size={13} /></span>
-              <span className="sb-item-title">Новая глава</span>
-              <span />
-            </button>
           </div>
           {bookHref && (
             <div style={{ padding: '6px 12px 0' }}>

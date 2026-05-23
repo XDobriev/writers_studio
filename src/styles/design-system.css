@@ -185,7 +185,17 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .sb-section {
   padding: 14px 14px 8px;
   display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0;
+  background: var(--bg-deep);
+  z-index: 10;
 }
+.sb-section-add {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: var(--r-1);
+  background: none; border: none; cursor: pointer;
+  color: var(--ink-4); transition: color 0.12s, background 0.12s;
+}
+.sb-section-add:hover { background: var(--surface); color: var(--ink-2); }
 .sb-section-title {
   font-size: 10.5px; color: var(--ink-3);
   letter-spacing: 0.12em; text-transform: uppercase;
