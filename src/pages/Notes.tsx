@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { WithMode } from '../components/Chrome';
 import { Sidebar } from '../components/Chrome';
 import { createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
@@ -75,6 +76,7 @@ export default function Notes() {
 
   const [filterKind, setFilterKind] = useState<NoteKind | 'all'>('all');
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; text: string } | null>(null);
 
   const handleSelectChapter = useCallback((id: string) => {
     setActiveChapterId(prev => prev === id ? null : id);
@@ -150,8 +152,8 @@ export default function Notes() {
   };
 
   const handleModalDelete = (id: string) => {
-    handleDelete(id);
-    closeModal();
+    const note = (notes ?? []).find((n) => n.id === id);
+    setConfirmDelete({ id, text: note?.text ?? '' });
   };
 
   if (!bookId) return <Navigate to="/books" replace />;
@@ -548,6 +550,22 @@ export default function Notes() {
           </div>
         )}
       </div>
+
+      {confirmDelete && (
+        <ConfirmDialog
+          message={
+            confirmDelete.text.length > 200
+              ? `Удалить заметку?\n\n«${confirmDelete.text.slice(0, 120)}…»\n\nЭто действие нельзя отменить.`
+              : 'Удалить заметку? Это действие нельзя отменить.'
+          }
+          onConfirm={() => {
+            handleDelete(confirmDelete.id);
+            setConfirmDelete(null);
+            closeModal();
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
     </WithMode>
   );
 }

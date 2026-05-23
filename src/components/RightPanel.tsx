@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
+import { ConfirmDialog } from './ConfirmDialog';
 import { createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
 import { useNotes, QUERY_KEYS } from '../lib/queries';
 import { VersionsPanel } from './VersionsPanel';
@@ -27,6 +28,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<NoteKind>('idea');
   const [editText, setEditText] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; text: string } | null>(null);
 
   const invalidate = () => {
     if (bookId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(bookId) });
@@ -43,6 +45,10 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
     } finally {
       setSaving(false);
     }
+  };
+
+  const requestDelete = (note: Note) => {
+    setConfirmDelete({ id: note.id, text: note.text });
   };
 
   const handleDelete = async (id: string) => {
@@ -209,7 +215,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   ><Icon name="pencil" size={11} /></button>
                   <button
                     className="tb-btn"
-                    onClick={() => handleDelete(n.id)}
+                    onClick={() => requestDelete(n)}
                     title="Удалить заметку"
                     aria-label="Удалить заметку"
                     style={{ opacity: 0.5, fontSize: 14, lineHeight: 1, padding: '2px 6px', minWidth: 24 }}
@@ -221,6 +227,21 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
           </div>
         ))}
       </div>
+
+      {confirmDelete && (
+        <ConfirmDialog
+          message={
+            confirmDelete.text.length > 200
+              ? `Удалить заметку?\n\n«${confirmDelete.text.slice(0, 120)}…»\n\nЭто действие нельзя отменить.`
+              : 'Удалить заметку? Это действие нельзя отменить.'
+          }
+          onConfirm={() => {
+            void handleDelete(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
     </aside>
   );
 }
