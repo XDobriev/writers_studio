@@ -65,6 +65,11 @@ export function WorldMap({
   const [editConnStyle, setEditConnStyle] = useState<LocationConnection['style']>('road');
   const connEditTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => () => {
+    if (editTimer.current) clearTimeout(editTimer.current);
+    if (connEditTimer.current) clearTimeout(connEditTimer.current);
+  }, []);
+
   // ── Initial fit ──────────────────────────────────────────────────────────
   useEffect(() => {
     const el = containerRef.current;
@@ -128,7 +133,8 @@ export function WorldMap({
     const newDist = Math.hypot(dx, dy);
     const factor = newDist / touchRef.current.dist;
     const newScale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, touchRef.current.scale * factor));
-    const rect = containerRef.current!.getBoundingClientRect();
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
     const mx = touchRef.current.cx - rect.left;
     const my = touchRef.current.cy - rect.top;
     setScale(prev => {
@@ -206,7 +212,8 @@ export function WorldMap({
 
   // ── Coordinate helper ────────────────────────────────────────────────────
   const getLogical = (clientX: number, clientY: number) => {
-    const rect = containerRef.current!.getBoundingClientRect();
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
     return {
       x: (clientX - rect.left - panValRef.current.x) / (scaleRef.current * CW),
       y: (clientY - rect.top  - panValRef.current.y) / (scaleRef.current * CH),
@@ -218,16 +225,17 @@ export function WorldMap({
     if (e.button !== 0) return;
     const target = e.target as Element;
     const locEl = target.closest('[data-loc-id]');
-    e.currentTarget.setPointerCapture(e.pointerId);
 
     if (locEl) {
       const id = locEl.getAttribute('data-loc-id')!;
       if (mode === 'connect') return; // handled on pointerUp
+      e.currentTarget.setPointerCapture(e.pointerId);
       const loc = locations.find(l => l.id === id);
       if (!loc || loc.x == null || loc.y == null) return;
       pinDragRef.current = { id, startPX: e.clientX, startPY: e.clientY };
       setDragPinPos({ id, x: loc.x, y: loc.y });
     } else {
+      e.currentTarget.setPointerCapture(e.pointerId);
       setSelectedId(null);
       setSelectedConnId(null);
       panRef.current = { px: e.clientX, py: e.clientY, ox: panValRef.current.x, oy: panValRef.current.y };
