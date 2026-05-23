@@ -204,6 +204,17 @@ export default function Editor() {
   // до того, как он будет перезаписан контентом новой главы.
   useEffect(() => { currentContentRef.current = activeContent; }, [activeContent]);
 
+  // Инициализация baseline для snapshot-diff при первой загрузке контента главы.
+  // Без этого таймер при первом срабатывании создаёт снимок даже если ничего не менялось,
+  // т.к. lastVersionContentRef пустая (undefined !== content).
+  useEffect(() => {
+    const chapterId = activeChapter?.id;
+    if (!chapterId || !activeContent) return;
+    if (!lastVersionContentRef.current.has(chapterId)) {
+      lastVersionContentRef.current.set(chapterId, activeContent);
+    }
+  }, [activeChapter?.id, activeContent]);
+
   useEffect(() => () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     void flush();

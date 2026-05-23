@@ -202,7 +202,7 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
         display: 'flex', flexDirection: 'column', gap: 6,
         cursor: 'pointer',
         borderLeft: isNamed ? '2px solid var(--accent)' : undefined,
-        paddingLeft: isNamed ? '13px' : undefined,
+        paddingLeft: isNamed ? '13px' : '14px',
         transition: 'background 0.12s',
       }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-2)'; }}
