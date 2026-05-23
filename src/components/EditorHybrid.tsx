@@ -8,14 +8,15 @@ import { SAMPLE_PROSE } from '../data/sample';
 import { RichEditor, type Editor } from './RichEditor';
 import { EditorToolbar, ModeSegment } from './EditorToolbar';
 import type { Book } from '../lib/supabase';
-import type { Chapter, ChapterActions } from '../lib/chapters';
+import type { ChapterMeta, ChapterActions } from '../lib/chapters';
 import { useWritingStats } from '../lib/useWritingStats';
 
 type Mode = 'studio' | 'left' | 'right' | 'page';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 interface ChapterSheetProps {
-  chapter: Chapter;
+  chapter: ChapterMeta;
+  content: string;
   onContentChange: (html: string) => void;
   onTitleChange: (title: string) => void;
   onEditor: (editor: Editor | null) => void;
@@ -23,7 +24,7 @@ interface ChapterSheetProps {
   padding: string;
 }
 
-function ChapterSheet({ chapter, onContentChange, onTitleChange, onEditor, width, padding }: ChapterSheetProps) {
+function ChapterSheet({ chapter, content, onContentChange, onTitleChange, onEditor, width, padding }: ChapterSheetProps) {
   return (
     <div className="sheet" style={{ width, padding }}>
       <input
@@ -39,7 +40,7 @@ function ChapterSheet({ chapter, onContentChange, onTitleChange, onEditor, width
         }}
       />
       <RichEditor
-        value={chapter.content}
+        value={content}
         onChange={onContentChange}
         contentKey={chapter.id}
         placeholder="Начните писать главу…"
@@ -67,8 +68,9 @@ function saveLabel(state: SaveState, savedAt: Date | null): string {
 interface EditorHybridProps {
   defaultMode?: Mode;
   book?: Book | null;
-  chapters?: Chapter[];
-  activeChapter?: Chapter | null;
+  chapters?: ChapterMeta[];
+  activeChapter?: ChapterMeta | null;
+  activeContent?: string;
   bookHref?: string;
   chapterActions?: ChapterActions;
   onContentChange?: (html: string) => void;
@@ -83,6 +85,7 @@ export function EditorHybrid({
   book,
   chapters,
   activeChapter,
+  activeContent = '',
   bookHref,
   chapterActions,
   onContentChange,
@@ -157,6 +160,7 @@ export function EditorHybrid({
             activeChapter ? (
               <ChapterSheet
                 chapter={activeChapter}
+                content={activeContent}
                 onContentChange={(html) => onContentChange?.(html)}
                 onTitleChange={(title) => onTitleChange?.(title)}
                 onEditor={setEditor}
@@ -181,7 +185,7 @@ export function EditorHybrid({
           isReal ? (
             <StatusBar
               words={activeChapter?.words ?? 0}
-              chars={(activeChapter?.content ?? '').replace(/<[^>]+>/g, '').length}
+              chars={activeContent.replace(/<[^>]+>/g, '').length}
               statusLabel={saveLabel(saveState, savedAt)}
               todayWords={writingStats.todayWords}
               goalWords={book?.daily_goal ?? 1000}

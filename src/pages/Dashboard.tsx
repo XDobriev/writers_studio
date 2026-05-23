@@ -75,10 +75,9 @@ export default function Dashboard() {
     const done = chapters.filter((c) => c.status === 'done').length;
     const progress = chapters.filter((c) => c.status === 'progress').length;
     const draft = chapters.filter((c) => c.status === 'draft').length;
-    const totalChars = chapters.reduce((sum, c) => sum + (c.content?.replace(/<[^>]+>/g, '').length ?? 0), 0);
     const daysActive = daysBetween(new Date(book.created_at), new Date());
     const goalPct = book.goal > 0 ? Math.min(100, Math.round((book.words / book.goal) * 100)) : 0;
-    return { done, progress, draft, totalChars, daysActive, goalPct };
+    return { done, progress, draft, daysActive, goalPct };
   }, [book, chapters, characters]);
 
   const activityData = useMemo(() => {

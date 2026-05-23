@@ -1,0 +1,48 @@
+- generic [ref=e2]:
+  - dialog "Уведомление об использовании куки" [ref=e3]:
+    - generic [ref=e4]:
+      - text: Мы используем куки для авторизации и аналитики.
+      - link "Политика конфиденциальности" [ref=e5] [cursor=pointer]:
+        - /url: /privacy
+    - button "Принять" [ref=e6] [cursor=pointer]
+  - generic [ref=e797]:
+    - generic [ref=e798]:
+      - generic [ref=e799]:
+        - img [ref=e800]
+        - generic [ref=e815]: авторская студия
+      - generic [ref=e816]:
+        - generic [ref=e817]: Редактор для писателей · 2026
+        - heading "Здесь пишутся книги." [level=1] [ref=e818]:
+          - text: Здесь
+          - text: пишутся книги.
+        - paragraph [ref=e819]: "Один строит миры: карта локаций, живые персонажи, хронология событий. Другому нужна только тишина и чистый лист. Авторская студия не навязывает стиль — берите столько инструментов, сколько нужно. Всё в одном месте, всё связано, ничего лишнего."
+      - generic [ref=e820]:
+        - paragraph [ref=e821]: «Писать надо только тогда, когда не можешь не писать.»
+        - generic [ref=e822]: А. П. Чехов
+    - generic [ref=e824]:
+      - generic [ref=e825]:
+        - button "Войти" [ref=e826] [cursor=pointer]
+        - button "Регистрация" [ref=e827] [cursor=pointer]
+      - heading "С возвращением." [level=2] [ref=e828]
+      - paragraph [ref=e829]: Войдите по почте или через Google.
+      - generic [ref=e830]:
+        - button "Войти через Google" [ref=e831] [cursor=pointer]:
+          - img [ref=e832]
+          - generic [ref=e837]: Войти через Google
+        - generic [ref=e838]:
+          - button:
+            - img
+            - generic: Войти через Telegram
+          - iframe [ref=e840]:
+            - generic [active] [ref=f1e1]: Bot domain invalid
+      - generic [ref=e843]: или по почте
+      - generic [ref=e845]:
+        - generic [ref=e846]:
+          - generic [ref=e847]: Email
+          - textbox "Email" [ref=e848]
+        - generic [ref=e849]:
+          - generic [ref=e850]:
+            - generic [ref=e851]: Пароль
+            - button "Забыли пароль?" [ref=e852] [cursor=pointer]
+          - textbox "Пароль" [ref=e853]
+      - button "Войти в студию" [ref=e854] [cursor=pointer]

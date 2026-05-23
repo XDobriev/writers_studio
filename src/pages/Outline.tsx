@@ -20,18 +20,18 @@ import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
 import { LogoMark } from '../components/LogoMark';
 import { useAuth } from '../lib/auth';
-import { createChapter, deleteChapter, reorderChapters, updateChapter, type Chapter } from '../lib/chapters';
+import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
 import { plural } from '../lib/useWritingStats';
 
-const STATUS_COLOR: Record<Chapter['status'], string> = {
+const STATUS_COLOR: Record<ChapterStatus, string> = {
   draft: 'var(--ink-4)',
   progress: 'var(--accent-2)',
   done: 'var(--ok)',
 };
 
 interface RowProps {
-  chapter: Chapter;
+  chapter: ChapterMeta;
   index: number;
   bookId: string;
   menuFor: string | null;
@@ -281,7 +281,7 @@ export default function Outline() {
     setMenuFor(null);
     setDeleteConfirmFor(null);
     if (bookId) {
-      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
         (prev ?? []).filter((c) => c.id !== id),
       );
     }
@@ -300,7 +300,8 @@ export default function Outline() {
         title: `Глава ${(chapters?.length ?? 0) + 1}`,
         position: chapters?.length ?? 0,
       });
-      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) => [...(prev ?? []), created]);
+      const { content: _, ...createdMeta } = created;
+      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) => [...(prev ?? []), createdMeta]);
       navigate(`/books/${bookId}/editor?chapter=${created.id}`);
     } catch (e) {
       setError((e as Error).message);
@@ -309,7 +310,7 @@ export default function Outline() {
 
   const onRename = async (id: string, title: string) => {
     if (!bookId) return;
-    queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+    queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
       (prev ?? []).map((c) => (c.id === id ? { ...c, title } : c)),
     );
     try {
@@ -328,7 +329,7 @@ export default function Outline() {
     const newIndex = chapters.findIndex((c) => c.id === over.id);
     const reordered = arrayMove(chapters, oldIndex, newIndex).map((c, i) => ({ ...c, position: i }));
 
-    queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), reordered);
+    queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), reordered);
 
     try {
       await reorderChapters(reordered.map((c) => ({ id: c.id, position: c.position })));

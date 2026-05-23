@@ -5,19 +5,19 @@ import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
 import { LogoMark } from '../components/LogoMark';
 import { useAuth } from '../lib/auth';
-import { createChapter, deleteChapter, updateChapter, type Chapter } from '../lib/chapters';
+import { createChapter, deleteChapter, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
 import { plural } from '../lib/useWritingStats';
 
-type Filter = 'all' | Chapter['status'];
+type Filter = 'all' | ChapterStatus;
 
-const STATUS_LABEL: Record<Chapter['status'], string> = {
+const STATUS_LABEL: Record<ChapterStatus, string> = {
   draft: 'черновик',
   progress: 'в работе',
   done: 'готово',
 };
 
-const STATUS_COLOR: Record<Chapter['status'], string> = {
+const STATUS_COLOR: Record<ChapterStatus, string> = {
   draft: 'var(--ink-4)',
   progress: 'var(--accent-2)',
   done: 'var(--ok)',
@@ -35,10 +35,10 @@ function firstParagraph(html: string): string {
   return text.length > 240 ? text.slice(0, 240).trimEnd() + '…' : text;
 }
 
-const STATUS_ORDER: Chapter['status'][] = ['draft', 'progress', 'done'];
+const STATUS_ORDER: ChapterStatus[] = ['draft', 'progress', 'done'];
 
-function Card({ c, index, href, onStatusChange, onDeleteChapter }: { c: Chapter; index: number; href: string; onStatusChange: (id: string, status: Chapter['status']) => void; onDeleteChapter: (id: string) => void }) {
-  const synopsis = firstParagraph(c.content);
+function Card({ c, index, href, onStatusChange, onDeleteChapter }: { c: ChapterMeta; index: number; href: string; onStatusChange: (id: string, status: ChapterStatus) => void; onDeleteChapter: (id: string) => void }) {
+  const synopsis = firstParagraph('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -177,9 +177,9 @@ export default function Corkboard() {
     return chapters.filter((c) => c.status === filter);
   }, [chapters, filter]);
 
-  const onStatusChange = async (id: string, status: Chapter['status']) => {
+  const onStatusChange = async (id: string, status: ChapterStatus) => {
     if (bookId) {
-      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
         prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev
       );
     }
@@ -191,7 +191,7 @@ export default function Corkboard() {
 
   const onDeleteChapter = async (id: string) => {
     if (bookId) {
-      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
         prev ? prev.filter((c) => c.id !== id) : prev
       );
     }
@@ -208,7 +208,8 @@ export default function Corkboard() {
         title: `Глава ${(chapters?.length ?? 0) + 1}`,
         position: chapters?.length ?? 0,
       });
-      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) => [...(prev ?? []), created]);
+      const { content: _, ...createdMeta } = created;
+      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) => [...(prev ?? []), createdMeta]);
       navigate(`/books/${bookId}/editor?chapter=${created.id}`);
     } catch (e) {
       setError((e as Error).message);

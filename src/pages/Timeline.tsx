@@ -34,7 +34,7 @@ import {
   type TimelineEventPatch,
   type TimelineEventType,
 } from '../lib/timeline';
-import { type Chapter } from '../lib/chapters';
+import { type ChapterMeta } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters, useTimelineEvents } from '../lib/queries';
 
 type TypeFilter = 'all' | TimelineEventType;
@@ -906,7 +906,7 @@ function EventDetailPanel({
   onClose,
 }: {
   event: TimelineEvent;
-  chapters: Chapter[];
+  chapters: ChapterMeta[];
   onUpdate: (patch: TimelineEventPatch) => void;
   onDelete: () => void;
   onClose: () => void;
@@ -997,7 +997,7 @@ function EventCard({
   onDelete,
 }: {
   event: TimelineEvent;
-  chapters: Chapter[];
+  chapters: ChapterMeta[];
   onUpdate: (patch: TimelineEventPatch) => void;
   onDelete: () => void;
 }) {

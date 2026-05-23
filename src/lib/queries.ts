@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getBook, listWritingSnapshots } from './books';
-import { listChapters, type Chapter } from './chapters';
+import { listChaptersMeta, getChapterContent, type ChapterMeta } from './chapters';
 import { listCharacters, type Character } from './characters';
 import { listRelations, type CharacterRelation } from './character_relations';
 import { fetchNotes, type Note } from './notes';
@@ -10,6 +10,7 @@ import { listTimelineEvents, type TimelineEvent } from './timeline';
 export const QUERY_KEYS = {
   book: (id: string) => ['book', id] as const,
   chapters: (bookId: string) => ['chapters', bookId] as const,
+  chapterContent: (id: string) => ['chapter-content', id] as const,
   characters: (bookId: string) => ['characters', bookId] as const,
   notes: (bookId: string) => ['notes', bookId] as const,
   relations: (bookId: string) => ['relations', bookId] as const,
@@ -28,11 +29,20 @@ export function useBook(id: string | undefined) {
 }
 
 export function useChapters(bookId: string | undefined) {
-  return useQuery<Chapter[]>({
+  return useQuery<ChapterMeta[]>({
     queryKey: bookId ? QUERY_KEYS.chapters(bookId) : ['chapters', null],
-    queryFn: () => listChapters(bookId!),
+    queryFn: () => listChaptersMeta(bookId!),
     enabled: !!bookId,
     staleTime: 60_000,
+  });
+}
+
+export function useChapterContent(chapterId: string | undefined) {
+  return useQuery<{ id: string; content: string }>({
+    queryKey: chapterId ? QUERY_KEYS.chapterContent(chapterId) : ['chapter-content', null],
+    queryFn: () => getChapterContent(chapterId!),
+    enabled: !!chapterId,
+    staleTime: 30_000,
   });
 }
 

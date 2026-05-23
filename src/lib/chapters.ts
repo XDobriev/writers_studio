@@ -15,6 +15,7 @@ export interface Chapter {
   updated_at: string;
 }
 
+export type ChapterMeta = Omit<Chapter, 'content'>;
 export type ChapterPatch = Partial<Pick<Chapter, 'title' | 'content' | 'words' | 'status' | 'position'>>;
 
 export interface ChapterActions {
@@ -35,6 +36,7 @@ export function countWords(html: string): number {
   return matches ? matches.length : 0;
 }
 
+// Полный список с контентом — только для экспорта/focus/split
 export async function listChapters(bookId: string): Promise<Chapter[]> {
   const { data, error } = await supabase
     .from('chapters')
@@ -44,6 +46,29 @@ export async function listChapters(bookId: string): Promise<Chapter[]> {
     .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []) as Chapter[];
+}
+
+// Только метаданные — для сайдбара, списков, дашборда (без контента)
+export async function listChaptersMeta(bookId: string): Promise<ChapterMeta[]> {
+  const { data, error } = await supabase
+    .from('chapters')
+    .select('id, book_id, user_id, title, position, words, status, created_at, updated_at')
+    .eq('book_id', bookId)
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as ChapterMeta[];
+}
+
+// Контент конкретной главы — загружать только при открытии
+export async function getChapterContent(id: string): Promise<{ id: string; content: string }> {
+  const { data, error } = await supabase
+    .from('chapters')
+    .select('id, content')
+    .eq('id', id)
+    .single();
+  if (error) throw error;
+  return data as { id: string; content: string };
 }
 
 export async function createChapter(

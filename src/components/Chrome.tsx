@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
 import { LogoMark } from './LogoMark';
 import { NOVEL } from '../data/sample';
-import type { Chapter, ChapterStatus, ChapterActions } from '../lib/chapters';
+import type { ChapterMeta, ChapterStatus, ChapterActions } from '../lib/chapters';
 import type { Book } from '../lib/supabase';
 import { updateBook } from '../lib/books';
 import { useUserDisplay } from '../lib/useUserDisplay';
@@ -30,7 +30,7 @@ const SB_STATUS_COLOR: Record<ChapterStatus, string> = {
 
 interface SidebarProps {
   book?: Book | null;
-  chapters?: Chapter[];
+  chapters?: ChapterMeta[];
   activeChapterId?: string | null;
   chapterActions?: ChapterActions;
   bookHref?: string;

@@ -3,18 +3,18 @@ import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { EditorHybrid } from '../components/EditorHybrid';
 import { useAuth } from '../lib/auth';
-import { type Book } from '../lib/supabase';
+import { supabase, type Book } from '../lib/supabase';
 import { updateBook } from '../lib/books';
 import {
   countWords,
   createChapter,
   deleteChapter,
   updateChapter,
-  type Chapter,
+  type ChapterMeta,
   type ChapterPatch,
   type ChapterStatus,
 } from '../lib/chapters';
-import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
+import { QUERY_KEYS, useBook, useChapters, useChapterContent } from '../lib/queries';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -32,6 +32,10 @@ export default function Editor() {
   const [savedAt, setSavedAt] = useState<Date | null>(null);
 
   const activeId = search.get('chapter');
+
+  // Контент только активной главы — загружается отдельно, не вместе с метаданными
+  const { data: chapterContentData } = useChapterContent(activeId ?? undefined);
+  const activeContent = chapterContentData?.content ?? '';
 
   useEffect(() => {
     if (!chapters || chapters.length === 0) return;
@@ -62,7 +66,8 @@ export default function Editor() {
         title: `Глава ${position + 1}`,
         position,
       });
-      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId!), (prev) => [...(prev ?? []), created]);
+      const { content: _, ...createdMeta } = created;
+      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId!), (prev) => [...(prev ?? []), createdMeta]);
       const next = new URLSearchParams(search);
       next.set('chapter', created.id);
       setSearch(next, { replace: false });
@@ -74,21 +79,69 @@ export default function Editor() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingPatch = useRef<ChapterPatch | null>(null);
   const targetIdRef = useRef<string | null>(null);
+  // Кешируем access token для beforeunload (синхронный контекст)
+  const sessionTokenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      sessionTokenRef.current = data.session?.access_token ?? null;
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      sessionTokenRef.current = session?.access_token ?? null;
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Баг 5: сохраняем несброшенный патч при закрытии вкладки
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const patch = pendingPatch.current;
+      const id = targetIdRef.current;
+      const token = sessionTokenRef.current;
+      if (!patch || !id || !token) return;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+      // keepalive гарантирует отправку даже при закрытии вкладки
+      void fetch(`${supabaseUrl}/rest/v1/chapters?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': anonKey,
+          'Authorization': `Bearer ${token}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify(patch),
+        keepalive: true,
+      });
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   const flush = useCallback(async () => {
     const patch = pendingPatch.current;
     const id = targetIdRef.current;
-    pendingPatch.current = null;
     if (!patch || !id || !bookId) return;
+    // Баг 4: очищаем до await, но восстанавливаем при ошибке
+    pendingPatch.current = null;
     setSaveState('saving');
     try {
       const updated = await updateChapter(id, patch);
-      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-        prev ? prev.map((c) => (c.id === id ? updated : c)) : prev
+      // Обновляем метаданные в общем кеше глав (без контента)
+      const { content: _c, ...updatedMeta } = updated;
+      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+        prev ? prev.map((c) => (c.id === id ? { ...c, ...updatedMeta } : c)) : prev
+      );
+      // Контент — в отдельный кеш
+      queryClient.setQueryData<{ id: string; content: string }>(
+        QUERY_KEYS.chapterContent(id),
+        { id: updated.id, content: updated.content }
       );
       setSaveState('saved');
       setSavedAt(new Date());
     } catch {
+      // Возвращаем патч: новые изменения (если пришли за время await) перекрывают старые
+      pendingPatch.current = { ...patch, ...(pendingPatch.current ?? {}) };
       setSaveState('error');
     }
   }, [bookId, queryClient]);
@@ -97,8 +150,17 @@ export default function Editor() {
     targetIdRef.current = id;
     pendingPatch.current = { ...(pendingPatch.current ?? {}), ...patch };
     if (bookId) {
-      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-        prev ? prev.map((c) => (c.id === id ? { ...c, ...patch } as Chapter : c)) : prev
+      // Оптимистично обновляем метаданные (title, words, status, position)
+      const { content: _c, ...metaPatch } = patch;
+      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+        prev ? prev.map((c) => (c.id === id ? { ...c, ...metaPatch } : c)) : prev
+      );
+    }
+    // Оптимистично обновляем контент-кеш (чтобы редактор видел актуальное значение)
+    if (patch.content !== undefined) {
+      queryClient.setQueryData<{ id: string; content: string }>(
+        QUERY_KEYS.chapterContent(id),
+        (prev) => prev ? { ...prev, content: patch.content! } : { id, content: patch.content! }
       );
     }
     setSaveState('saving');
@@ -133,7 +195,7 @@ export default function Editor() {
 
   const onStatusChange = useCallback(async (id: string, status: ChapterStatus) => {
     if (bookId) {
-      queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
         prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev
       );
     }
@@ -155,7 +217,7 @@ export default function Editor() {
       await deleteChapter(id);
       const remaining = (chapters ?? []).filter((c) => c.id !== id);
       if (bookId) {
-        queryClient.setQueryData<Chapter[]>(QUERY_KEYS.chapters(bookId), remaining);
+        queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), remaining);
       }
       if (id === activeId && remaining.length > 0) {
         const next = new URLSearchParams(search);
@@ -186,12 +248,30 @@ export default function Editor() {
   }
 
   return (
-    <div style={{ height: '100dvh', overflow: 'hidden' }}>
+    <div style={{ height: '100dvh', overflow: 'hidden', position: 'relative' }}>
+      {saveState === 'error' && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
+          background: 'var(--danger, #c0392b)', color: '#fff',
+          padding: '8px 16px', fontSize: 13, display: 'flex',
+          alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        }}>
+          <span>⚠ Последнее изменение не сохранено — нет соединения. Не закрывайте вкладку.</span>
+          <button
+            onClick={() => { void flush(); }}
+            style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff',
+              borderRadius: 4, padding: '2px 10px', cursor: 'pointer', fontSize: 12 }}
+          >
+            Повторить
+          </button>
+        </div>
+      )}
       <EditorHybrid
         defaultMode="studio"
         book={book}
         chapters={chapters}
         activeChapter={activeChapter}
+        activeContent={activeContent}
         bookHref={`/books/${bookId}`}
         chapterActions={{ onSelectChapter: selectChapter, onCreateChapter, onStatusChange, onDeleteChapter }}
         onContentChange={onContentChange}

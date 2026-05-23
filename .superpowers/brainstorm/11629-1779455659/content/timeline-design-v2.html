@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Timeline — дизайн в реальной теме</title>
+<style>
+  /* Реальные переменные проекта (oklch → приближённые hex для превью) */
+  :root {
+    --bg:          #2a2520;
+    --surface:     #312b26;
+    --surface-2:   #3d3630;
+    --border:      #443d37;
+    --border-soft: #38322d;
+    --border-strong: #56504a;
+    --ink:         #f2ede8;
+    --ink-2:       #c5bdb0;
+    --ink-3:       #8f8278;
+    --ink-4:       #6e6359;
+    /* TYPE_COLORS */
+    --c-plot:      #d4704a; /* var(--accent)  oklch(0.63 0.16 30) */
+    --c-char:      #6899c4; /* var(--info)    oklch(0.72 0.10 230) */
+    --c-world:     #5fa87a; /* var(--ok)      oklch(0.72 0.14 145) */
+    --c-other:     #8f8278; /* var(--ink-3)   oklch(0.58 0.012 70) */
+    --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --font-serif: 'Source Serif 4', Georgia, serif;
+    --r-2: 8px; --r-3: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  h2 { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .sub { font-size: 12px; color: var(--ink-3); margin-bottom: 24px; }
+
+  /* ─── Toolbar (replica) ─── */
+  .tb {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 44px; padding: 0 16px;
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--bg); margin-bottom: 0;
+  }
+  .tb-title { font-size: 13px; font-weight: 500; color: var(--ink); }
+  .view-toggle { display: flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
+  .view-btn {
+    padding: 4px 12px; font-size: 12px; font-family: var(--font-ui);
+    border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;
+    background: transparent; color: var(--ink-3);
+  }
+  .view-btn--on { background: var(--surface); color: var(--ink); }
+  .add-btn {
+    padding: 5px 12px; font-size: 12px; font-family: var(--font-ui);
+    border: 1px solid var(--border); border-radius: 7px; cursor: pointer;
+    background: transparent; color: var(--ink-2); display: flex; align-items: center; gap: 5px;
+    margin-left: 8px;
+  }
+
+  /* ─── Lane container ─── */
+  .lane-wrap {
+    background: var(--bg);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-3);
+    overflow: hidden;
+  }
+  .lane-body { padding: 20px 24px; overflow-y: auto; overflow-x: hidden; }
+
+  /* ─── Single row ─── */
+  .tl-row { margin-bottom: 8px; }
+  .tl-row:last-child .row-cont-arrow { display: none; }
+
+  .row-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .row-num {
+    font-size: 10px; font-family: var(--font-mono);
+    color: var(--ink-4); letter-spacing: 0.04em; flex-shrink: 0;
+  }
+  .row-sep {
+    flex: 1; height: 1px;
+    background: repeating-linear-gradient(90deg, var(--border-soft) 0, var(--border-soft) 4px, transparent 4px, transparent 10px);
+  }
+
+  /* ─── Nodes ─── */
+  .tl-nodes {
+    position: relative;
+    height: 258px; /* LANE_NODE_H = 120*2+18*2+12 = 288 — scaled to 258 for demo */
+  }
+  .tl-axis {
+    position: absolute; left: 0; right: 0; top: 121px;
+    height: 2px; background: var(--border-soft);
+  }
+
+  .tl-node {
+    position: absolute; top: 0; height: 258px;
+    width: 152px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .zone { height: 108px; display: flex; flex-direction: column; align-items: center; }
+  .zone--top { justify-content: flex-end; }
+  .zone--bot { justify-content: flex-start; }
+  .conn { width: 2px; height: 15px; }
+  .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 3px solid var(--bg); flex-shrink: 0; z-index: 2;
+  }
+  .dot--selected { border-width: 2px; outline: 2px solid; outline-offset: 1px; }
+
+  .card {
+    width: 132px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-top: 3px solid;
+    border-radius: var(--r-2);
+    padding: 9px 11px;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .card--selected {
+    background: var(--surface-2);
+    box-shadow: 0 0 0 2px rgba(100,153,196,0.25);
+  }
+  .card-era {
+    font-size: 10px; font-family: var(--font-mono);
+    color: var(--ink-4); margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 500; color: var(--ink);
+    line-height: 1.35; overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+  .drag-handle {
+    color: var(--ink-4); margin-bottom: 5px; font-size: 11px; cursor: grab;
+  }
+
+  /* ─── Row continuation arrow ─── */
+  .row-cont {
+    display: flex; align-items: center; justify-content: flex-end;
+    padding: 6px 0 10px; gap: 6px;
+  }
+  .row-cont-line {
+    flex: 1; height: 1px;
+    background: repeating-linear-gradient(90deg, var(--border-soft) 0, var(--border-soft) 4px, transparent 4px, transparent 10px);
+  }
+  .row-cont-label {
+    font-size: 10px; color: var(--ink-4); font-family: var(--font-mono);
+    display: flex; align-items: center; gap: 4px;
+  }
+
+  /* ─── Add button ─── */
+  .node-add {
+    position: absolute; top: 121px; transform: translateY(-50%);
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1.5px dashed var(--border-strong);
+    background: transparent; color: var(--ink-4);
+    font-size: 18px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; z-index: 3;
+    transition: border-color 0.12s, color 0.12s;
+  }
+  .node-add:hover { border-color: var(--ink-3); color: var(--ink-2); }
+
+  /* ─── Legend ─── */
+  .legend {
+    display: flex; gap: 14px; padding: 10px 16px;
+    border-top: 1px solid var(--border-soft);
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-3); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<h2>Хронология — многострочная лента</h2>
+<p class="sub">Реальная цветовая схема проекта · адаптивная ширина строки · DnD между строками</p>
+
+<!-- Toolbar -->
+<div class="tb" style="border-radius: 10px 10px 0 0; border: 1px solid var(--border-soft); border-bottom: none; margin-bottom: 0;">
+  <span class="tb-title">Хронология «Дом у дороги»</span>
+  <div style="display:flex;align-items:center;">
+    <div class="view-toggle">
+      <button class="view-btn" style="border-right:1px solid var(--border-soft);">☰ Список</button>
+      <button class="view-btn view-btn--on">⇌ Лента</button>
+    </div>
+    <button class="add-btn">+ Событие</button>
+  </div>
+</div>
+
+<!-- Lane -->
+<div class="lane-wrap">
+  <div class="lane-body">
+
+    <!-- ROW 1 -->
+    <div class="tl-row">
+      <div class="row-header">
+        <span class="row-num">строка 1</span>
+        <div class="row-sep"></div>
+      </div>
+
+      <div class="tl-nodes">
+        <div class="tl-axis"></div>
+
+        <!-- 0: plot, above -->
+        <div class="tl-node" style="left:0">
+          <div class="zone zone--top">
+            <div class="card" style="border-top-color:var(--c-plot);">
+              <div class="drag-handle">⠿</div>
+              <div class="card-era">Зима 824</div>
+              <div class="card-title">Начало пути</div>
+            </div>
+          </div>
+          <div class="conn" style="background:var(--c-plot);"></div>
+          <div class="dot" style="background:var(--c-plot);border-color:var(--bg);"></div>
+          <div class="conn" style="background:transparent;"></div>
+          <div class="zone zone--bot"></div>
+        </div>
+
+        <!-- 1: character, below -->
+        <div class="tl-node" style="left:152px">
+          <div class="zone zone--top"></div>
+          <div class="conn" style="background:transparent;"></div>
+          <div class="dot" style="background:var(--c-char);border-color:var(--bg);"></div>
+          <div class="conn" style="background:var(--c-char);"></div>
+          <div class="zone zone--bot">
+            <div class="card" style="border-top-color:var(--c-char);">
+              <div class="drag-handle">⠿</div>
+              <div class="card-era">Весна 824</div>
+              <div class="card-title">Встреча с Баки</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2: plot, above — SELECTED -->
+        <div class="tl-node" style="left:304px">
+          <div class="zone zone--top">
+            <div class="card card--selected" style="border-top-color:var(--c-plot);border-color:var(--c-char);">
+              <div class="drag-handle">⠿</div>
+              <div class="card-era">Лето 824</div>
+              <div class="card-title">Битва у переправы</div>
+            </div>
+          </div>
+          <div class="conn" style="background:var(--c-plot);"></div>
+          <div class="dot dot--selected" style="background:var(--c-plot);border-color:var(--bg);outline-color:var(--c-char);"></div>
+          <div class="conn" style="background:transparent;"></div>
+          <div class="zone zone--bot"></div>
+        </div>
+
+        <!-- 3: world, below -->
+        <div class="tl-node" style="left:456px">
+          <div class="zone zone--top"></div>
+          <div class="conn" style="background:transparent;"></div>
+          <div class="dot" style="background:var(--c-world);border-color:var(--bg);"></div>
+          <div class="conn" style="background:var(--c-world);"></div>
+          <div class="zone zone--bot">
+            <div class="card" style="border-top-color:var(--c-world);">
+              <div class="drag-handle">⠿</div>
+              <div class="card-era">Осень 824</div>
+              <div class="card-title">Мирный договор</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4: character, above -->
+        <div class="tl-node" style="left:608px">
+          <div class="zone zone--top">
+            <div class="card" style="border-top-color:var(--c-char);">
+              <div class="drag-handle">⠿</div>
+              <div class="card-era">Зима 824</div>
+              <div class="card-title">Предательство союзника</div>
+            </div>
+          </div>
+          <div class="conn" style="background:var(--c-char);"></div>
+          <div class="dot" style="background:var(--c-char);border-color:var(--bg);"></div>
+          <div class="conn" style="background:transparent;"></div>
+          <div class="zone zone--bot"></div>
+        </div>
+
+        <!-- 5: other, below -->
+        <div class="tl-node" style="left:760px">
+          <div class="zone zone--top"></div>
+          <div class="conn" style="background:transparent;"></div>
+          <div class="dot" style="background:var(--c-other);border-color:var(--bg);"></div>
+          <div class="conn" style="background:var(--c-other);"></div>
+          <div class="zone zone--bot">
+            <div class="card" style="border-top-color:var(--c-other);">
+              <div class="drag-handle">⠿</div>
+              <div class="card-era">Весна 825</div>
+              <div class="card-title">Побег из города</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- add button after last node -->
+        <button class="node-add" style="left:928px;">+</button>
+      </div>
+
+      <!-- row continuation -->
+      <div class="row-cont">
+        <div class="row-cont-line"></div>
+        <span class="row-cont-label">↓ строка 2</span>
+      </div>
+    </div>
+
+    <!-- ROW 2 -->
+    <div class="tl-row">
+      <div class="row-header">
+        <span class="row-num">строка 2</span>
+        <div class="row-sep"></div>
+      </div>
+
+      <div class="tl-nodes">
+        <div class="tl-axis"></div>
+
+        <!-- 6: plot, above (global even) -->
+        <div class="tl-node" style="left:0">
+          <div class="zone zone--top">
+            <div class="card" style="border-top-color:var(--c-plot);">
+              <div class="drag-handle">⠿</div>
+              <div class="card-era">Лето 825</div>
+              <div class="card-title">Прибытие в замок</div>
+            </div>
+          </div>
+          <div class="conn" style="background:var(--c-plot);"></div>
+          <div class="dot" style="background:var(--c-plot);border-color:var(--bg);"></div>
+          <div class="conn" style="background:transparent;"></div>
+          <div class="zone zone--bot"></div>
+        </div>
+
+        <!-- 7: world, below -->
+        <div class="tl-node" style="left:152px">
+          <div class="zone zone--top"></div>
+          <div class="conn" style="background:transparent;"></div>
+          <div class="dot" style="background:var(--c-world);border-color:var(--bg);"></div>
+          <div class="conn" style="background:var(--c-world);"></div>
+          <div class="zone zone--bot">
+            <div class="card" style="border-top-color:var(--c-world);">
+              <div class="drag-handle">⠿</div>
+              <div class="card-era">Осень 825</div>
+              <div class="card-title">Союз с севером</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8: character, above -->
+        <div class="tl-node" style="left:304px">
+          <div class="zone zone--top">
+            <div class="card" style="border-top-color:var(--c-char);">
+              <div class="drag-handle">⠿</div>
+              <div class="card-era">Зима 825</div>
+              <div class="card-title">Осада столицы</div>
+            </div>
+          </div>
+          <div class="conn" style="background:var(--c-char);"></div>
+          <div class="dot" style="background:var(--c-char);border-color:var(--bg);"></div>
+          <div class="conn" style="background:transparent;"></div>
+          <div class="zone zone--bot"></div>
+        </div>
+
+        <!-- add button -->
+        <button class="node-add" style="left:456px;">+</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-plot);"></div> сюжет</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-char);"></div> персонаж</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-world);"></div> мир</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-other);"></div> другое</div>
+    <div style="flex:1;"></div>
+    <span style="font-size:10px;color:var(--ink-4);font-family:var(--font-mono);">6 событий/строку · 2 строки · 9 событий</span>
+  </div>
+</div>
+
+<script>
+// inject superpowers helper so selections work
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+- generic [ref=e2]:
+  - dialog "Уведомление об использовании куки" [ref=e3]:
+    - generic [ref=e4]:
+      - text: Мы используем куки для авторизации и аналитики.
+      - link "Политика конфиденциальности" [ref=e5] [cursor=pointer]:
+        - /url: /privacy
+    - button "Принять" [ref=e6] [cursor=pointer]
+  - generic [ref=e8]: Загрузка…
