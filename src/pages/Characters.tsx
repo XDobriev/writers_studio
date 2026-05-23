@@ -258,30 +258,34 @@ export default function Characters() {
     <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
         {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${characters.length}`}>
-          <div style={{ padding: '12px 14px 6px' }}>
-            <div style={{ height: 32, padding: '0 10px', border: '1px solid var(--border-soft)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink-3)', fontSize: 12 }}>
-              <Icon name="search" size={13} />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Поиск"
-                style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', fontSize: 12 }}
-              />
+          {/* Поиск + фильтры — прилипают к верхней границе .sb-body */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-deep)' }}>
+            <div style={{ padding: '12px 14px 6px' }}>
+              <div style={{ height: 32, padding: '0 10px', border: '1px solid var(--border-soft)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink-3)', fontSize: 12 }}>
+                <Icon name="search" size={13} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Поиск"
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', fontSize: 12 }}
+                />
+              </div>
+            </div>
+            <div style={{ padding: '6px 14px 8px', display: 'flex', gap: 4 }}>
+              {ROLE_FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  className="sb-tab"
+                  onClick={() => setRoleFilter(f.value)}
+                  style={roleFilter === f.value ? { background: 'var(--surface)', color: 'var(--ink)' } : {}}
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
           </div>
-          <div style={{ padding: '10px 14px 6px', display: 'flex', gap: 4 }}>
-            {ROLE_FILTERS.map((f) => (
-              <button
-                key={f.value}
-                className="sb-tab"
-                onClick={() => setRoleFilter(f.value)}
-                style={roleFilter === f.value ? { background: 'var(--surface)', color: 'var(--ink)' } : {}}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-          <div style={{ flex: 1, overflow: 'auto', padding: '4px 8px 8px' }}>
+          {/* Список персонажей */}
+          <div style={{ padding: '4px 8px 8px' }}>
             {filtered.length === 0 && (
               <div style={{ padding: '24px 14px', font: '400 12px var(--font-ui)', color: 'var(--ink-3)', textAlign: 'center' }}>
                 {characters.length === 0 ? 'Картотека пуста' : 'Ничего не найдено'}
@@ -310,7 +314,8 @@ export default function Characters() {
               );
             })}
           </div>
-          <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border-soft)' }}>
+          {/* Кнопка «Новый персонаж» — прилипает к нижней границе .sb-body */}
+          <div style={{ position: 'sticky', bottom: 0, zIndex: 5, padding: '10px 14px', borderTop: '1px solid var(--border-soft)', background: 'var(--bg-deep)' }}>
             <button onClick={onCreate} className="btn" style={{ width: '100%', justifyContent: 'center' }}><Icon name="plus" size={13} /> Новый персонаж</button>
           </div>
         </Sidebar>}
