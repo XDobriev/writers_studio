@@ -8,12 +8,14 @@ import { VersionsPanel } from './VersionsPanel';
 interface RightPanelProps {
   bookId?: string;
   chapterId?: string;
+  chapterTitle?: string;
   userId?: string;
   currentContent?: string;
   isPro?: boolean;
+  planLoaded?: boolean;
 }
 
-export function RightPanel({ bookId, chapterId, userId, currentContent, isPro }: RightPanelProps) {
+export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, planLoaded }: RightPanelProps) {
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно' };
   const queryClient = useQueryClient();
   const { data: notes = [] } = useNotes(bookId);
@@ -83,7 +85,7 @@ export function RightPanel({ bookId, chapterId, userId, currentContent, isPro }:
           className={'rp-tab' + (activeTab === 'versions' ? ' rp-tab--on' : '')}
           onClick={() => setActiveTab('versions')}
         >
-          {isPro ? 'История версий' : 'Резервные копии'}
+          {!planLoaded ? 'Версии' : isPro ? 'История версий' : 'Резервные копии'}
         </button>
         <span style={{ flex: 1 }} />
         {activeTab === 'notes' && (
@@ -96,6 +98,7 @@ export function RightPanel({ bookId, chapterId, userId, currentContent, isPro }:
         {activeTab === 'versions' && chapterId && bookId && userId && (
           <VersionsPanel
             chapterId={chapterId}
+            chapterTitle={chapterTitle}
             bookId={bookId}
             userId={userId}
             currentContent={currentContent ?? ''}

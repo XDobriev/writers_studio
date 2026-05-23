@@ -101,7 +101,7 @@ export function EditorHybrid({
   const { isMobile, showLeft, showRight, isPage, cols, sheetWidth, sheetPad } = useEditorLayout(mode);
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
-  const { plan } = useUserDisplay();
+  const { plan, planLoaded } = useUserDisplay();
   const isPro = plan === 'pro' || plan === 'lifetime';
 
   const prevSaveState = useRef<SaveState>(saveState);
@@ -205,9 +205,11 @@ export function EditorHybrid({
         <RightPanel
           bookId={book?.id}
           chapterId={activeChapter?.id}
+          chapterTitle={activeChapter?.title}
           userId={activeChapter?.user_id}
           currentContent={activeContent}
           isPro={isPro}
+          planLoaded={planLoaded}
         />
       )}
 

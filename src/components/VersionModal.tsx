@@ -1,9 +1,71 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getVersionContent, createVersion, type ChapterVersionMeta } from '../lib/versions';
 import { updateChapter, countWords } from '../lib/chapters';
 import { ConfirmDialog } from './ConfirmDialog';
 import { QUERY_KEYS } from '../lib/queries';
+
+type WordDiff = { type: 'same' | 'added' | 'removed'; text: string };
+type ParaDiff = { type: 'same'; text: string } | { type: 'changed'; parts: WordDiff[] } | { type: 'added'; text: string } | { type: 'removed'; text: string };
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function extractParas(html: string): string[] {
+  return html.split(/<\/p>|<br\s*\/?>/).map(p => stripHtml(p)).filter(Boolean);
+}
+
+function lcsIndices(a: string[], b: string[]): [number, number][] {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+  const pairs: [number, number][] = [];
+  let i = m, j = n;
+  while (i > 0 && j > 0) {
+    if (a[i - 1] === b[j - 1]) { pairs.unshift([i - 1, j - 1]); i--; j--; }
+    else if (dp[i - 1][j] >= dp[i][j - 1]) i--;
+    else j--;
+  }
+  return pairs;
+}
+
+function diffWords(before: string, after: string): WordDiff[] {
+  const a = before.split(/\s+/).filter(Boolean);
+  const b = after.split(/\s+/).filter(Boolean);
+  const pairs = lcsIndices(a, b);
+  const result: WordDiff[] = [];
+  let ai = 0, bi = 0, pi = 0;
+  while (pi <= pairs.length) {
+    const [na, nb] = pi < pairs.length ? pairs[pi] : [a.length, b.length];
+    while (ai < na) { result.push({ type: 'removed', text: a[ai++] }); }
+    while (bi < nb) { result.push({ type: 'added', text: b[bi++] }); }
+    if (pi < pairs.length) { result.push({ type: 'same', text: a[na] }); ai = na + 1; bi = nb + 1; }
+    pi++;
+  }
+  return result;
+}
+
+function computeDiff(snapHtml: string, curHtml: string): ParaDiff[] {
+  const snapParas = extractParas(snapHtml);
+  const curParas = extractParas(curHtml);
+  const pairs = lcsIndices(snapParas, curParas);
+  const result: ParaDiff[] = [];
+  let si = 0, ci = 0, pi = 0;
+  while (pi <= pairs.length) {
+    const [ns, nc] = pi < pairs.length ? pairs[pi] : [snapParas.length, curParas.length];
+    while (si < ns && ci < nc) {
+      result.push({ type: 'changed', parts: diffWords(snapParas[si++], curParas[ci++]) });
+    }
+    while (si < ns) { result.push({ type: 'removed', text: snapParas[si++] }); }
+    while (ci < nc) { result.push({ type: 'added', text: curParas[ci++] }); }
+    if (pi < pairs.length) { result.push({ type: 'same', text: snapParas[ns] }); si = ns + 1; ci = nc + 1; }
+    pi++;
+  }
+  return result;
+}
 
 interface VersionModalProps {
   version: ChapterVersionMeta;
@@ -31,7 +93,13 @@ export function VersionModal({
   const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [showDiff, setShowDiff] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  const diff = useMemo(
+    () => (!loading && content !== null && currentContent ? computeDiff(content, currentContent) : null),
+    [loading, content, currentContent],
+  );
 
   useEffect(() => {
     getVersionContent(version.id)
@@ -118,33 +186,79 @@ export function VersionModal({
 
           <div style={{
             flex: 1, overflowY: 'auto',
-            background: 'var(--paper)',
+            background: showDiff ? 'var(--bg)' : 'var(--paper)',
             padding: '24px 32px',
             fontFamily: 'var(--font-serif)', fontSize: 15, lineHeight: 1.78,
-            color: 'var(--paper-ink)',
+            color: showDiff ? 'var(--ink)' : 'var(--paper-ink)',
           }}>
             {loading && (
               <span style={{ color: 'var(--ink-4)', fontFamily: 'var(--font-ui)', fontSize: 13 }}>
                 Загрузка…
               </span>
             )}
-            {!loading && content !== null && (
+            {!loading && content !== null && !showDiff && (
               <div dangerouslySetInnerHTML={{ __html: content }} />
+            )}
+            {!loading && showDiff && diff && (
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 15, lineHeight: 1.78 }}>
+                {diff.map((part, i) => {
+                  if (part.type === 'same') {
+                    return <p key={i} style={{ margin: '0 0 0.75em' }}>{part.text}</p>;
+                  }
+                  if (part.type === 'added') {
+                    return (
+                      <p key={i} style={{ margin: '0 0 0.75em', background: 'oklch(0.92 0.12 145 / 0.35)', borderRadius: 3, padding: '2px 4px' }}>
+                        {part.text}
+                      </p>
+                    );
+                  }
+                  if (part.type === 'removed') {
+                    return (
+                      <p key={i} style={{ margin: '0 0 0.75em', background: 'oklch(0.85 0.12 25 / 0.3)', borderRadius: 3, padding: '2px 4px', textDecoration: 'line-through', color: 'var(--ink-3)' }}>
+                        {part.text}
+                      </p>
+                    );
+                  }
+                  return (
+                    <p key={i} style={{ margin: '0 0 0.75em' }}>
+                      {part.parts.map((w, wi) => {
+                        if (w.type === 'same') return <span key={wi}>{w.text} </span>;
+                        if (w.type === 'added') return (
+                          <mark key={wi} style={{ background: 'oklch(0.9 0.14 145 / 0.5)', color: 'inherit', borderRadius: 2, padding: '0 1px' }}>{w.text} </mark>
+                        );
+                        return (
+                          <del key={wi} style={{ background: 'oklch(0.85 0.12 25 / 0.35)', color: 'var(--ink-3)', textDecoration: 'line-through', borderRadius: 2, padding: '0 1px' }}>{w.text} </del>
+                        );
+                      })}
+                    </p>
+                  );
+                })}
+              </div>
             )}
           </div>
 
           <div style={{
             padding: '12px 18px', borderTop: '1px solid var(--border-soft)',
-            display: 'flex', justifyContent: 'flex-end', gap: 8,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
           }}>
-            <button className="btn btn--ghost" onClick={onClose}>Отмена</button>
             <button
-              className="btn btn--primary"
-              onClick={() => setConfirm(true)}
-              disabled={loading || restoring}
+              className="btn btn--ghost"
+              style={{ fontSize: 12 }}
+              onClick={() => setShowDiff(v => !v)}
+              disabled={loading || !diff}
             >
-              Восстановить эту версию
+              {showDiff ? 'Показать версию' : 'Показать изменения'}
             </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn--ghost" onClick={onClose}>Отмена</button>
+              <button
+                className="btn btn--primary"
+                onClick={() => setConfirm(true)}
+                disabled={loading || restoring}
+              >
+                Восстановить
+              </button>
+            </div>
           </div>
         </div>
       </div>

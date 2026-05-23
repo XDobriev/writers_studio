@@ -5,6 +5,7 @@ import { getProfile } from './profiles';
 export function useUserDisplay() {
   const { user } = useAuth();
   const [plan, setPlan] = useState<string>('free');
+  const [planLoaded, setPlanLoaded] = useState(false);
 
   const meta = user?.user_metadata;
   const tgName = meta?.provider === 'telegram'
@@ -20,8 +21,11 @@ export function useUserDisplay() {
 
   useEffect(() => {
     if (!user) return;
-    getProfile(user.id).then((profile) => { if (profile?.plan) setPlan(profile.plan); });
+    getProfile(user.id).then((profile) => {
+      if (profile?.plan) setPlan(profile.plan);
+      setPlanLoaded(true);
+    });
   }, [user]);
 
-  return { displayName, initials, plan };
+  return { displayName, initials, plan, planLoaded };
 }

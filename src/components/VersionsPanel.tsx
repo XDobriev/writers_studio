@@ -7,13 +7,14 @@ import { VersionModal } from './VersionModal';
 
 interface VersionsPanelProps {
   chapterId: string;
+  chapterTitle?: string;
   bookId: string;
   userId: string;
   currentContent: string;
   isPro: boolean;
 }
 
-export function VersionsPanel({ chapterId, bookId, userId, currentContent, isPro }: VersionsPanelProps) {
+export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, currentContent, isPro }: VersionsPanelProps) {
   const queryClient = useQueryClient();
   const { data: versions = [], isLoading } = useChapterVersions(chapterId);
   const [selected, setSelected] = useState<ChapterVersionMeta | null>(null);
@@ -54,6 +55,19 @@ export function VersionsPanel({ chapterId, bookId, userId, currentContent, isPro
 
   return (
     <>
+      {chapterTitle && (
+        <div style={{
+          padding: '8px 0 6px',
+          font: '400 11.5px var(--font-serif)',
+          color: 'var(--ink-3)',
+          borderBottom: '1px solid var(--border-soft)',
+          marginBottom: 4,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {chapterTitle || 'Без названия'}
+        </div>
+      )}
+
       {isPro && named.length > 0 && (
         <>
           <SectionLabel>Именованные вехи</SectionLabel>
