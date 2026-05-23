@@ -291,6 +291,16 @@ export function Sidebar({
                 </div>
               </div>
             ))}
+            <button
+              type="button"
+              onClick={onCreateChapter}
+              className="sb-item"
+              style={{ width: '100%', textAlign: 'left', cursor: 'pointer', color: 'var(--ink-3)' }}
+            >
+              <span className="sb-item-num"><Icon name="plus" size={13} /></span>
+              <span className="sb-item-title">Новая глава</span>
+              <span />
+            </button>
           </div>
           {bookHref && (
             <div style={{ padding: '6px 12px 0' }}>
