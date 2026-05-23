@@ -15,6 +15,8 @@ import {
   type ChapterStatus,
 } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters, useChapterContent } from '../lib/queries';
+import { createVersion, createVersionKeepAlive } from '../lib/versions';
+import { useUserDisplay } from '../lib/useUserDisplay';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -79,8 +81,11 @@ export default function Editor() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingPatch = useRef<ChapterPatch | null>(null);
   const targetIdRef = useRef<string | null>(null);
-  // Кешируем access token для beforeunload (синхронный контекст)
   const sessionTokenRef = useRef<string | null>(null);
+  const currentContentRef = useRef<string>('');
+  const planRef = useRef<string>('free');
+  const { plan } = useUserDisplay();
+  const isPro = plan === 'pro' || plan === 'lifetime';
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -92,31 +97,38 @@ export default function Editor() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Баг 5: сохраняем несброшенный патч при закрытии вкладки
+  useEffect(() => { planRef.current = plan; }, [plan]);
+  useEffect(() => { currentContentRef.current = activeContent; }, [activeContent]);
+
   useEffect(() => {
     const handleBeforeUnload = () => {
       const patch = pendingPatch.current;
       const id = targetIdRef.current;
       const token = sessionTokenRef.current;
-      if (!patch || !id || !token) return;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
       const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-      // keepalive гарантирует отправку даже при закрытии вкладки
-      void fetch(`${supabaseUrl}/rest/v1/chapters?id=eq.${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': anonKey,
-          'Authorization': `Bearer ${token}`,
-          'Prefer': 'return=minimal',
-        },
-        body: JSON.stringify(patch),
-        keepalive: true,
-      });
+      if (patch && id && token) {
+        void fetch(`${supabaseUrl}/rest/v1/chapters?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': anonKey,
+            'Authorization': `Bearer ${token}`,
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify(patch),
+          keepalive: true,
+        });
+      }
+      const content = currentContentRef.current;
+      const userId = user?.id;
+      if (id && userId && content && token) {
+        createVersionKeepAlive(id, userId, content, countWords(content), supabaseUrl, anonKey, token);
+      }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
+  }, [user?.id]);
 
   const flush = useCallback(async () => {
     const patch = pendingPatch.current;
@@ -174,17 +186,37 @@ export default function Editor() {
     if (lastActiveIdRef.current && lastActiveIdRef.current !== newId) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       void flush();
+      const prevId = lastActiveIdRef.current;
+      const userId = user?.id;
+      const content = currentContentRef.current;
+      if (userId && content) {
+        void createVersion(prevId, userId, content, countWords(content), 'chapter_switch', planRef.current === 'pro' || planRef.current === 'lifetime');
+      }
     }
     lastActiveIdRef.current = newId;
-  }, [activeChapter, flush]);
+  }, [activeChapter, flush, user?.id]);
 
   useEffect(() => () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     void flush();
   }, [flush]);
 
+  useEffect(() => {
+    const chapterId = activeChapter?.id;
+    const userId = user?.id;
+    if (!chapterId || !userId) return;
+    const intervalMs = isPro ? 30 * 60_000 : 2 * 60 * 60_000;
+    const id = setInterval(() => {
+      const content = currentContentRef.current;
+      if (!content) return;
+      void createVersion(chapterId, userId, content, countWords(content), 'timer', planRef.current === 'pro' || planRef.current === 'lifetime');
+    }, intervalMs);
+    return () => clearInterval(id);
+  }, [activeChapter?.id, user?.id, isPro]);
+
   const onContentChange = useCallback((html: string) => {
     if (!activeChapter) return;
+    currentContentRef.current = html;
     scheduleSave(activeChapter.id, { content: html, words: countWords(html) });
   }, [activeChapter, scheduleSave]);
 
