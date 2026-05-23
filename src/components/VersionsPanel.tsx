@@ -198,13 +198,12 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
       onClick={() => onOpen(version)}
       style={{
         background: 'var(--surface)', border: '1px solid var(--border-soft)',
-        borderRadius: 'var(--r-2)', padding: '10px 12px',
+        borderRadius: 'var(--r-2)', padding: '10px 14px',
         display: 'flex', flexDirection: 'column', gap: 6,
         cursor: 'pointer',
         borderLeft: isNamed ? '2px solid var(--accent)' : undefined,
-        paddingLeft: isNamed ? '11px' : undefined,
+        paddingLeft: isNamed ? '13px' : undefined,
         transition: 'background 0.12s',
-        marginBottom: 4,
       }}
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-2)'; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'var(--surface)'; }}
@@ -278,10 +277,10 @@ function formatDateShort(iso: string): string {
 
 function triggerChip(t: string): string {
   const map: Record<string, string> = {
-    beforeunload: 'при закрытии',
-    chapter_switch: 'смена главы',
+    beforeunload: 'авто',
+    chapter_switch: 'авто',
     timer: 'авто',
     manual: 'вручную',
   };
-  return map[t] ?? t;
+  return map[t] ?? 'авто';
 }
