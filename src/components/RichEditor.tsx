@@ -94,6 +94,13 @@ export function RichEditor({
     return () => onEditor?.(null);
   }, [editor, onEditor]);
 
+  // Контент может прийти позже, чем редактор смонтировался (гонка запросов при обновлении страницы).
+  // Если editor.isEmpty && value уже есть — ставим контент без эмита onChange.
+  useEffect(() => {
+    if (!editor || !value || !editor.isEmpty) return;
+    editor.commands.setContent(value, { emitUpdate: false });
+  }, [editor, value]);
+
   const [spellPopup, setSpellPopup] = useState<{
     x: number; y: number; suggestions: string[]; from: number; to: number;
   } | null>(null);
