@@ -670,3 +670,52 @@ select.input {
 @media (max-width: 639px) {
   .hide-sm { display: none !important; }
 }
+
+/* ── Note cards ── */
+.note-card {
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.note-card:hover {
+  border-color: var(--border-strong) !important;
+  box-shadow: 0 2px 8px oklch(0% 0 0 / 0.06);
+}
+
+/* ── Note modal ── */
+.note-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: oklch(0% 0 0 / 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.note-modal-panel {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+
+@media (max-width: 639px) {
+  .note-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .note-modal-panel {
+    max-width: 100%;
+    max-height: 75vh;
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+    padding: 20px 20px 32px;
+  }
+}

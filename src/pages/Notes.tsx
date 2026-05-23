@@ -57,6 +57,7 @@ export default function Notes() {
   const [error, setError] = useState<string | null>(null);
   const queryError = (bookError ?? chaptersError ?? notesError)?.message ?? null;
 
+  // Форма создания
   const [showForm, setShowForm] = useState(false);
   const [formKind, setFormKind] = useState<NoteKind>('idea');
   const [formText, setFormText] = useState('');
@@ -64,11 +65,13 @@ export default function Notes() {
   const [formCustomColor, setFormCustomColor] = useState<BaseKind>('idea');
   const [saving, setSaving] = useState(false);
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editKind, setEditKind] = useState<NoteKind>('idea');
-  const [editText, setEditText] = useState('');
-  const [editCustomLabel, setEditCustomLabel] = useState('');
-  const [editCustomColor, setEditCustomColor] = useState<BaseKind>('idea');
+  // Модальное окно
+  const [modalNote, setModalNote] = useState<Note | null>(null);
+  const [modalEditing, setModalEditing] = useState(false);
+  const [modalEditKind, setModalEditKind] = useState<NoteKind>('idea');
+  const [modalEditText, setModalEditText] = useState('');
+  const [modalEditCustomLabel, setModalEditCustomLabel] = useState('');
+  const [modalEditCustomColor, setModalEditCustomColor] = useState<BaseKind>('idea');
 
   const [filterKind, setFilterKind] = useState<NoteKind | 'all'>('all');
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
@@ -107,32 +110,48 @@ export default function Notes() {
     });
   };
 
-  const startEdit = (n: Note) => {
-    setEditingId(n.id);
-    setEditKind(n.kind);
-    setEditText(n.text);
-    setEditCustomLabel(n.custom_label ?? '');
-    setEditCustomColor((n.custom_color as BaseKind) ?? 'idea');
+  const openModal = (n: Note) => {
+    setModalNote(n);
+    setModalEditing(false);
   };
 
-  const handleUpdate = async () => {
-    if (!editingId || !editText.trim() || !bookId) return;
+  const closeModal = () => {
+    setModalNote(null);
+    setModalEditing(false);
+  };
+
+  const startModalEdit = (n: Note) => {
+    setModalEditKind(n.kind);
+    setModalEditText(n.text);
+    setModalEditCustomLabel(n.custom_label ?? '');
+    setModalEditCustomColor((n.custom_color as BaseKind) ?? 'idea');
+    setModalEditing(true);
+  };
+
+  const handleModalSave = async () => {
+    if (!modalNote || !modalEditText.trim() || !bookId) return;
     setSaving(true);
     try {
       const updated = await updateNote(
-        editingId, editKind, editText.trim(),
-        editKind === 'custom' ? editCustomLabel : undefined,
-        editKind === 'custom' ? editCustomColor : undefined,
+        modalNote.id, modalEditKind, modalEditText.trim(),
+        modalEditKind === 'custom' ? modalEditCustomLabel : undefined,
+        modalEditKind === 'custom' ? modalEditCustomColor : undefined,
       );
       queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), (prev) =>
-        prev?.map((n) => (n.id === editingId ? updated : n)) ?? []
+        prev?.map((n) => (n.id === modalNote.id ? updated : n)) ?? []
       );
-      setEditingId(null);
+      setModalNote(updated);
+      setModalEditing(false);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleModalDelete = (id: string) => {
+    handleDelete(id);
+    closeModal();
   };
 
   if (!bookId) return <Navigate to="/books" replace />;
@@ -348,98 +367,186 @@ export default function Notes() {
               )
             )}
 
+            {/* Карточки заметок */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
-              {filtered.map((n) => (
-                <div
-                  key={n.id}
-                  style={{
-                    background: 'var(--bg-2)', border: `1px solid var(--border)`,
-                    borderLeft: `3px solid ${noteColor(n)}`,
-                    borderRadius: 8, padding: '14px 16px',
-                    display: 'flex', flexDirection: 'column', gap: 10,
-                  }}
-                >
-                  {editingId === n.id ? (
-                    <>
-                      {kindChips(editKind, setEditKind, 'xs')}
-                      {editKind === 'custom' && (
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <input
-                            className="input"
-                            placeholder="Название типа…"
-                            value={editCustomLabel}
-                            onChange={(e) => setEditCustomLabel(e.target.value)}
-                            style={{ fontSize: 11, flex: 1, padding: '4px 8px' }}
-                            maxLength={32}
-                          />
-                          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                            {BASE_KINDS.map((c) => colorSwatch(c, editCustomColor, setEditCustomColor))}
-                          </div>
-                        </div>
-                      )}
-                      <textarea
-                        className="input"
-                        rows={3}
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        style={{ fontSize: 12, resize: 'vertical' }}
-                        autoFocus
-                      />
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <button
-                          className="btn btn--ghost"
-                          style={{ fontSize: 11, padding: '3px 10px' }}
-                          onClick={() => setEditingId(null)}
-                        >Отмена</button>
-                        <button
-                          className="btn btn--primary"
-                          style={{ fontSize: 11, padding: '3px 10px' }}
-                          onClick={handleUpdate}
-                          disabled={saving || !editText.trim()}
-                        >Сохранить</button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{
-                          fontSize: 11, padding: '2px 8px', borderRadius: 20,
-                          background: noteColorSoft(n), color: noteColor(n),
-                          fontWeight: 500,
-                        }}>
-                          {noteLabel(n)}
-                        </span>
-                        <span style={{ flex: 1 }} />
-                        <button
-                          className="tb-btn"
-                          style={{ width: 24, height: 24 }}
-                          onClick={() => startEdit(n)}
-                          title="Редактировать"
-                        >
-                          <Icon name="pencil" size={12} />
-                        </button>
-                        <button
-                          className="tb-btn"
-                          style={{ width: 24, height: 24 }}
-                          onClick={() => handleDelete(n.id)}
-                          title="Удалить"
-                        >
-                          <Icon name="trash" size={12} />
-                        </button>
-                      </div>
-                      <p style={{ margin: 0, fontSize: 13, color: 'var(--ink)', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
-                        {n.text}
-                      </p>
-                      <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>
-                        {new Date(n.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+              {filtered.map((n) => {
+                const chapterTitle = n.chapter_id ? (chapters?.find(c => c.id === n.chapter_id)?.title || 'Глава') : null;
+                return (
+                  <div
+                    key={n.id}
+                    className="note-card"
+                    onClick={() => openModal(n)}
+                    style={{
+                      background: 'var(--bg-2)',
+                      border: `1px solid var(--border)`,
+                      borderLeft: `3px solid ${noteColor(n)}`,
+                      borderRadius: 8,
+                      padding: '14px 16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                      height: 160,
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {/* Тип + глава */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      <span style={{
+                        fontSize: 11, padding: '2px 8px', borderRadius: 20,
+                        background: noteColorSoft(n), color: noteColor(n),
+                        fontWeight: 500, flexShrink: 0,
+                      }}>
+                        {noteLabel(n)}
                       </span>
-                    </>
-                  )}
-                </div>
-              ))}
+                      {chapterTitle && (
+                        <span style={{
+                          fontSize: 11, color: 'var(--ink-4)',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          marginLeft: 'auto',
+                        }}>
+                          {chapterTitle}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Превью текста */}
+                    <p style={{
+                      margin: 0, fontSize: 13, color: 'var(--ink)', lineHeight: 1.55,
+                      whiteSpace: 'pre-wrap', flex: 1, overflow: 'hidden',
+                      display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
+                    }}>
+                      {n.text}
+                    </p>
+
+                    {/* Дата */}
+                    <span style={{ fontSize: 11, color: 'var(--ink-4)', flexShrink: 0 }}>
+                      {new Date(n.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </main>
+
+        {/* Модальное окно заметки */}
+        {modalNote && (
+          <div
+            className="note-modal-overlay"
+            onClick={closeModal}
+          >
+            <div
+              className="note-modal-panel"
+              onClick={(e) => e.stopPropagation()}
+              style={{ borderLeft: `4px solid ${noteColor(modalNote)}` }}
+            >
+              {/* Шапка */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <span style={{
+                  fontSize: 12, padding: '3px 10px', borderRadius: 20,
+                  background: noteColorSoft(modalNote), color: noteColor(modalNote),
+                  fontWeight: 500,
+                }}>
+                  {noteLabel(modalNote)}
+                </span>
+                <span style={{ flex: 1 }} />
+                <button
+                  className="tb-btn"
+                  style={{ width: 28, height: 28, fontSize: 16 }}
+                  onClick={closeModal}
+                  title="Закрыть"
+                >×</button>
+              </div>
+
+              {modalEditing ? (
+                /* Режим редактирования */
+                <>
+                  {kindChips(modalEditKind, setModalEditKind, 'xs')}
+                  {modalEditKind === 'custom' && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        className="input"
+                        placeholder="Название типа…"
+                        value={modalEditCustomLabel}
+                        onChange={(e) => setModalEditCustomLabel(e.target.value)}
+                        style={{ fontSize: 12, flex: 1, padding: '5px 10px' }}
+                        maxLength={32}
+                      />
+                      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                        {BASE_KINDS.map((c) => colorSwatch(c, modalEditCustomColor, setModalEditCustomColor))}
+                      </div>
+                    </div>
+                  )}
+                  <textarea
+                    className="input"
+                    rows={6}
+                    value={modalEditText}
+                    onChange={(e) => setModalEditText(e.target.value)}
+                    style={{ fontSize: 13, resize: 'vertical', flex: 1 }}
+                    autoFocus
+                  />
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexShrink: 0 }}>
+                    <button
+                      className="btn btn--ghost"
+                      style={{ fontSize: 12, padding: '5px 14px' }}
+                      onClick={() => setModalEditing(false)}
+                    >Отмена</button>
+                    <button
+                      className="btn btn--primary"
+                      style={{ fontSize: 12, padding: '5px 14px' }}
+                      onClick={handleModalSave}
+                      disabled={saving || !modalEditText.trim()}
+                    >Сохранить</button>
+                  </div>
+                </>
+              ) : (
+                /* Режим просмотра */
+                <>
+                  <p style={{
+                    margin: 0, fontSize: 14, color: 'var(--ink)',
+                    lineHeight: 1.65, whiteSpace: 'pre-wrap',
+                    flex: 1, overflowY: 'auto',
+                  }}>
+                    {modalNote.text}
+                  </p>
+
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    paddingTop: 14, borderTop: '1px solid var(--border-soft)',
+                    flexShrink: 0,
+                  }}>
+                    {modalNote.chapter_id && (
+                      <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>
+                        {chapters?.find(c => c.id === modalNote.chapter_id)?.title || 'Глава'}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>
+                      {new Date(modalNote.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                    <span style={{ flex: 1 }} />
+                    <button
+                      className="btn btn--ghost"
+                      style={{ fontSize: 12, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}
+                      onClick={() => startModalEdit(modalNote)}
+                    >
+                      <Icon name="pencil" size={12} />
+                      Изменить
+                    </button>
+                    <button
+                      className="btn btn--ghost"
+                      style={{ fontSize: 12, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5, color: 'var(--danger)' }}
+                      onClick={() => handleModalDelete(modalNote.id)}
+                    >
+                      <Icon name="trash" size={12} />
+                      Удалить
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </WithMode>
   );
