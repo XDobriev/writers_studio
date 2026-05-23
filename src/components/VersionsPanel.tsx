@@ -158,7 +158,7 @@ export function VersionsPanel({ chapterId, bookId, userId, currentContent, isPro
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      padding: '10px 4px 4px',
+      padding: '10px 0 4px',
       font: '500 9.5px var(--font-mono)',
       letterSpacing: '0.14em',
       textTransform: 'uppercase',
@@ -184,11 +184,11 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
       onClick={() => onOpen(version)}
       style={{
         background: 'var(--surface)', border: '1px solid var(--border-soft)',
-        borderRadius: 'var(--r-2)', padding: '9px 11px',
-        display: 'flex', flexDirection: 'column', gap: 4,
+        borderRadius: 'var(--r-2)', padding: '10px 12px',
+        display: 'flex', flexDirection: 'column', gap: 6,
         cursor: 'pointer',
         borderLeft: isNamed ? '2px solid var(--accent)' : undefined,
-        paddingLeft: isNamed ? '10px' : undefined,
+        paddingLeft: isNamed ? '11px' : undefined,
         transition: 'background 0.12s',
         marginBottom: 4,
       }}
