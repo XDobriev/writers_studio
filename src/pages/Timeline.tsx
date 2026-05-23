@@ -1060,17 +1060,18 @@ function EventCard({
         style={{
           background: 'var(--surface)',
           border: '1px solid var(--border-soft)',
-          borderLeft: `3px solid ${color}`,
+          borderTop: `2px solid ${color}`,
           borderRadius: 10,
           padding: '14px 18px',
         }}
       >
+        {/* ① Тип события + удаление */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
-            marginBottom: 8,
+            gap: 6,
+            marginBottom: 12,
             flexWrap: 'wrap',
           }}
         >
@@ -1084,13 +1085,76 @@ function EventCard({
               {TYPE_LABELS[t]}
             </button>
           ))}
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={onDelete}
+            title="Удалить событие"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--ink-4)',
+              cursor: 'pointer',
+              padding: '4px 6px',
+              font: '400 16px var(--font-ui)',
+              lineHeight: 1,
+              borderRadius: 4,
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.color = 'var(--danger)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)';
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* ② Название */}
+        <input
+          value={title}
+          onChange={onTitleChange}
+          placeholder="Название события"
+          style={{
+            width: '100%',
+            font: '500 17px var(--font-serif)',
+            color: 'var(--ink)',
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            padding: '2px 0',
+            marginBottom: 6,
+          }}
+        />
+
+        {/* ③ Описание */}
+        <textarea
+          value={description}
+          onChange={onDescChange}
+          placeholder="Что произошло"
+          rows={2}
+          style={{
+            width: '100%',
+            font: '400 13px/1.55 var(--font-serif)',
+            color: 'var(--ink-2)',
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            resize: 'vertical',
+            padding: 0,
+            marginBottom: 12,
+          }}
+        />
+
+        {/* ④ Метаданные: когда + глава */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input
             value={era}
             onChange={onEraChange}
-            placeholder="когда (например, Зима 824)"
+            placeholder="когда (Зима 824)"
             style={{
               flex: 1,
-              minWidth: 160,
+              minWidth: 0,
               height: 28,
               padding: '0 10px',
               border: '1px solid var(--border-soft)',
@@ -1113,6 +1177,7 @@ function EventCard({
               color: 'var(--ink)',
               fontSize: 12,
               outline: 'none',
+              flexShrink: 0,
             }}
           >
             <option value="">без главы</option>
@@ -1122,62 +1187,7 @@ function EventCard({
               </option>
             ))}
           </select>
-          <button
-            onClick={onDelete}
-            title="Удалить событие"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--ink-4)',
-              cursor: 'pointer',
-              padding: '4px 8px',
-              font: '400 16px var(--font-ui)',
-              lineHeight: 1,
-              borderRadius: 4,
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.color = 'var(--danger)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)';
-            }}
-          >
-            ×
-          </button>
         </div>
-
-        <input
-          value={title}
-          onChange={onTitleChange}
-          placeholder="Название события"
-          style={{
-            width: '100%',
-            font: '500 17px var(--font-serif)',
-            color: 'var(--ink)',
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            padding: '2px 0',
-            marginBottom: 6,
-          }}
-        />
-
-        <textarea
-          value={description}
-          onChange={onDescChange}
-          placeholder="Что произошло"
-          rows={2}
-          style={{
-            width: '100%',
-            font: '400 13px/1.55 var(--font-serif)',
-            color: 'var(--ink-2)',
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            resize: 'vertical',
-            padding: 0,
-          }}
-        />
       </div>
     </div>
   );
