@@ -7,6 +7,7 @@ import { fetchNotes, type Note } from './notes';
 import { listLocations, type Location } from './locations';
 import { listTimelineEvents, type TimelineEvent } from './timeline';
 import { listConnections, type LocationConnection } from './connections';
+import { listVersions, type ChapterVersionMeta } from './versions';
 
 export const QUERY_KEYS = {
   book: (id: string) => ['book', id] as const,
@@ -19,6 +20,7 @@ export const QUERY_KEYS = {
   locations: (bookId: string) => ['locations', bookId] as const,
   timelineEvents: (bookId: string) => ['timeline-events', bookId] as const,
   connections: (bookId: string) => ['connections', bookId] as const,
+  chapterVersions: (chapterId: string) => ['chapter-versions', chapterId] as const,
 };
 
 export function useBook(id: string | undefined) {
@@ -114,5 +116,14 @@ export function useConnections(bookId: string | undefined) {
     queryFn: () => listConnections(bookId!),
     enabled: !!bookId,
     staleTime: 2 * 60_000,
+  });
+}
+
+export function useChapterVersions(chapterId: string | undefined) {
+  return useQuery<ChapterVersionMeta[]>({
+    queryKey: chapterId ? QUERY_KEYS.chapterVersions(chapterId) : ['chapter-versions', null],
+    queryFn: () => listVersions(chapterId!),
+    enabled: !!chapterId,
+    staleTime: 30_000,
   });
 }
