@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useEditorLayout } from '../lib/useEditorLayout';
 import { Icon } from './Icon';
 import { Sidebar, RailNav } from './Chrome';
@@ -97,6 +97,9 @@ export function EditorHybrid({
 }: EditorHybridProps) {
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [editor, setEditor] = useState<Editor | null>(null);
+  const restoreContent = useCallback((content: string) => {
+    editor?.commands.setContent(content, { emitUpdate: false });
+  }, [editor]);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showPageHint, setShowPageHint] = useState(false);
   const [goalToast, setGoalToast] = useState<'reached' | 'exceeded' | null>(null);
@@ -303,6 +306,7 @@ export function EditorHybrid({
           userId={activeChapter?.user_id}
           currentContent={activeContent}
           isPro={isPro}
+          onRestoreContent={restoreContent}
         />
       )}
 

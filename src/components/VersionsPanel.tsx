@@ -12,9 +12,10 @@ interface VersionsPanelProps {
   userId: string;
   currentContent: string;
   isPro: boolean;
+  onRestoreContent?: (content: string) => void;
 }
 
-export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, currentContent, isPro }: VersionsPanelProps) {
+export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, currentContent, isPro, onRestoreContent }: VersionsPanelProps) {
   const queryClient = useQueryClient();
   const { data: versions = [], isLoading } = useChapterVersions(chapterId);
   const [selected, setSelected] = useState<ChapterVersionMeta | null>(null);
@@ -162,7 +163,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
           currentContent={currentContent}
           isPro={isPro}
           onClose={() => setSelected(null)}
-          onRestored={() => setSelected(null)}
+          onRestored={(restoredContent) => { onRestoreContent?.(restoredContent); setSelected(null); }}
         />
       )}
     </>

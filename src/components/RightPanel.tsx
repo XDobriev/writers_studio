@@ -13,9 +13,10 @@ interface RightPanelProps {
   userId?: string;
   currentContent?: string;
   isPro?: boolean;
+  onRestoreContent?: (content: string) => void;
 }
 
-export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro }: RightPanelProps) {
+export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent }: RightPanelProps) {
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно' };
   const queryClient = useQueryClient();
   const { data: allNotes = [] } = useNotes(bookId);
@@ -109,6 +110,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
             userId={userId}
             currentContent={currentContent ?? ''}
             isPro={isPro ?? false}
+            onRestoreContent={onRestoreContent}
           />
         )}
         {activeTab === 'versions' && !chapterId && (

@@ -75,7 +75,7 @@ interface VersionModalProps {
   currentContent: string;
   isPro: boolean;
   onClose: () => void;
-  onRestored: () => void;
+  onRestored: (content: string) => void;
 }
 
 export function VersionModal({
@@ -126,7 +126,7 @@ export function VersionModal({
       );
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterVersions(chapterId) });
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
-      onRestored();
+      onRestored(content);
       onClose();
     } catch {
       setRestoring(false);
@@ -199,42 +199,53 @@ export function VersionModal({
             {!loading && content !== null && !showDiff && (
               <div dangerouslySetInnerHTML={{ __html: content }} />
             )}
-            {!loading && showDiff && diff && (
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 15, lineHeight: 1.78 }}>
-                {diff.map((part, i) => {
-                  if (part.type === 'same') {
-                    return <p key={i} style={{ margin: '0 0 0.75em' }}>{part.text}</p>;
-                  }
-                  if (part.type === 'added') {
+            {!loading && showDiff && diff && (() => {
+              const hasChanges = diff.some(p => p.type !== 'same');
+              if (!hasChanges) {
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '40px 0', color: 'var(--ink-4)' }}>
+                    <span style={{ fontSize: 24 }}>≡</span>
+                    <span style={{ font: '400 13px var(--font-ui)' }}>Текст совпадает с текущей версией</span>
+                  </div>
+                );
+              }
+              return (
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 15, lineHeight: 1.78 }}>
+                  {diff.map((part, i) => {
+                    if (part.type === 'same') {
+                      return <p key={i} style={{ margin: '0 0 0.75em', color: 'var(--ink-3)' }}>{part.text}</p>;
+                    }
+                    if (part.type === 'added') {
+                      return (
+                        <p key={i} style={{ margin: '0 0 0.75em', background: 'oklch(0.5 0.18 145 / 0.18)', borderRadius: 3, padding: '2px 6px', borderLeft: '3px solid oklch(0.6 0.2 145)' }}>
+                          {part.text}
+                        </p>
+                      );
+                    }
+                    if (part.type === 'removed') {
+                      return (
+                        <p key={i} style={{ margin: '0 0 0.75em', background: 'oklch(0.5 0.18 25 / 0.15)', borderRadius: 3, padding: '2px 6px', borderLeft: '3px solid oklch(0.55 0.2 25)', textDecoration: 'line-through', color: 'var(--ink-3)' }}>
+                          {part.text}
+                        </p>
+                      );
+                    }
                     return (
-                      <p key={i} style={{ margin: '0 0 0.75em', background: 'oklch(0.92 0.12 145 / 0.35)', borderRadius: 3, padding: '2px 4px' }}>
-                        {part.text}
+                      <p key={i} style={{ margin: '0 0 0.75em' }}>
+                        {part.parts.map((w, wi) => {
+                          if (w.type === 'same') return <span key={wi}>{w.text} </span>;
+                          if (w.type === 'added') return (
+                            <mark key={wi} style={{ background: 'oklch(0.5 0.2 145 / 0.25)', color: 'inherit', borderRadius: 2, padding: '1px 2px' }}>{w.text} </mark>
+                          );
+                          return (
+                            <del key={wi} style={{ background: 'oklch(0.5 0.2 25 / 0.2)', color: 'var(--ink-3)', textDecoration: 'line-through', borderRadius: 2, padding: '1px 2px' }}>{w.text} </del>
+                          );
+                        })}
                       </p>
                     );
-                  }
-                  if (part.type === 'removed') {
-                    return (
-                      <p key={i} style={{ margin: '0 0 0.75em', background: 'oklch(0.85 0.12 25 / 0.3)', borderRadius: 3, padding: '2px 4px', textDecoration: 'line-through', color: 'var(--ink-3)' }}>
-                        {part.text}
-                      </p>
-                    );
-                  }
-                  return (
-                    <p key={i} style={{ margin: '0 0 0.75em' }}>
-                      {part.parts.map((w, wi) => {
-                        if (w.type === 'same') return <span key={wi}>{w.text} </span>;
-                        if (w.type === 'added') return (
-                          <mark key={wi} style={{ background: 'oklch(0.9 0.14 145 / 0.5)', color: 'inherit', borderRadius: 2, padding: '0 1px' }}>{w.text} </mark>
-                        );
-                        return (
-                          <del key={wi} style={{ background: 'oklch(0.85 0.12 25 / 0.35)', color: 'var(--ink-3)', textDecoration: 'line-through', borderRadius: 2, padding: '0 1px' }}>{w.text} </del>
-                        );
-                      })}
-                    </p>
-                  );
-                })}
-              </div>
-            )}
+                  })}
+                </div>
+              );
+            })()}
           </div>
 
           <div style={{
@@ -247,7 +258,11 @@ export function VersionModal({
               onClick={() => setShowDiff(v => !v)}
               disabled={loading || !diff}
             >
-              {showDiff ? 'Показать версию' : 'Показать изменения'}
+              {showDiff ? 'Показать версию' : (() => {
+                if (!diff) return 'Показать изменения';
+                const n = diff.filter(p => p.type !== 'same').length;
+                return n > 0 ? `Изменения · ${n}` : 'Показать изменения';
+              })()}
             </button>
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn btn--ghost" onClick={onClose}>Отмена</button>
