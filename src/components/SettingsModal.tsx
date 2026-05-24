@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { getProfile } from '../lib/profiles';
 import { useAuth } from '../lib/auth';
 import { applyTheme, getStoredTheme, type Theme } from '../lib/theme';
+import { EDITOR_SHORTCUTS, shortcutLabel } from '../lib/shortcuts';
 
 type Plan = 'free' | 'pro' | 'lifetime';
 
@@ -222,6 +223,36 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                   </a>
                 </div>
               )}
+            </div>
+          </section>
+
+          <hr style={HR} />
+
+          <section>
+            <div style={SL}>Горячие клавиши</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {EDITOR_SHORTCUTS.map((s) => (
+                <div
+                  key={s.label}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0' }}
+                >
+                  <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{s.label}</span>
+                  <kbd
+                    style={{
+                      font: '500 11px var(--font-mono)',
+                      color: 'var(--ink-2)',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 5,
+                      padding: '2px 8px',
+                      whiteSpace: 'nowrap',
+                      letterSpacing: '0.02em',
+                    }}
+                  >
+                    {shortcutLabel(s)}
+                  </kbd>
+                </div>
+              ))}
             </div>
           </section>
 

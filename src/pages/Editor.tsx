@@ -334,6 +334,7 @@ export default function Editor() {
         onContentChange={onContentChange}
         onTitleChange={onTitleChange}
         onGoalChange={onGoalChange}
+        onSave={flush}
         saveState={saveState}
         savedAt={savedAt}
       />

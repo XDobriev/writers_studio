@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -14,9 +14,11 @@ interface RightPanelProps {
   currentContent?: string;
   isPro?: boolean;
   onRestoreContent?: (content: string) => void;
+  /** Инкрементируется из EditorHybrid по Ctrl+Shift+N → открывает форму заметки */
+  openNoteAt?: number;
 }
 
-export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent }: RightPanelProps) {
+export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, openNoteAt }: RightPanelProps) {
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно' };
   const queryClient = useQueryClient();
   const { data: allNotes = [] } = useNotes(bookId);
@@ -30,6 +32,13 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   const [editKind, setEditKind] = useState<NoteKind>('idea');
   const [editText, setEditText] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; text: string } | null>(null);
+
+  // Ctrl+Shift+N из EditorHybrid — открыть вкладку заметок и показать форму
+  useEffect(() => {
+    if (!openNoteAt) return;
+    setActiveTab('notes');
+    setShowForm(true);
+  }, [openNoteAt]);
 
   const invalidate = () => {
     if (bookId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(bookId) });
