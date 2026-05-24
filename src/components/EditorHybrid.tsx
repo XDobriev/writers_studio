@@ -99,6 +99,7 @@ export function EditorHybrid({
   const [editor, setEditor] = useState<Editor | null>(null);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showPageHint, setShowPageHint] = useState(false);
+  const [goalToast, setGoalToast] = useState<'reached' | 'exceeded' | null>(null);
   const { isMobile, showLeft, showRight, isPage, cols, sheetWidth, sheetPad } = useEditorLayout(mode);
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
@@ -135,6 +136,27 @@ export function EditorHybrid({
     localStorage.setItem('editor-page-hinted', '1');
   };
 
+  const dailyGoal = book?.daily_goal ?? 0;
+  const prevTodayWords = useRef<number>(0);
+  useEffect(() => {
+    const tw = writingStats.todayWords;
+    const prev = prevTodayWords.current;
+    prevTodayWords.current = tw;
+    if (!dailyGoal || tw === prev) return;
+    const todayKey = `goal-toast-${new Date().toISOString().slice(0, 10)}`;
+    if (localStorage.getItem(todayKey)) return;
+    if (prev < dailyGoal && tw >= dailyGoal) {
+      const kind = tw >= dailyGoal * 1.5 ? 'exceeded' : 'reached';
+      setGoalToast(kind);
+      localStorage.setItem(todayKey, '1');
+    }
+  }, [writingStats.todayWords, dailyGoal]);
+
+  useEffect(() => {
+    if (!goalToast) return;
+    const t = setTimeout(() => setGoalToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [goalToast]);
 
   return (
     <div className="as" style={{ height: '100%', overflow: 'hidden', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative', transition: 'none' }}>
@@ -304,6 +326,36 @@ export function EditorHybrid({
             />
           </div>
         </>
+      )}
+
+      {goalToast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 52,
+            right: 20,
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '10px 16px',
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            boxShadow: '0 8px 24px oklch(0 0 0 / 0.35)',
+            font: '400 13px var(--font-ui)',
+            color: 'var(--ink)',
+            pointerEvents: 'none',
+            animation: 'toast-in 0.2s cubic-bezier(0.22,0.68,0,1.2)',
+          }}
+        >
+          <span style={{ fontSize: 16 }}>{goalToast === 'exceeded' ? '💪' : '🎉'}</span>
+          <span>
+            {goalToast === 'exceeded'
+              ? `Превысил цель! +${writingStats.todayWords.toLocaleString('ru')} слов сегодня`
+              : `Цель дня достигнута! +${writingStats.todayWords.toLocaleString('ru')} слов`}
+          </span>
+        </div>
       )}
     </div>
   );
