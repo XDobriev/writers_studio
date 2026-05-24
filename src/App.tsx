@@ -1,6 +1,8 @@
 import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, useQueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { AuthProvider, useAuth } from './lib/auth';
 import { AuthGuard } from './components/AuthGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -61,11 +63,13 @@ function AuthQuerySync() {
   return null;
 }
 
+const persister = createSyncStoragePersister({ storage: window.localStorage });
+
 export default function App() {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        gcTime: 15 * 60_000,
+        gcTime: 24 * 60 * 60_000,
         retry: (count, error) => {
           const code = (error as { code?: string })?.code;
           if (code === 'PGRST301' || code === 'PGRST116') return false;
@@ -76,7 +80,10 @@ export default function App() {
     },
   }));
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister, maxAge: 24 * 60 * 60_000 }}
+    >
     <AuthProvider>
       <BrowserRouter>
         <AuthQuerySync />
@@ -110,6 +117,6 @@ export default function App() {
         </Suspense>
       </BrowserRouter>
     </AuthProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

@@ -29,13 +29,28 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+// Читаем сессию из localStorage синхронно — чтобы не блокировать первый рендер
+// на медленных соединениях (Россия, VPN). getSession() всё равно валидирует async.
+function readLocalSession(): Session | null {
+  try {
+    const url = (import.meta.env.VITE_SUPABASE_URL ?? '') as string;
+    if (!url) return null;
+    const ref = new URL(url).hostname.split('.')[0];
+    const raw = localStorage.getItem(`sb-${ref}-auth-token`);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as Record<string, unknown> | null;
+    return data?.access_token ? (data as unknown as Session) : null;
+  } catch { return null; }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const localSession = readLocalSession();
+  const [session, setSession] = useState<Session | null>(localSession);
+  const [loading, setLoading] = useState(localSession === null);
   const [sessionExpired, setSessionExpired] = useState(false);
 
   // Различаем намеренный logout от истечения токена
-  const hadSession = useRef(false);
+  const hadSession = useRef(localSession !== null);
   const deliberateSignOut = useRef(false);
 
   useEffect(() => {
