@@ -101,6 +101,7 @@ export function EditorHybrid({
     editor?.commands.setContent(content, { emitUpdate: false });
   }, [editor]);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [showMobileRight, setShowMobileRight] = useState(false);
   const [showPageHint, setShowPageHint] = useState(false);
   const [goalToast, setGoalToast] = useState<'reached' | 'exceeded' | null>(null);
   const { isMobile, showLeft, showRight, isPage, cols, sheetWidth, sheetPad } = useEditorLayout(mode);
@@ -118,7 +119,10 @@ export function EditorHybrid({
   }, [saveState, writingStats.refetch]);
 
   useEffect(() => {
-    if (!isMobile) setShowMobileSidebar(false);
+    if (!isMobile) {
+      setShowMobileSidebar(false);
+      setShowMobileRight(false);
+    }
   }, [isMobile]);
 
   useEffect(() => {
@@ -188,9 +192,20 @@ export function EditorHybrid({
               <Icon name="panel" size={16} />
             </button>
             {activeChapter && (
-              <span style={{ font: '500 13px var(--font-serif)', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ font: '500 13px var(--font-serif)', color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {activeChapter.title || 'Без названия'}
               </span>
+            )}
+            {isReal && (
+              <button
+                type="button"
+                className={'tb-btn' + (showMobileRight ? ' tb-btn--on' : '')}
+                onClick={() => setShowMobileRight(v => !v)}
+                title="Заметки и версии"
+                style={{ flexShrink: 0 }}
+              >
+                <Icon name="note" size={16} />
+              </button>
             )}
           </div>
         )}
@@ -327,6 +342,27 @@ export function EditorHybrid({
                 onSelectChapter: (id) => { chapterActions.onSelectChapter?.(id); setShowMobileSidebar(false); },
               } : undefined}
               bookHref={bookHref}
+            />
+          </div>
+        </>
+      )}
+
+      {isMobile && showMobileRight && (
+        <>
+          <div
+            role="presentation"
+            onClick={() => setShowMobileRight(false)}
+            style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
+          />
+          <div style={{ position: 'fixed', top: 0, right: 0, width: 300, maxWidth: '90vw', height: '100%', zIndex: 41, boxShadow: '-4px 0 32px oklch(0.05 0.01 50 / 0.35)' }}>
+            <RightPanel
+              bookId={book?.id}
+              chapterId={activeChapter?.id}
+              chapterTitle={activeChapter?.title}
+              userId={activeChapter?.user_id}
+              currentContent={activeContent}
+              isPro={isPro}
+              onRestoreContent={restoreContent}
             />
           </div>
         </>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useWindowWidth } from '../lib/useWindowWidth';
 
 interface StatusBarProps {
   words?: number;
@@ -14,6 +15,7 @@ interface StatusBarProps {
 export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, todayWords, goalWords = 1000, streak, onGoalChange }: StatusBarProps) {
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
+  const isNarrow = useWindowWidth() < 480;
 
   function pluralDays(n: number): string {
     const m10 = n % 10, m100 = n % 100;
@@ -33,10 +35,14 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, tod
       <span><span className="status-dot" style={{ display: 'inline-block', marginRight: 6, verticalAlign: 'middle' }} />{statusLabel ?? (savedAt ? `Сохранено · ${savedAt}` : 'Сохранение…')}</span>
       <span style={{ color: 'var(--ink-4)' }}>·</span>
       <span>Слов: {words.toLocaleString('ru')}</span>
-      <span style={{ color: 'var(--ink-4)' }}>·</span>
-      <span>Знаков: {chars.toLocaleString('ru')}</span>
-      <span style={{ color: 'var(--ink-4)' }}>·</span>
-      <span>~{Math.ceil(words / 220)} мин чтения</span>
+      {!isNarrow && (
+        <>
+          <span style={{ color: 'var(--ink-4)' }}>·</span>
+          <span>Знаков: {chars.toLocaleString('ru')}</span>
+          <span style={{ color: 'var(--ink-4)' }}>·</span>
+          <span>~{Math.ceil(words / 220)} мин чтения</span>
+        </>
+      )}
       <span style={{ flex: 1 }} />
       {todayWords !== undefined && (
         <>
