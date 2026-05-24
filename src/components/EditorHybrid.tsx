@@ -98,6 +98,7 @@ export function EditorHybrid({
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [showPageHint, setShowPageHint] = useState(false);
   const { isMobile, showLeft, showRight, isPage, cols, sheetWidth, sheetPad } = useEditorLayout(mode);
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
@@ -115,6 +116,24 @@ export function EditorHybrid({
   useEffect(() => {
     if (!isMobile) setShowMobileSidebar(false);
   }, [isMobile]);
+
+  useEffect(() => {
+    if (isPage && !localStorage.getItem('editor-page-hinted')) setShowPageHint(true);
+  }, [isPage]);
+
+  useEffect(() => {
+    if (!showPageHint) return;
+    const t = setTimeout(() => {
+      setShowPageHint(false);
+      localStorage.setItem('editor-page-hinted', '1');
+    }, 8000);
+    return () => clearTimeout(t);
+  }, [showPageHint]);
+
+  const dismissPageHint = () => {
+    setShowPageHint(false);
+    localStorage.setItem('editor-page-hinted', '1');
+  };
 
 
   return (
@@ -176,6 +195,39 @@ export function EditorHybrid({
           )
         ) : (
           <EditorToolbar editor={editor} mode={mode} setMode={setMode} variant="studio" showModes={!isMobile} isMobile={isMobile} />
+        )}
+
+        {showPageHint && (
+          <div
+            style={{
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '7px 20px',
+              background: 'var(--surface)',
+              borderBottom: '1px solid var(--border-soft)',
+            }}
+          >
+            <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', flex: 1 }}>
+              Страница — чистый лист без панелей. Для структуры и заметок переключитесь в другой режим.
+            </span>
+            <button
+              onClick={dismissPageHint}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--accent)',
+                font: '500 12px var(--font-ui)',
+                cursor: 'pointer',
+                padding: '2px 6px',
+                borderRadius: 4,
+                flexShrink: 0,
+              }}
+            >
+              Понятно
+            </button>
+          </div>
         )}
 
         <div className="sheet-wrap" style={{ padding: isMobile ? '16px 8px 0' : (isPage ? '48px 56px 0' : '36px 32px 0') }}>
