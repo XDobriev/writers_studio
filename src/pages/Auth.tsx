@@ -130,7 +130,7 @@ export default function Auth() {
     setOauthBusy('google');
     const { error } = await signInWithGoogle();
     if (error) {
-      setErr('Google недоступен в вашей сети. Используйте вход по почте или включите VPN.');
+      setErr('Ошибка подключения. Попробуйте войти по почте или повторите попытку позже.');
       setOauthBusy(null);
     }
     // при успехе редирект уходит на Google — стейт busy не сбрасываем
