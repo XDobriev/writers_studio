@@ -1,13 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { LogoMark } from '../components/LogoMark';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { supabase, type Book } from '../lib/supabase';
-import { listBooks, createBook, updateBook, deleteBook as deleteBookApi } from '../lib/books';
-import { getProfile } from '../lib/profiles';
+import { createBook, updateBook, deleteBook as deleteBookApi } from '../lib/books';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
+import { useBooks, useProfile, QUERY_KEYS } from '../lib/queries';
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? '';
 
@@ -130,8 +131,10 @@ type Plan = 'free' | 'pro' | 'lifetime';
 export default function Home() {
   const { user, signOut } = useAuth();
   const { displayName } = useUserDisplay();
-  const [books, setBooks] = useState<Book[] | null>(null);
-  const [plan, setPlan] = useState<Plan>('free');
+  const queryClient = useQueryClient();
+  const { data: books, error: booksError } = useBooks(user?.id);
+  const { data: profile } = useProfile(user?.id);
+  const plan = ((profile?.plan ?? 'free') as Plan);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [err, setErr] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -173,7 +176,7 @@ export default function Home() {
     setDeleting(true);
     try {
       await deleteBookApi(editBook.id);
-      setBooks((prev) => prev?.filter((b) => b.id !== editBook.id) ?? prev);
+      queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => prev?.filter((b) => b.id !== editBook.id));
       setEditBook(null);
       setConfirmDeleteBook(false);
     } catch {
@@ -198,7 +201,7 @@ export default function Home() {
     setEditError(null);
     try {
       const data = await updateBook(editBook.id, { title: editTitle.trim(), genre: editGenre.trim() || null, goal: Math.max(0, editGoal), cover: editCover });
-      setBooks((prev) => prev?.map((b) => b.id === editBook.id ? data : b) ?? prev);
+      queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => prev?.map((b) => b.id === editBook.id ? data : b));
       setEditBook(null);
     } catch (e) {
       setEditError((e as Error).message);
@@ -215,25 +218,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const [books, profile] = await Promise.all([
-          listBooks(),
-          getProfile(user!.id),
-        ]);
-        if (cancelled) return;
-        setBooks(books);
-        if (profile?.plan) setPlan(profile.plan as Plan);
-      } catch (e) {
-        if (!cancelled) setErr((e as Error).message);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [user]);
-
-  useEffect(() => {
-    if (books !== null && books.length === 0 && !localStorage.getItem('as_onboarding_done')) {
+    if (books != null && books.length === 0 && !localStorage.getItem('as_onboarding_done')) {
       setShowWelcome(true);
     }
   }, [books]);
@@ -268,7 +253,7 @@ export default function Home() {
     if (!title) return;
     try {
       const data = await createBook({ user_id: user.id, title, genre, goal, words: 0, cover: createCover });
-      setBooks((prev) => [data, ...(prev ?? [])]);
+      queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => [data, ...(prev ?? [])]);
       setShowCreate(false);
       setCreateCover(COVERS[0]);
     } catch (e) {
@@ -339,9 +324,9 @@ export default function Home() {
           </div>
         </div>
 
-        {err && (
+        {(err ?? (booksError as Error | null)?.message) && (
           <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', color: 'var(--danger)', fontSize: 13 }}>
-            {err}
+            {err ?? (booksError as Error).message}
           </div>
         )}
 

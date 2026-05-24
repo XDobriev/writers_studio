@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { getBook, listWritingSnapshots } from './books';
+import { getBook, listBooks, listWritingSnapshots } from './books';
+import { getProfile, type Profile } from './profiles';
+import type { Book } from './supabase';
 import { listChaptersMeta, getChapterContent, type ChapterMeta } from './chapters';
 import { listCharacters, type Character } from './characters';
 import { listRelations, type CharacterRelation } from './character_relations';
@@ -10,6 +12,8 @@ import { listConnections, type LocationConnection } from './connections';
 import { listVersions, type ChapterVersionMeta } from './versions';
 
 export const QUERY_KEYS = {
+  books: (userId: string) => ['books', userId] as const,
+  profile: (userId: string) => ['profile', userId] as const,
   book: (id: string) => ['book', id] as const,
   chapters: (bookId: string) => ['chapters', bookId] as const,
   chapterContent: (id: string) => ['chapter-content', id] as const,
@@ -125,5 +129,23 @@ export function useChapterVersions(chapterId: string | undefined) {
     queryFn: () => listVersions(chapterId!),
     enabled: !!chapterId,
     staleTime: 30_000,
+  });
+}
+
+export function useBooks(userId: string | undefined) {
+  return useQuery<Book[]>({
+    queryKey: userId ? QUERY_KEYS.books(userId) : ['books', null],
+    queryFn: listBooks,
+    enabled: !!userId,
+    staleTime: 2 * 60_000,
+  });
+}
+
+export function useProfile(userId: string | undefined) {
+  return useQuery<Profile | null>({
+    queryKey: userId ? QUERY_KEYS.profile(userId) : ['profile', null],
+    queryFn: () => getProfile(userId!),
+    enabled: !!userId,
+    staleTime: 10 * 60_000,
   });
 }
