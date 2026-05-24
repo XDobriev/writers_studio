@@ -296,8 +296,13 @@ export default function Outline() {
   const onCreate = async () => {
     if (!bookId || !user) return;
     try {
+      const nums = (chapters ?? [])
+        .map((c) => c.title.match(/^Глава (\d+)$/))
+        .filter(Boolean)
+        .map((m) => parseInt(m![1]));
+      const nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
       const created = await createChapter(bookId, user.id, {
-        title: `Глава ${(chapters?.length ?? 0) + 1}`,
+        title: `Глава ${nextNum}`,
         position: chapters?.length ?? 0,
       });
       const { content: _, ...createdMeta } = created;
