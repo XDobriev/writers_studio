@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
@@ -7,6 +7,7 @@ import { updateBook } from '../lib/books';
 import { type Chapter } from '../lib/chapters';
 import { pluralDays, plural } from '../lib/useWritingStats';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useWritingSnapshots } from '../lib/queries';
+import { useWindowWidth } from '../lib/useWindowWidth';
 
 const STATUS_LABEL: Record<Chapter['status'], string> = {
   draft: 'черновик',
@@ -45,6 +46,11 @@ export default function Dashboard() {
   const [editGoal, setEditGoal] = useState(0);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  const windowWidth = useWindowWidth();
+  const isMobile = windowWidth < 768;
+  const [showMobileSb, setShowMobileSb] = useState(false);
+  useEffect(() => { if (!isMobile) setShowMobileSb(false); }, [isMobile]);
 
   const openEdit = () => {
     if (!book) return;
@@ -261,21 +267,38 @@ export default function Dashboard() {
 
   return (
     <WithMode>
-      <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
-        <Sidebar book={book} />
+      <div className="as as-app as-app--no-right" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
+        {!isMobile && <Sidebar book={book} />}
 
-        <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
-          <div className="tb" style={{ justifyContent: 'space-between' }}>
-            <span style={{ font: '500 13px var(--font-ui)' }}>Дэшборд · {book.title}</span>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button className="btn btn--ghost" onClick={openEdit}><Icon name="pencil" size={14} /> Изменить</button>
-              <Link to={navTo('/export')} className="btn btn--ghost" style={{ textDecoration: 'none' }}><Icon name="download" size={14} /> Экспорт</Link>
-              <Link to={navTo('/editor')} className="btn btn--primary" style={{ textDecoration: 'none' }}><Icon name="book" size={14} /> Открыть редактор</Link>
+        <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden', minWidth: 0 }}>
+          <div className="tb" style={{ justifyContent: 'space-between', gap: 8 }}>
+            {isMobile && (
+              <button type="button" className="tb-btn" onClick={() => setShowMobileSb(true)} title="Навигация" style={{ flexShrink: 0 }}>
+                <Icon name="panel" size={16} />
+              </button>
+            )}
+            <span style={{ font: '500 13px var(--font-ui)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {isMobile ? book.title : `Дэшборд · ${book.title}`}
+            </span>
+            <div style={{ display: 'flex', gap: isMobile ? 4 : 8, alignItems: 'center', flexShrink: 0 }}>
+              {isMobile ? (
+                <button className="tb-btn" onClick={openEdit} title="Изменить книгу">
+                  <Icon name="pencil" size={15} />
+                </button>
+              ) : (
+                <>
+                  <button className="btn btn--ghost" onClick={openEdit}><Icon name="pencil" size={14} /> Изменить</button>
+                  <Link to={navTo('/export')} className="btn btn--ghost" style={{ textDecoration: 'none' }}><Icon name="download" size={14} /> Экспорт</Link>
+                </>
+              )}
+              <Link to={navTo('/editor')} className="btn btn--primary" style={{ textDecoration: 'none' }}>
+                <Icon name="book" size={14} />{!isMobile && ' Открыть редактор'}
+              </Link>
             </div>
           </div>
 
-          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '28px 32px 40px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '20px 16px 40px' : '28px 32px 40px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 16, marginBottom: 20 }}>
               {statCards.map((s) => (
                 <div key={s.l} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 20px' }}>
                   <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>{s.l}</div>
@@ -467,6 +490,19 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
+      {isMobile && showMobileSb && (
+        <>
+          <div
+            role="presentation"
+            onClick={() => setShowMobileSb(false)}
+            style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
+          />
+          <div style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)' }}>
+            <Sidebar book={book} />
+          </div>
+        </>
+      )}
+
       {editOpen && (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'oklch(0 0 0 / 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
