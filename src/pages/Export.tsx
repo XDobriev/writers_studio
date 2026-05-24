@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../lib/auth';
 import {
   AlignmentType,
   Document,
@@ -624,11 +625,14 @@ function estimateSize(format: Format, chapters: Chapter[]): string {
 export default function Export() {
   const { id: bookId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[] | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [authorName, setAuthorName] = useState('');
+  const authorInitialized = useRef(false);
 
   const [format, setFormat] = useState<Format>('epub');
   const [doneOnly, setDoneOnly] = useState(false);
@@ -662,6 +666,15 @@ export default function Export() {
     return () => { cancelled = true; };
   }, [bookId]);
 
+  // Инициализируем автора из книги или профиля пользователя (однократно)
+  useEffect(() => {
+    if (!book || authorInitialized.current) return;
+    const meta = user?.user_metadata ?? {};
+    const profileName = (meta.full_name ?? meta.name ?? meta.first_name ?? '') as string;
+    setAuthorName(book.author || profileName);
+    authorInitialized.current = true;
+  }, [book, user]);
+
   const close = useCallback(() => {
     navigate(bookId ? `/books/${bookId}` : '/books');
   }, [bookId, navigate]);
@@ -684,27 +697,28 @@ export default function Export() {
     if (selectedChapters.length === 0) { setError('Нет глав для экспорта.'); return; }
     setBusy(true);
     setError(null);
+    const bookWithAuthor = { ...book, author: authorName.trim() || book.author };
     const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle };
     try {
       if (format === 'docx') {
-        triggerDownload(await buildDocxBlob(book, selectedChapters, opts), filename);
+        triggerDownload(await buildDocxBlob(bookWithAuthor, selectedChapters, opts), filename);
       } else if (format === 'epub') {
-        triggerDownload(await buildEpubBlob(book, selectedChapters, opts), filename);
+        triggerDownload(await buildEpubBlob(bookWithAuthor, selectedChapters, opts), filename);
       } else if (format === 'fb2') {
-        downloadText(buildFb2Doc(book, selectedChapters, opts), 'application/xml', filename);
+        downloadText(buildFb2Doc(bookWithAuthor, selectedChapters, opts), 'application/xml', filename);
       } else if (format === 'html') {
-        downloadText(buildHtmlDoc(book, selectedChapters, opts), 'text/html', filename);
+        downloadText(buildHtmlDoc(bookWithAuthor, selectedChapters, opts), 'text/html', filename);
       } else if (format === 'md') {
-        downloadText(buildMarkdownDoc(book, selectedChapters, opts), 'text/markdown', filename);
+        downloadText(buildMarkdownDoc(bookWithAuthor, selectedChapters, opts), 'text/markdown', filename);
       } else {
-        downloadText(buildTextDoc(book, selectedChapters, opts), 'text/plain', filename);
+        downloadText(buildTextDoc(bookWithAuthor, selectedChapters, opts), 'text/plain', filename);
       }
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(false);
     }
-  }, [book, selectedChapters, format, includeChapterTitles, includeTitlePage, includeNotes, notes, language, paragraphStyle, filename]);
+  }, [book, authorName, selectedChapters, format, includeChapterTitles, includeTitlePage, includeNotes, notes, language, paragraphStyle, filename]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
@@ -798,16 +812,26 @@ export default function Export() {
           {/* Metadata */}
           <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Метаданные</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-            {[
-              ['Название', book.title],
-              ['Автор', book.author || '—'],
-              ['Жанр', book.genre || '—'],
-            ].map(([l, v]) => (
-              <div key={l} style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
-                <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>{l}</div>
-                <div style={{ fontSize: 13.5, color: 'var(--ink)' }}>{v}</div>
-              </div>
-            ))}
+            {/* Название */}
+            <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
+              <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Название</div>
+              <div style={{ fontSize: 13.5, color: 'var(--ink)' }}>{book.title}</div>
+            </div>
+            {/* Автор — редактируемый */}
+            <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
+              <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Автор</div>
+              <input
+                value={authorName}
+                onChange={(e) => setAuthorName(e.target.value)}
+                placeholder="Имя автора…"
+                style={{ background: 'none', border: 'none', padding: 0, margin: 0, fontSize: 13.5, color: 'var(--ink)', width: '100%', outline: 'none', fontFamily: 'inherit' }}
+              />
+            </div>
+            {/* Жанр */}
+            <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
+              <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Жанр</div>
+              <div style={{ fontSize: 13.5, color: 'var(--ink)' }}>{book.genre || '—'}</div>
+            </div>
             <div style={{ padding: '6px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
               <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Язык</div>
               <select
