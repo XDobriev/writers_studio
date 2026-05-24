@@ -35,6 +35,13 @@ const ROLE_FILTERS: { value: RoleFilter; label: string }[] = [
   { value: 'minor', label: 'эпиз.' },
 ];
 
+const ROLE_ORDER: CharacterRole[] = ['protagonist', 'secondary', 'minor'];
+const ROLE_GROUP_LABELS: Record<CharacterRole, string> = {
+  protagonist: 'Главные',
+  secondary: 'Второстепенные',
+  minor: 'Эпизодические',
+};
+
 export default function Characters() {
   const { id: bookId } = useParams<{ id: string }>();
   const [search, setSearch] = useSearchParams();
@@ -50,6 +57,15 @@ export default function Characters() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [query, setQuery] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<CharacterRole>>(new Set());
+
+  const toggleGroup = useCallback((role: CharacterRole) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(role)) next.delete(role); else next.add(role);
+      return next;
+    });
+  }, []);
 
   const activeId = search.get('character');
   const isMobile = useWindowWidth() < 768;
@@ -256,7 +272,7 @@ export default function Characters() {
 
   return (
     <WithMode>
-      <div className="as as-app as-app--no-right" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
+      <div className="as as-app" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
         {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${characters.length}`}>
           {/* Поиск + фильтры — прилипают к верхней границе .sb-body */}
           <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-deep)' }}>
@@ -291,28 +307,34 @@ export default function Characters() {
                 {characters.length === 0 ? 'Картотека пуста' : 'Ничего не найдено'}
               </div>
             )}
-            {filtered.map((c) => {
-              const on = c.id === activeId;
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => selectCharacter(c.id)}
-                  className={'sb-item' + (on ? ' sb-item--on' : '')}
-                  style={{ height: 'auto', padding: '8px 10px', width: '100%', textAlign: 'left', gridTemplateColumns: '34px 1fr auto' }}
-                >
-                  <span style={{ width: 28, height: 28, borderRadius: 999, background: on ? 'var(--accent)' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 10px var(--font-ui)', color: on ? 'oklch(0.98 0 0)' : 'var(--ink)', overflow: 'hidden', flexShrink: 0 }}>
-                    {c.avatar_url
-                      ? <img src={c.avatar_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : initialsFromName(c.name || 'Без имени')}
-                  </span>
-                  <div style={{ minWidth: 0 }}>
-                    <div className="sb-item-title">{c.name || 'Без имени'}</div>
-                    <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em' }}>{ROLE_LABELS[c.role]}</div>
+            {roleFilter === 'all' ? (
+              ROLE_ORDER.map((role) => {
+                const group = filtered.filter((c) => c.role === role);
+                if (group.length === 0) return null;
+                const collapsed = collapsedGroups.has(role);
+                return (
+                  <div key={role}>
+                    <button
+                      onClick={() => toggleGroup(role)}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px 4px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink-3)' }}
+                    >
+                      <span style={{ flex: 1, font: '500 10px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', textAlign: 'left' }}>
+                        {ROLE_GROUP_LABELS[role]}
+                      </span>
+                      <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)' }}>{group.length}</span>
+                      <Icon name={collapsed ? 'chev' : 'chevd'} size={10} />
+                    </button>
+                    {!collapsed && group.map((c) => (
+                      <CharacterItem key={c.id} character={c} active={c.id === activeId} onSelect={selectCharacter} />
+                    ))}
                   </div>
-                  <span />
-                </button>
-              );
-            })}
+                );
+              })
+            ) : (
+              filtered.map((c) => (
+                <CharacterItem key={c.id} character={c} active={c.id === activeId} onSelect={selectCharacter} />
+              ))
+            )}
           </div>
           {/* Кнопка «Новый персонаж» — прилипает к нижней границе .sb-body */}
           <div style={{ position: 'sticky', bottom: 0, zIndex: 5, padding: '10px 14px', borderTop: '1px solid var(--border-soft)', background: 'var(--bg-deep)' }}>
@@ -363,16 +385,7 @@ export default function Characters() {
                 />
               </div>
 
-              <RelationsBlock
-                activeId={active.id}
-                characters={characters}
-                relations={relations}
-                onCreate={onCreateRelation}
-                onDelete={onDeleteRelation}
-                onLabelChange={onRelationLabelChange}
-              />
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16, paddingBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, paddingBottom: 8 }}>
                 <button onClick={onDelete} className="btn btn--ghost" style={{ color: 'var(--danger)' }}>Удалить персонажа</button>
               </div>
             </div>
@@ -389,6 +402,31 @@ export default function Characters() {
             </div>
           )}
         </main>}
+
+        {!isMobile && (
+          <aside className="rp">
+            <div className="rp-head">
+              <span style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Связи</span>
+            </div>
+            <div className="rp-body">
+              {active ? (
+                <RelationsBlock
+                  activeId={active.id}
+                  characters={characters}
+                  relations={relations}
+                  onCreate={onCreateRelation}
+                  onDelete={onDeleteRelation}
+                  onLabelChange={onRelationLabelChange}
+                  panel
+                />
+              ) : (
+                <div style={{ paddingTop: 32, textAlign: 'center', font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>
+                  Выберите персонажа
+                </div>
+              )}
+            </div>
+          </aside>
+        )}
       </div>
 
       {confirmDelete && active && (
@@ -399,6 +437,30 @@ export default function Characters() {
         />
       )}
     </WithMode>
+  );
+}
+
+function CharacterItem({ character: c, active: on, onSelect }: {
+  character: Character;
+  active: boolean;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <button
+      onClick={() => onSelect(c.id)}
+      className={'sb-item' + (on ? ' sb-item--on' : '')}
+      style={{ height: 'auto', padding: '6px 10px', width: '100%', textAlign: 'left', gridTemplateColumns: '34px 1fr auto' }}
+    >
+      <span style={{ width: 28, height: 28, borderRadius: 999, background: on ? 'var(--accent)' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 10px var(--font-ui)', color: on ? 'oklch(0.98 0 0)' : 'var(--ink)', overflow: 'hidden', flexShrink: 0 }}>
+        {c.avatar_url
+          ? <img src={c.avatar_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : initialsFromName(c.name || 'Без имени')}
+      </span>
+      <div style={{ minWidth: 0 }}>
+        <div className="sb-item-title">{c.name || 'Без имени'}</div>
+      </div>
+      <span />
+    </button>
   );
 }
 
@@ -568,13 +630,14 @@ function FieldCard({ label, value, onChange, warn }: {
   );
 }
 
-function RelationsBlock({ activeId, characters, relations, onCreate, onDelete, onLabelChange }: {
+function RelationsBlock({ activeId, characters, relations, onCreate, onDelete, onLabelChange, panel }: {
   activeId: string;
   characters: Character[];
   relations: CharacterRelation[];
   onCreate: (toId: string, label: string) => void;
   onDelete: (relationId: string) => void;
   onLabelChange: (relationId: string, label: string) => void;
+  panel?: boolean;
 }) {
   const mine = relations.filter((r) => r.from_character_id === activeId);
   const occupied = new Set(mine.map((r) => r.to_character_id));
@@ -605,8 +668,12 @@ function RelationsBlock({ activeId, characters, relations, onCreate, onDelete, o
     setLabel('');
   };
 
+  const wrapStyle = panel
+    ? { padding: 0 }
+    : { background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 22px', marginBottom: 16 };
+
   return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 22px', marginBottom: 16 }}>
+    <div style={wrapStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <span style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Связи</span>
         {!adding && (
