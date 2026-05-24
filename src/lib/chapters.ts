@@ -108,8 +108,13 @@ export async function deleteChapter(id: string): Promise<void> {
 
 export async function reorderChapters(updates: { id: string; position: number }[]): Promise<void> {
   if (updates.length === 0) return;
-  const { error } = await supabase
-    .from('chapters')
-    .upsert(updates.map(({ id, position }) => ({ id, position })), { onConflict: 'id' });
-  if (error) throw error;
+  // upsert с частичными данными ломает RLS (INSERT-политика требует user_id).
+  // Используем параллельные update() — они проверяют только UPDATE-политику.
+  const results = await Promise.all(
+    updates.map(({ id, position }) =>
+      supabase.from('chapters').update({ position }).eq('id', id),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
 }
