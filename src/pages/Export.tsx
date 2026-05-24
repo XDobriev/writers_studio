@@ -138,17 +138,22 @@ function notesBlockFb2(notes: Note[]): string {
 
 // ─── Plain builders ───────────────────────────────────────────────────────────
 
-const HTML_STYLE = `
+function getHtmlStyle(paragraphStyle: 'indent' | 'spacing'): string {
+  const pRule = paragraphStyle === 'indent'
+    ? 'p{margin:0 0 0.2em;text-indent:1.4em}p.no-indent,p:first-of-type{text-indent:0}'
+    : 'p{margin:0 0 1.1em;text-indent:0}';
+  return `
   body{font:16px/1.7 Georgia,'Times New Roman',serif;max-width:720px;margin:48px auto;padding:0 24px;color:#1a1715;background:#faf8f4}
   h1.book-title{font-size:32px;letter-spacing:-0.01em;margin-bottom:4px}
   .book-meta{color:#6a635c;font:13px/1.5 system-ui,sans-serif;margin-bottom:48px}
   h2.chapter-title{font-size:22px;letter-spacing:-0.01em;margin:56px 0 24px;padding-top:32px;border-top:1px solid #e6dfd4}
-  p{margin:0 0 1em;text-indent:1.4em}p.no-indent,p:first-of-type{text-indent:0}
+  ${pRule}
   blockquote{margin:1.4em 1em;padding-left:1em;border-left:3px solid #c8b89a;color:#4a443f;font-style:italic}
   .chapter-notes{margin:2em 0 0;padding:1em 1.2em;background:#f5f0e8;border-left:3px solid #c8b89a;border-radius:4px}
   .chapter-notes-title{margin:0 0 0.6em;font:600 11px system-ui,sans-serif;color:#8a7d70;text-transform:uppercase;letter-spacing:0.08em}
   .note-item{margin:0 0 0.4em;font-size:14px;color:#4a443f;text-indent:0}
 `;
+}
 
 interface BuildOpts {
   includeChapterTitles: boolean;
@@ -156,6 +161,7 @@ interface BuildOpts {
   language: string;
   includeNotes: boolean;
   notes: Note[];
+  paragraphStyle: 'indent' | 'spacing';
 }
 
 function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): string {
@@ -171,7 +177,7 @@ function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): string 
   const bookNotesHtml = opts.includeNotes ? notesBlockHtml(bookNotes(opts.notes)) : '';
   return `<!doctype html>
 <html lang="${opts.language}">
-<head><meta charset="utf-8"><title>${escapeHtml(book.title)}</title><style>${HTML_STYLE}</style></head>
+<head><meta charset="utf-8"><title>${escapeHtml(book.title)}</title><style>${getHtmlStyle(opts.paragraphStyle)}</style></head>
 <body>
 <h1 class="book-title">${escapeHtml(book.title)}</h1>
 ${meta ? `<div class="book-meta">${meta}</div>` : ''}
@@ -242,15 +248,19 @@ const H_LEVELS = [
   HeadingLevel.HEADING_4, HeadingLevel.HEADING_5, HeadingLevel.HEADING_6,
 ];
 
-function parseBlockEl(el: Element, indentLeft?: number): Paragraph[] {
+function parseBlockEl(el: Element, paragraphStyle: 'indent' | 'spacing', indentLeft?: number): Paragraph[] {
   const tag = el.tagName.toLowerCase();
 
   if (tag === 'p') {
     const runs = collectRuns(el, {});
+    const useFirstLine = paragraphStyle === 'indent' && !indentLeft;
     return [new Paragraph({
       children: runs.length ? runs : [new TextRun('')],
-      indent: indentLeft ? { left: indentLeft } : undefined,
-      spacing: { after: 120 },
+      indent: {
+        ...(indentLeft ? { left: indentLeft } : {}),
+        ...(useFirstLine ? { firstLine: 720 } : {}),
+      },
+      spacing: paragraphStyle === 'indent' ? { after: 40 } : { after: 200 },
     })];
   }
 
@@ -260,7 +270,7 @@ function parseBlockEl(el: Element, indentLeft?: number): Paragraph[] {
 
   if (tag === 'blockquote') {
     const result: Paragraph[] = [];
-    for (const child of Array.from(el.children)) result.push(...parseBlockEl(child, 720));
+    for (const child of Array.from(el.children)) result.push(...parseBlockEl(child, paragraphStyle, 720));
     return result;
   }
 
@@ -283,16 +293,16 @@ function parseBlockEl(el: Element, indentLeft?: number): Paragraph[] {
   }
 
   const result: Paragraph[] = [];
-  for (const child of Array.from(el.children)) result.push(...parseBlockEl(child, indentLeft));
+  for (const child of Array.from(el.children)) result.push(...parseBlockEl(child, paragraphStyle, indentLeft));
   return result;
 }
 
-function parseHtmlToParagraphs(html: string): Paragraph[] {
+function parseHtmlToParagraphs(html: string, paragraphStyle: 'indent' | 'spacing'): Paragraph[] {
   if (!html.trim()) return [];
   const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
   const root = doc.querySelector('div')!;
   const result: Paragraph[] = [];
-  for (const child of Array.from(root.children)) result.push(...parseBlockEl(child));
+  for (const child of Array.from(root.children)) result.push(...parseBlockEl(child, paragraphStyle));
   return result;
 }
 
@@ -339,7 +349,7 @@ async function buildDocxBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
     if (opts.includeChapterTitles) {
       children.push(new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun(ch.title)] }));
     }
-    const body = parseHtmlToParagraphs(ch.content ?? '');
+    const body = parseHtmlToParagraphs(ch.content ?? '', opts.paragraphStyle);
     children.push(...(body.length ? body : [new Paragraph({ children: [new TextRun('')] })]));
     if (opts.includeNotes) children.push(...notesParagraphs(chapterNotes(opts.notes, ch.id)));
   }
@@ -438,19 +448,22 @@ ${opts.includeTitlePage ? `<title><p>${escapeXml(book.title)}</p>${book.author ?
 
 // ─── EPUB builder ─────────────────────────────────────────────────────────────
 
-const EPUB_CSS = `
-body{font:1em/1.75 Georgia,'Times New Roman',serif;margin:1.5em 2em}
+function getEpubCss(paragraphStyle: 'indent' | 'spacing'): string {
+  const pRule = paragraphStyle === 'indent'
+    ? 'p{margin:0 0 0.15em;text-indent:1.4em}\np.no-indent{text-indent:0}'
+    : 'p{margin:0 0 1.1em;text-indent:0}\np.no-indent{text-indent:0}';
+  return `body{font:1em/1.75 Georgia,'Times New Roman',serif;margin:1.5em 2em}
 h1,h2,h3{font-weight:600;margin:1.5em 0 0.5em;line-height:1.3}
 h1.title{font-size:2em;text-align:center;margin-top:4em}
 .meta{text-align:center;color:#666;margin-bottom:4em}
-p{margin:0 0 0.9em;text-indent:1.4em}
-p.no-indent{text-indent:0}
+${pRule}
 blockquote{margin:1em 2em;font-style:italic;border-left:3px solid #bbb;padding-left:1em}
 strong{font-weight:bold}em{font-style:italic}
 .chapter-notes{margin:2em 0 0;padding:0.8em 1em;background:#f5f0e8;border-left:3px solid #c8b89a}
 .chapter-notes-title{margin:0 0 0.5em;font-size:0.75em;color:#8a7d70;text-transform:uppercase;letter-spacing:0.08em;font-weight:600}
 .note-item{margin:0 0 0.35em;font-size:0.88em;color:#4a443f;text-indent:0}
 `;
+}
 
 function notesBlockEpub(notes: Note[]): string {
   if (!notes.length) return '';
@@ -571,7 +584,7 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
   zip.file('OEBPS/content.opf', opf);
   zip.file('OEBPS/nav.xhtml', nav);
   zip.file('OEBPS/toc.ncx', ncx);
-  zip.file('OEBPS/styles.css', EPUB_CSS);
+  zip.file('OEBPS/styles.css', getEpubCss(opts.paragraphStyle));
   if (opts.includeTitlePage) zip.file('OEBPS/title.xhtml', titleXhtml(book, lang));
   for (const c of chs) {
     const nHtml = opts.includeNotes ? notesBlockEpub(chapterNotes(opts.notes, c.chapterId)) : '';
@@ -623,6 +636,9 @@ export default function Export() {
   const [includeTitlePage, setIncludeTitlePage] = useState(true);
   const [includeNotes, setIncludeNotes] = useState(false);
   const [language, setLanguage] = useState('ru-RU');
+  const [paragraphStyle, setParagraphStyle] = useState<'indent' | 'spacing'>(() =>
+    (localStorage.getItem('export-paragraph-style') as 'indent' | 'spacing') ?? 'indent'
+  );
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -668,7 +684,7 @@ export default function Export() {
     if (selectedChapters.length === 0) { setError('Нет глав для экспорта.'); return; }
     setBusy(true);
     setError(null);
-    const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes };
+    const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle };
     try {
       if (format === 'docx') {
         triggerDownload(await buildDocxBlob(book, selectedChapters, opts), filename);
@@ -688,7 +704,7 @@ export default function Export() {
     } finally {
       setBusy(false);
     }
-  }, [book, selectedChapters, format, includeChapterTitles, includeTitlePage, includeNotes, notes, language, filename]);
+  }, [book, selectedChapters, format, includeChapterTitles, includeTitlePage, includeNotes, notes, language, paragraphStyle, filename]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
@@ -834,6 +850,35 @@ export default function Export() {
               last
             />
           </div>
+
+          {/* Paragraph style — rich formats only */}
+          {(['epub', 'fb2', 'docx', 'html'] as Format[]).includes(format) && (
+            <div style={{ paddingTop: 16, marginBottom: 4 }}>
+              <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Стиль абзацев</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {([
+                  { value: 'indent', label: '⊢ Красная строка', hint: 'отступ первой строки' },
+                  { value: 'spacing', label: '¶ Интервал', hint: 'отступ между абзацами' },
+                ] as { value: 'indent' | 'spacing'; label: string; hint: string }[]).map((s) => {
+                  const active = paragraphStyle === s.value;
+                  return (
+                    <button
+                      key={s.value}
+                      onClick={() => { setParagraphStyle(s.value); localStorage.setItem('export-paragraph-style', s.value); }}
+                      style={{
+                        padding: '6px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                        border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
+                        background: active ? 'var(--accent-soft)' : 'var(--surface)',
+                      }}
+                    >
+                      <div style={{ font: `500 12.5px var(--font-sans)`, color: active ? 'var(--ink)' : 'var(--ink-2)' }}>{s.label}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--ink-4)', marginTop: 1 }}>{s.hint}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {error && <div style={{ color: 'var(--danger)', fontSize: 12.5, marginBottom: 8 }}>{error}</div>}
         </div>
