@@ -122,7 +122,11 @@ export default function Editor() {
       }
       const content = currentContentRef.current;
       const userId = user?.id;
-      if (id && userId && content && token) {
+      // Пропускаем keepalive-снимок если контент не изменился с последнего снимка.
+      // createVersionKeepAlive использует raw fetch без проверки дублей — в отличие от createVersion.
+      // lastVersionContentRef.get(id) === undefined означает baseline ещё не установлен,
+      // но тогда content тоже будет '' (данные не загрузились) → условие ниже уже пропустит.
+      if (id && userId && content && token && lastVersionContentRef.current.get(id) !== content) {
         createVersionKeepAlive(id, userId, content, countWords(content), supabaseUrl, anonKey, token);
       }
     };
