@@ -54,7 +54,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const deliberateSignOut = useRef(false);
 
   useEffect(() => {
+    let settled = false;
+    // 5-секундный таймаут: если Supabase не отвечает (медленная сеть, Россия без VPN),
+    // не вешаем UI — работаем с тем что прочли из localStorage.
+    const fallback = setTimeout(() => {
+      if (!settled) { settled = true; setLoading(false); }
+    }, 5_000);
+
     supabase.auth.getSession().then(({ data }) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(fallback);
       if (data.session) hadSession.current = true;
       setSession(data.session);
       setLoading(false);
