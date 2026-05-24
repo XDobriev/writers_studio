@@ -11,5 +11,7 @@ dist
 .DS_Store
 .mcp.json
 .design-review/
+.playwright-mcp/
+.superpowers/
 supabase/.temp/
 docs/learning-plan.md
