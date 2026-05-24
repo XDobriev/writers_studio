@@ -930,7 +930,7 @@ function EventDetailPanel({
           top: 0,
           right: 0,
           bottom: 0,
-          width: 380,
+          width: 'min(380px, 100vw)',
           background: 'var(--bg)',
           borderLeft: '1px solid var(--border-soft)',
           zIndex: 101,
@@ -1065,7 +1065,6 @@ function EventCard({
           padding: '14px 18px',
         }}
       >
-        {/* ① Тип события + удаление */}
         <div
           style={{
             display: 'flex',
@@ -1110,7 +1109,6 @@ function EventCard({
           </button>
         </div>
 
-        {/* ② Название */}
         <input
           value={title}
           onChange={onTitleChange}
@@ -1127,7 +1125,6 @@ function EventCard({
           }}
         />
 
-        {/* ③ Описание */}
         <textarea
           value={description}
           onChange={onDescChange}
@@ -1146,15 +1143,21 @@ function EventCard({
           }}
         />
 
-        {/* ④ Метаданные: когда + глава */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 6,
+            flexWrap: 'wrap',
+            paddingTop: 10,
+            borderTop: '1px solid var(--border-soft)',
+          }}
+        >
           <input
             value={era}
             onChange={onEraChange}
             placeholder="когда (Зима 824)"
             style={{
-              flex: 1,
-              minWidth: 0,
+              flex: '1 1 120px',
               height: 28,
               padding: '0 10px',
               border: '1px solid var(--border-soft)',
@@ -1169,6 +1172,7 @@ function EventCard({
             value={event.chapter_id ?? ''}
             onChange={onChapterChange}
             style={{
+              flex: '1 1 120px',
               height: 28,
               padding: '0 8px',
               border: '1px solid var(--border-soft)',
@@ -1177,7 +1181,6 @@ function EventCard({
               color: 'var(--ink)',
               fontSize: 12,
               outline: 'none',
-              flexShrink: 0,
             }}
           >
             <option value="">без главы</option>
