@@ -107,16 +107,17 @@ export function EditorHybrid({
   const { isMobile, showLeft, showRight, isPage, cols, sheetWidth, sheetPad } = useEditorLayout(mode);
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
+  const { refetch: refetchStats } = writingStats;
   const { plan } = useUserDisplay();
   const isPro = plan === 'pro' || plan === 'lifetime';
 
   const prevSaveState = useRef<SaveState>(saveState);
   useEffect(() => {
     if (prevSaveState.current !== 'saved' && saveState === 'saved') {
-      writingStats.refetch();
+      refetchStats();
     }
     prevSaveState.current = saveState;
-  }, [saveState, writingStats.refetch]);
+  }, [saveState, refetchStats]);
 
   useEffect(() => {
     if (!isMobile) {
