@@ -11,6 +11,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
+  timeout: 90_000,        // холодный старт + 2 навигации + 4s autosave + reload
   fullyParallel: false,   // тесты серийно — один браузер, без гонок
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
