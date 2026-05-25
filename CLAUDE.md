@@ -4,7 +4,7 @@
 
 ## Боевые ссылки
 
-- **Прод (основной):** https://avtorstudio.com — Timeweb VPS `217.149.30.7`, Ubuntu 24.04
+- **Прод (основной):** https://avtorstudio.com — Timeweb VPS `72.56.233.223`, Ubuntu 24.04
 - **Прод (резервный):** https://avtorskaya-studiya.vercel.app — Vercel (деплоится параллельно)
 - **GitHub:** https://github.com/XDobriev/writers_studio (push в `main` → авто-деплой на оба)
 - **Supabase ref:** `joaxeoavjvlqmtlepkrr` · [Dashboard](https://supabase.com/dashboard/project/joaxeoavjvlqmtlepkrr)
@@ -13,7 +13,7 @@
 
 ## Timeweb VPS
 
-- **IP:** `217.149.30.7`, пользователь `deploy`, SSH-ключ в GitHub Secrets (`VPS_SSH_KEY`)
+- **IP:** `72.56.233.223`, пользователь `deploy`, SSH-ключ в GitHub Secrets (`VPS_SSH_KEY`)
 - **Деплой:** GitHub Actions (`.github/workflows/deploy-timeweb.yml`) — `npm ci` → `npm run build` → `rsync dist/ → /var/www/avtorstudio/dist/`
 - **nginx:** `/etc/nginx/sites-available/avtorstudio.com` (конфиг в `deploy/nginx.conf`)
 - **SSL:** Let's Encrypt через certbot. ⚠️ На 2026-05-25 ещё не выпущен — ждём распространения AAAA-записи DNS (Timeweb обновляет 3-24ч). Команда когда DNS обновится: `certbot --nginx -d avtorstudio.com -d www.avtorstudio.com --non-interactive --agree-tos -m frfrancuz@gmail.com`
