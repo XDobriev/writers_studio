@@ -1,14 +1,24 @@
 # Авторская студия — Claude Code
 
-Редактор для писателей. Vite + React + TypeScript, Supabase (Auth + Postgres), деплой на Vercel.
+Редактор для писателей. Vite + React + TypeScript, Supabase (Auth + Postgres), деплой на Timeweb VPS + Vercel.
 
 ## Боевые ссылки
 
-- **Прод:** https://avtorskaya-studiya.vercel.app
-- **GitHub:** https://github.com/XDobriev/writers_studio (push в `main` → авто-деплой)
+- **Прод (основной):** https://avtorstudio.com — Timeweb VPS `217.149.30.7`, Ubuntu 24.04
+- **Прод (резервный):** https://avtorskaya-studiya.vercel.app — Vercel (деплоится параллельно)
+- **GitHub:** https://github.com/XDobriev/writers_studio (push в `main` → авто-деплой на оба)
 - **Supabase ref:** `joaxeoavjvlqmtlepkrr` · [Dashboard](https://supabase.com/dashboard/project/joaxeoavjvlqmtlepkrr)
 - **Vercel project:** `khamza-s-projects/avtorskaya-studiya`
 - **Supabase MCP** подключён (`~/.claude.json`, `--project-ref=joaxeoavjvlqmtlepkrr`). Грузить через ToolSearch: `select:mcp__supabase__...`.
+
+## Timeweb VPS
+
+- **IP:** `217.149.30.7`, пользователь `deploy`, SSH-ключ в GitHub Secrets (`VPS_SSH_KEY`)
+- **Деплой:** GitHub Actions (`.github/workflows/deploy-timeweb.yml`) — `npm ci` → `npm run build` → `rsync dist/ → /var/www/avtorstudio/dist/`
+- **nginx:** `/etc/nginx/sites-available/avtorstudio.com` (конфиг в `deploy/nginx.conf`)
+- **SSL:** Let's Encrypt через certbot. ⚠️ На 2026-05-25 ещё не выпущен — ждём распространения AAAA-записи DNS (Timeweb обновляет 3-24ч). Команда когда DNS обновится: `certbot --nginx -d avtorstudio.com -d www.avtorstudio.com --non-interactive --agree-tos -m frfrancuz@gmail.com`
+- **После certbot** заменить nginx конфиг: `curl -sL https://raw.githubusercontent.com/XDobriev/writers_studio/main/deploy/nginx.conf -o /etc/nginx/sites-available/avtorstudio.com && nginx -t && systemctl reload nginx`
+- **Supabase-прокси** активен: `/sb/` в nginx проксирует Supabase, VPS-сборка использует `VITE_SUPABASE_URL=https://avtorstudio.com/sb`
 
 ## Команды
 
