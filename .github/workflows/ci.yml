@@ -20,7 +20,9 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - run: npm ci
+      # npm install вместо npm ci — lockfile собирается на Windows,
+      # поэтому не содержит Linux optional deps (esbuild, @emnapi).
+      - run: npm install --prefer-dedupe
 
       - name: TypeScript
         run: npm run typecheck
@@ -51,7 +53,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - run: npm ci
+      - run: npm install --prefer-dedupe
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
