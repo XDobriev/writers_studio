@@ -15,3 +15,8 @@ dist
 .superpowers/
 supabase/.temp/
 docs/learning-plan.md
+
+# Playwright
+playwright-report/
+test-results/
+.playwright/
