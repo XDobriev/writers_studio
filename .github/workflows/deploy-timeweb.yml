@@ -34,5 +34,9 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
-          rsync -avz --delete dist/ "$VPS_USER@$VPS_HOST:/var/www/avtorstudio/dist/"
+          echo "=== ssh-keyscan ==="
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>&1 || echo "keyscan failed"
+          echo "=== ssh test ==="
+          ssh -v -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" "echo SSH_OK" 2>&1 || echo "SSH_FAIL"
+          echo "=== rsync ==="
+          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes" dist/ "$VPS_USER@$VPS_HOST:/var/www/avtorstudio/dist/"
