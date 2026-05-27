@@ -108,33 +108,6 @@ function SortableCorkCard({
         touchAction: 'none',
       }}
     >
-      {dragEnabled && (
-        <button
-          type="button"
-          {...listeners}
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 20,
-            height: 20,
-            background: 'transparent',
-            border: 'none',
-            cursor: isDragging ? 'grabbing' : 'grab',
-            color: 'var(--ink-4)',
-            padding: 0,
-            zIndex: 2,
-            borderRadius: 4,
-          }}
-          title="Перетащить"
-        >
-          <Icon name="drag" size={12} />
-        </button>
-      )}
-
       <Link
         to={href}
         style={{ display: 'flex', flexDirection: 'column', padding: '14px 16px 48px', height: '100%', minHeight: 'inherit', position: 'relative' }}
@@ -150,6 +123,22 @@ function SortableCorkCard({
       </Link>
 
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px 14px', borderTop: '1px dashed var(--border-soft)' }}>
+        {dragEnabled && (
+          <button
+            type="button"
+            {...listeners}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 18, height: 18, flexShrink: 0,
+              background: 'transparent', border: 'none',
+              cursor: isDragging ? 'grabbing' : 'grab',
+              color: 'var(--ink-4)', padding: 0, borderRadius: 3,
+            }}
+            title="Перетащить"
+          >
+            <Icon name="drag" size={12} />
+          </button>
+        )}
         <span style={{ width: 6, height: 6, borderRadius: 999, background: STATUS_COLOR[c.status], flexShrink: 0 }} />
         <span style={{ font: '400 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           {STATUS_LABEL[c.status]}
