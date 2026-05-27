@@ -11,7 +11,7 @@
 - `src/pages/Split.tsx` — две панели рядом, независимый автосейв, защита при <2 главах.
 - `src/lib/chapters.ts` — CRUD глав + `countWords`.
 
-## TipTap расширения (Заход 13)
+## TipTap расширения
 
 TextStyle, Color, Highlight (multicolor), Link, TextAlign (heading+paragraph), TaskList, TaskItem, Subscript, Superscript, StarterKit, Underline, Placeholder.
 
@@ -37,6 +37,11 @@ Color открывает popover (9 цветов + сброс), Highlight — 7 
 
 Реальные данные: слова и знаки из активной главы, `todayWords` и `streak` из `writingStats` (хук в `EditorHybrid`). При `!isReal` (демо-режим) рендерится `<StatusBar />` с дефолтами.
 
-## Bundle
+## История версий (правая панель)
 
-263 KB gzip (после Захода 13). До TipTap было 138 KB.
+`RightPanel` имеет две вкладки: **Заметки** и **Резервные копии / История версий**.
+
+- Вкладка «Резервные копии» (Free) — автоснимки через `chapter_versions` в Supabase. Логика в `src/lib/versions.ts`, UI — `src/components/VersionsPanel.tsx` + `src/components/VersionModal.tsx`.
+- Вкладка «История версий» (Pro) — ручные снимки с метками.
+- Восстановление версии применяет контент через `editor.commands.setContent()`.
+- `isPro` передаётся из `EditorHybrid` → `RightPanel` → `VersionsPanel`.
