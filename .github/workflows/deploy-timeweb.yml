@@ -22,7 +22,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: https://joaxeoavjvlqmtlepkrr.supabase.co
+          VITE_SUPABASE_URL: https://api.avtorstudio.com
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Deploy via rsync
