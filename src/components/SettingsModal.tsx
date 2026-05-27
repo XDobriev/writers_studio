@@ -32,6 +32,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [theme, setTheme] = useState<Theme>(getStoredTheme);
   const [plan, setPlan] = useState<Plan>('free');
   const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
+  const [planLoaded, setPlanLoaded] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +41,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     getProfile(user.id).then((profile) => {
       if (profile?.plan) setPlan(profile.plan as Plan);
       if (profile?.plan_expires_at) setPlanExpiresAt(profile.plan_expires_at);
+      setPlanLoaded(true);
     });
   }, [user]);
 
@@ -188,18 +190,22 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           <section>
             <div style={SL}>Подписка</div>
             <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 2 }}>{PLAN_META[plan].name}</div>
-                  <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{PLAN_META[plan].desc}</div>
-                  {plan === 'pro' && planExpiresAt && (
-                    <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginTop: 4 }}>
-                      Активна до {new Date(planExpiresAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </div>
-                  )}
+              {!planLoaded
+                ? <div style={{ height: 38, borderRadius: 6, background: 'var(--surface-2)' }} />
+                : <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 2 }}>{PLAN_META[plan].name}</div>
+                    <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{PLAN_META[plan].desc}</div>
+                    {plan === 'pro' && planExpiresAt && (
+                      <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginTop: 4 }}>
+                        Активна до {new Date(planExpiresAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-              {plan === 'free' && (
+              </>}
+              {planLoaded && plan === 'free' && (
                 <div style={{ display: 'flex', gap: 8 }}>
                   <a
                     href="https://avtorskaya-studiya.vercel.app/#pricing"
@@ -212,7 +218,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                   </a>
                 </div>
               )}
-              {plan === 'pro' && (
+              {planLoaded && plan === 'pro' && (
                 <div style={{ display: 'flex', gap: 8 }}>
                   <a
                     href={`mailto:support@avtorskaya-studiya.ru?subject=Отмена подписки&body=Прошу отменить мою подписку Pro. Email аккаунта: ${user?.email ?? ''}`}
