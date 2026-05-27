@@ -4,7 +4,9 @@
 
 ## Боевые ссылки
 
-- **Прод (основной):** https://avtorstudio.com — Timeweb VPS `72.56.233.223`, Ubuntu 24.04
+- **Прод (основной):** https://avtorstudio.com — Timeweb VPS, Ubuntu 24.04
+  - Публичный IP (DNS): `72.56.233.223` — NAT Timeweb, для браузера/DNS
+  - Реальный IP (SSH): `72.56.232.231` — для rsync/ssh. GitHub Secret `VPS_HOST=72.56.232.231`
 - **Прод (резервный):** https://avtorskaya-studiya.vercel.app — Vercel (деплоится параллельно)
 - **GitHub:** https://github.com/XDobriev/writers_studio (push в `main` → авто-деплой на оба)
 - **Supabase ref:** `joaxeoavjvlqmtlepkrr` · [Dashboard](https://supabase.com/dashboard/project/joaxeoavjvlqmtlepkrr)
@@ -109,6 +111,7 @@ npm run preview    # превью продакшен-сборки
 ## Установленные скиллы (~/.claude/skills/ — глобальные)
 
 - `gstack` — браузерный агент для QA: скриншоты, тест форм, проверка деплоя (❗ `/browse` не работает — нужен нативный Bun)
+- `marketingskills` — 50+ скиллов для маркетинга: CRO (`/cro`, `/signup`, `/onboarding`), копирайтинг (`/copywriting`, `/cold-email`, `/social`), SEO (`/seo-audit`, `/ai-seo`), реклама (`/ads`, `/ad-creative`), аналитика (`/analytics`, `/ab-testing`), рост (`/referrals`, `/churn-prevention`)
 
 ## Скиллы — установить самому (нужно действие в UI)
 

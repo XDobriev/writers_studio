@@ -1,11 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
 import { WithMode } from '../components/Chrome';
 import { LogoMark } from '../components/LogoMark';
 import { useAuth } from '../lib/auth';
-import { createChapter, deleteChapter, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
+import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
 import { plural } from '../lib/useWritingStats';
 
@@ -37,11 +52,30 @@ function firstParagraph(html: string): string {
 
 const STATUS_ORDER: ChapterStatus[] = ['draft', 'progress', 'done'];
 
-function Card({ c, index, href, onStatusChange, onDeleteChapter }: { c: ChapterMeta; index: number; href: string; onStatusChange: (id: string, status: ChapterStatus) => void; onDeleteChapter: (id: string) => void }) {
+function SortableCorkCard({
+  c,
+  index,
+  href,
+  onStatusChange,
+  onDeleteChapter,
+  dragEnabled,
+}: {
+  c: ChapterMeta;
+  index: number;
+  href: string;
+  onStatusChange: (id: string, status: ChapterStatus) => void;
+  onDeleteChapter: (id: string) => void;
+  dragEnabled: boolean;
+}) {
   const synopsis = firstParagraph('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: c.id,
+    disabled: !dragEnabled,
+  });
 
   useEffect(() => {
     if (!menuOpen) {
@@ -59,7 +93,48 @@ function Card({ c, index, href, onStatusChange, onDeleteChapter }: { c: ChapterM
   }, [menuOpen]);
 
   return (
-    <div style={{ position: 'relative', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, minHeight: 180 }}>
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      style={{
+        position: 'relative',
+        background: 'var(--surface)',
+        border: '1px solid var(--border-soft)',
+        borderRadius: 8,
+        minHeight: 180,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.45 : 1,
+        touchAction: 'none',
+      }}
+    >
+      {dragEnabled && (
+        <button
+          type="button"
+          {...listeners}
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 20,
+            height: 20,
+            background: 'transparent',
+            border: 'none',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            color: 'var(--ink-4)',
+            padding: 0,
+            zIndex: 2,
+            borderRadius: 4,
+          }}
+          title="Перетащить"
+        >
+          <Icon name="drag" size={12} />
+        </button>
+      )}
+
       <Link
         to={href}
         style={{ display: 'flex', flexDirection: 'column', padding: '14px 16px 48px', height: '100%', minHeight: 'inherit', position: 'relative' }}
@@ -159,6 +234,10 @@ export default function Corkboard() {
   const error = chaptersError?.message ?? mutationError;
   const [filter, setFilter] = useState<Filter>('all');
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
+
   const counts = useMemo(() => {
     if (!chapters) return { all: 0, draft: 0, progress: 0, done: 0 };
     return chapters.reduce(
@@ -201,6 +280,24 @@ export default function Corkboard() {
     });
   };
 
+  const onDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || !bookId || !chapters || active.id === over.id) return;
+
+    const oldIndex = chapters.findIndex((c) => c.id === active.id);
+    const newIndex = chapters.findIndex((c) => c.id === over.id);
+    const reordered = arrayMove(chapters, oldIndex, newIndex).map((c, i) => ({ ...c, position: i }));
+
+    queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), reordered);
+
+    try {
+      await reorderChapters(reordered.map((c) => ({ id: c.id, position: c.position })));
+    } catch (e) {
+      setError((e as Error).message);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
+    }
+  };
+
   const onCreate = async () => {
     if (!bookId || !user) return;
     try {
@@ -222,6 +319,8 @@ export default function Corkboard() {
     ['progress', 'в работе'],
     ['draft', 'черновик'],
   ];
+
+  const dragEnabled = filter === 'all';
 
   return (
     <WithMode>
@@ -276,6 +375,11 @@ export default function Corkboard() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Доска глав</span>
               <span className="chip">{counts.done} готово · {counts.progress} в работе · {counts.draft} {plural(counts.draft, 'черновик', 'черновика', 'черновиков')}</span>
+              {!dragEnabled && (
+                <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.04em' }}>
+                  перетаскивание доступно при фильтре «все»
+                </span>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button className="btn" onClick={onCreate}><Icon name="plus" size={14} /> Новая глава</button>
@@ -302,21 +406,26 @@ export default function Corkboard() {
             )}
 
             {chapters && chapters.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-                {visible.map((c) => {
-                  const index = chapters.findIndex((x) => x.id === c.id);
-                  return (
-                    <Card
-                      key={c.id}
-                      c={c}
-                      index={index}
-                      href={`/books/${bookId}/editor?chapter=${c.id}`}
-                      onStatusChange={onStatusChange}
-                      onDeleteChapter={onDeleteChapter}
-                    />
-                  );
-                })}
-              </div>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                <SortableContext items={chapters.map((c) => c.id)} strategy={rectSortingStrategy}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+                    {visible.map((c) => {
+                      const index = chapters.findIndex((x) => x.id === c.id);
+                      return (
+                        <SortableCorkCard
+                          key={c.id}
+                          c={c}
+                          index={index}
+                          href={`/books/${bookId}/editor?chapter=${c.id}`}
+                          onStatusChange={onStatusChange}
+                          onDeleteChapter={onDeleteChapter}
+                          dragEnabled={dragEnabled}
+                        />
+                      );
+                    })}
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
 
             {chapters && chapters.length > 0 && visible.length === 0 && (
