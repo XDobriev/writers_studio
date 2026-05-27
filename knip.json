@@ -1,3 +1,4 @@
 {
-  "ignoreBinaries": ["knip"]
+  "ignoreBinaries": ["knip"],
+  "project": ["src/**/*.ts", "src/**/*.tsx"]
 }
