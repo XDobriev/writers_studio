@@ -9,6 +9,7 @@ export interface Chapter {
   title: string;
   position: number;
   content: string;
+  synopsis: string;
   words: number;
   status: ChapterStatus;
   created_at: string;
@@ -52,7 +53,7 @@ export async function listChapters(bookId: string): Promise<Chapter[]> {
 export async function listChaptersMeta(bookId: string): Promise<ChapterMeta[]> {
   const { data, error } = await supabase
     .from('chapters')
-    .select('id, book_id, user_id, title, position, words, status, created_at, updated_at')
+    .select('id, book_id, user_id, title, position, synopsis, words, status, created_at, updated_at')
     .eq('book_id', bookId)
     .order('position', { ascending: true })
     .order('created_at', { ascending: true });

@@ -38,17 +38,6 @@ const STATUS_COLOR: Record<ChapterStatus, string> = {
   done: 'var(--ok)',
 };
 
-function firstParagraph(html: string): string {
-  const text = html
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!text) return 'Синопсис пока не написан. Откройте главу — первые строки появятся здесь.';
-  return text.length > 240 ? text.slice(0, 240).trimEnd() + '…' : text;
-}
 
 const STATUS_ORDER: ChapterStatus[] = ['draft', 'progress', 'done'];
 
@@ -67,7 +56,9 @@ function SortableCorkCard({
   onDeleteChapter: (id: string) => void;
   dragEnabled: boolean;
 }) {
-  const synopsis = firstParagraph('');
+  const synopsis = c.synopsis
+    ? c.synopsis
+    : 'Синопсис пока не написан. Откройте главу — первые строки появятся здесь.';
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
