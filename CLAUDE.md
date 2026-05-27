@@ -100,35 +100,37 @@ npm run preview    # превью продакшен-сборки
 - **При обнаружении нового бага или планируемой фичи — сразу добавлять в `docs/roadmap.md`** в соответствующую зону критичности: если баг блокирует работу или критичен для пользователя — вверх раздела (перед остальными); если некритичен — вниз раздела. Не откладывать и не ждать явного запроса.
 - **Периодически запускать `npx knip` и `npm run typecheck`** для проверки мёртвого кода, неиспользуемых экспортов и зависимостей. Инструмент: `knip` (без установки, через `npx`). Делать перед каждым крупным релизом или по явному запросу.
 
-## Установленные скиллы (.agents/skills/)
+## Скиллы
 
+Канонический источник: `skills-lock.json` + `.agents/skills/` (в репо).
+`.claude/skills/` — локальный кэш Claude Code (gitignored, не редактировать вручную).
+
+**Проектные** (`.agents/skills/`):
 - `/vercel-react-best-practices` — bundle, lazy loading, производительность React на Vercel
 - `/supabase-postgres-best-practices` — RLS, индексы, структура запросов
 - `/systematic-debugging` — методология отладки, особенно TipTap + Supabase
 - `/improve-codebase-architecture` — анализ и рефакторинг архитектуры компонентов
 - `/impeccable` — дизайн-аудит: critique, audit, polish, colorize, typeset (23 команды)
 
-## Установленные скиллы (~/.claude/skills/ — глобальные)
-
+**Глобальные** (`~/.claude/skills/`):
 - `gstack` — браузерный агент для QA: скриншоты, тест форм, проверка деплоя (❗ `/browse` не работает — нужен нативный Bun)
-- `marketingskills` — 50+ скиллов для маркетинга: CRO (`/cro`, `/signup`, `/onboarding`), копирайтинг (`/copywriting`, `/cold-email`, `/social`), SEO (`/seo-audit`, `/ai-seo`), реклама (`/ads`, `/ad-creative`), аналитика (`/analytics`, `/ab-testing`), рост (`/referrals`, `/churn-prevention`)
+- `marketingskills` — 50+ скиллов для маркетинга: CRO, копирайтинг, SEO, реклама, аналитика
 
-## Скиллы — установить самому (нужно действие в UI)
-
-- `superpowers` — полный цикл: plan → implement → review → ship. Ввести `/plugin install superpowers@claude-plugins-official` в чате Claude Code.
-
-## Скиллы — установить позже (подробности в docs/roadmap.md)
-
+**Установить позже** (подробности в [docs/roadmap.md](docs/roadmap.md)):
 - SEO/GEO — перед публичным запуском
 - Frontend Slides — перед питчем/демо
 - Expense Tracker Market — при запуске монетизации §3
 
 ## Документация (читать по задаче)
 
+Вся документация в `docs/`:
+
 - [docs/roadmap.md](docs/roadmap.md) — активные баги, приоритеты, backlog, продвижение, монетизация.
+- [docs/design.md](docs/design.md) — дизайн-система, цвета, типографика, токены.
+- [docs/product.md](docs/product.md) — продуктовое описание, планы, монетизация.
 - [docs/features/editor.md](docs/features/editor.md) — редактор, TipTap, focus, split.
 - [docs/features/characters.md](docs/features/characters.md) — персонажи, связи, chapter_characters.
 - [docs/features/timeline.md](docs/features/timeline.md) — хронология.
 - [docs/features/maps.md](docs/features/maps.md) — карта мира.
 - [docs/features/export.md](docs/features/export.md) — экспорт.
-- [docs/learning-plan.md](docs/learning-plan.md) — план изучения TypeScript/React на коде проекта (в .gitignore, личный).
+- [docs/learning-plan.md](docs/learning-plan.md) — план изучения TypeScript/React (в .gitignore, личный).
