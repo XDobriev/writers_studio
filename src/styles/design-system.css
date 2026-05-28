@@ -239,7 +239,10 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   padding: 12px 14px;
   border-top: 1px solid var(--border-soft);
   display: flex; align-items: center; gap: 10px;
+  cursor: pointer;
+  transition: background 0.12s;
 }
+.sb-foot:hover { background: var(--surface); }
 .sb-avatar {
   width: 28px; height: 28px; border-radius: 999px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
@@ -248,6 +251,17 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .sb-foot-name { font-size: 12.5px; color: var(--ink); }
 .sb-foot-meta { font-size: 11px; color: var(--ink-3); }
+.sb-dropdown-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; width: 100%; border-radius: 5px;
+  background: transparent; cursor: pointer;
+  font: 400 12.5px/1.4 var(--font-ui); color: var(--ink);
+  border: none; text-align: left;
+  transition: background 0.1s;
+}
+.sb-dropdown-item:hover { background: var(--surface-2); }
+.sb-dropdown-item--danger { color: var(--danger); }
+.sb-dropdown-item--danger:hover { background: color-mix(in oklch, var(--danger) 8%, transparent); }
 
 /* toolbar */
 .tb {

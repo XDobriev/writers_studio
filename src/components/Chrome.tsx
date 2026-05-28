@@ -7,6 +7,7 @@ import type { ChapterMeta, ChapterStatus, ChapterActions } from '../lib/chapters
 import type { Book } from '../lib/supabase';
 import { updateBook } from '../lib/books';
 import { useUserDisplay } from '../lib/useUserDisplay';
+import { useAuth } from '../lib/auth';
 import { SettingsModal } from './SettingsModal';
 
 export const PLAN_LABEL: Record<string, string> = {
@@ -40,15 +41,96 @@ interface SidebarProps {
 export function SidebarFoot() {
   const { displayName, initials, plan, planLoaded } = useUserDisplay();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const { signOut } = useAuth();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [dropdownOpen]);
+
+  async function handleSignOut() {
+    setDropdownOpen(false);
+    setIsSigningOut(true);
+    await signOut();
+    setIsSigningOut(false);
+  }
+
   return (
     <>
-      <div className="sb-foot">
-        <div className="sb-avatar">{initials}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="sb-foot-name">{displayName || '—'}</div>
-          <div className="sb-foot-meta">{planLoaded ? (PLAN_LABEL[plan] ?? plan) : '…'}</div>
+      <div ref={containerRef} style={{ position: 'relative' }}>
+        <div
+          className="sb-foot"
+          role="button"
+          tabIndex={0}
+          aria-label="Аккаунт"
+          aria-haspopup="menu"
+          aria-expanded={dropdownOpen}
+          onClick={() => setDropdownOpen(v => !v)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setDropdownOpen(v => !v); }}
+        >
+          <div className="sb-avatar" style={isSigningOut ? { opacity: 0.5 } : undefined}>{initials}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="sb-foot-name">{displayName || '—'}</div>
+            <div className="sb-foot-meta">{planLoaded ? (PLAN_LABEL[plan] ?? plan) : '…'}</div>
+          </div>
+          <span style={{ color: 'var(--ink-4)', flexShrink: 0, transition: 'transform 0.12s', transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', display: 'flex' }}>
+            <Icon name="chevd" size={12} />
+          </span>
         </div>
-        <button className="tb-btn" onClick={() => setSettingsOpen(true)} title="Настройки"><Icon name="settings" size={15} /></button>
+        {dropdownOpen && (
+          <div role="menu" style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: 8,
+            right: 8,
+            marginBottom: 4,
+            background: 'var(--surface)',
+            border: '1px solid var(--border-soft)',
+            borderRadius: 8,
+            padding: 4,
+            boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)',
+            zIndex: 100,
+            animation: 'bubble-in 0.13s cubic-bezier(.22,.68,0,1.2) both',
+          }}>
+            <button
+              type="button"
+              role="menuitem"
+              className="sb-dropdown-item"
+              onClick={() => { setDropdownOpen(false); setSettingsOpen(true); }}
+            >
+              <Icon name="settings" size={14} />
+              Настройки
+            </button>
+            <div style={{ height: 1, background: 'var(--border-soft)', margin: '2px 0' }} />
+            <button
+              type="button"
+              role="menuitem"
+              className="sb-dropdown-item sb-dropdown-item--danger"
+              onClick={() => void handleSignOut()}
+              disabled={isSigningOut}
+              style={isSigningOut ? { opacity: 0.5, pointerEvents: 'none' } : undefined}
+            >
+              <Icon name="log-out" size={14} />
+              {isSigningOut ? 'Выход…' : 'Выйти'}
+            </button>
+          </div>
+        )}
       </div>
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </>
