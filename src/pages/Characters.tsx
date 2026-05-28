@@ -297,7 +297,7 @@ export default function Characters() {
 
   return (
     <WithMode>
-      <div className="as as-app" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
+      <div className="as as-app" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : showGrid ? 'auto 1fr' : undefined }}>
         {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${characters.length}`}>
           {/* Поиск + фильтры — прилипают к верхней границе .sb-body */}
           <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-deep)' }}>
