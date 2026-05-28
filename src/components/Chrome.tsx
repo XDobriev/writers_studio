@@ -342,15 +342,6 @@ export function Sidebar({
         </div>
       )}
 
-      {bid && (
-        <div style={{ padding: '4px 12px 0' }}>
-          <Link to={`/books/${bid}/export`} className="sb-item" style={{ color: 'var(--ink-4)' }}>
-            <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-4)' }}><Icon name="download" size={14} /></span>
-            <span className="sb-item-title" style={{ color: 'var(--ink-4)' }}>Экспорт</span>
-            <span />
-          </Link>
-        </div>
-      )}
       </div>{/* /sb-body */}
 
       <SidebarFoot />
