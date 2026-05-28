@@ -3,6 +3,8 @@ import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { Icon } from './Icon';
 import StarterKit from '@tiptap/starter-kit';
+import { Extension, textInputRule } from '@tiptap/core';
+import { BulletList } from '@tiptap/extension-bullet-list';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { Underline } from '@tiptap/extension-underline';
 import { TextStyle, Color } from '@tiptap/extension-text-style';
@@ -16,6 +18,21 @@ import { Superscript } from '@tiptap/extension-superscript';
 import { LanguageTool, LT_KEY } from '../extensions/LanguageTool';
 
 export type { Editor };
+
+// BulletList без InputRule: `- ` в начале строки не создаёт список.
+// Явное создание через тулбар и горячие клавиши остаётся рабочим.
+const BulletListNoAutoFormat = BulletList.extend({
+  addInputRules() { return []; },
+});
+
+// `- ` (дефис + пробел) → `— ` везде в тексте.
+// Дефис в словах (кому-то, из-за) пробелом не окружён — ложных срабатываний нет.
+const EmDashRules = Extension.create({
+  name: 'emDashRules',
+  addInputRules() {
+    return [textInputRule({ find: /- $/, replace: '— ' })];
+  },
+});
 
 const TEXT_COLORS = [
   { label: 'По умолчанию', value: '',        bg: null      },
@@ -57,7 +74,9 @@ export function RichEditor({
 }: RichEditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false, bulletList: false }),
+      BulletListNoAutoFormat,
+      EmDashRules,
       Underline,
       TextStyle,
       Color.configure({ types: ['textStyle'] }),
