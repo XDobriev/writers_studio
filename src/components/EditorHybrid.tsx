@@ -72,7 +72,6 @@ interface EditorHybridProps {
   chapters?: ChapterMeta[];
   activeChapter?: ChapterMeta | null;
   activeContent?: string;
-  bookHref?: string;
   chapterActions?: ChapterActions;
   onContentChange?: (html: string) => void;
   onTitleChange?: (title: string) => void;
@@ -89,7 +88,6 @@ export function EditorHybrid({
   chapters,
   activeChapter,
   activeContent = '',
-  bookHref,
   chapterActions,
   onContentChange,
   onTitleChange,
@@ -244,7 +242,6 @@ export function EditorHybrid({
           chapters={chapters}
           activeChapterId={activeChapter?.id ?? null}
           chapterActions={chapterActions}
-          bookHref={bookHref}
         />
       )}
 
@@ -411,7 +408,6 @@ export function EditorHybrid({
                 ...chapterActions,
                 onSelectChapter: (id) => { chapterActions.onSelectChapter?.(id); setShowMobileSidebar(false); },
               } : undefined}
-              bookHref={bookHref}
             />
           </div>
         </>

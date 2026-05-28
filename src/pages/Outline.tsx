@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
-import { WithMode, SidebarFoot } from '../components/Chrome';
+import { WithMode, SidebarFoot, SidebarNav } from '../components/Chrome';
 import { LogoMark } from '../components/LogoMark';
 import { useAuth } from '../lib/auth';
 import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
@@ -357,6 +357,7 @@ export default function Outline() {
               структура · {totals.words.toLocaleString('ru')} / {(book?.goal ?? 0).toLocaleString('ru')} сл
             </div>
           </div>
+          <SidebarNav bookId={bookId!} />
           <div className="sb-tabs">
             <button className="sb-tab sb-tab--on">Структура</button>
             <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/corkboard`)}>Доска</button>
@@ -367,15 +368,6 @@ export default function Outline() {
           <div style={{ padding: '4px 14px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
             <button className="btn" onClick={onCreate}><Icon name="plus" size={13} /> Новая глава</button>
           </div>
-          {bookId && (
-            <div style={{ padding: '12px 14px 0' }}>
-              <Link to={`/books/${bookId}`} className="sb-item" style={{ color: 'var(--ink-3)' }}>
-                <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="arrows" size={14} /></span>
-                <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>← К дэшборду</span>
-                <span />
-              </Link>
-            </div>
-          )}
         <div style={{ flex: 1 }} />
         <SidebarFoot />
         </aside>

@@ -293,9 +293,7 @@ export default function Timeline() {
         <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
           {/* Toolbar */}
           <div className="tb" style={{ justifyContent: 'space-between' }}>
-            <span style={{ font: '500 13px var(--font-ui)' }}>
-              Хронология «{book.title}»
-            </span>
+            <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Хронология</span>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               {!isMobile && (
                 <div

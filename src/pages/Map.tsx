@@ -2,9 +2,8 @@ import { useCallback, useRef, useState, type ChangeEvent } from 'react';
 import { useWindowWidth } from '../lib/useWindowWidth';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { WithMode, SidebarFoot } from '../components/Chrome';
+import { WithMode, SidebarFoot, SidebarNav } from '../components/Chrome';
 import { LogoMark } from '../components/LogoMark';
-import { Icon } from '../components/Icon';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { WorldMap } from '../components/WorldMap';
 import { useAuth } from '../lib/auth';
@@ -195,16 +194,7 @@ export default function MapScreen() {
               <div className="sb-book-title">{book.title}</div>
               <div className="sb-book-author">карта мира · {locations.length} лок.</div>
             </div>
-
-            {bookId && (
-              <div style={{ padding: '12px 14px 0' }}>
-                <Link to={`/books/${bookId}`} className="sb-item" style={{ color: 'var(--ink-3)' }}>
-                  <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="arrows" size={14} /></span>
-                  <span className="sb-item-title" style={{ color: 'var(--ink-3)' }}>← К дэшборду</span>
-                  <span />
-                </Link>
-              </div>
-            )}
+            <SidebarNav bookId={bookId} />
             <div style={{ flex: 1 }} />
             <SidebarFoot />
           </aside>
@@ -214,18 +204,26 @@ export default function MapScreen() {
 
           {/* Toolbar */}
           <div className="tb" style={{ justifyContent: 'space-between', gap: 8 }}>
-            {isMobile && (
+            {isMobile ? (
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0 }}>
                 {book.title}
               </span>
+            ) : (
+              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Карта мира</span>
             )}
 
             <div style={{ display: 'flex', background: 'var(--surface-2)', borderRadius: 6, padding: 2, gap: 1 }}>
               {modeButtons.map(m => (
                 <button
                   key={m.value}
-                  className={'btn btn--ghost' + (mode === m.value ? ' btn--active' : '')}
-                  style={{ padding: isMobile ? '3px 10px' : '3px 12px', fontSize: 12, borderRadius: 4, gap: 5, display: 'flex', alignItems: 'center' }}
+                  className="btn btn--ghost"
+                  style={{
+                    padding: isMobile ? '3px 10px' : '3px 12px',
+                    fontSize: 12, borderRadius: 4, gap: 5,
+                    display: 'flex', alignItems: 'center',
+                    background: mode === m.value ? 'var(--surface)' : undefined,
+                    color: mode === m.value ? 'var(--ink)' : undefined,
+                  }}
                   onClick={() => setMode(m.value)}
                 >
                   <span>{m.icon}</span>

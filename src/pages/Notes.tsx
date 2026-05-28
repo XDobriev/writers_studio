@@ -243,7 +243,6 @@ export default function Notes() {
           book={book}
           chapters={chapters}
           activeChapterId={activeChapterId}
-          bookHref={`/books/${bookId}/editor`}
           chapterActions={{ onSelectChapter: handleSelectChapter }}
         />
         <main className="as-main" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -252,8 +251,8 @@ export default function Notes() {
             padding: '14px 24px', borderBottom: '1px solid var(--border-soft)',
             flexShrink: 0,
           }}>
-            <span style={{ font: '600 15px var(--font)', color: 'var(--ink)' }}>Заметки</span>
-            <span style={{ font: '13px var(--font)', color: 'var(--ink-4)' }}>{filtered.length}</span>
+            <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Заметки</span>
+            <span className="chip">{filtered.length}</span>
             {activeChapter && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px 3px 10px', borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-2)' }}>
                 <span>{activeChapter.title || 'Без названия'}</span>
