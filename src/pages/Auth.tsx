@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, type TelegramAuthData } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
 import { Icon } from '../components/Icon';
@@ -141,10 +141,10 @@ export default function Auth() {
   return (
     <div className="as" style={{ minHeight: '100dvh', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.05fr 1fr', background: 'var(--bg)' }}>
       <div style={{ position: 'relative', padding: isMobile ? '32px 24px' : '56px 64px', background: 'var(--bg-deep)', borderRight: isMobile ? 'none' : '1px solid var(--border-soft)', borderBottom: isMobile ? '1px solid var(--border-soft)' : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: isMobile ? 32 : 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <LogoMark size={20} />
           <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
-        </div>
+        </Link>
 
         <div>
           <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.2em', color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 18 }}>Редактор для писателей · 2026</div>

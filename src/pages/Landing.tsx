@@ -581,10 +581,10 @@ function LandingFooter() {
       <div className="lnd-max">
         <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', gap: 48, marginBottom: 40 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, textDecoration: 'none' }}>
               <LogoMark size={20} />
               <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
-            </div>
+            </Link>
             <p style={{ font: '400 14px/1.65 var(--font-serif)', color: 'var(--ink-3)', fontStyle: 'italic', maxWidth: 340 }}>
               «Ворна исчезла за одну ночь, и никто из тех, кто жил в Тереее, не желал в это верить.»{' '}
               <span style={{ fontStyle: 'normal', fontSize: 11.5, color: 'var(--ink-4)' }}>— первая фраза, написанная в Авторской студии, май 2026</span>

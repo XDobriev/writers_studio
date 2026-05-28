@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
@@ -65,10 +65,10 @@ export default function ResetPassword() {
   return (
     <div className="as" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
       <div style={{ width: 380 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40, textDecoration: 'none' }}>
           <LogoMark size={20} />
           <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
-        </div>
+        </Link>
 
         {state === 'waiting' && (
           <p style={{ font: '400 14px var(--font-ui)', color: 'var(--ink-3)' }}>Проверяем ссылку восстановления…</p>
