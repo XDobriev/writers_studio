@@ -14,8 +14,12 @@ export interface BookCreateInput {
 }
 
 export async function getBook(id: string): Promise<Book> {
-  const { data, error } = await supabase.from('books').select('*').eq('id', id).single();
+  const { data, error } = await supabase.from('books').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
+  if (!data) {
+    const err = Object.assign(new Error('Книга не найдена'), { code: 'NOT_FOUND', status: 404 });
+    throw err;
+  }
   return data as Book;
 }
 

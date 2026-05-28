@@ -72,8 +72,9 @@ export default function App() {
         gcTime: 24 * 60 * 60_000,
         retry: (count, error) => {
           const code = (error as { code?: string })?.code;
-          if (code === 'PGRST301' || code === 'PGRST116') return false;
-          if ((error as { status?: number })?.status === 401) return false;
+          if (code === 'PGRST301' || code === 'PGRST116' || code === 'NOT_FOUND') return false;
+          const status = (error as { status?: number })?.status;
+          if (status === 401 || status === 406) return false;
           return count < 2;
         },
       },

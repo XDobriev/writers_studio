@@ -288,10 +288,15 @@ export default function Editor() {
 
   if (!bookId) return <Navigate to="/books" replace />;
 
+  if (bookError && (bookError as { code?: string }).code === 'NOT_FOUND') {
+    return <Navigate to="/books" replace />;
+  }
+
   if (error) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32 }}>
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ color: 'var(--danger)' }}>Ошибка: {error}</div>
+        <a href="/books" style={{ color: 'var(--accent)', fontSize: 13 }}>← К книгам</a>
       </div>
     );
   }
