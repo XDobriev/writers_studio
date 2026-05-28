@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
-import { WithMode } from '../components/Chrome';
+import { WithMode, SidebarFoot } from '../components/Chrome';
 import { LogoMark } from '../components/LogoMark';
 import { useAuth } from '../lib/auth';
 import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
@@ -359,6 +359,8 @@ export default function Corkboard() {
               </Link>
             </div>
           )}
+          <div style={{ flex: 1 }} />
+          <SidebarFoot />
         </aside>
 
         <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: 'var(--bg)' }}>

@@ -39,7 +39,7 @@ interface SidebarProps {
 }
 
 export function SidebarFoot() {
-  const { displayName, initials, plan } = useUserDisplay();
+  const { displayName, initials, plan, planLoaded } = useUserDisplay();
   const [settingsOpen, setSettingsOpen] = useState(false);
   return (
     <>
@@ -47,7 +47,7 @@ export function SidebarFoot() {
         <div className="sb-avatar">{initials}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="sb-foot-name">{displayName || '—'}</div>
-          <div className="sb-foot-meta">{PLAN_LABEL[plan] ?? plan}</div>
+          <div className="sb-foot-meta">{planLoaded ? (PLAN_LABEL[plan] ?? plan) : '…'}</div>
         </div>
         <button className="tb-btn" onClick={() => setSettingsOpen(true)} title="Настройки"><Icon name="settings" size={15} /></button>
       </div>

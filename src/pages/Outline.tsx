@@ -376,6 +376,7 @@ export default function Outline() {
               </Link>
             </div>
           )}
+        <div style={{ flex: 1 }} />
         <SidebarFoot />
         </aside>
 
