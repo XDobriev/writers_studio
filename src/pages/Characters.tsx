@@ -27,6 +27,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type RoleFilter = 'all' | CharacterRole;
+type ViewMode = 'grid' | 'detail';
 
 const ROLE_FILTERS: { value: RoleFilter; label: string }[] = [
   { value: 'all', label: 'все' },
@@ -40,6 +41,18 @@ const ROLE_GROUP_LABELS: Record<CharacterRole, string> = {
   protagonist: 'Главные',
   secondary: 'Второстепенные',
   minor: 'Эпизодические',
+};
+
+const ROLE_COLOR: Record<CharacterRole, string> = {
+  protagonist: 'var(--accent)',
+  secondary: 'var(--info)',
+  minor: 'var(--ink-4)',
+};
+
+const ROLE_PORTRAIT_BG: Record<CharacterRole, string> = {
+  protagonist: 'linear-gradient(160deg, oklch(0.38 0.12 30), oklch(0.22 0.07 30))',
+  secondary: 'linear-gradient(160deg, oklch(0.34 0.035 60), oklch(0.22 0.02 55))',
+  minor: 'linear-gradient(160deg, oklch(0.30 0.03 80), oklch(0.20 0.02 80))',
 };
 
 export default function Characters() {
@@ -58,6 +71,7 @@ export default function Characters() {
   const [query, setQuery] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<CharacterRole>>(new Set());
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   const toggleGroup = useCallback((role: CharacterRole) => {
     setCollapsedGroups((prev) => {
@@ -80,8 +94,10 @@ export default function Characters() {
     });
   }, [characters, roleFilter, query]);
 
+  // Auto-select first character only in detail mode (not grid)
   useEffect(() => {
     if (isMobile) return;
+    if (viewMode === 'grid') return;
     if (!characters || characters.length === 0) return;
     const exists = activeId && characters.some((c) => c.id === activeId);
     if (!exists) {
@@ -90,7 +106,7 @@ export default function Characters() {
       next.set('character', first.id);
       setSearch(next, { replace: true });
     }
-  }, [isMobile, characters, filtered, activeId, search, setSearch]);
+  }, [isMobile, viewMode, characters, filtered, activeId, search, setSearch]);
 
   const active = useMemo(
     () => (characters && activeId ? characters.find((c) => c.id === activeId) ?? null : null),
@@ -101,12 +117,18 @@ export default function Characters() {
     const next = new URLSearchParams(search);
     next.set('character', id);
     setSearch(next, { replace: false });
+    setViewMode('detail');
   }, [search, setSearch]);
+
+  const goToGrid = useCallback(() => {
+    setViewMode('grid');
+  }, []);
 
   const clearCharacter = useCallback(() => {
     const next = new URLSearchParams(search);
     next.delete('character');
     setSearch(next, { replace: false });
+    setViewMode('grid');
   }, [search, setSearch]);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -172,6 +194,7 @@ export default function Characters() {
       const next = new URLSearchParams(search);
       next.set('character', created.id);
       setSearch(next, { replace: false });
+      setViewMode('detail');
     } catch (e) {
       setError((e as Error).message);
     }
@@ -200,6 +223,7 @@ export default function Characters() {
         next.set('character', remaining[0].id);
       } else {
         next.delete('character');
+        setViewMode('grid');
       }
       setSearch(next, { replace: true });
     } catch (e) {
@@ -269,6 +293,7 @@ export default function Characters() {
 
   const showSidebar = !isMobile || !activeId;
   const showMain = !isMobile || Boolean(activeId);
+  const showGrid = !isMobile && viewMode === 'grid';
 
   return (
     <WithMode>
@@ -343,21 +368,69 @@ export default function Characters() {
         </Sidebar>}
 
         {showMain && <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
+          {/* Тулбар */}
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Мобильная кнопка назад */}
               {isMobile && (
                 <button className="tb-btn" onClick={clearCharacter} title="К списку персонажей">
                   <Icon name="arrows" size={16} />
                 </button>
               )}
-              <span style={{ font: '500 13px var(--font-ui)' }}>Картотека персонажей</span>
+              {/* Десктоп: кнопка «← Сетка» в детальном виде */}
+              {!isMobile && viewMode === 'detail' && (
+                <button
+                  className="tb-btn"
+                  onClick={goToGrid}
+                  style={{ color: 'var(--accent)', borderColor: 'color-mix(in oklch, var(--accent) 25%, transparent)', gap: 5 }}
+                >
+                  <Icon name="arrows" size={13} />
+                  Сетка
+                </button>
+              )}
+              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>
+                {!isMobile && viewMode === 'detail' && active
+                  ? (active.name || 'Без имени')
+                  : 'Картотека персонажей'}
+              </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ font: '400 12px var(--font-ui)', color: saveState === 'error' ? 'var(--danger)' : 'var(--ink-3)' }}>{saveLabel[saveState]}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ font: '400 12px var(--font-ui)', color: saveState === 'error' ? 'var(--danger)' : 'var(--ink-3)' }}>
+                {saveLabel[saveState]}
+              </span>
+              {/* Переключатель grid / detail — только десктоп */}
+              {!isMobile && (
+                <div className="tb-grp">
+                  <button
+                    className={'tb-btn' + (viewMode === 'grid' ? ' tb-btn--on' : '')}
+                    onClick={goToGrid}
+                    title="Картотека (сетка)"
+                  >
+                    <Icon name="grid" size={14} />
+                  </button>
+                  <button
+                    className={'tb-btn' + (viewMode === 'detail' ? ' tb-btn--on' : '')}
+                    onClick={() => { if (activeId) setViewMode('detail'); }}
+                    disabled={!activeId}
+                    title="Детальная карточка"
+                    style={!activeId ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
+                  >
+                    <Icon name="char" size={14} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
-          {active ? (
+          {/* Основное содержимое */}
+          {showGrid ? (
+            <CharacterGrid
+              characters={filtered}
+              emptyAll={characters.length === 0}
+              onSelect={selectCharacter}
+              onCreate={onCreate}
+            />
+          ) : active ? (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
               <HeroBlock character={active} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} />
 
@@ -403,7 +476,7 @@ export default function Characters() {
           )}
         </main>}
 
-        {!isMobile && (
+        {!isMobile && !showGrid && (
           <aside className="rp">
             <div className="rp-head">
               <span style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Связи</span>
@@ -440,6 +513,159 @@ export default function Characters() {
   );
 }
 
+// ─── Обзорная сетка персонажей ────────────────────────────────────────────
+
+function CharacterGrid({
+  characters,
+  emptyAll,
+  onSelect,
+  onCreate,
+}: {
+  characters: Character[];
+  emptyAll: boolean;
+  onSelect: (id: string) => void;
+  onCreate: () => void;
+}) {
+  if (emptyAll) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
+        <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'var(--surface)', color: 'var(--ink-4)', border: '1px solid var(--border-soft)' }}>
+          <Icon name="char" size={22} />
+        </div>
+        <div style={{ textAlign: 'center', maxWidth: 260 }}>
+          <div style={{ font: '500 14px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 6 }}>Картотека пуста</div>
+          <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.6 }}>Добавляйте персонажей, описывайте их внешность, характер и связи между ними</div>
+        </div>
+        <button onClick={onCreate} className="btn btn--primary"><Icon name="plus" size={13} /> Создать персонажа</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px 28px' }}>
+      {characters.length === 0 ? (
+        <div style={{ paddingTop: 40, font: '400 13px var(--font-ui)', color: 'var(--ink-3)', textAlign: 'center' }}>
+          Ничего не найдено
+        </div>
+      ) : (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+          gap: 14,
+        }}>
+          {characters.map((c) => <CharacterCard key={c.id} character={c} onSelect={onSelect} />)}
+          <AddCard onCreate={onCreate} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CharacterCard({ character: c, onSelect }: { character: Character; onSelect: (id: string) => void }) {
+  return (
+    <button
+      onClick={() => onSelect(c.id)}
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border-soft)',
+        borderRadius: 10,
+        overflow: 'hidden',
+        cursor: 'pointer',
+        textAlign: 'left',
+        padding: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        transition: 'border-color 0.15s, background 0.15s',
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-soft)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface)'; }}
+    >
+      {/* Портретная область */}
+      <div style={{
+        height: 110,
+        background: ROLE_PORTRAIT_BG[c.role],
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        flexShrink: 0,
+      }}>
+        {c.avatar_url ? (
+          <img
+            src={c.avatar_url}
+            alt={c.name}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : (
+          <span style={{
+            font: '600 34px var(--font-serif)',
+            color: 'oklch(0.95 0.01 80 / 0.72)',
+            letterSpacing: '-0.02em',
+            userSelect: 'none',
+          }}>
+            {initialsFromName(c.name || 'Без имени')}
+          </span>
+        )}
+      </div>
+      {/* Тело карточки */}
+      <div style={{ padding: '10px 12px 11px' }}>
+        <div style={{
+          font: '500 13px var(--font-ui)',
+          color: 'var(--ink)',
+          marginBottom: 4,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>
+          {c.name || 'Без имени'}
+        </div>
+        <div style={{
+          font: '500 10px var(--font-mono)',
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: ROLE_COLOR[c.role],
+        }}>
+          {ROLE_LABELS[c.role]}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function AddCard({ onCreate }: { onCreate: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onCreate}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: 'transparent',
+        border: `1px dashed ${hovered ? 'var(--border)' : 'var(--border-soft)'}`,
+        borderRadius: 10,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        alignSelf: 'stretch',
+        minHeight: 120,
+        color: hovered ? 'var(--ink-3)' : 'var(--ink-4)',
+        font: '400 12px var(--font-ui)',
+        transition: 'border-color 0.15s, color 0.15s',
+        width: '100%',
+      }}
+    >
+      <Icon name="plus" size={15} />
+      Добавить
+    </button>
+  );
+}
+
+// ─── Элемент сайдбара ──────────────────────────────────────────────────────
+
 function CharacterItem({ character: c, active: on, onSelect }: {
   character: Character;
   active: boolean;
@@ -463,6 +689,8 @@ function CharacterItem({ character: c, active: on, onSelect }: {
     </button>
   );
 }
+
+// ─── Блок героя (детальная карточка) ──────────────────────────────────────
 
 function HeroBlock({ character, onChange, onError }: {
   character: Character;
@@ -598,6 +826,8 @@ function HeroBlock({ character, onChange, onError }: {
   );
 }
 
+// ─── Карточка поля ────────────────────────────────────────────────────────
+
 function FieldCard({ label, value, onChange, warn }: {
   label: string;
   value: string;
@@ -629,6 +859,8 @@ function FieldCard({ label, value, onChange, warn }: {
     </div>
   );
 }
+
+// ─── Блок связей ──────────────────────────────────────────────────────────
 
 function RelationsBlock({ activeId, characters, relations, onCreate, onDelete, onLabelChange, panel }: {
   activeId: string;
@@ -734,6 +966,8 @@ function RelationsBlock({ activeId, characters, relations, onCreate, onDelete, o
   );
 }
 
+// ─── Строка связи ─────────────────────────────────────────────────────────
+
 function RelationRow({ relation, partner, onDelete, onLabelChange }: {
   relation: CharacterRelation;
   partner: Character;
@@ -790,4 +1024,3 @@ function RelationRow({ relation, partner, onDelete, onLabelChange }: {
     </div>
   );
 }
-
