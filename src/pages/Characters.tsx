@@ -297,7 +297,7 @@ export default function Characters() {
 
   return (
     <WithMode>
-      <div className="as as-app" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : showGrid ? 'auto 1fr' : undefined }}>
+      <div className="as as-app" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr' }}>
         {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${characters.length}`}>
           {/* Поиск + фильтры — прилипают к верхней границе .sb-body */}
           <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-deep)' }}>
@@ -458,7 +458,16 @@ export default function Characters() {
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, paddingBottom: 8 }}>
+              <RelationsBlock
+                activeId={active.id}
+                characters={characters}
+                relations={relations}
+                onCreate={onCreateRelation}
+                onDelete={onDeleteRelation}
+                onLabelChange={onRelationLabelChange}
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, paddingBottom: 32 }}>
                 <button onClick={onDelete} className="btn btn--ghost" style={{ color: 'var(--danger)' }}>Удалить персонажа</button>
               </div>
             </div>
@@ -476,30 +485,6 @@ export default function Characters() {
           )}
         </main>}
 
-        {!isMobile && !showGrid && (
-          <aside className="rp">
-            <div className="rp-head">
-              <span style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Связи</span>
-            </div>
-            <div className="rp-body">
-              {active ? (
-                <RelationsBlock
-                  activeId={active.id}
-                  characters={characters}
-                  relations={relations}
-                  onCreate={onCreateRelation}
-                  onDelete={onDeleteRelation}
-                  onLabelChange={onRelationLabelChange}
-                  panel
-                />
-              ) : (
-                <div style={{ paddingTop: 32, textAlign: 'center', font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>
-                  Выберите персонажа
-                </div>
-              )}
-            </div>
-          </aside>
-        )}
       </div>
 
       {confirmDelete && active && (
