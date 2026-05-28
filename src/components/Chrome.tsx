@@ -38,6 +38,24 @@ interface SidebarProps {
   children?: ReactNode;
 }
 
+export function SidebarFoot() {
+  const { displayName, initials, plan } = useUserDisplay();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  return (
+    <>
+      <div className="sb-foot">
+        <div className="sb-avatar">{initials}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="sb-foot-name">{displayName || '—'}</div>
+          <div className="sb-foot-meta">{PLAN_LABEL[plan] ?? plan}</div>
+        </div>
+        <button className="tb-btn" onClick={() => setSettingsOpen(true)} title="Настройки"><Icon name="settings" size={15} /></button>
+      </div>
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+    </>
+  );
+}
+
 export function Sidebar({
   book,
   chapters,
@@ -50,8 +68,6 @@ export function Sidebar({
   const { onSelectChapter, onCreateChapter, onStatusChange, onDeleteChapter } = chapterActions ?? {};
   const isReal = Boolean(chapters);
   const { pathname } = useLocation();
-  const { displayName, initials, plan } = useUserDisplay();
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
@@ -337,15 +353,7 @@ export function Sidebar({
       )}
       </div>{/* /sb-body */}
 
-      <div className="sb-foot">
-        <div className="sb-avatar">{initials}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="sb-foot-name">{displayName || '—'}</div>
-          <div className="sb-foot-meta">{PLAN_LABEL[plan] ?? plan}</div>
-        </div>
-        <button className="tb-btn" onClick={() => setSettingsOpen(true)} title="Настройки"><Icon name="settings" size={15} /></button>
-      </div>
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      <SidebarFoot />
     </aside>
   );
 }
