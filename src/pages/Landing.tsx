@@ -120,9 +120,6 @@ function LandingHero() {
               <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
                 Начать свою книгу
               </Link>
-              <Link to="/login" className="btn" style={{ height: 46, padding: '0 18px', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-                <Icon name="eye" size={15} /> Войти в студию
-              </Link>
             </div>
             <div style={{ paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
               <p style={{ font: '400 14px/1.6 var(--font-serif)', color: 'var(--ink-3)', maxWidth: 420, margin: 0 }}>
