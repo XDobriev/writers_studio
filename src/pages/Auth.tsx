@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth, type TelegramAuthData } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
+import { Icon } from '../components/Icon';
 import { supabaseConfigured } from '../lib/supabase';
 
 type Tab = 'signin' | 'signup';
@@ -42,6 +43,7 @@ export default function Auth() {
   const [consent, setConsent] = useState(false);
   const [oauthBusy, setOauthBusy] = useState<'google' | 'telegram' | null>(null);
   const [tgHover, setTgHover] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const tgSlotRef = useRef<HTMLDivElement | null>(null);
@@ -355,17 +357,29 @@ export default function Auth() {
                       </button>
                     )}
                   </div>
-                  <input
-                    id="auth-password"
-                    name="password"
-                    className="input"
-                    type="password"
-                    required
-                    minLength={6}
-                    autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      id="auth-password"
+                      name="password"
+                      className="input"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      style={{ paddingRight: 36, width: '100%' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(v => !v)}
+                      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: 0 }}
+                      tabIndex={-1}
+                      aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                    >
+                      <Icon name={showPassword ? 'eye-off' : 'eye'} size={15} />
+                    </button>
+                  </div>
                 </div>
               </div>
 

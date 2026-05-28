@@ -26,6 +26,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [nameSaved, setNameSaved] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [newPass, setNewPass] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [passSaving, setPassSaving] = useState(false);
   const [passError, setPassError] = useState<string | null>(null);
   const [passSaved, setPassSaved] = useState(false);
@@ -150,7 +151,18 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             <div style={FG}>
               <span style={FL}>Новый пароль</span>
               <div style={ROW}>
-                <input className="input" type="password" value={newPass} onChange={(e) => { setNewPass(e.target.value); setPassSaved(false); setPassError(null); }} placeholder="Минимум 6 символов" style={{ flex: 1, fontSize: 13 }} />
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <input className="input" type={showPass ? 'text' : 'password'} value={newPass} onChange={(e) => { setNewPass(e.target.value); setPassSaved(false); setPassError(null); }} placeholder="Минимум 6 символов" style={{ width: '100%', fontSize: 13, paddingRight: 36 }} />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(v => !v)}
+                    style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: 0 }}
+                    tabIndex={-1}
+                    aria-label={showPass ? 'Скрыть пароль' : 'Показать пароль'}
+                  >
+                    <Icon name={showPass ? 'eye-off' : 'eye'} size={15} />
+                  </button>
+                </div>
                 <button className="btn btn--primary" style={BTN} onClick={handleSavePass} disabled={passSaving || !newPass}>
                   {passSaving ? '…' : passSaved ? '✓' : 'Сменить'}
                 </button>
