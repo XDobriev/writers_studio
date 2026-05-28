@@ -35,7 +35,9 @@ declare global {
 export default function Auth() {
   const { session, signIn, signUp, signInWithGoogle, signInWithTelegram, resetPasswordForEmail } = useAuth();
   const location = useLocation();
-  const [tab, setTab] = useState<Tab>('signin');
+  const [tab, setTab] = useState<Tab>(() =>
+    new URLSearchParams(location.search).get('tab') === 'signup' ? 'signup' : 'signin'
+  );
   const [flow, setFlow] = useState<Flow>('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

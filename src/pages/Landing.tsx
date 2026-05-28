@@ -91,7 +91,7 @@ function LandingNav() {
       </nav>
       <span style={{ width: 1, height: 18, background: 'var(--border-soft)' }} />
       <Link to="/login" style={{ fontSize: 13.5, color: 'var(--ink-2)', textDecoration: 'none' }}>Войти</Link>
-      <Link to="/login" className="btn btn--primary" style={{ height: 34, padding: '0 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать писать</Link>
+      <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 34, padding: '0 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать писать</Link>
     </div>
   );
 }
@@ -117,7 +117,7 @@ function LandingHero() {
               Рукопись, картотека персонажей, карта мира и хронология — в одном чистом редакторе. Без баннеров, всплывашек и нейросети, которая дописывает за вас.
             </p>
             <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 36, flexWrap: 'wrap' }}>
-              <Link to="/login" className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+              <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
                 Начать свою книгу
               </Link>
               <Link to="/login" className="btn" style={{ height: 46, padding: '0 18px', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
@@ -446,7 +446,7 @@ function LandingPricing() {
         ['Дэшборд и heatmap', false],
         ['Приоритетная поддержка', false],
       ] as [string, boolean][],
-      cta: 'Начать бесплатно', accent: false, tag: null,
+      cta: 'Начать бесплатно', accent: false, tag: null, signup: true,
     },
     {
       name: 'Pro', price: '290 ₽', sub: 'в месяц · или 2 900 ₽/год',
@@ -460,7 +460,7 @@ function LandingPricing() {
         ['Приоритетная поддержка', true],
         ['Доступ к закрытому чату автора', true],
       ] as [string, boolean][],
-      cta: 'Перейти на Pro', accent: true, tag: 'Чаще выбирают',
+      cta: 'Перейти на Pro', accent: true, tag: 'Чаще выбирают', signup: true,
     },
     {
       name: 'Lifetime', price: '4 900 ₽', sub: 'один раз · навсегда',
@@ -474,7 +474,7 @@ function LandingPricing() {
         ['Закрытое сообщество авторов', true],
         ['Только первые 50 покупателей', true],
       ] as [string, boolean][],
-      cta: 'Купить Lifetime', accent: false, tag: '50 мест · ранний доступ',
+      cta: 'Купить Lifetime', accent: false, tag: '50 мест · ранний доступ', signup: true,
     },
   ];
   return (
@@ -504,7 +504,7 @@ function LandingPricing() {
                   </li>
                 ))}
               </ul>
-              <Link to="/login" className={t.accent ? 'btn btn--primary' : 'btn'} style={{ height: 42, fontSize: 14, justifyContent: 'center', width: '100%', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>{t.cta}</Link>
+              <Link to={t.signup ? '/login?tab=signup' : '/login'} className={t.accent ? 'btn btn--primary' : 'btn'} style={{ height: 42, fontSize: 14, justifyContent: 'center', width: '100%', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>{t.cta}</Link>
             </div>
           ))}
         </div>
@@ -563,7 +563,7 @@ function LandingCTA() {
           Бесплатно, без карты, без 14-дневного триала. Регистрация в три клика — и у вас открыт первый лист.
         </p>
         <div style={{ display: 'inline-flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Link to="/login" className="btn btn--primary" style={{ height: 50, padding: '0 28px', fontSize: 15, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Создать книгу</Link>
+          <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 50, padding: '0 28px', fontSize: 15, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Создать книгу</Link>
           <Link to="/login" className="btn" style={{ height: 50, padding: '0 22px', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <Icon name="eye" size={15} /> Войти
           </Link>
