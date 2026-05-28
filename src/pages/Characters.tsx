@@ -286,7 +286,7 @@ export default function Characters() {
   return (
     <WithMode>
       <div className="as as-app" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr' }}>
-        {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${characters.length}`} />}
+        {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${characters.length}`}><></></Sidebar>}
 
         {showMain && <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
           {/* Тулбар */}
