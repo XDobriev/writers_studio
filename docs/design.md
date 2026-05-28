@@ -321,3 +321,77 @@ Sidebar annotations that reference highlighted passages.
 - **Don't** mix paper and shell neutrals. Writing Cream (`oklch(0.965 0.014 85)`) is reserved for the manuscript surface. It is never a panel background, modal fill, or sidebar section.
 - **Don't** add a SaaS metric dashboard. No hero numbers, no progress rings, no "words written today" widgets competing with the writing surface. Status bar at the bottom is enough.
 - **Don't** add decorative shadows or glassmorphism to shell panels. The Floating shadow exists for one element: the bubble menu. Everything else is flat.
+
+## 7. Scrollbars
+
+Every scrollable container in the product uses one of three explicit scrollbar patterns. Never leave scrollbars at browser default.
+
+### Three Patterns
+
+- **Thin panel** (`.sb-body`, `.rp-body` and similar overflow panels): `scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent`. A minimal thumb, no visible rail. The thumb appears only when the user scrolls.
+- **Hidden** (`.tb` toolbar): `scrollbar-width: none` + `::-webkit-scrollbar { display: none }`. The container is overflow-scrollable but the scrollbar is completely invisible — toolbars communicate overflow with fade gradients or truncation, not a scrollbar.
+- **Sheet** (`.sheet-wrap`): Custom webkit — 5px width, pill thumb (`border-radius: 999px`), `var(--surface-3)` fill at rest, `var(--border-strong)` on hover, transparent track. The manuscript scroll container is the most prominent in the product, so its scrollbar gets a deliberate hover state.
+- **Global fallback** (`.as ::-webkit-scrollbar`): 10px width, `var(--border)` thumb, transparent track — for any `.as` child container not explicitly covered above.
+
+### Named Rules
+
+**The Invisible Track Rule.** The scrollbar rail (track) is always `transparent`. Never give it a background fill. Only the thumb is visible.
+
+**The Pill Thumb Rule.** All webkit scrollbar thumbs use `border-radius: 999px`. No rectangular thumbs.
+
+**The Warm Thumb Rule.** Thumb color comes from the surface/border token family — `var(--surface-3)` or `var(--border)`. Never use a pure grey or achromatic value.
+
+## 8. Motion & Transitions
+
+The studio is calm at rest. Motion communicates state change, not delight. Every transition is short and purposeful.
+
+### Timing Vocabulary
+
+- **`0.1s`** — immediate state toggle: button active background, bubble-btn pressed state.
+- **`0.12s`** — hover response: toolbar button color, color swatch scale (`transform: scale(1.25)`), sidebar add-button color.
+- **`0.13s cubic-bezier(.22,.68,0,1.2)`** — entry spring: bubble menu appears from below with a subtle overshoot. This easing is reserved for elements that physically appear — it signals "arrival."
+- **`0.15s`** — link and chip color transitions; sidebar book title hover.
+- **`0.2s`** — scrollbar thumb color on hover.
+
+### Keyframes
+
+- **`bubble-in`**: `opacity 0→1, translateY(5px)→0, scale(0.96)→1` — bubble menu entry.
+- **`toast-in`**: `opacity 0→1, translateY(8px)→0, scale(0.96)→1` — toast notification entry (same shape as bubble-in, slightly more vertical travel).
+- **`slide-down`**: `translateY(-100%)→0` — panel slide in from above.
+- **`spin`**: `rotate 360deg` linear infinite — page loading spinner (0.75s).
+- **`blink`**: step-based opacity toggle — text cursor blink.
+
+### Named Rules
+
+**The Reduced Motion Rule.** Wrap all `@keyframes` usage in `@media (not prefers-reduced-motion)` or use `prefers-reduced-motion: reduce` to disable transform/opacity animations. Color transitions (hover backgrounds, focus rings) are exempt — they carry state information, not decoration.
+
+**The Layout Property Rule.** Never animate `width`, `height`, `padding`, or `margin`. Only `color`, `background`, `opacity`, `transform`, and `border-color` are permitted in transitions.
+
+**The No-Bounce Default Rule.** The spring easing `cubic-bezier(.22,.68,0,1.2)` is used only for entry animations. Hover states, color changes, and persistent UI use linear or ease-out — never a bouncy curve on an element that is already visible.
+
+## 9. Light Theme
+
+The light theme activates via `[data-theme="light"]` on `<html>`. Only surface (`--bg-*`, `--surface-*`, `--border-*`) and ink variables are overridden. Accent colors, paper/manuscript variables, and semantic colors are identical in both themes.
+
+### Surface Hierarchy (Light)
+
+Light surfaces use a parchment-linen family (hue 55–70), with luminance inverted relative to dark mode:
+
+- `--bg: oklch(0.96 0.008 70)` — main area, near-white with amber tint. The "floor."
+- `--bg-deep: oklch(0.89 0.012 65)` — sidebar, status bar, right panel. Slightly deeper parchment.
+- `--surface` → `--surface-3`: steps down from 0.93 to 0.83, all carrying chroma 0.010–0.012 toward hue 55–65.
+
+### Ink (Light)
+
+Dark warm charcoal, not pure black. All ink values carry a warm brown tint (hue 60):
+
+- `--ink: oklch(0.18 0.022 60)` — primary text.
+- `--ink-2 … --ink-4`: step up in lightness toward `oklch(0.56 0.012 60)` (ghost/metadata).
+
+### Named Rules
+
+**The Accent Stability Rule.** `--accent` (Sienna Ink) and `--accent-2` (Lamplight Amber) do not change between themes. An active chapter number, a primary button, a focus ring — always the same color.
+
+**The Paper Stability Rule.** `--paper`, `--paper-ink`, `--paper-ink-2`, and all paper-rule/edge variables are theme-invariant. The manuscript surface looks identical in both modes — it is a light cream surface always, not a reactive surface.
+
+**The Warm Neutral Doctrine (Light).** The same rule applies in light mode: every neutral carries fractional chroma toward hue 50–85. Pure white (`oklch(1 0 0)`) and pure achromatic greys are forbidden. The parchment warmth must be perceptible even at low chroma.
