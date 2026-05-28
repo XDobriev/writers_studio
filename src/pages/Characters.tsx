@@ -36,13 +36,6 @@ const ROLE_FILTERS: { value: RoleFilter; label: string }[] = [
   { value: 'minor', label: 'эпиз.' },
 ];
 
-const ROLE_ORDER: CharacterRole[] = ['protagonist', 'secondary', 'minor'];
-const ROLE_GROUP_LABELS: Record<CharacterRole, string> = {
-  protagonist: 'Главные',
-  secondary: 'Второстепенные',
-  minor: 'Эпизодические',
-};
-
 const ROLE_COLOR: Record<CharacterRole, string> = {
   protagonist: 'var(--accent)',
   secondary: 'var(--info)',
@@ -70,16 +63,7 @@ export default function Characters() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [query, setQuery] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<CharacterRole>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-
-  const toggleGroup = useCallback((role: CharacterRole) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(role)) next.delete(role); else next.add(role);
-      return next;
-    });
-  }, []);
 
   const activeId = search.get('character');
   const isMobile = useWindowWidth() < 768;
@@ -295,89 +279,24 @@ export default function Characters() {
   const showMain = !isMobile || Boolean(activeId);
   const showGrid = !isMobile && viewMode === 'grid';
 
+  const activeIndex = active ? filtered.findIndex((c) => c.id === active.id) : -1;
+  const prevChar = activeIndex > 0 ? (filtered[activeIndex - 1] ?? null) : null;
+  const nextChar = activeIndex >= 0 && activeIndex < filtered.length - 1 ? (filtered[activeIndex + 1] ?? null) : null;
+
   return (
     <WithMode>
       <div className="as as-app" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr' }}>
-        {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${characters.length}`}>
-          {/* Поиск + фильтры — прилипают к верхней границе .sb-body */}
-          <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-deep)' }}>
-            <div style={{ padding: '12px 14px 6px' }}>
-              <div style={{ height: 32, padding: '0 10px', border: '1px solid var(--border-soft)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink-3)', fontSize: 12 }}>
-                <Icon name="search" size={13} />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Поиск"
-                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', fontSize: 12 }}
-                />
-              </div>
-            </div>
-            <div style={{ padding: '6px 14px 8px', display: 'flex', gap: 4 }}>
-              {ROLE_FILTERS.map((f) => (
-                <button
-                  key={f.value}
-                  className="sb-tab"
-                  onClick={() => setRoleFilter(f.value)}
-                  style={roleFilter === f.value ? { background: 'var(--surface)', color: 'var(--ink)' } : {}}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {/* Список персонажей */}
-          <div style={{ padding: '4px 8px 8px' }}>
-            {filtered.length === 0 && (
-              <div style={{ padding: '24px 14px', font: '400 12px var(--font-ui)', color: 'var(--ink-3)', textAlign: 'center' }}>
-                {characters.length === 0 ? 'Картотека пуста' : 'Ничего не найдено'}
-              </div>
-            )}
-            {roleFilter === 'all' ? (
-              ROLE_ORDER.map((role) => {
-                const group = filtered.filter((c) => c.role === role);
-                if (group.length === 0) return null;
-                const collapsed = collapsedGroups.has(role);
-                return (
-                  <div key={role}>
-                    <button
-                      onClick={() => toggleGroup(role)}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px 4px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink-3)' }}
-                    >
-                      <span style={{ flex: 1, font: '500 10px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', textAlign: 'left' }}>
-                        {ROLE_GROUP_LABELS[role]}
-                      </span>
-                      <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)' }}>{group.length}</span>
-                      <Icon name={collapsed ? 'chev' : 'chevd'} size={10} />
-                    </button>
-                    {!collapsed && group.map((c) => (
-                      <CharacterItem key={c.id} character={c} active={c.id === activeId} onSelect={selectCharacter} />
-                    ))}
-                  </div>
-                );
-              })
-            ) : (
-              filtered.map((c) => (
-                <CharacterItem key={c.id} character={c} active={c.id === activeId} onSelect={selectCharacter} />
-              ))
-            )}
-          </div>
-          {/* Кнопка «Новый персонаж» — прилипает к нижней границе .sb-body */}
-          <div style={{ position: 'sticky', bottom: 0, zIndex: 5, padding: '10px 14px', borderTop: '1px solid var(--border-soft)', background: 'var(--bg-deep)' }}>
-            <button onClick={onCreate} className="btn" style={{ width: '100%', justifyContent: 'center' }}><Icon name="plus" size={13} /> Новый персонаж</button>
-          </div>
-        </Sidebar>}
+        {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${characters.length}`} />}
 
         {showMain && <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
           {/* Тулбар */}
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* Мобильная кнопка назад */}
               {isMobile && (
                 <button className="tb-btn" onClick={clearCharacter} title="К списку персонажей">
                   <Icon name="arrows" size={16} />
                 </button>
               )}
-              {/* Десктоп: кнопка «← Сетка» в детальном виде */}
               {!isMobile && viewMode === 'detail' && (
                 <button
                   className="tb-btn"
@@ -389,15 +308,69 @@ export default function Characters() {
                 </button>
               )}
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>
-                {!isMobile && viewMode === 'detail' && active
-                  ? (active.name || 'Без имени')
-                  : 'Картотека персонажей'}
+                {!isMobile && viewMode === 'detail' && active ? (active.name || 'Без имени') : 'Картотека персонажей'}
               </span>
             </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ font: '400 12px var(--font-ui)', color: saveState === 'error' ? 'var(--danger)' : 'var(--ink-3)' }}>
-                {saveLabel[saveState]}
-              </span>
+              {/* Grid: поиск + фильтры по роли */}
+              {!isMobile && showGrid && (
+                <>
+                  <div style={{ height: 28, padding: '0 9px', border: '1px solid var(--border-soft)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ink-3)' }}>
+                    <Icon name="search" size={12} />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Поиск"
+                      style={{ width: 120, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', fontSize: 12 }}
+                    />
+                  </div>
+                  <div className="tb-grp">
+                    {ROLE_FILTERS.map((f) => (
+                      <button
+                        key={f.value}
+                        className={'tb-btn' + (roleFilter === f.value ? ' tb-btn--on' : '')}
+                        onClick={() => setRoleFilter(f.value)}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={onCreate} className="tb-btn" title="Новый персонаж">
+                    <Icon name="plus" size={14} />
+                  </button>
+                </>
+              )}
+
+              {/* Detail: статус сохранения + стрелки навигации */}
+              {!showGrid && (
+                <span style={{ font: '400 12px var(--font-ui)', color: saveState === 'error' ? 'var(--danger)' : 'var(--ink-3)' }}>
+                  {saveLabel[saveState]}
+                </span>
+              )}
+              {!isMobile && !showGrid && (
+                <div className="tb-grp">
+                  <button
+                    className="tb-btn"
+                    onClick={() => prevChar && selectCharacter(prevChar.id)}
+                    disabled={!prevChar}
+                    title="Предыдущий персонаж"
+                    style={!prevChar ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
+                  >
+                    <Icon name="arrows" size={13} />
+                  </button>
+                  <button
+                    className="tb-btn"
+                    onClick={() => nextChar && selectCharacter(nextChar.id)}
+                    disabled={!nextChar}
+                    title="Следующий персонаж"
+                    style={!nextChar ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
+                  >
+                    <Icon name="chev" size={13} />
+                  </button>
+                </div>
+              )}
+
               {/* Переключатель grid / detail — только десктоп */}
               {!isMobile && (
                 <div className="tb-grp">
@@ -645,32 +618,6 @@ function AddCard({ onCreate }: { onCreate: () => void }) {
     >
       <Icon name="plus" size={15} />
       Добавить
-    </button>
-  );
-}
-
-// ─── Элемент сайдбара ──────────────────────────────────────────────────────
-
-function CharacterItem({ character: c, active: on, onSelect }: {
-  character: Character;
-  active: boolean;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <button
-      onClick={() => onSelect(c.id)}
-      className={'sb-item' + (on ? ' sb-item--on' : '')}
-      style={{ height: 'auto', padding: '6px 10px', width: '100%', textAlign: 'left', gridTemplateColumns: '34px 1fr auto' }}
-    >
-      <span style={{ width: 28, height: 28, borderRadius: 999, background: on ? 'var(--accent)' : 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 10px var(--font-ui)', color: on ? 'oklch(0.98 0 0)' : 'var(--ink)', overflow: 'hidden', flexShrink: 0 }}>
-        {c.avatar_url
-          ? <img src={c.avatar_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : initialsFromName(c.name || 'Без имени')}
-      </span>
-      <div style={{ minWidth: 0 }}>
-        <div className="sb-item-title">{c.name || 'Без имени'}</div>
-      </div>
-      <span />
     </button>
   );
 }
