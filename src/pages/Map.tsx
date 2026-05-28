@@ -2,10 +2,12 @@ import { useCallback, useRef, useState, type ChangeEvent } from 'react';
 import { useWindowWidth } from '../lib/useWindowWidth';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { WithMode } from '../components/Chrome';
+import { WithMode, PLAN_LABEL } from '../components/Chrome';
 import { LogoMark } from '../components/LogoMark';
 import { Icon } from '../components/Icon';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { SettingsModal } from '../components/SettingsModal';
+import { useUserDisplay } from '../lib/useUserDisplay';
 import { WorldMap } from '../components/WorldMap';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -38,6 +40,8 @@ export default function MapScreen() {
   const { data: locations, error: locErr } = useLocations(bookId);
   const { data: connections, error: connErr } = useConnections(bookId);
 
+  const { displayName, initials, plan } = useUserDisplay();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [mutationError, setError] = useState<string | null>(null);
   const [bgModalOpen, setBgModalOpen] = useState(false);
   const error = locErr?.message ?? connErr?.message ?? mutationError;
@@ -205,6 +209,15 @@ export default function MapScreen() {
                 </Link>
               </div>
             )}
+            <div style={{ flex: 1 }} />
+            <div className="sb-foot">
+              <div className="sb-avatar">{initials}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="sb-foot-name">{displayName || '—'}</div>
+                <div className="sb-foot-meta">{PLAN_LABEL[plan] ?? plan}</div>
+              </div>
+              <button className="tb-btn" onClick={() => setSettingsOpen(true)} title="Настройки"><Icon name="settings" size={15} /></button>
+            </div>
           </aside>
         )}
 
@@ -300,6 +313,7 @@ export default function MapScreen() {
           onCancel={() => setConfirmDeleteId(null)}
         />
       )}
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </WithMode>
   );
 }

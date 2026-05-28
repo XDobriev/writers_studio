@@ -9,7 +9,7 @@ import { updateBook } from '../lib/books';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { SettingsModal } from './SettingsModal';
 
-const PLAN_LABEL: Record<string, string> = {
+export const PLAN_LABEL: Record<string, string> = {
   free: 'Free',
   pro: 'Pro',
   lifetime: 'Lifetime',

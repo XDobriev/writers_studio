@@ -17,9 +17,11 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
-import { WithMode } from '../components/Chrome';
+import { WithMode, PLAN_LABEL } from '../components/Chrome';
 import { LogoMark } from '../components/LogoMark';
+import { SettingsModal } from '../components/SettingsModal';
 import { useAuth } from '../lib/auth';
+import { useUserDisplay } from '../lib/useUserDisplay';
 import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
 import { plural } from '../lib/useWritingStats';
@@ -235,6 +237,8 @@ export default function Outline() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { displayName, initials, plan } = useUserDisplay();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { data: book } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
@@ -377,6 +381,15 @@ export default function Outline() {
               </Link>
             </div>
           )}
+        <div className="sb-foot">
+          <div className="sb-avatar">{initials}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="sb-foot-name">{displayName || '—'}</div>
+            <div className="sb-foot-meta">{PLAN_LABEL[plan] ?? plan}</div>
+          </div>
+          <button className="tb-btn" onClick={() => setSettingsOpen(true)} title="Настройки"><Icon name="settings" size={15} /></button>
+        </div>
+        {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
         </aside>
 
         <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: 'var(--bg)' }}>
