@@ -4,8 +4,6 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { LogoMark } from '../components/LogoMark';
 
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? '';
-
 type Plan = 'free' | 'pro' | 'lifetime';
 
 interface AdminStats {
@@ -84,17 +82,23 @@ export default function Admin() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('created_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [planChanging, setPlanChanging] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || user.email !== ADMIN_EMAIL) return;
+    if (!user) return;
     Promise.all([
       supabase.rpc('get_admin_stats'),
       supabase.rpc('get_admin_users'),
     ]).then(([statsRes, usersRes]) => {
+      if (statsRes.error?.code === '42501' || usersRes.error?.code === '42501') {
+        setIsAdmin(false);
+        return;
+      }
+      setIsAdmin(true);
       if (statsRes.error) setErr(statsRes.error.message);
       else setStats(statsRes.data as AdminStats);
       if (usersRes.error) setErr((prev) => prev ?? usersRes.error!.message);
@@ -129,7 +133,8 @@ export default function Admin() {
 
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (!ADMIN_EMAIL || user.email !== ADMIN_EMAIL) return <Navigate to="/books" replace />;
+  if (isAdmin === null) return null;
+  if (isAdmin === false) return <Navigate to="/books" replace />;
 
   const filtered = (users ?? [])
     .filter((u) => !search || u.email.toLowerCase().includes(search.toLowerCase()))

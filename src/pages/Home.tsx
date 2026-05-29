@@ -10,7 +10,6 @@ import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useProfile, QUERY_KEYS } from '../lib/queries';
 
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? '';
 
 const COVERS = [
   '#7c1d1d', '#3d4a2e', '#1c3a4a', '#4a2e3c',
@@ -270,24 +269,7 @@ export default function Home() {
         <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
         <span style={{ flex: 1 }} />
         <span className="hide-sm" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{displayName}</span>
-        {user?.email === ADMIN_EMAIL && (
-          <Link
-            to="/admin"
-            style={{
-              font: '500 10px var(--font-mono)',
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color: 'var(--accent)',
-              textDecoration: 'none',
-              padding: '3px 8px',
-              border: '1px solid var(--accent)',
-              borderRadius: 4,
-              opacity: 0.75,
-            }}
-          >
-            admin
-          </Link>
-        )}
+
         <button
           onClick={signOut}
           title="Выйти из аккаунта"
@@ -398,11 +380,11 @@ export default function Home() {
                         <span>{b.words.toLocaleString('ru')} сл.</span>
                       )}
                     </div>
-                    {b.goal > 0 && (
-                      <div style={{ height: 3, background: 'var(--surface-3)', borderRadius: 999, overflow: 'hidden', marginBottom: 12 }}>
+                    <div style={{ height: 3, background: 'var(--surface-3)', borderRadius: 999, overflow: 'hidden', marginBottom: 12, visibility: b.goal > 0 ? 'visible' : 'hidden' }}>
+                      {b.goal > 0 && (
                         <div style={{ width: `${(b.words / b.goal) * 100}%`, minWidth: 4, height: '100%', background: b.words > 0 ? 'var(--accent)' : 'var(--ink-4)' }} />
-                      </div>
-                    )}
+                      )}
+                    </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)' }}>
                       <span>{dayDiff(b.created_at)} дн. в работе</span>
                       <span>изм. {formatDate(b.updated_at)}</span>
@@ -438,8 +420,21 @@ export default function Home() {
           onClick={() => setEditBook(null)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Редактировать книгу"
             style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px 28px', width: 460, display: 'flex', flexDirection: 'column', gap: 18, boxShadow: '0 24px 60px oklch(0.05 0.01 50 / 0.4)' }}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') { setEditBook(null); return; }
+              if (e.key === 'Tab') {
+                const focusable = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
+                const arr = Array.from(focusable);
+                if (!arr.length) return;
+                const first = arr[0], last = arr[arr.length - 1];
+                if (e.shiftKey ? document.activeElement === first : document.activeElement === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+              }
+            }}
           >
             <h2 style={{ font: '600 20px var(--font-serif)' }}>Редактировать книгу</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -521,8 +516,21 @@ export default function Home() {
           onClick={() => setShowUpgrade(false)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Планы и подписка"
             style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 36px', width: 480, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 24, boxShadow: '0 24px 60px oklch(0.05 0.01 50 / 0.5)' }}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') { setShowUpgrade(false); return; }
+              if (e.key === 'Tab') {
+                const focusable = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
+                const arr = Array.from(focusable);
+                if (!arr.length) return;
+                const first = arr[0], last = arr[arr.length - 1];
+                if (e.shiftKey ? document.activeElement === first : document.activeElement === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+              }
+            }}
           >
             <div>
               <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 10 }}>Pro</div>
@@ -571,7 +579,16 @@ export default function Home() {
             aria-modal="true"
             style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 18, padding: '36px 40px', width: 520, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 80px oklch(0 0 0 / 0.55)' }}
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => { if (e.key === 'Escape') dismissWelcome(); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') { dismissWelcome(); return; }
+              if (e.key === 'Tab') {
+                const focusable = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
+                const arr = Array.from(focusable);
+                if (!arr.length) return;
+                const first = arr[0], last = arr[arr.length - 1];
+                if (e.shiftKey ? document.activeElement === first : document.activeElement === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+              }
+            }}
             tabIndex={-1}
           >
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: 28 }}>
@@ -624,7 +641,20 @@ export default function Home() {
         <div style={{ position: 'fixed', inset: 0, background: 'oklch(0.10 0.012 50 / 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }} onClick={() => setShowCreate(false)}>
           <form
             onSubmit={onCreate}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Новая книга"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') { setShowCreate(false); return; }
+              if (e.key === 'Tab') {
+                const focusable = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
+                const arr = Array.from(focusable);
+                if (!arr.length) return;
+                const first = arr[0], last = arr[arr.length - 1];
+                if (e.shiftKey ? document.activeElement === first : document.activeElement === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+              }
+            }}
             style={{ width: 460, background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px 28px' }}
           >
             <h2 style={{ font: '600 22px var(--font-serif)', marginBottom: 16 }}>Новая книга</h2>

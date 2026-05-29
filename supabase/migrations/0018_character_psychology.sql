@@ -1,0 +1,4 @@
+ALTER TABLE public.characters
+  ADD COLUMN IF NOT EXISTS interior_life text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS exterior_life text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS gap text NOT NULL DEFAULT '';

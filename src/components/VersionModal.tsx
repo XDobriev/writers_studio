@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import DOMPurify from 'dompurify';
 import { useQueryClient } from '@tanstack/react-query';
 import { getVersionContent, createVersion, type ChapterVersionMeta } from '../lib/versions';
 import { updateChapter, countWords } from '../lib/chapters';
@@ -101,6 +102,11 @@ export function VersionModal({
     [loading, content, currentContent],
   );
 
+  const safeContent = useMemo(
+    () => (content !== null ? DOMPurify.sanitize(content) : ''),
+    [content],
+  );
+
   useEffect(() => {
     getVersionContent(version.id)
       .then(setContent)
@@ -197,7 +203,7 @@ export function VersionModal({
               </span>
             )}
             {!loading && content !== null && !showDiff && (
-              <div dangerouslySetInnerHTML={{ __html: content }} />
+              <div dangerouslySetInnerHTML={{ __html: safeContent }} />
             )}
             {!loading && showDiff && diff && (() => {
               const hasChanges = diff.some(p => p.type !== 'same');
@@ -217,14 +223,14 @@ export function VersionModal({
                     }
                     if (part.type === 'added') {
                       return (
-                        <p key={i} style={{ margin: '0 0 0.75em', background: 'oklch(0.5 0.18 145 / 0.18)', borderRadius: 3, padding: '2px 6px', borderLeft: '3px solid oklch(0.6 0.2 145)' }}>
+                        <p key={i} style={{ margin: '0 0 0.75em', background: 'oklch(0.5 0.18 145 / 0.22)', borderRadius: 3, padding: '2px 6px' }}>
                           {part.text}
                         </p>
                       );
                     }
                     if (part.type === 'removed') {
                       return (
-                        <p key={i} style={{ margin: '0 0 0.75em', background: 'oklch(0.5 0.18 25 / 0.15)', borderRadius: 3, padding: '2px 6px', borderLeft: '3px solid oklch(0.55 0.2 25)', textDecoration: 'line-through', color: 'var(--ink-3)' }}>
+                        <p key={i} style={{ margin: '0 0 0.75em', background: 'oklch(0.5 0.18 25 / 0.18)', borderRadius: 3, padding: '2px 6px', textDecoration: 'line-through', color: 'var(--ink-3)' }}>
                           {part.text}
                         </p>
                       );

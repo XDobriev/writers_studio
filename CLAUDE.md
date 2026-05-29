@@ -114,8 +114,12 @@ npm run preview    # превью продакшен-сборки
 - `/impeccable` — дизайн-аудит: critique, audit, polish, colorize, typeset (23 команды)
 
 **Глобальные** (`~/.claude/skills/`):
-- `gstack` — браузерный агент для QA: скриншоты, тест форм, проверка деплоя (❗ `/browse` не работает — нужен нативный Bun)
-- `marketingskills` — 50+ скиллов для маркетинга: CRO, копирайтинг, SEO, реклама, аналитика
+- `/gstack` — браузерный агент для QA: скриншоты, тест форм, проверка деплоя (❗ `/browse` не работает — нужен нативный Bun)
+- `/ui-ux-pro-max` — справочник UX/UI: 99 правил, 161 палитра, 57 пар шрифтов, Python-поиск по доменам (`--design-system`, `--domain ux/color/typography/chart`, `--stack`). Дополняет `/impeccable` конкретными гайдлайнами.
+- `/design-review` — визуальный дизайн-ревью через Playwright MCP: скриншоты desktop/tablet/mobile, аудит типографики, контраста, ритма, иерархии. Использовать когда нужно "увидеть" результат, а не угадывать по коду.
+
+**marketingskills** (`coreyhaines31/marketingskills`, все через `skills-lock.json`):
+`/ab-testing`, `/ad-creative`, `/ads`, `/ai-seo`, `/analytics`, `/aso`, `/churn-prevention`, `/co-marketing`, `/cold-email`, `/community-marketing`, `/competitor-profiling`, `/competitors`, `/content-strategy`, `/copy-editing`, `/copywriting`, `/cro`, `/customer-research`, `/directory-submissions`, `/emails`, `/free-tools`, `/image`, `/launch`, `/lead-magnets`, `/marketing-ideas`, `/marketing-psychology`, `/onboarding`, `/paywalls`, `/popups`, `/pricing`, `/product-marketing`, `/programmatic-seo`, `/prospecting`, `/referrals`, `/revops`, `/sales-enablement`, `/schema`, `/seo-audit`, `/signup`, `/site-architecture`, `/sms`, `/social`, `/video`
 
 **Установить позже** (подробности в [docs/roadmap.md](docs/roadmap.md)):
 - SEO/GEO — перед публичным запуском

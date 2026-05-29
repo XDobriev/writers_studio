@@ -48,17 +48,31 @@ export function SidebarFoot() {
 
   useEffect(() => {
     if (!dropdownOpen) return;
+    const rafId = requestAnimationFrame(() => {
+      containerRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    });
     const onMouseDown = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
       }
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setDropdownOpen(false);
+      if (e.key === 'Escape') { setDropdownOpen(false); return; }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const items = containerRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+        if (!items?.length) return;
+        const idx = Array.from(items).indexOf(document.activeElement as HTMLElement);
+        const next = e.key === 'ArrowDown'
+          ? (idx + 1) % items.length
+          : (idx - 1 + items.length) % items.length;
+        items[next].focus();
+      }
     };
     document.addEventListener('mousedown', onMouseDown);
     document.addEventListener('keydown', onKeyDown);
     return () => {
+      cancelAnimationFrame(rafId);
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKeyDown);
     };
@@ -67,22 +81,23 @@ export function SidebarFoot() {
   async function handleSignOut() {
     setDropdownOpen(false);
     setIsSigningOut(true);
-    await signOut();
-    setIsSigningOut(false);
+    try {
+      await signOut();
+    } finally {
+      setIsSigningOut(false);
+    }
   }
 
   return (
     <>
       <div ref={containerRef} style={{ position: 'relative' }}>
-        <div
+        <button
+          type="button"
           className="sb-foot"
-          role="button"
-          tabIndex={0}
           aria-label="Аккаунт"
           aria-haspopup="menu"
           aria-expanded={dropdownOpen}
           onClick={() => setDropdownOpen(v => !v)}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setDropdownOpen(v => !v); }}
         >
           <div className="sb-avatar" style={isSigningOut ? { opacity: 0.5 } : undefined}>{initials}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -92,7 +107,7 @@ export function SidebarFoot() {
           <span style={{ color: 'var(--ink-4)', flexShrink: 0, transition: 'transform 0.12s', transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', display: 'flex' }}>
             <Icon name="chevd" size={12} />
           </span>
-        </div>
+        </button>
         {dropdownOpen && (
           <div role="menu" style={{
             position: 'absolute',

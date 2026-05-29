@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { useWindowWidth } from '../lib/useWindowWidth';
-import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
@@ -22,12 +22,13 @@ import {
   updateRelationLabel,
   type CharacterRelation,
 } from '../lib/character_relations';
-import { QUERY_KEYS, useBook, useCharacters, useRelations } from '../lib/queries';
+import { QUERY_KEYS, useBook, useCharacters, useRelations, useChapterCharacters } from '../lib/queries';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type RoleFilter = 'all' | CharacterRole;
 type ViewMode = 'grid' | 'detail';
+type DetailTab = 'info' | 'chapters';
 
 const ROLE_FILTERS: { value: RoleFilter; label: string }[] = [
   { value: 'all', label: 'все' },
@@ -64,6 +65,8 @@ export default function Characters() {
   const [query, setQuery] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [detailTab, setDetailTab] = useState<DetailTab>('info');
+  const navigate = useNavigate();
 
   const activeId = search.get('character');
   const isMobile = useWindowWidth() < 768;
@@ -149,6 +152,8 @@ export default function Characters() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => { void flush(); }, 700);
   }, [flush, bookId, queryClient]);
+
+  useEffect(() => { setDetailTab('info'); }, [activeId]);
 
   const lastActiveIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -407,38 +412,87 @@ export default function Characters() {
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
               <HeroBlock character={active} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} />
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
-                <FieldCard
-                  label="Внешность"
-                  value={active.appearance}
-                  onChange={(v) => scheduleSave(active.id, { appearance: v })}
-                />
-                <FieldCard
-                  label="Характер"
-                  value={active.personality}
-                  onChange={(v) => scheduleSave(active.id, { personality: v })}
-                />
-                <FieldCard
-                  label="Предыстория"
-                  value={active.backstory}
-                  onChange={(v) => scheduleSave(active.id, { backstory: v })}
-                />
-                <FieldCard
-                  label="Авторские заметки"
-                  value={active.notes}
-                  onChange={(v) => scheduleSave(active.id, { notes: v })}
-                  warn
-                />
+              {/* Вкладки */}
+              <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border-soft)', marginBottom: 28 }}>
+                {(['info', 'chapters'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setDetailTab(tab)}
+                    style={{
+                      padding: '8px 16px',
+                      font: '500 12px var(--font-ui)',
+                      color: detailTab === tab ? 'var(--ink)' : 'var(--ink-3)',
+                      background: 'transparent',
+                      border: 'none',
+                      borderBottom: detailTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
+                      cursor: 'pointer',
+                      marginBottom: -1,
+                    }}
+                  >
+                    {tab === 'info' ? 'Сведения' : 'Главы'}
+                  </button>
+                ))}
               </div>
 
-              <RelationsBlock
-                activeId={active.id}
-                characters={characters}
-                relations={relations}
-                onCreate={onCreateRelation}
-                onDelete={onDeleteRelation}
-                onLabelChange={onRelationLabelChange}
-              />
+              {detailTab === 'info' ? (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+                    <FieldCard
+                      label="Внешность"
+                      value={active.appearance}
+                      onChange={(v) => scheduleSave(active.id, { appearance: v })}
+                    />
+                    <FieldCard
+                      label="Характер"
+                      value={active.personality}
+                      onChange={(v) => scheduleSave(active.id, { personality: v })}
+                    />
+                    <FieldCard
+                      label="Внутренний мир"
+                      hint="Что думает и чувствует внутри — страхи, желания, скрытое"
+                      value={active.interior_life}
+                      onChange={(v) => scheduleSave(active.id, { interior_life: v })}
+                    />
+                    <FieldCard
+                      label="Внешнее поведение"
+                      hint="Как выглядит в глазах других — слова, поступки, маска"
+                      value={active.exterior_life}
+                      onChange={(v) => scheduleSave(active.id, { exterior_life: v })}
+                    />
+                    <FieldCard
+                      label="Разрыв"
+                      hint="Где внутреннее расходится с внешним — источник конфликта"
+                      value={active.gap}
+                      onChange={(v) => scheduleSave(active.id, { gap: v })}
+                    />
+                    <FieldCard
+                      label="Предыстория"
+                      value={active.backstory}
+                      onChange={(v) => scheduleSave(active.id, { backstory: v })}
+                    />
+                    <FieldCard
+                      label="Авторские заметки"
+                      value={active.notes}
+                      onChange={(v) => scheduleSave(active.id, { notes: v })}
+                      warn
+                    />
+                  </div>
+
+                  <RelationsBlock
+                    activeId={active.id}
+                    characters={characters}
+                    relations={relations}
+                    onCreate={onCreateRelation}
+                    onDelete={onDeleteRelation}
+                    onLabelChange={onRelationLabelChange}
+                  />
+                </>
+              ) : (
+                <ChaptersTab
+                  characterId={active.id}
+                  onNavigate={(chapterId) => navigate(`/books/${bookId}/editor?chapter=${chapterId}`)}
+                />
+              )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, paddingBottom: 32 }}>
                 <button onClick={onDelete} className="btn btn--ghost" style={{ color: 'var(--danger)' }}>Удалить персонажа</button>
@@ -631,6 +685,8 @@ function HeroBlock({ character, onChange, onError }: {
 }) {
   const [name, setName] = useState(character.name);
   const [quote, setQuote] = useState(character.quote);
+  const [aliases, setAliases] = useState<string[]>(character.aliases ?? []);
+  const [aliasInput, setAliasInput] = useState('');
   const [editingQuote, setEditingQuote] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarHovered, setAvatarHovered] = useState(false);
@@ -644,6 +700,7 @@ function HeroBlock({ character, onChange, onError }: {
 
   useEffect(() => { setName(character.name); }, [character.id, character.name]);
   useEffect(() => { setQuote(character.quote); }, [character.id, character.quote]);
+  useEffect(() => { setAliases(character.aliases ?? []); setAliasInput(''); }, [character.id, character.aliases]);
   useEffect(() => {
     if (editingQuote && quoteRef.current) {
       autoResize(quoteRef.current);
@@ -663,6 +720,43 @@ function HeroBlock({ character, onChange, onError }: {
     autoResize(e.target);
   };
   const onRoleChange = (role: CharacterRole) => onChange({ role });
+
+  const addAlias = (val: string) => {
+    const trimmed = val.trim();
+    if (!trimmed || aliases.includes(trimmed)) { setAliasInput(''); return; }
+    const next = [...aliases, trimmed];
+    setAliases(next);
+    onChange({ aliases: next });
+    setAliasInput('');
+  };
+
+  const removeAlias = (alias: string) => {
+    const next = aliases.filter((a) => a !== alias);
+    setAliases(next);
+    onChange({ aliases: next });
+  };
+
+  const onAliasKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addAlias(aliasInput); }
+    else if (e.key === 'Backspace' && aliasInput === '' && aliases.length > 0) removeAlias(aliases[aliases.length - 1]);
+  };
+
+  const onAliasChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val.includes(',')) {
+      const parts = val.split(',');
+      // Аккумулируем локально, не вызывая addAlias повторно через stale closure
+      let current = aliases;
+      parts.slice(0, -1).forEach((p) => {
+        const trimmed = p.trim();
+        if (trimmed && !current.includes(trimmed)) current = [...current, trimmed];
+      });
+      if (current !== aliases) { setAliases(current); onChange({ aliases: current }); }
+      setAliasInput(parts[parts.length - 1]);
+    } else {
+      setAliasInput(val);
+    }
+  };
 
   const onFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -732,6 +826,40 @@ function HeroBlock({ character, onChange, onError }: {
           style={{ width: '100%', font: '600 44px var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 6, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', padding: '4px 0' }}
         />
 
+        {/* Псевдонимы / алиасы */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+          <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+            Псевдонимы / алиасы
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            {aliases.map((alias) => (
+              <span
+                key={alias}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 999, font: '400 12px var(--font-ui)', color: 'var(--ink-2)' }}
+              >
+                {alias}
+                <button
+                  type="button"
+                  onClick={() => removeAlias(alias)}
+                  style={{ display: 'flex', alignItems: 'center', background: 'transparent', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', padding: '0 2px', fontSize: 14, lineHeight: 1 }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--danger)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)'; }}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            <input
+              value={aliasInput}
+              onChange={onAliasChange}
+              onKeyDown={onAliasKeyDown}
+              onBlur={() => { if (aliasInput.trim()) addAlias(aliasInput); }}
+              placeholder={aliases.length === 0 ? 'Дём, Дэм, Дэмиен Старший' : '+ добавить'}
+              style={{ flex: '1 1 120px', minWidth: 80, background: 'transparent', border: 'none', outline: 'none', font: '400 12px var(--font-ui)', color: 'var(--ink)', padding: '2px 0' }}
+            />
+          </div>
+        </div>
+
         {editingQuote ? (
           <textarea
             ref={quoteRef}
@@ -760,11 +888,12 @@ function HeroBlock({ character, onChange, onError }: {
 
 // ─── Карточка поля ────────────────────────────────────────────────────────
 
-function FieldCard({ label, value, onChange, warn }: {
+function FieldCard({ label, value, onChange, warn, hint }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   warn?: boolean;
+  hint?: string;
 }) {
   const [local, setLocal] = useState(value);
   const initialRef = useRef(value);
@@ -777,10 +906,13 @@ function FieldCard({ label, value, onChange, warn }: {
 
   return (
     <div style={{ background: warn ? 'color-mix(in oklch, var(--accent) 8%, transparent)' : 'var(--surface)', border: `1px solid ${warn ? 'color-mix(in oklch, var(--accent) 40%, transparent)' : 'var(--border-soft)'}`, borderRadius: 12, padding: '16px 18px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: hint && !local ? 4 : 10 }}>
         {warn && <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />}
         <span style={{ font: '500 10.5px var(--font-mono)', color: warn ? 'var(--accent)' : 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{label}</span>
       </div>
+      {hint && !local && (
+        <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginBottom: 8, lineHeight: 1.45 }}>{hint}</div>
+      )}
       <textarea
         value={local}
         onChange={(e) => { setLocal(e.target.value); onChange(e.target.value); }}
@@ -955,4 +1087,59 @@ function RelationRow({ relation, partner, onDelete, onLabelChange }: {
       </button>
     </div>
   );
+}
+
+// ─── Вкладка «Главы» ─────────────────────────────────────────────────────────
+
+function ChaptersTab({ characterId, onNavigate }: {
+  characterId: string;
+  onNavigate: (chapterId: string) => void;
+}) {
+  const { data: rows, isLoading } = useChapterCharacters(characterId);
+
+  if (isLoading) {
+    return <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>Загрузка…</div>;
+  }
+
+  if (!rows || rows.length === 0) {
+    return (
+      <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', padding: '16px 0' }}>
+        Персонаж ещё не упомянут ни в одной главе
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {rows.map((cc) => (
+        <button
+          key={cc.id}
+          type="button"
+          onClick={() => onNavigate(cc.chapter_id)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 14px',
+            background: 'var(--surface)',
+            border: '1px solid var(--border-soft)',
+            borderRadius: 8,
+            cursor: 'pointer',
+            textAlign: 'left',
+            font: '400 13px var(--font-ui)',
+            color: 'var(--ink)',
+            transition: 'border-color 0.15s, background 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-soft)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface)'; }}
+        >
+          <span>{cc.chapters?.title || 'Без названия'}</span>
+          {cc.auto_detected && (
+            <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)' }}>(авто)</span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+
 }

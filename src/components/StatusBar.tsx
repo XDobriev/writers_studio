@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useWindowWidth } from '../lib/useWindowWidth';
 
 interface StatusBarProps {
@@ -12,10 +12,189 @@ interface StatusBarProps {
   onGoalChange?: (goal: number) => void;
 }
 
+const SOUNDS = [
+  { id: 'cafe' as const, label: 'Кафе', file: '/sounds/cafe.wav' },
+  { id: 'rain' as const, label: 'Дождь', file: '/sounds/rain.wav' },
+  { id: 'forest' as const, label: 'Лес', file: '/sounds/forest.wav' },
+  { id: 'fire' as const, label: 'Костёр', file: '/sounds/fire.wav' },
+  { id: 'noise' as const, label: 'Шум', file: '/sounds/noise.wav' },
+];
+
+type SoundId = typeof SOUNDS[number]['id'];
+
+const FADE_STEPS = 20;
+const FADE_MS = 500;
+
 export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, todayWords, goalWords = 1000, streak, onGoalChange }: StatusBarProps) {
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
   const isNarrow = useWindowWidth() < 480;
+
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [activeSound, setActiveSound] = useState<SoundId | null>(
+    () => localStorage.getItem('ambient-sound') as SoundId | null
+  );
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState<number>(() => {
+    const v = localStorage.getItem('ambient-volume');
+    return v !== null ? parseFloat(v) : 0.4;
+  });
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fadeRef = useRef<number | null>(null);
+  const isPlayingRef = useRef(false);
+  const volumeRef = useRef(volume);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  volumeRef.current = volume;
+
+  const clearFade = () => {
+    if (fadeRef.current !== null) {
+      clearInterval(fadeRef.current);
+      fadeRef.current = null;
+    }
+  };
+
+  const doFadeIn = (audio: HTMLAudioElement, targetVol: number) => {
+    clearFade();
+    audio.volume = 0;
+    let step = 0;
+    fadeRef.current = window.setInterval(() => {
+      step++;
+      audio.volume = Math.min(targetVol, targetVol * (step / FADE_STEPS));
+      if (step >= FADE_STEPS) clearFade();
+    }, FADE_MS / FADE_STEPS);
+  };
+
+  const doFadeOut = (audio: HTMLAudioElement, onDone: () => void) => {
+    clearFade();
+    const startVol = audio.volume;
+    if (startVol === 0) { onDone(); return; }
+    let step = 0;
+    fadeRef.current = window.setInterval(() => {
+      step++;
+      audio.volume = Math.max(0, startVol * (1 - step / FADE_STEPS));
+      if (step >= FADE_STEPS) { clearFade(); onDone(); }
+    }, FADE_MS / FADE_STEPS);
+  };
+
+  const startNewSound = (id: SoundId) => {
+    const sound = SOUNDS.find(s => s.id === id)!;
+    const audio = new Audio(sound.file);
+    audio.loop = true;
+    audio.volume = 0;
+    audioRef.current = audio;
+    audio.play().then(() => {
+      // Проверяем, что этот audio всё ещё актуален (быстрое переключение / unmount)
+      if (audioRef.current !== audio) { audio.pause(); return; }
+      isPlayingRef.current = true;
+      setIsPlaying(true);
+      doFadeIn(audio, volumeRef.current);
+    }).catch(() => {
+      // autoplay заблокирован — сбрасываем состояние
+      if (audioRef.current === audio) {
+        audioRef.current = null;
+        setActiveSound(null);
+        localStorage.removeItem('ambient-sound');
+      }
+    });
+  };
+
+  const selectSound = (id: SoundId) => {
+    if (activeSound === id && isPlayingRef.current) {
+      const audio = audioRef.current;
+      if (audio) {
+        doFadeOut(audio, () => {
+          audio.pause();
+          audioRef.current = null;
+          isPlayingRef.current = false;
+          setIsPlaying(false);
+          setActiveSound(null);
+          localStorage.removeItem('ambient-sound');
+        });
+      }
+      return;
+    }
+
+    setActiveSound(id);
+    localStorage.setItem('ambient-sound', id);
+
+    const prev = audioRef.current;
+    if (prev && isPlayingRef.current) {
+      doFadeOut(prev, () => {
+        prev.pause();
+        startNewSound(id);
+      });
+    } else {
+      clearFade();
+      if (prev) { prev.pause(); audioRef.current = null; }
+      startNewSound(id);
+    }
+  };
+
+  const stopAll = () => {
+    const audio = audioRef.current;
+    if (audio && isPlayingRef.current) {
+      // Сбрасываем сразу, чтобы visibilitychange не возобновил звук во время fade
+      isPlayingRef.current = false;
+      doFadeOut(audio, () => {
+        audio.pause();
+        audioRef.current = null;
+        setIsPlaying(false);
+        setActiveSound(null);
+        localStorage.removeItem('ambient-sound');
+      });
+    } else {
+      isPlayingRef.current = false;
+      setIsPlaying(false);
+      setActiveSound(null);
+      localStorage.removeItem('ambient-sound');
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = parseFloat(e.target.value);
+    setVolume(v);
+    localStorage.setItem('ambient-volume', String(v));
+    if (audioRef.current && isPlayingRef.current) {
+      clearFade();
+      audioRef.current.volume = v;
+    }
+  };
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      if (document.hidden) {
+        audio.pause();
+      } else if (isPlayingRef.current) {
+        audio.play().catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (fadeRef.current !== null) clearInterval(fadeRef.current);
+      audioRef.current?.pause();
+      audioRef.current = null;
+      isPlayingRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!popupOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setPopupOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [popupOpen]);
 
   function pluralDays(n: number): string {
     const m10 = n % 10, m100 = n % 100;
@@ -86,6 +265,104 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, tod
             </>
           )}
         </>
+      )}
+      {!isNarrow && (
+        <div ref={wrapperRef} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <button
+            onClick={() => setPopupOpen(o => !o)}
+            title="Фоновые звуки"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 22,
+              height: 22,
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              color: isPlaying ? 'var(--accent)' : 'var(--ink-3)',
+              borderRadius: 4,
+              marginLeft: 4,
+            }}
+          >
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', flexShrink: 0 }}>
+              <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
+              <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+            </svg>
+          </button>
+          {popupOpen && (
+            <div style={{
+              position: 'absolute',
+              bottom: 'calc(100% + 6px)',
+              right: 0,
+              width: 220,
+              background: 'var(--surface)',
+              border: '1px solid var(--border-soft)',
+              borderRadius: 8,
+              padding: '10px 12px',
+              zIndex: 200,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+            }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                {SOUNDS.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => selectSound(s.id)}
+                    style={{
+                      font: '400 12px var(--font-ui)',
+                      padding: '3px 10px',
+                      borderRadius: 999,
+                      border: activeSound === s.id ? '1.5px solid var(--accent)' : '1px solid var(--border-soft)',
+                      background: 'transparent',
+                      color: activeSound === s.id ? 'var(--ink)' : 'var(--ink-3)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: isPlaying ? 8 : 0 }}>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={volume}
+                  onChange={handleVolumeChange}
+                  style={{
+                    flex: 1,
+                    accentColor: 'var(--accent)',
+                    height: 4,
+                    cursor: 'pointer',
+                  }}
+                />
+                <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)', width: 28, textAlign: 'right' }}>
+                  {Math.round(volume * 100)}%
+                </span>
+              </div>
+              {isPlaying && (
+                <button
+                  onClick={stopAll}
+                  style={{
+                    width: '100%',
+                    font: '400 12px var(--font-ui)',
+                    padding: '4px 0',
+                    border: '1px solid var(--border-soft)',
+                    borderRadius: 4,
+                    background: 'transparent',
+                    color: 'var(--ink-3)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  × Стоп
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

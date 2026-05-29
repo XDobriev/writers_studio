@@ -12,16 +12,20 @@ export interface Character {
   quote: string;
   appearance: string;
   personality: string;
+  interior_life: string;
+  exterior_life: string;
+  gap: string;
   backstory: string;
   notes: string;
   position: number;
   avatar_url: string | null;
+  aliases: string[];
   created_at: string;
   updated_at: string;
 }
 
 export type CharacterPatch = Partial<
-  Pick<Character, 'name' | 'role' | 'age' | 'quote' | 'appearance' | 'personality' | 'backstory' | 'notes' | 'position' | 'avatar_url'>
+  Pick<Character, 'name' | 'role' | 'age' | 'quote' | 'appearance' | 'personality' | 'interior_life' | 'exterior_life' | 'gap' | 'backstory' | 'notes' | 'position' | 'avatar_url' | 'aliases'>
 >;
 
 export async function listCharacters(bookId: string): Promise<Character[]> {
