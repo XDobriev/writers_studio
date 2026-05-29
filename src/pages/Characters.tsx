@@ -577,6 +577,7 @@ function CharacterCard({ character: c, onSelect }: { character: Character; onSel
   return (
     <button
       onClick={() => onSelect(c.id)}
+      data-testid="character-card"
       style={{
         background: 'var(--surface)',
         border: '1px solid var(--border-soft)',

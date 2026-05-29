@@ -30,6 +30,9 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      - name: Unit tests
+        run: npm run test
+
   # ── Шаг 2: Playwright golden-path ───────────────────────────────
   # Запускается только на main или при PR в main.
   # Требует secrets: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
