@@ -60,6 +60,20 @@
   --font-serif: 'Source Serif 4', Georgia, serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
+  /* Motion: durations */
+  --dur-instant: 0.1s;
+  --dur-hover:   0.12s;
+  --dur-spring:  0.13s;
+  --dur-fast:    0.15s;
+  --dur-exit:    0.09s;
+  --dur-panel:   0.22s;
+  --dur-page:    0.2s;
+
+  /* Motion: easing */
+  --ease-spring:    cubic-bezier(0.22, 0.68, 0, 1.2);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+
   color-scheme: dark;
 }
 
@@ -110,6 +124,13 @@ html, body, #root {
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes slide-down { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes dropdown-in   { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes modal-in      { from { opacity: 0; transform: scale(0.97); } }
+@keyframes fade-in       { from { opacity: 0; } }
+@keyframes toast-out     { to   { opacity: 0; transform: translateY(-4px) scale(0.97); } }
+@keyframes panel-enter-right { from { transform: translateX(100%); } }
+@keyframes scale-flash   { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+@keyframes shimmer       { from { transform: translateX(-100%); } to { transform: translateX(200%); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -220,6 +241,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   align-items: center; gap: 8px;
   padding: 7px 8px; border-radius: var(--r-1);
   cursor: pointer; min-height: 32px;
+  transition: background var(--dur-hover);
 }
 .sb-item:hover { background: var(--surface); }
 .sb-item--on { background: var(--surface); }
@@ -300,6 +322,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   color: var(--ink-2); font-size: 12px;
   background: transparent; border: none; cursor: pointer;
   overflow: hidden;
+  transition: background var(--dur-hover), color var(--dur-hover);
 }
 .tb-btn:hover { background: var(--surface); color: var(--ink); }
 .tb-btn--on { background: var(--surface-2); color: var(--ink); }
@@ -321,15 +344,35 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   border: 1px solid oklch(100% 0 0 / 0.1);
   border-radius: 11px;
   box-shadow: 0 12px 32px oklch(0% 0 0 / 0.5), 0 1px 0 oklch(100% 0 0 / 0.07) inset;
-  animation: bubble-in 0.13s cubic-bezier(.22,.68,0,1.2) both;
+  animation: bubble-in var(--dur-spring) var(--ease-spring) both;
+  transition: opacity 0.08s ease-in;
 }
+.bubble-menu--leaving { opacity: 0; }
 .bubble-fmt { display: flex; align-items: center; gap: 1px; }
+
+/* Skeleton loading */
+.skeleton {
+  background: var(--surface);
+  border-radius: var(--r-1);
+  overflow: hidden;
+  position: relative;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.04), transparent);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+}
 .bubble-btn {
   width: 28px; height: 28px; padding: 0;
   border-radius: 6px;
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--ink-2); cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition: background var(--dur-instant), color var(--dur-instant);
 }
 .bubble-btn:hover { background: oklch(100% 0 0 / 0.1); color: var(--ink); }
 .bubble-btn--on { background: var(--accent); color: #fff; }
@@ -340,7 +383,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   border-radius: 50%; cursor: pointer;
   position: relative; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
-  transition: transform 0.12s;
+  transition: transform var(--dur-hover);
   box-shadow: 0 1px 4px oklch(0% 0 0 / 0.35);
 }
 .bubble-color:hover { transform: scale(1.25); }
@@ -377,7 +420,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .sheet-wrap::-webkit-scrollbar-thumb {
   background: var(--surface-3);
   border-radius: 999px;
-  transition: background 0.2s;
+  transition: background var(--dur-fast);
 }
 .sheet-wrap::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 .sheet {

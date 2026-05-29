@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -358,6 +359,7 @@ export default function Outline() {
   };
 
   return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%' }}>
     <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <aside className="sb">
@@ -454,5 +456,6 @@ export default function Outline() {
         </main>
       </div>
     </WithMode>
+    </motion.div>
   );
 }

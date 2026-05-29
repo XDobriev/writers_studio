@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, type ChangeEvent } from 'react';
+import { motion } from 'framer-motion';
 import { useWindowWidth } from '../lib/useWindowWidth';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -177,6 +178,7 @@ export default function MapScreen() {
   ];
 
   return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%' }}>
     <WithMode>
       {/* Hidden file input — единственный экземпляр */}
       <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={onFileChange} />
@@ -296,5 +298,6 @@ export default function MapScreen() {
         />
       )}
     </WithMode>
+    </motion.div>
   );
 }

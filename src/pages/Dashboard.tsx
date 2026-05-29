@@ -1,8 +1,10 @@
 import { Link, Navigate, useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useMemo, useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
+import { Skeleton } from '../components/Skeleton';
 import { updateBook } from '../lib/books';
 import { type Chapter } from '../lib/chapters';
 import { pluralDays, plural } from '../lib/useWritingStats';
@@ -271,8 +273,14 @@ export default function Dashboard() {
 
   if (!book || !chapters || !characters || !stats) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink-3)', padding: 32 }}>
-        Загрузка…
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 16 }}>
+          {Array.from({ length: 5 }, (_, i) => (
+            <div key={i} className="skeleton" style={{ height: 116, borderRadius: 12 }} />
+          ))}
+        </div>
+        <div className="skeleton" style={{ height: 72, borderRadius: 12 }} />
+        <Skeleton lines={4} height={18} widths={[60, 75, 50, 70]} />
       </div>
     );
   }
@@ -280,6 +288,7 @@ export default function Dashboard() {
   const navTo = (path: string) => `/books/${id}${path}`;
 
   return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%' }}>
     <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
         {!isMobile && <Sidebar book={book} />}
@@ -598,5 +607,6 @@ export default function Dashboard() {
         </div>
       )}
     </WithMode>
+    </motion.div>
   );
 }

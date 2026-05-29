@@ -304,6 +304,7 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, tod
               padding: '10px 12px',
               zIndex: 200,
               boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+              animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both',
             }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
                 {SOUNDS.map(s => (

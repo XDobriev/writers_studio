@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { motion } from 'framer-motion';
 import { useWindowWidth } from '../lib/useWindowWidth';
 import { Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -255,6 +256,7 @@ export default function Timeline() {
   const showLane = view === 'lane' && !isMobile;
 
   return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%' }}>
     <WithMode>
       <div
         className="as as-app as-app--no-right"
@@ -465,6 +467,7 @@ export default function Timeline() {
         />
       )}
     </WithMode>
+    </motion.div>
   );
 }
 

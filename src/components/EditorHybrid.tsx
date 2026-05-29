@@ -105,6 +105,7 @@ export function EditorHybrid({
   const [showMobileRight, setShowMobileRight] = useState(false);
   const [showPageHint, setShowPageHint] = useState(false);
   const [goalToast, setGoalToast] = useState<'reached' | 'exceeded' | null>(null);
+  const [goalToastLeaving, setGoalToastLeaving] = useState(false);
   const { isMobile, showLeft, showRight, isPage, cols, sheetWidth, sheetPad } = useEditorLayout(mode);
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
@@ -228,21 +229,26 @@ export function EditorHybrid({
 
   useEffect(() => {
     if (!goalToast) return;
-    const t = setTimeout(() => setGoalToast(null), 4000);
+    const t = setTimeout(() => {
+      setGoalToastLeaving(true);
+      setTimeout(() => { setGoalToast(null); setGoalToastLeaving(false); }, 100);
+    }, 3900);
     return () => clearTimeout(t);
   }, [goalToast]);
 
   return (
-    <div className="as" style={{ height: '100%', overflow: 'hidden', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative', transition: 'none' }}>
+    <div className="as" style={{ height: '100%', overflow: 'hidden', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative' }}>
       {isPage && !isMobile && <RailNav active="editor" bookId={book?.id} style={{ position: 'relative', height: '100%' }} />}
 
       {showLeft && (
-        <Sidebar
-          book={book}
-          chapters={chapters}
-          activeChapterId={activeChapter?.id ?? null}
-          chapterActions={chapterActions}
-        />
+        <div style={{ animation: 'fade-in 0.15s cubic-bezier(0.22, 1, 0.36, 1) both', display: 'contents' }}>
+          <Sidebar
+            book={book}
+            chapters={chapters}
+            activeChapterId={activeChapter?.id ?? null}
+            chapterActions={chapterActions}
+          />
+        </div>
       )}
 
       <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
@@ -380,16 +386,18 @@ export function EditorHybrid({
       </main>
 
       {showRight && (
-        <RightPanel
-          bookId={book?.id}
-          chapterId={activeChapter?.id}
-          chapterTitle={activeChapter?.title}
-          userId={activeChapter?.user_id}
-          currentContent={activeContent}
-          isPro={isPro}
-          onRestoreContent={restoreContent}
-          openNoteAt={openNoteAt}
-        />
+        <div style={{ animation: 'fade-in 0.15s cubic-bezier(0.22, 1, 0.36, 1) both', display: 'contents' }}>
+          <RightPanel
+            bookId={book?.id}
+            chapterId={activeChapter?.id}
+            chapterTitle={activeChapter?.title}
+            userId={activeChapter?.user_id}
+            currentContent={activeContent}
+            isPro={isPro}
+            onRestoreContent={restoreContent}
+            openNoteAt={openNoteAt}
+          />
+        </div>
       )}
 
       {isMobile && showMobileSidebar && (
@@ -420,7 +428,7 @@ export function EditorHybrid({
             onClick={() => setShowMobileRight(false)}
             style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
           />
-          <div style={{ position: 'fixed', top: 0, right: 0, width: 300, maxWidth: '90vw', height: '100%', zIndex: 41, boxShadow: '-4px 0 32px oklch(0.05 0.01 50 / 0.35)' }}>
+          <div style={{ position: 'fixed', top: 0, right: 0, width: 300, maxWidth: '90vw', height: '100%', zIndex: 41, boxShadow: '-4px 0 32px oklch(0.05 0.01 50 / 0.35)', animation: 'panel-enter-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both' }}>
             <RightPanel
               bookId={book?.id}
               chapterId={activeChapter?.id}
@@ -453,7 +461,9 @@ export function EditorHybrid({
             font: '400 13px var(--font-ui)',
             color: 'var(--ink)',
             pointerEvents: 'none',
-            animation: 'toast-in 0.2s cubic-bezier(0.22,0.68,0,1.2)',
+            animation: goalToastLeaving
+              ? 'toast-out 0.1s ease-in both'
+              : 'toast-in 0.2s cubic-bezier(0.22,0.68,0,1.2)',
           }}
         >
           <span style={{ fontSize: 16 }}>{goalToast === 'exceeded' ? '💪' : '🎉'}</span>

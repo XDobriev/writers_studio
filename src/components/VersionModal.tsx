@@ -154,6 +154,7 @@ export function VersionModal({
         style={{
           position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200,
+          animation: 'fade-in 0.15s ease-out both',
         }}
         onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
       >
@@ -165,6 +166,7 @@ export function VersionModal({
             borderRadius: 'var(--r-3)', width: 560, maxHeight: '72vh',
             display: 'flex', flexDirection: 'column',
             boxShadow: '0 20px 60px oklch(0 0 0 / 0.5)',
+            animation: 'modal-in 0.15s cubic-bezier(.22,.68,0,1.2) both',
           }}
         >
           <div style={{

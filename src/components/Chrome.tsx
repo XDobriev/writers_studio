@@ -9,6 +9,7 @@ import { updateBook } from '../lib/books';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useAuth } from '../lib/auth';
 import { SettingsModal } from './SettingsModal';
+import { Skeleton } from './Skeleton';
 
 export const PLAN_LABEL: Record<string, string> = {
   free: 'Free',
@@ -121,7 +122,7 @@ export function SidebarFoot() {
             padding: 4,
             boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)',
             zIndex: 100,
-            animation: 'bubble-in 0.13s cubic-bezier(.22,.68,0,1.2) both',
+            animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both',
           }}>
             <button
               type="button"
@@ -238,7 +239,7 @@ export function Sidebar({
                   type="button"
                   onClick={() => void handleCopy()}
                   title="Скопировать ссылку"
-                  style={{ flex: 1, font: '500 11px var(--font-ui)', color: copied ? 'var(--ok)' : 'var(--ink-2)', background: 'var(--bg-deep)', border: '1px solid var(--border-soft)', borderRadius: 5, padding: '4px 6px', cursor: 'pointer', transition: 'color 0.15s' }}
+                  style={{ flex: 1, font: '500 11px var(--font-ui)', color: copied ? 'var(--ok)' : 'var(--ink-2)', background: 'var(--bg-deep)', border: '1px solid var(--border-soft)', borderRadius: 5, padding: '4px 6px', cursor: 'pointer', transition: 'color var(--dur-fast)', animation: copied ? 'scale-flash 0.2s ease-out' : undefined }}
                 >
                   {copied ? '✓ Скопировано' : '🔗 Ссылка'}
                 </button>
@@ -309,7 +310,7 @@ export function Sidebar({
                     <span style={{ width: 6, height: 6, borderRadius: 999, background: SB_STATUS_COLOR[c.status], display: 'block' }} />
                   </button>
                   {statusMenuFor === c.id && (
-                    <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)' }}>
+                    <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)', animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both' }}>
                       <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px 6px' }}>Статус</div>
                       {(['draft', 'progress', 'done'] as ChapterStatus[]).map((s) => (
                         <button
@@ -375,6 +376,17 @@ export function Sidebar({
                 <span />
               </button>
             )}
+          </div>
+        </>
+      ) : Boolean(book?.id) ? (
+        <>
+          <div className="sb-section">
+            <span className="sb-section-title">Главы</span>
+          </div>
+          <div className="sb-list">
+            <div style={{ padding: '8px 14px' }}>
+              <Skeleton lines={5} height={14} />
+            </div>
           </div>
         </>
       ) : children ? children : (

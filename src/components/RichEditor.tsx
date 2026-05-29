@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { Icon } from './Icon';
@@ -119,6 +119,33 @@ export function RichEditor({
     editor.commands.setContent(value, { emitUpdate: false });
   }, [editor, value]);
 
+  const bubbleStateRef = useRef<'hidden' | 'visible' | 'leaving'>('hidden');
+  const bubbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [bubbleState, setBubbleState] = useState<'hidden' | 'visible' | 'leaving'>('hidden');
+
+  useEffect(() => {
+    if (!editor) return;
+    const check = () => {
+      const hasSelection = !editor.state.selection.empty;
+      const cur = bubbleStateRef.current;
+      if (hasSelection && cur !== 'visible') {
+        if (bubbleTimerRef.current) { clearTimeout(bubbleTimerRef.current); bubbleTimerRef.current = null; }
+        bubbleStateRef.current = 'visible';
+        setBubbleState('visible');
+      } else if (!hasSelection && cur === 'visible') {
+        bubbleStateRef.current = 'leaving';
+        setBubbleState('leaving');
+        bubbleTimerRef.current = setTimeout(() => {
+          bubbleStateRef.current = 'hidden';
+          setBubbleState('hidden');
+        }, 80);
+      }
+    };
+    editor.on('selectionUpdate', check);
+    editor.on('blur', check);
+    return () => { editor.off('selectionUpdate', check); editor.off('blur', check); };
+  }, [editor]);
+
   const [spellPopup, setSpellPopup] = useState<{
     x: number; y: number; suggestions: string[]; from: number; to: number;
   } | null>(null);
@@ -200,9 +227,9 @@ export function RichEditor({
 
   return (
     <>
-      {editor && (
-        <BubbleMenu editor={editor}>
-          <div className="bubble-menu">
+      {editor && bubbleState !== 'hidden' && (
+        <BubbleMenu editor={editor} shouldShow={() => true}>
+          <div className={`bubble-menu${bubbleState === 'leaving' ? ' bubble-menu--leaving' : ''}`}>
             <div className="bubble-fmt">
               {FMT.map(({ name, icon, label }) => (
                 <button
