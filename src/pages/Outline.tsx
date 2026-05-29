@@ -43,6 +43,7 @@ interface RowProps {
   renameFor: string | null;
   setRenameFor: (id: string | null) => void;
   onRename: (id: string, title: string) => void;
+  maxWords: number;
 }
 
 const MENU_ITEM: React.CSSProperties = {
@@ -65,10 +66,12 @@ function SortableChapterRow({
   renameFor,
   setRenameFor,
   onRename,
+  maxWords,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id });
   const renameInputRef = useRef<HTMLInputElement>(null);
   const [renameValue, setRenameValue] = useState('');
+  const pct = c.words > 0 ? Math.round((c.words / maxWords) * 100) : 0;
 
   useEffect(() => {
     if (renameFor === c.id) {
@@ -150,6 +153,12 @@ function SortableChapterRow({
             <div style={{ font: '500 15px var(--font-serif)', color: c.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)' }}>
               {c.title || 'Без названия'}
             </div>
+            {pct > 0 && (
+              <div style={{ position: 'relative', height: 2, marginTop: 5, borderRadius: 1 }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'var(--accent)', borderRadius: 1, opacity: 0.35 }} />
+                <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${pct}%`, background: 'var(--accent)', borderRadius: 1, opacity: 0.7, transition: 'width 0.3s ease' }} />
+              </div>
+            )}
           </div>
           <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 4 }}>
             {c.words.toLocaleString('ru')} сл
@@ -262,6 +271,11 @@ export default function Outline() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [menuFor]);
+
+  const maxWords = useMemo(
+    () => Math.max(...(chapters ?? []).map((c) => c.words), 1),
+    [chapters],
+  );
 
   const totals = useMemo(() => {
     if (!chapters) return { count: 0, words: 0, done: 0, progress: 0, draft: 0 };
@@ -429,6 +443,7 @@ export default function Outline() {
                         renameFor={renameFor}
                         setRenameFor={setRenameFor}
                         onRename={onRename}
+                        maxWords={maxWords}
                       />
                     ))}
                   </SortableContext>
