@@ -39,7 +39,11 @@ function readLocalSession(): Session | null {
     const raw = localStorage.getItem(`sb-${ref}-auth-token`);
     if (!raw) return null;
     const data = JSON.parse(raw) as Record<string, unknown> | null;
-    return data?.access_token ? (data as unknown as Session) : null;
+    if (!data?.access_token) return null;
+    // expires_at — unix секунды; отбрасываем уже истёкшие токены
+    const exp = data.expires_at as number | undefined;
+    if (exp && exp < Math.floor(Date.now() / 1000)) return null;
+    return data as unknown as Session;
   } catch { return null; }
 }
 

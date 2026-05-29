@@ -21,10 +21,12 @@ export function useUserDisplay() {
 
   useEffect(() => {
     if (!user) return;
-    getProfile(user.id).then((profile) => {
-      if (profile?.plan) setPlan(profile.plan);
-      setPlanLoaded(true);
-    });
+    getProfile(user.id)
+      .then((profile) => {
+        setPlan(profile?.plan ?? 'free');
+        setPlanLoaded(true);
+      })
+      .catch(() => setPlanLoaded(true));
   }, [user]);
 
   return { displayName, initials, plan, planLoaded };

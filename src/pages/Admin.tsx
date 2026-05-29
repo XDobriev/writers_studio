@@ -103,6 +103,9 @@ export default function Admin() {
       else setStats(statsRes.data as AdminStats);
       if (usersRes.error) setErr((prev) => prev ?? usersRes.error!.message);
       else setUsers(usersRes.data as AdminUser[]);
+    }).catch((e: Error) => {
+      setIsAdmin(false);
+      setErr(e.message);
     });
   }, [user]);
 
