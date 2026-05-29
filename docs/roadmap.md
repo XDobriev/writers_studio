@@ -320,6 +320,21 @@ _Обновлён: 2026-05-29 (закрыты: §34 SidebarFoot div→button ✅
 
 ---
 
+### 28а. Рефакторинг: извлечь `useDebouncedSave` хук
+
+**Что это:** паттерн `saveTimer/pendingPatch/targetIdRef/flush/scheduleSave` продублирован дословно в `Editor.tsx` и `Characters.tsx`. Любое изменение логики сохранения (retry, backoff, сообщения об ошибках) нужно делать в двух местах.
+
+**Почему сейчас SEPARATE_PRODUCT_TASK:** `Editor.tsx` содержит `beforeunload`-обработчик, который читает `pendingPatch.current` напрямую из замыкания. Если refs уйдут в хук, обработчик должен получать их через возврат хука — нетривиально и требует отдельного тестирования save-at-unload поведения.
+
+**Что сделать:**
+1. Создать `src/lib/useDebouncedSave.ts` — хук принимает `onFlush: (id, patch) => Promise<void>` и `delay = 700`
+2. Экспортировать refs (`pendingPatchRef`, `targetIdRef`) для использования в `beforeunload`
+3. Заменить в `Editor.tsx` и `Characters.tsx`
+
+**Validation:** убедиться что save-при-закрытии вкладки (`beforeunload`) не регрессировал — открыть редактор, написать текст, закрыть вкладку до 700мс debounce.
+
+---
+
 ### 28. Аудит гонки состояний в компонентах
 
 **Что это:** в `SettingsModal` обнаружена гонка состояний — план отображался как `'free'` пока не загрузится профиль из Supabase. Аналогичный паттерн (`useState('free/null/empty')` + `useEffect` с запросом) может встречаться в других компонентах.

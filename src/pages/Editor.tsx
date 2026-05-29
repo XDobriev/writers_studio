@@ -85,10 +85,11 @@ export default function Editor() {
   const targetIdRef = useRef<string | null>(null);
   const sessionTokenRef = useRef<string | null>(null);
   const currentContentRef = useRef<string>('');
-  const planRef = useRef<string>('free');
   const lastVersionContentRef = useRef<Map<string, string>>(new Map());
   const { plan } = useUserDisplay();
   const isPro = plan === 'pro' || plan === 'lifetime';
+  // null означает "план ещё не загружен"; обновляется через useEffect ниже
+  const planRef = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -206,7 +207,7 @@ export default function Editor() {
       const content = currentContentRef.current;
       if (userId && content && lastVersionContentRef.current.get(prevId) !== content) {
         lastVersionContentRef.current.set(prevId, content);
-        void createVersion(prevId, userId, content, countWords(content), 'chapter_switch', planRef.current === 'pro' || planRef.current === 'lifetime');
+        void createVersion(prevId, userId, content, countWords(content), 'chapter_switch', (planRef.current ?? 'free') === 'pro' || (planRef.current ?? 'free') === 'lifetime');
       }
     }
     lastActiveIdRef.current = newId;
@@ -245,7 +246,7 @@ export default function Editor() {
       if (!content) return;
       if (lastVersionContentRef.current.get(chapterId) === content) return;
       lastVersionContentRef.current.set(chapterId, content);
-      void createVersion(chapterId, userId, content, countWords(content), 'timer', planRef.current === 'pro' || planRef.current === 'lifetime');
+      void createVersion(chapterId, userId, content, countWords(content), 'timer', (planRef.current ?? 'free') === 'pro' || (planRef.current ?? 'free') === 'lifetime');
     }, intervalMs);
     return () => clearInterval(id);
   }, [activeChapter?.id, user?.id, isPro]);
