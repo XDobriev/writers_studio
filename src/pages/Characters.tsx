@@ -23,6 +23,7 @@ import {
   type CharacterRelation,
 } from '../lib/character_relations';
 import { QUERY_KEYS, useBook, useCharacters, useRelations, useChapterCharacters } from '../lib/queries';
+import { syncCharacterAcrossAllChapters } from '../lib/crossrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -134,6 +135,11 @@ export default function Characters() {
         prev ? prev.map((c) => (c.id === id ? updated : c)) : prev
       );
       setSaveState('saved');
+      if (patch.name !== undefined || patch.aliases !== undefined) {
+        void syncCharacterAcrossAllChapters(updated, bookId)
+          .then(() => { void queryClient.invalidateQueries({ queryKey: ['chapter-characters'] }); })
+          .catch(() => { /* non-critical */ });
+      }
     } catch (e) {
       setSaveState('error');
       setError((e as Error).message);
@@ -439,11 +445,13 @@ export default function Characters() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
                     <FieldCard
                       label="Внешность"
+                      hint="Внешний вид, манера держаться, первое впечатление"
                       value={active.appearance}
                       onChange={(v) => scheduleSave(active.id, { appearance: v })}
                     />
                     <FieldCard
                       label="Характер"
+                      hint="Черты личности, привычки, реакции на стресс"
                       value={active.personality}
                       onChange={(v) => scheduleSave(active.id, { personality: v })}
                     />
@@ -459,14 +467,17 @@ export default function Characters() {
                       value={active.exterior_life}
                       onChange={(v) => scheduleSave(active.id, { exterior_life: v })}
                     />
-                    <FieldCard
-                      label="Разрыв"
-                      hint="Где внутреннее расходится с внешним — источник конфликта"
-                      value={active.gap}
-                      onChange={(v) => scheduleSave(active.id, { gap: v })}
-                    />
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <FieldCard
+                        label="Разрыв"
+                        hint="Где внутреннее расходится с внешним — источник конфликта"
+                        value={active.gap}
+                        onChange={(v) => scheduleSave(active.id, { gap: v })}
+                      />
+                    </div>
                     <FieldCard
                       label="Предыстория"
+                      hint="События прошлого, сформировавшие персонажа"
                       value={active.backstory}
                       onChange={(v) => scheduleSave(active.id, { backstory: v })}
                     />

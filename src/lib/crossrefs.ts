@@ -47,6 +47,44 @@ export async function listChapterCharacters(characterId: string): Promise<Chapte
   return rows.sort((a, b) => (a.chapters?.position ?? 0) - (b.chapters?.position ?? 0));
 }
 
+export async function syncCharacterAcrossAllChapters(
+  character: Character,
+  bookId: string,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from('chapters')
+    .select('id, content')
+    .eq('book_id', bookId);
+  if (error || !data) return;
+  const aliases = [character.name, ...(character.aliases ?? [])].filter(Boolean);
+  await Promise.all(
+    data.map(async (chapter) => {
+      const found = extractCharacterMentions(chapter.content ?? '', aliases);
+      if (found) {
+        await supabase
+          .from('chapter_characters')
+          .upsert(
+            {
+              book_id: bookId,
+              user_id: character.user_id,
+              chapter_id: chapter.id,
+              character_id: character.id,
+              auto_detected: true,
+            },
+            { onConflict: 'chapter_id,character_id', ignoreDuplicates: true },
+          );
+      } else {
+        await supabase
+          .from('chapter_characters')
+          .delete()
+          .eq('chapter_id', chapter.id)
+          .eq('character_id', character.id)
+          .eq('auto_detected', true);
+      }
+    }),
+  );
+}
+
 export async function syncBacklinks(
   chapterId: string,
   bookId: string,
