@@ -125,7 +125,9 @@ export default function Dashboard() {
     for (const c of cells) cellByDate[c.date] = c;
 
     let streak = 0;
-    const cur = new Date(today);
+    const streakStart = new Date(today);
+    if ((cellByDate[todayStr]?.delta ?? 0) === 0) streakStart.setDate(streakStart.getDate() - 1);
+    const cur = new Date(streakStart);
     for (let i = 0; i < 366; i++) {
       const ds = cur.toISOString().slice(0, 10);
       if ((cellByDate[ds]?.delta ?? 0) > 0) {
@@ -211,6 +213,18 @@ export default function Dashboard() {
           ? `в среднем ${fmtNumber(Math.round(book.words / stats.daysActive))} слов/день`
           : '—',
       },
+      (() => {
+        const totalMins = Math.round(book.words / 200);
+        const hours = Math.floor(totalMins / 60);
+        const mins = totalMins % 60;
+        const pages = Math.round(book.words / 250);
+        return {
+          l: 'Время чтения',
+          v: hours > 0 ? `${hours} ч ${mins} мин` : `${totalMins} мин`,
+          sub: book.words > 0 ? `≈ ${pages} ${plural(pages, 'страница', 'страницы', 'страниц')} А4` : 'нет текста',
+          delta: '200 слов/мин',
+        };
+      })(),
     ];
   }, [book, chapters, characters, stats]);
 
@@ -298,11 +312,11 @@ export default function Dashboard() {
           </div>
 
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '20px 16px 40px' : '28px 32px 40px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 16, marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(190px, 1fr))', gap: isMobile ? 10 : 16, marginBottom: 20 }}>
               {statCards.map((s) => (
                 <div key={s.l} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 20px' }}>
                   <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>{s.l}</div>
-                  <div style={{ font: '600 32px var(--font-serif)', letterSpacing: '-0.012em', color: 'var(--ink)' }}>{s.v}</div>
+                  <div style={{ font: '600 32px var(--font-mono)', letterSpacing: '-0.012em', color: 'var(--ink)' }}>{s.v}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>{s.sub}</div>
                   <div style={{ font: '500 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 10, letterSpacing: '0.04em' }}>{s.delta}</div>
                 </div>
@@ -371,6 +385,9 @@ export default function Dashboard() {
                     {activityData.todayWords > 0 && (
                       <span>{fmtNumber(activityData.todayWords)} слов сегодня</span>
                     )}
+                    {activityData.maxDelta > 0 && (
+                      <span>рекорд: {fmtNumber(activityData.maxDelta)} слов</span>
+                    )}
                   </div>
                 )}
               </div>
@@ -421,7 +438,8 @@ export default function Dashboard() {
                             return (
                               <div
                                 key={cell.date}
-                                title={cell.future ? '' : `${cell.date}: +${fmtNumber(cell.delta)} слов`}
+                                title={!isMobile && !cell.future ? `${cell.date}: +${fmtNumber(cell.delta)} слов` : undefined}
+                                aria-label={isMobile && !cell.future ? `${cell.date}: +${fmtNumber(cell.delta)} слов` : undefined}
                                 style={{ width: '100%', aspectRatio: '1', borderRadius: 2, background: bg }}
                               />
                             );
@@ -446,6 +464,15 @@ export default function Dashboard() {
                         );
                       })}
                     </div>
+                  </div>
+
+                  {/* Intensity legend */}
+                  <div style={{ paddingLeft: 22, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                    <span style={{ font: '400 9px var(--font-mono)', color: 'var(--ink-4)', marginRight: 3 }}>меньше</span>
+                    {(['var(--surface-3)', 'oklch(0.63 0.16 30 / 0.28)', 'oklch(0.63 0.16 30 / 0.52)', 'oklch(0.63 0.16 30 / 0.76)', 'var(--accent)'] as const).map((bg, i) => (
+                      <div key={i} style={{ width: 8, height: 8, borderRadius: 2, background: bg, flexShrink: 0 }} />
+                    ))}
+                    <span style={{ font: '400 9px var(--font-mono)', color: 'var(--ink-4)', marginLeft: 3 }}>больше</span>
                   </div>
 
                   {/* Cumulative volume line chart */}
