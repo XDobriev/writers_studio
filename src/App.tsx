@@ -86,7 +86,7 @@ export default function App() {
       persistOptions={{ persister, maxAge: 24 * 60 * 60_000 }}
     >
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthQuerySync />
         <OfflineBanner />
         <CookieBanner />

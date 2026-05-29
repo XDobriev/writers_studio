@@ -2,6 +2,7 @@
 
 :root {
   /* surfaces — warm dark, oak-stained */
+  --bg-void: oklch(0.13 0.012 50);
   --bg-deep: oklch(0.165 0.012 50);
   --bg: oklch(0.205 0.014 50);
   --surface: oklch(0.245 0.014 50);
@@ -68,6 +69,7 @@
    одинаково работают в обеих темах. */
 [data-theme="light"] {
   /* surfaces — тёплый пергамент/льняная бумага */
+  --bg-void: oklch(0.83 0.012 65);
   --bg-deep: oklch(0.89 0.012 65);
   --bg:      oklch(0.96 0.008 70);
   --surface:   oklch(0.93 0.010 65);
@@ -108,6 +110,14 @@ html, body, #root {
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes slide-down { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
 .page-spinner {
   width: 28px; height: 28px; border-radius: 50%;
@@ -161,7 +171,7 @@ html, body, #root {
   display: flex; flex-direction: column; gap: 2px;
 }
 .sb-book-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-ui);
   font-size: 16px; font-weight: 500;
   letter-spacing: -0.005em;
   color: var(--ink);
@@ -237,7 +247,12 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 
 .sb-foot {
   padding: 12px 14px;
+  border: none;
   border-top: 1px solid var(--border-soft);
+  background: none;
+  width: 100%;
+  text-align: left;
+  font: inherit;
   display: flex; align-items: center; gap: 10px;
   cursor: pointer;
   transition: background 0.12s;
@@ -302,8 +317,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .bubble-menu {
   display: flex; align-items: center; gap: 6px;
   padding: 5px 8px;
-  background: oklch(11% 0.014 50 / 0.94);
-  backdrop-filter: blur(20px) saturate(1.4);
+  background: oklch(11% 0.014 50 / 0.97);
   border: 1px solid oklch(100% 0 0 / 0.1);
   border-radius: 11px;
   box-shadow: 0 12px 32px oklch(0% 0 0 / 0.5), 0 1px 0 oklch(100% 0 0 / 0.07) inset;

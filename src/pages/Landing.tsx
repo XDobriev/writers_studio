@@ -1,4 +1,4 @@
-import { type ComponentProps, type ReactNode } from 'react';
+import { type ComponentProps, type ReactNode, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { Icon } from '../components/Icon';
@@ -26,12 +26,39 @@ const MS = [
 export default function Landing() {
   const { session } = useAuth();
 
+  useEffect(() => {
+    const els = document.querySelectorAll<Element>('.lnd-reveal');
+    if (!els.length) return;
+    const io = new IntersectionObserver(
+      entries => entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('lnd-visible'); io.unobserve(e.target); }
+      }),
+      { threshold: 0.08 }
+    );
+    els.forEach(el => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
   if (session) return <Navigate to="/books" replace />;
 
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)' }}>
       <style>{`
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+        @media (prefers-reduced-motion: no-preference) {
+          @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+          @keyframes lnd-fade-up { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+        }
+        .lnd-reveal { opacity: 0; }
+        @media (prefers-reduced-motion: no-preference) {
+          .lnd-reveal { transform: translateY(18px); }
+          .lnd-reveal.lnd-visible { animation: lnd-fade-up 0.55s cubic-bezier(0.16,1,0.3,1) forwards; }
+          .lnd-reveal.lnd-visible.d1 { animation-delay: 0.1s; }
+          .lnd-reveal.lnd-visible.d2 { animation-delay: 0.2s; }
+          .lnd-reveal.lnd-visible.d3 { animation-delay: 0.3s; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lnd-reveal { opacity: 1; transform: none; }
+        }
         .lnd-max { max-width: 1300px; margin: 0 auto; }
         .lnd-hero-grid { display: grid; grid-template-columns: 1.05fr 1.15fr; gap: 64px; align-items: center; }
         .lnd-feat-row { display: grid; grid-template-columns: 0.95fr 1.15fr; gap: 80px; align-items: center; padding: 72px 0; border-top: 1px solid var(--border-soft); }
@@ -40,34 +67,43 @@ export default function Landing() {
         .lnd-bullets { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 480px; }
         .lnd-proc { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; position: relative; }
         .lnd-proc::before { content:''; position:absolute; top:24px; left:12.5%; right:12.5%; height:1px; background:var(--border); }
-        .lnd-quotes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; max-width: 1100px; margin: 0 auto; }
         .lnd-prices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1100px; margin: 0 auto; }
         .lnd-nav-links { display: flex; gap: 28px; font-size: 13.5px; color: var(--ink-2); }
+        .lnd-manifesto { display: flex; flex-direction: column; }
+        .lnd-manifesto-row { display: grid; grid-template-columns: 52px 1fr; gap: 40px; padding: 36px 0; border-top: 1px solid var(--border-soft); align-items: start; }
+        .lnd-footer-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 40px; }
+        details summary::marker, details summary::-webkit-details-marker { display: none; }
         @media (max-width: 1023px) {
           .lnd-hero-grid { grid-template-columns: 1fr; }
           .lnd-hero-sheet { display: none; }
           .lnd-feat-row { grid-template-columns: 1fr; gap: 40px; padding: 48px 0; }
           .lnd-feat-row--rev .lnd-text { order: 1; }
           .lnd-feat-row--rev .lnd-mock { order: 2; }
-          .lnd-quotes { grid-template-columns: 1fr; }
           .lnd-prices { grid-template-columns: 1fr; }
           .lnd-proc { grid-template-columns: repeat(2, 1fr); }
           .lnd-proc::before { display: none; }
           .lnd-nav-links { display: none; }
+          .lnd-footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
         }
         @media (max-width: 639px) {
           .lnd-bullets { grid-template-columns: 1fr; }
           .lnd-proc { grid-template-columns: 1fr; }
+          .lnd-manifesto-row { grid-template-columns: 40px 1fr; gap: 20px; padding: 28px 0; }
+        }
+        @media (max-width: 479px) {
+          .lnd-footer-grid { grid-template-columns: 1fr; }
         }
       `}</style>
       <LandingNav />
-      <LandingHero />
-      <LandingFeatures />
-      <LandingProcess />
-      <LandingPrinciples />
-      <LandingPricing />
-      <LandingFAQ />
-      <LandingCTA />
+      <main>
+        <LandingHero />
+        <LandingFeatures />
+        <LandingProcess />
+        <LandingPrinciples />
+        <LandingPricing />
+        <LandingFAQ />
+        <LandingCTA />
+      </main>
       <LandingFooter />
     </div>
   );
@@ -76,8 +112,21 @@ export default function Landing() {
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 
 function LandingNav() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => window.removeEventListener('scroll', fn);
+  }, []);
   return (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, padding: 'clamp(16px,2vw,20px) clamp(20px,4vw,56px)', display: 'flex', alignItems: 'center', gap: 16 }}>
+    <header style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30,
+      padding: 'clamp(14px,2vw,18px) clamp(20px,4vw,56px)',
+      display: 'flex', alignItems: 'center', gap: 16,
+      background: scrolled ? 'var(--bg-deep)' : 'transparent',
+      borderBottom: `1px solid ${scrolled ? 'var(--border-soft)' : 'transparent'}`,
+      transition: 'background 0.25s ease-out, border-color 0.25s ease-out',
+    }}>
       <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
         <LogoMark size={22} />
         <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink)' }}>авторская студия</span>
@@ -92,7 +141,7 @@ function LandingNav() {
       <span style={{ width: 1, height: 18, background: 'var(--border-soft)' }} />
       <Link to="/login" style={{ fontSize: 13.5, color: 'var(--ink-2)', textDecoration: 'none' }}>Войти</Link>
       <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 34, padding: '0 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать писать</Link>
-    </div>
+    </header>
   );
 }
 
@@ -127,13 +176,13 @@ function LandingHero() {
               </p>
             </div>
           </div>
-          <div className="lnd-hero-sheet" style={{ position: 'relative', height: 540 }}>
+          <div className="lnd-hero-sheet" style={{ position: 'relative', height: 540 }} aria-hidden="true">
             <FloatingSheet />
-            <div style={{ position: 'absolute', top: 54, right: -16, width: 200, transform: 'rotate(2deg)', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderLeft: '3px solid var(--accent-2)', borderRadius: 8, padding: '10px 12px', boxShadow: '0 10px 30px rgba(0,0,0,.35)' }}>
+            <div style={{ position: 'absolute', top: 54, right: -16, width: 200, transform: 'rotate(2deg)', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', boxShadow: '0 10px 30px oklch(0 0 0 / 0.35)' }}>
               <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5 }}>Идея · 5 мин</div>
               <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.45 }}>Сделать упоминание матери Аней в начале — отзеркалит финал.</div>
             </div>
-            <div style={{ position: 'absolute', bottom: 32, left: -22, width: 190, transform: 'rotate(-1.5deg)', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderLeft: '3px solid var(--danger)', borderRadius: 8, padding: '10px 12px', boxShadow: '0 10px 30px rgba(0,0,0,.35)' }}>
+            <div style={{ position: 'absolute', bottom: 32, left: -22, width: 190, transform: 'rotate(-1.5deg)', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', boxShadow: '0 10px 30px oklch(0 0 0 / 0.35)' }}>
               <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5 }}>Важно · 10 мин</div>
               <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.45 }}>НЕ называть имя 12-го картографа до главы 8.</div>
             </div>
@@ -144,11 +193,10 @@ function LandingHero() {
   );
 }
 
-
 function FloatingSheet() {
   return (
     <div style={{ position: 'absolute', inset: 0, perspective: '1600px' }}>
-      <div style={{ position: 'absolute', inset: 0, transform: 'rotateY(-9deg) rotateX(2deg)', transformStyle: 'preserve-3d', transformOrigin: 'center center', boxShadow: '-40px 60px 120px rgba(0,0,0,.5)' }}>
+      <div style={{ position: 'absolute', inset: 0, transform: 'rotateY(-9deg) rotateX(2deg)', transformStyle: 'preserve-3d', transformOrigin: 'center center', boxShadow: '-40px 60px 120px oklch(0 0 0 / 0.5)', willChange: 'transform' }}>
         <div style={{ background: 'var(--paper)', borderRadius: '6px 6px 0 0', padding: '48px 56px', height: '100%', color: 'var(--paper-ink)', fontFamily: 'var(--font-serif)', fontSize: 14.5, lineHeight: 1.85, overflow: 'hidden' }}>
           <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--paper-ink-2)', marginBottom: 10 }}>Глава первая</div>
           <div style={{ font: '600 26px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6, color: 'var(--paper-ink)' }}>Город, которого нет</div>
@@ -165,11 +213,11 @@ function FloatingSheet() {
 
 // ─── Features ─────────────────────────────────────────────────────────────────
 
-function SectionLabel({ kicker, title, subtitle, align = 'left' }: { kicker: string; title: string; subtitle?: string; align?: 'left' | 'center' }) {
+function SectionLabel({ kicker, title, subtitle, align = 'left' }: { kicker?: string; title: string; subtitle?: string; align?: 'left' | 'center' }) {
   const c = align === 'center';
   return (
     <div style={{ marginBottom: 80, ...(c ? { textAlign: 'center', margin: '0 auto 80px', maxWidth: 780 } : { maxWidth: 780 }) }}>
-      <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 18 }}>{kicker}</div>
+      {kicker && <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 18 }}>{kicker}</div>}
       <h2 style={{ font: '600 clamp(32px,4vw,56px)/1.05 var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 16, color: 'var(--ink)' }}>{title}</h2>
       {subtitle && <p style={{ font: '400 17px/1.6 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 640, ...(c ? { margin: '0 auto' } : {}) }}>{subtitle}</p>}
     </div>
@@ -180,7 +228,7 @@ function LandingFeatures() {
   return (
     <section id="features" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
       <div className="lnd-max">
-        <SectionLabel kicker="01 · Что внутри" title="Студия, а не текстовое поле." subtitle="Каждая часть книги живёт рядом с рукописью — не в отдельном приложении, не на отдельной вкладке. Открыли главу — видите её мир." />
+        <SectionLabel kicker="Возможности" title="Студия, а не текстовое поле." subtitle="Каждая часть книги живёт рядом с рукописью — не в отдельном приложении, не на отдельной вкладке. Открыли главу — видите её мир." />
         <FeatureRow eyebrow="Редактор" headline="Четыре режима. Один редактор." body="Полная студия с заметками и оглавлением — для редактуры. Только страница — для черновика. Промежуточные режимы — для всего, что между. Состояние помнит, на каком вы остановились." bullets={[['layout','Студия','все панели открыты'],['panel','Сайдбар','только оглавление'],['note','Полей','только заметки'],['focus','Страница','только текст']]} mock={<MockEditorModes />} />
         <FeatureRow reverse eyebrow="Структура" headline="Книга как картотека. Не как длинный документ." body="Перетаскивайте главы и сцены. Смотрите доску с карточками или дерево с целями по словам. Любая глава — двойной клик и она открыта." bullets={[['layout','Outline','дерево частей и сцен'],['grid','Corkboard','индексные карточки'],['tree','Списком','плоский список'],['arrows','Drag-ord','перетаскивание']]} mock={<MockCorkboard />} />
         <FeatureRow eyebrow="Мир книги" headline="Карта, хронология, картотека персонажей." body="Всё что нужно автору длинной формы — без выхода из проекта. Локации и события привязаны к главам, в которых упоминаются. Свяжите персонажа с главой — он автоматически появится в её обзоре." bullets={[['map','Карта мира','пины + районы'],['clock','Хронология','события и эпохи'],['char','Персонажи','связи + появления'],['link','Привязки','к главам']]} mock={<MockWorld />} />
@@ -196,7 +244,7 @@ function FeatureRow({ eyebrow, headline, body, bullets, mock, reverse }: {
   mock: ReactNode; reverse?: boolean;
 }) {
   return (
-    <div className={`lnd-feat-row${reverse ? ' lnd-feat-row--rev' : ''}`}>
+    <div className={`lnd-feat-row${reverse ? ' lnd-feat-row--rev' : ''} lnd-reveal`}>
       <div className="lnd-text">
         <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 18 }}>{eyebrow}</div>
         <h3 style={{ font: '600 clamp(24px,3vw,38px)/1.1 var(--font-serif)', letterSpacing: '-0.015em', marginBottom: 18, color: 'var(--ink)' }}>{headline}</h3>
@@ -215,7 +263,7 @@ function FeatureRow({ eyebrow, headline, body, bullets, mock, reverse }: {
           ))}
         </div>
       </div>
-      <div className="lnd-mock">
+      <div className="lnd-mock" aria-hidden="true">
         <BrowserMock>{mock}</BrowserMock>
       </div>
     </div>
@@ -224,12 +272,12 @@ function FeatureRow({ eyebrow, headline, body, bullets, mock, reverse }: {
 
 function BrowserMock({ children }: { children: ReactNode }) {
   return (
-    <div style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--bg-deep)', border: '1px solid var(--border)', boxShadow: '0 20px 60px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3)' }}>
+    <div style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--bg-deep)', border: '1px solid var(--border)', boxShadow: '0 20px 60px oklch(0 0 0 / 0.4),0 4px 16px oklch(0 0 0 / 0.3)' }}>
       <div style={{ height: 32, background: 'oklch(0.20 0.014 50)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 6, borderBottom: '1px solid var(--border-soft)' }}>
         <span style={{ width: 11, height: 11, borderRadius: 999, background: 'oklch(0.62 0.16 25)' }} />
         <span style={{ width: 11, height: 11, borderRadius: 999, background: 'oklch(0.78 0.12 80)' }} />
         <span style={{ width: 11, height: 11, borderRadius: 999, background: 'oklch(0.66 0.14 145)' }} />
-        <span style={{ flex: 1, textAlign: 'center', font: '400 11px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.06em' }}>avtorskaya-studiya.vercel.app</span>
+        <span style={{ flex: 1, textAlign: 'center', font: '400 11px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.06em' }}>avtorstudio.com</span>
       </div>
       <div style={{ height: 380, position: 'relative', overflow: 'hidden' }}>{children}</div>
     </div>
@@ -363,10 +411,10 @@ function LandingProcess() {
   return (
     <section id="process" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)' }}>
       <div className="lnd-max">
-        <SectionLabel kicker="02 · Один день автора" title="От пустого листа до экспорта." subtitle="Каждый шаг — на своём месте. Не нужно жонглировать четырьмя приложениями и пустыми документами Word." />
+        <SectionLabel title="От пустого листа до экспорта." subtitle="Каждый шаг — на своём месте. Не нужно жонглировать четырьмя приложениями и пустыми документами Word." />
         <div className="lnd-proc">
-          {steps.map(s => (
-            <div key={s.n} style={{ position: 'relative' }}>
+          {steps.map((s, i) => (
+            <div key={s.n} className={`lnd-reveal d${i}`} style={{ position: 'relative' }}>
               <div style={{ width: 48, height: 48, borderRadius: 999, background: 'var(--bg-deep)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 14px var(--font-mono)', color: 'var(--accent)', marginBottom: 22, position: 'relative', zIndex: 1 }}>
                 {String(s.n).padStart(2, '0')}
               </div>
@@ -385,22 +433,18 @@ function LandingProcess() {
 
 const PRINCIPLES = [
   {
-    icon: 'edit' as IName,
     title: 'Студия не пишет за вас',
     body: 'Никакого автодополнения, «улучши абзац», генерации текста. Если когда-нибудь появится — отдельным режимом с явным выключателем.',
   },
   {
-    icon: 'layers' as IName,
     title: 'Всё рядом с рукописью',
     body: 'Карта мира, картотека персонажей, хронология — не в другом приложении, не в другой вкладке. Открыли главу — рядом её мир.',
   },
   {
-    icon: 'clock' as IName,
     title: 'Серия молчит',
     body: 'Трекер считает дни подряд. Но не пишет «вы не открывали студию 4 дня» и не гасит полосу. Писатель и без этого знает.',
   },
   {
-    icon: 'lock' as IName,
     title: 'Ваши книги — ваши',
     body: 'Перестали платить — данные остаются. Экспорт всегда доступен. Рукописи не в заложниках.',
   },
@@ -410,15 +454,24 @@ function LandingPrinciples() {
   return (
     <section style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
       <div className="lnd-max">
-        <SectionLabel align="center" kicker="03 · На чём это построено" title="Принципы, а не обещания." subtitle="Четыре решения, которые мы приняли до первой строчки кода." />
-        <div className="lnd-quotes">
-          {PRINCIPLES.map((p) => (
-            <div key={p.title} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ color: 'var(--accent-2)', display: 'flex' }}><Icon name={p.icon} size={18} /></span>
+        <div style={{ marginBottom: 64, maxWidth: 640 }}>
+          <h2 style={{ font: '600 clamp(32px,4vw,56px)/1.05 var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 16, color: 'var(--ink)' }}>
+            Принципы, не обещания.
+          </h2>
+          <p style={{ font: '400 17px/1.6 var(--font-serif)', color: 'var(--ink-2)', margin: 0 }}>
+            Четыре решения, принятые до первой строчки кода.
+          </p>
+        </div>
+        <div className="lnd-manifesto">
+          {PRINCIPLES.map((p, i) => (
+            <div key={p.title} className={`lnd-manifesto-row lnd-reveal d${Math.min(i, 3)}`}>
+              <div style={{ font: '600 clamp(28px,3vw,40px)/1 var(--font-serif)', color: 'var(--accent)', letterSpacing: '-0.02em', paddingTop: 6 }}>
+                {String(i + 1).padStart(2, '0')}
               </div>
-              <div style={{ font: '600 17px/1.25 var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{p.title}</div>
-              <p style={{ font: '400 15px/1.6 var(--font-serif)', color: 'var(--ink-2)', margin: 0 }}>{p.body}</p>
+              <div>
+                <h3 style={{ font: '600 clamp(20px,2.5vw,28px)/1.15 var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.012em', marginBottom: 10 }}>{p.title}</h3>
+                <p style={{ font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 620, margin: 0 }}>{p.body}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -477,10 +530,10 @@ function LandingPricing() {
   return (
     <section id="pricing" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)' }}>
       <div className="lnd-max">
-        <SectionLabel align="center" kicker="04 · Цены" title="Простая математика." subtitle="Бесплатный план — не «триал на 14 дней». Во время открытой беты все возможности доступны бесплатно." />
+        <SectionLabel align="center" kicker="Тарифы" title="Простая математика." subtitle="Бесплатный план — не «триал на 14 дней». Во время открытой беты все возможности доступны бесплатно." />
         <div className="lnd-prices">
           {tiers.map((t) => (
-            <div key={t.name} style={{ position: 'relative', background: t.accent ? 'var(--surface)' : 'var(--bg)', border: t.accent ? '1px solid var(--accent)' : '1px solid var(--border-soft)', borderRadius: 14, padding: '32px 28px 28px', display: 'flex', flexDirection: 'column', boxShadow: t.accent ? '0 20px 60px rgba(0,0,0,.3),0 0 0 4px var(--accent-soft)' : 'none', transform: t.accent ? 'translateY(-8px)' : 'none' }}>
+            <div key={t.name} className="lnd-reveal" style={{ position: 'relative', background: t.accent ? 'var(--surface)' : 'var(--bg)', border: t.accent ? '1px solid var(--accent)' : '1px solid var(--border-soft)', borderRadius: 14, padding: '32px 28px 28px', display: 'flex', flexDirection: 'column', boxShadow: t.accent ? '0 20px 60px oklch(0 0 0 / 0.3),0 0 0 4px var(--accent-soft)' : 'none', transform: t.accent ? 'translateY(-8px)' : 'none' }}>
               {t.tag && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', padding: '4px 12px', borderRadius: 999, background: t.accent ? 'var(--accent)' : 'var(--surface-2)', color: t.accent ? 'oklch(0.98 0 0)' : 'var(--ink-2)', font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', border: t.accent ? 'none' : '1px solid var(--border)', whiteSpace: 'nowrap' }}>{t.tag}</div>}
               <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: t.accent ? 'var(--accent)' : 'var(--ink-3)', marginBottom: 14 }}>{t.name}</div>
               <div style={{ marginBottom: 6 }}>
@@ -506,7 +559,7 @@ function LandingPricing() {
           ))}
         </div>
         <p style={{ textAlign: 'center', marginTop: 32, fontSize: 13, color: 'var(--ink-3)' }}>
-          Все тарифы поддерживают оплату через ЮKassa и иностранные карты. <span style={{ color: 'var(--ink-2)' }}>Возврат — 14 дней без вопросов.</span>
+          <span style={{ color: 'var(--ink-2)' }}>Возврат — 14 дней без вопросов.</span>
         </p>
       </div>
     </section>
@@ -527,11 +580,11 @@ function LandingFAQ() {
   return (
     <section id="faq" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
       <div className="lnd-max" style={{ maxWidth: 920 }}>
-        <SectionLabel kicker="05 · Частые вопросы" title="Что обычно спрашивают." />
+        <SectionLabel title="Что обычно спрашивают." />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {items.map((item, i) => (
             <details key={i} open={i === 0} style={{ borderTop: '1px solid var(--border-soft)', padding: '24px 0' }}>
-              <summary style={{ display: 'flex', alignItems: 'flex-start', gap: 16, cursor: 'pointer', listStyle: 'none' }}>
+              <summary style={{ display: 'flex', alignItems: 'flex-start', gap: 16, cursor: 'pointer' }}>
                 <span style={{ font: '500 13px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.06em', marginTop: 4, flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</span>
                 <span style={{ flex: 1, font: '500 19px var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.005em' }}>{item.q}</span>
                 <span style={{ color: 'var(--ink-3)', marginTop: 6, flexShrink: 0 }}><Icon name="chevd" size={16} /></span>
@@ -550,8 +603,8 @@ function LandingFAQ() {
 function LandingCTA() {
   return (
     <section style={{ padding: 'clamp(100px,12vw,140px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', right: -100, top: '50%', transform: 'translateY(-50%) rotate(-8deg)', font: '600 280px/1 var(--font-serif)', color: 'var(--surface-2)', opacity: 0.4, pointerEvents: 'none', letterSpacing: '-0.04em', userSelect: 'none' }}>книга</div>
-      <div style={{ position: 'relative', maxWidth: 880, margin: '0 auto', textAlign: 'center' }}>
+      <div style={{ position: 'absolute', right: -100, top: '50%', transform: 'translateY(-50%) rotate(-8deg)', font: '600 280px/1 var(--font-serif)', color: 'var(--surface-2)', opacity: 0.4, pointerEvents: 'none', letterSpacing: '-0.04em', userSelect: 'none' }} aria-hidden="true">книга</div>
+      <div className="lnd-reveal" style={{ position: 'relative', maxWidth: 880, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 24 }}>Открытая бета</div>
         <h2 style={{ font: '600 clamp(44px,6vw,76px)/1.02 var(--font-serif)', letterSpacing: '-0.022em', marginBottom: 24, color: 'var(--ink)' }}>
           Начните свою <em style={{ fontWeight: 500, color: 'var(--accent-2)' }}>книгу</em><br />сегодня вечером.
@@ -574,9 +627,9 @@ function LandingCTA() {
 
 function LandingFooter() {
   return (
-    <footer style={{ padding: 'clamp(36px,5vw,56px) clamp(20px,4vw,56px) 36px', background: 'oklch(0.13 0.012 50)', borderTop: '1px solid var(--border-soft)' }}>
+    <footer style={{ padding: 'clamp(36px,5vw,56px) clamp(20px,4vw,56px) 36px', background: 'var(--bg-void)', borderTop: '1px solid var(--border-soft)' }}>
       <div className="lnd-max">
-        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', gap: 48, marginBottom: 40 }}>
+        <div className="lnd-footer-grid">
           <div>
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, textDecoration: 'none' }}>
               <LogoMark size={20} />
@@ -588,14 +641,30 @@ function LandingFooter() {
             </p>
           </div>
           {([
-            ['Продукт', ['Возможности', 'Цены', 'Дорожная карта', 'Изменения']],
-            ['Авторам', ['Войти', 'Создать книгу', 'FAQ', 'Сообщество']],
-            ['Студия', ['О проекте', 'Контакты', 'Блог', 'GitHub']],
-          ] as [string, string[]][]).map(([title, links]) => (
+            ['Продукт', [
+              { label: 'Возможности', href: '#features' },
+              { label: 'Цены', href: '#pricing' },
+            ]],
+            ['Авторам', [
+              { label: 'Войти', href: '/login' },
+              { label: 'Создать книгу', href: '/login?mode=register' },
+              { label: 'FAQ', href: '#faq' },
+            ]],
+            ['Студия', [
+              { label: 'Контакты', href: 'mailto:frfrancuz@gmail.com' },
+              { label: 'GitHub', href: 'https://github.com/XDobriev/writers_studio' },
+            ]],
+          ] as [string, { label: string; href: string }[]][]).map(([title, links]) => (
             <div key={title}>
               <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 14 }}>{title}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {links.map(l => <a key={l} style={{ fontSize: 13.5, color: 'var(--ink-2)' }}>{l}</a>)}
+                {links.map(({ label, href }) => (
+                  href.startsWith('/') ? (
+                    <Link key={label} to={href} style={{ fontSize: 13.5, color: 'var(--ink-2)', textDecoration: 'none' }}>{label}</Link>
+                  ) : (
+                    <a key={label} href={href} style={{ fontSize: 13.5, color: 'var(--ink-2)', textDecoration: 'none' }} rel="noopener noreferrer">{label}</a>
+                  )
+                ))}
               </div>
             </div>
           ))}
@@ -607,10 +676,9 @@ function LandingFooter() {
           <Link to="/privacy" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Конфиденциальность</Link>
           <span style={{ flex: 1 }} />
           <span>Добриев Хамзат Юсупович ·</span>
-          <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--ink-4)' }}>frfrancuz@gmail.com</a>
+          <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--ink-4)', textDecoration: 'none' }} rel="noopener noreferrer">frfrancuz@gmail.com</a>
         </div>
       </div>
     </footer>
   );
 }
-

@@ -17,6 +17,8 @@ import {
 import { QUERY_KEYS, useBook, useChapters, useChapterContent } from '../lib/queries';
 import { createVersion, createVersionKeepAlive } from '../lib/versions';
 import { useUserDisplay } from '../lib/useUserDisplay';
+import { syncBacklinks } from '../lib/crossrefs';
+import type { Character } from '../lib/characters';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -155,6 +157,15 @@ export default function Editor() {
       );
       setSaveState('saved');
       setSavedAt(new Date());
+
+      const characters = queryClient.getQueryData<Character[]>(QUERY_KEYS.characters(bookId)) ?? [];
+      if (characters.length > 0) {
+        void syncBacklinks(id, bookId, currentContentRef.current, characters)
+          .then(() => {
+            void queryClient.invalidateQueries({ queryKey: ['chapter-characters'] });
+          })
+          .catch(() => { /* non-critical */ });
+      }
     } catch {
       // Возвращаем патч: новые изменения (если пришли за время await) перекрывают старые
       pendingPatch.current = { ...patch, ...(pendingPatch.current ?? {}) };

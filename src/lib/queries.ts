@@ -10,6 +10,7 @@ import { listLocations, type Location } from './locations';
 import { listTimelineEvents, type TimelineEvent } from './timeline';
 import { listConnections, type LocationConnection } from './connections';
 import { listVersions, type ChapterVersionMeta } from './versions';
+import { listChapterCharacters, type ChapterCharacterRow } from './crossrefs';
 
 export const QUERY_KEYS = {
   books: (userId: string) => ['books', userId] as const,
@@ -25,6 +26,7 @@ export const QUERY_KEYS = {
   timelineEvents: (bookId: string) => ['timeline-events', bookId] as const,
   connections: (bookId: string) => ['connections', bookId] as const,
   chapterVersions: (chapterId: string) => ['chapter-versions', chapterId] as const,
+  chapterCharacters: (characterId: string) => ['chapter-characters', characterId] as const,
 };
 
 export function useBook(id: string | undefined) {
@@ -120,6 +122,15 @@ export function useConnections(bookId: string | undefined) {
     queryFn: () => listConnections(bookId!),
     enabled: !!bookId,
     staleTime: 2 * 60_000,
+  });
+}
+
+export function useChapterCharacters(characterId: string | undefined) {
+  return useQuery<ChapterCharacterRow[]>({
+    queryKey: characterId ? QUERY_KEYS.chapterCharacters(characterId) : ['chapter-characters', null],
+    queryFn: () => listChapterCharacters(characterId!),
+    enabled: !!characterId,
+    staleTime: 30_000,
   });
 }
 
