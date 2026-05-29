@@ -6,6 +6,7 @@ import { LogoMark } from '../components/LogoMark';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { supabase, type Book } from '../lib/supabase';
 import { createBook, updateBook, deleteBook as deleteBookApi } from '../lib/books';
+import { markOnboarded } from '../lib/profiles';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useProfile, QUERY_KEYS } from '../lib/queries';
@@ -222,14 +223,24 @@ export default function Home() {
     }
   }, [books]);
 
+  // Sync from Supabase: if onboarded on another device, close modal and cache locally
+  useEffect(() => {
+    if (profile?.onboarded_at) {
+      localStorage.setItem('as_onboarding_done', '1');
+      setShowWelcome(false);
+    }
+  }, [profile]);
+
   const handleWelcomeCreate = () => {
     localStorage.setItem('as_onboarding_done', '1');
+    if (user) markOnboarded(user.id);
     setShowWelcome(false);
     setShowCreate(true);
   };
 
   const dismissWelcome = () => {
     localStorage.setItem('as_onboarding_done', '1');
+    if (user) markOnboarded(user.id);
     setShowWelcome(false);
   };
 
