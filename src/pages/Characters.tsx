@@ -699,11 +699,15 @@ function HeroBlock({ character, bookId, onChange, onError }: {
   const [avatarHovered, setAvatarHovered] = useState(false);
   const quoteRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const aliasTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestAliasesRef = useRef<string[]>(character.aliases ?? []);
 
   const autoResize = (el: HTMLTextAreaElement) => {
     el.style.height = 'auto';
     el.style.height = el.scrollHeight + 'px';
   };
+
+  latestAliasesRef.current = aliases;
 
   useEffect(() => { setName(character.name); }, [character.id, character.name]);
   useEffect(() => { setQuote(character.quote); }, [character.id, character.quote]);
@@ -752,9 +756,11 @@ function HeroBlock({ character, bookId, onChange, onError }: {
   };
 
   const removeAlias = (alias: string) => {
-    const next = aliases.filter((a) => a !== alias);
+    const next = latestAliasesRef.current.filter((a) => a !== alias);
+    latestAliasesRef.current = next;
     setAliases(next);
-    onChange({ aliases: next });
+    if (aliasTimerRef.current) clearTimeout(aliasTimerRef.current);
+    aliasTimerRef.current = setTimeout(() => onChange({ aliases: latestAliasesRef.current }), 300);
   };
 
   const onAliasKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
