@@ -470,6 +470,188 @@ npm run dev
 
 ---
 
+### 39. Анимации — входы контекстных меню и дропдаунов
+
+**Что это:** три компонента показывают меню мгновенно, без перехода — это воспринимается как баг, а не как функция:
+- Дропдаун пользователя (блок «имя + план» внизу сайдбара, `dropdownOpen` в `Chrome.tsx:111`)
+- Меню статуса главы (цветная точка справа от названия главы, `statusMenuFor` в `Chrome.tsx:312`)
+- Попап выбора фонового звука (иконка наушников в StatusBar, `popupOpen` в `StatusBar.tsx:33`)
+
+**Почему важно:** мгновенные появления нарушают пространственную модель интерфейса — пользователь не понимает откуда взялся элемент. Это создаёт лёгкое когнитивное напряжение при каждом взаимодействии. 120ms анимации решает это без заметного замедления.
+
+**Что сделать:**
+1. В `src/styles/design-system.css` добавить keyframe:
+   ```css
+   @keyframes dropdown-in {
+     from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+   }
+   ```
+2. Применить к трём компонентам: `animation: dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both`
+3. В `Chrome.tsx` — дропдаун пользователя и меню статуса главы
+4. В `StatusBar.tsx` — попап звуков
+
+> Только CSS, без новых зависимостей. ~30 минут реализации.
+
+---
+
+### 40. Анимации — VersionModal и exit для toast
+
+**Что это:** два связанных пробела в motion-системе:
+
+**VersionModal** (`src/components/VersionModal.tsx:162`): полноэкранный оверлей с историей версий появляется мгновенно. Overlay закрывает весь экран без перехода — эффект резкого «хлопка».
+
+**Toast exit**: у `toast-in` есть только вход, exit отсутствует (`EditorHybrid.tsx:456`). Toast исчезает мгновенно по таймеру. Аналогично bubble menu: `bubble-in` есть, исчезание — нет.
+
+**Почему важно:** анимация входа без выхода — это незавершённость, как книга без последней страницы. Особенно заметно для модала — он занимает 100% экрана. Exit должен быть быстрее входа (~70% длительности): пользователь уже принял действие и ждёт продолжения.
+
+**Что сделать:**
+1. Добавить в `design-system.css`:
+   ```css
+   @keyframes modal-in { from { opacity: 0; transform: scale(0.97); } }
+   @keyframes fade-in  { from { opacity: 0; } }
+   @keyframes toast-out { to { opacity: 0; transform: translateY(-4px) scale(0.97); } }
+   ```
+2. `VersionModal.tsx` — диалог: `animation: modal-in 0.15s cubic-bezier(.22,.68,0,1.2) both`; overlay scrim: `animation: fade-in 0.15s ease-out both`
+3. Toast exit — перед удалением из DOM добавить `animation: toast-out 0.1s ease-in both` + задержка unmount через `setTimeout(remove, 100)`
+4. Bubble menu exit — `opacity: 0; transition: opacity 0.08s ease-in` до unmount
+5. Для exit-анимаций с unmount: либо `setTimeout` вручную, либо установить Framer Motion `AnimatePresence` (см. §43)
+
+---
+
+### 41. Hero motion — переключение режимов редактора
+
+**Что это:** редактор работает в 4 режимах (`studio / left / right / page`). Переключение изменяет `gridTemplateColumns` мгновенно — панели появляются и пропадают со snap-эффектом (`transition: 'none'` в `EditorHybrid.tsx:236`).
+
+Особенно резко выглядит переход `studio → page`: боковые панели исчезают, лист рукописи расширяется на весь экран.
+
+**Почему важно:** переход в режим «Страница» — главный момент погружения. Именно здесь писатель «входит в работу». Сейчас инструмент отступает резко; с crossfade (200ms) — тихо, как закрытие дверей ателье. Это единственная «hero animation» продукта. Она работает на саму суть продукта — «the interface ceases to exist».
+
+**Что сделать:**
+1. Убрать `transition: 'none'` из grid-контейнера в `EditorHybrid.tsx`
+2. **Надёжный подход — crossfade панелей:** при появлении левой/правой панели и sheet-обёртки применять `animation: fade-in 0.15s cubic-bezier(0.22, 1, 0.36, 1) both`
+3. `showLeft` / `showRight` флаги уже управляют видимостью — добавить `animation` к соответствующим DOM-элементам при монтировании
+4. Не использовать `transition: grid-template-columns` — браузерная поддержка ненадёжна
+5. Проверить что `prefers-reduced-motion` отключает crossfade (согласно design.md §8: цветовые transitions можно оставить, transform/opacity — отключать)
+
+---
+
+### 42. Page transitions — переходы между разделами книги
+
+**Что это:** переходы между разделами книги (Манускрипт → Структура → Персонажи → Хронология → Карта) происходят мгновенно через React Router. Каждый раздел «прыгает» на экран без перехода.
+
+**Почему важно:** писатель часто переключается между разделами во время работы. Резкие переходы создают ощущение «телепортации» вместо перемещения по единому пространству ателье. 150ms crossfade даёт ощущение связного инструмента. Вписывается в концепцию «The Author's Atelier» — перемещение между рабочими зонами студии, а не между экранами приложения.
+
+**Что сделать:**
+1. Установить Framer Motion: `npm install framer-motion` (~31 KB gzip)
+2. В `App.tsx` обернуть `<Routes>` в `<AnimatePresence mode="wait">`
+3. На каждой книжной странице (`Outline`, `Characters`, `Timeline`, `Maps`, `Dashboard`) добавить обёртку:
+   ```tsx
+   <motion.div
+     initial={{ opacity: 0 }}
+     animate={{ opacity: 1 }}
+     exit={{ opacity: 0 }}
+     transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+   >
+   ```
+4. Для лендинга и логина — более длинный переход (0.25s) или без перехода
+5. Framer Motion решает и exit-анимации для §40 — одна установка покрывает несколько задач
+
+> **Почему Framer Motion, а не CSS:** CSS page transitions в React Router требуют сложных workarounds. `AnimatePresence` — канонический способ, решает unmount exit-анимации за одну строку.
+
+---
+
+### 43. Анимации — мобильная правая панель и copy-confirmation
+
+**Что это:** два небольших места, где отсутствие анимации особенно заметно:
+
+**Мобильная правая панель** (`showMobileRight` в `EditorHybrid.tsx`): панель заметок появляется мгновенно, перекрывая редактор. На мобильном это занимает весь экран.
+
+**Copy-confirmation** (`copied` state в `Chrome.tsx:241`): кнопка «Скопировать ссылку» меняет цвет, но без визуального подтверждения действия — пользователь может не заметить и нажать повторно.
+
+**Почему важно:**
+- Slide из правого края (translateX 100% → 0) — стандартный и понятный паттерн для мобильных панелей. Мгновенное перекрытие экрана — одно из самых заметных «прыжков» на мобильном.
+- Scale-pulse на copy — micro-interaction, который подтверждает «действие совершено». Без него пользователь не уверен, сработало ли.
+
+**Что сделать:**
+1. Добавить в `design-system.css`:
+   ```css
+   @keyframes panel-enter-right { from { transform: translateX(100%); } }
+   @keyframes scale-flash {
+     0%   { transform: scale(1); }
+     50%  { transform: scale(1.08); }
+     100% { transform: scale(1); }
+   }
+   ```
+2. Мобильная панель: `animation: panel-enter-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both` при `showMobileRight = true`
+3. Copy-flash: при переходе в `copied = true` добавить `animation: scale-flash 0.2s ease-out`
+4. Только CSS, без зависимостей
+
+---
+
+### 44. Shimmer-skeleton для загрузки данных из Supabase
+
+**Что это:** при открытии приложения список глав в сайдбаре и данные дашборда загружаются из Supabase. Во время загрузки компоненты пустые или показывают «…». Нет визуального feedback о том, что данные идут.
+
+**Почему важно:** загрузка без skeleton создаёт layout shift — элементы «прыгают» на экран когда данные приходят. Skeleton заранее занимает место будущего контента, устраняет прыжок, сигнализирует «здесь что-то будет». Для продукта уровня writing tool (Literary · Precise) — это стандарт качества, который отличает его от любительских инструментов.
+
+**Что сделать:**
+1. Добавить в `design-system.css`:
+   ```css
+   @keyframes shimmer {
+     from { transform: translateX(-100%); }
+     to   { transform: translateX(200%); }
+   }
+   .skeleton {
+     background: var(--surface);
+     border-radius: var(--r-1);
+     overflow: hidden;
+     position: relative;
+   }
+   .skeleton::after {
+     content: '';
+     position: absolute;
+     inset: 0;
+     background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.04), transparent);
+     animation: shimmer 1.4s ease-in-out infinite;
+   }
+   @media (prefers-reduced-motion: reduce) {
+     .skeleton::after { animation: none; }
+   }
+   ```
+2. В `Chrome.tsx` при `loading && chapters.length === 0` — показывать 4-5 строк `.skeleton` (ширина ~80%, высота 14px, gap 8px) вместо пустого сайдбара
+3. В `Dashboard.tsx` при загрузке статкарточек — skeleton-блоки под каждую карточку
+4. Вынести `<Skeleton lines={n} />` как reusable-компонент в `src/components/Skeleton.tsx`
+
+---
+
+### 45. CSS motion-токены — унификация в design-system.css
+
+**Что это:** все текущие анимации используют хардкоженные значения прямо в коде: `0.12s`, `cubic-bezier(.22,.68,0,1.2)`, `0.15s` разбросаны по компонентам и inline-стилям. При изменении ритма анимаций нужно менять десятки мест.
+
+**Почему важно:** единый словарь motion-токенов в design-system.css делает систему согласованной (все dropdown-ы будут двигаться одинаково) и поддерживаемой (одно изменение `--dur-fast` применится везде). Соответствует уже существующим цвето/шрифто/отступо-токенам в дизайн-системе.
+
+**Что сделать:**
+1. В `design-system.css` добавить в секцию `:root { }`:
+   ```css
+   /* Motion: durations */
+   --dur-instant: 0.1s;   /* toggle фона, pressed */
+   --dur-hover:   0.12s;  /* hover цвет, dropdown */
+   --dur-spring:  0.13s;  /* bubble-in, modal-in */
+   --dur-fast:    0.15s;  /* fade-in, chip, ссылки */
+   --dur-exit:    0.09s;  /* любой выход (~70% входа) */
+   --dur-panel:   0.22s;  /* sidebar, right panel */
+   --dur-page:    0.2s;   /* page transition, mode switch */
+
+   /* Motion: easing curves */
+   --ease-spring:    cubic-bezier(0.22, 0.68, 0, 1.2);  /* вход с лёгким overshoot */
+   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);    /* стандартный выход */
+   --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);     /* решительный, уверенный */
+   ```
+2. Заменить хардкоженные значения в `.tb-btn`, `.sb-item`, `.bubble-btn`, `.sheet-wrap` на переменные
+3. **Делать в последнюю очередь** — после реализации §39–44, когда все анимации добавлены и значения устоялись
+
+---
+
 ## Скиллы — установить позже
 
 > Эти три скилла зависят от конкретного этапа продукта. Вернуться к ним когда наступит нужный момент.
