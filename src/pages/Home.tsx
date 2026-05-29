@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { LogoMark } from '../components/LogoMark';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { BookCard } from '../components/BookCard';
+import { CoverPicker, COVERS } from '../components/CoverPicker';
 import { supabase, type Book } from '../lib/supabase';
 import { createBook, updateBook, deleteBook as deleteBookApi } from '../lib/books';
 import { markOnboarded } from '../lib/profiles';
@@ -11,120 +12,12 @@ import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useProfile, QUERY_KEYS } from '../lib/queries';
 
-
-const COVERS = [
-  '#7c1d1d', '#3d4a2e', '#1c3a4a', '#4a2e3c',
-  '#2a4a3a', '#4a3a2a', '#1e2a4a', '#3a2a4a',
-  '#4a2a1e', '#2a3a4a', '#1c4a32', '#4a1c3a',
-];
-
 const ONBOARDING_FEATURES = [
   { icon: 'feather' as const, title: 'Редактор глав', desc: 'Rich-text, фокусный режим, подсчёт слов в реальном времени' },
   { icon: 'user' as const, title: 'Персонажи', desc: 'Карточки героев, связи между персонажами, описания' },
   { icon: 'clock' as const, title: 'Хронология', desc: 'Все события книги на одной оси времени' },
   { icon: 'map' as const, title: 'Карта мира', desc: 'Локации и места действия' },
 ];
-
-const isImageUrl = (v: string) => v.startsWith('http') || v.startsWith('blob:');
-
-function CoverPicker({
-  value, onChange, uploading, onFileSelect,
-}: {
-  value: string;
-  onChange: (c: string) => void;
-  uploading?: boolean;
-  onFileSelect?: (f: File) => void;
-}) {
-  const hasImage = isImageUrl(value);
-  return (
-    <div>
-      <label className="label">Обложка</label>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6, alignItems: 'center' }}>
-        {COVERS.map((c) => (
-          <button
-            key={c}
-            type="button"
-            onClick={() => onChange(c)}
-            style={{
-              width: 36, height: 36, borderRadius: 8, cursor: 'pointer', padding: 0,
-              background: `linear-gradient(160deg, ${c}, oklch(0.20 0.02 50))`,
-              border: !hasImage && value === c ? '2px solid var(--accent)' : '2px solid transparent',
-              outline: !hasImage && value === c ? '2px solid var(--accent)' : 'none',
-              outlineOffset: 2,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'outline 0.12s, border-color 0.12s',
-            }}
-          >
-            {!hasImage && value === c && (
-              <span style={{ color: 'oklch(0.97 0.01 80)', fontSize: 15, fontWeight: 700, lineHeight: 1 }}>✓</span>
-            )}
-          </button>
-        ))}
-
-        {onFileSelect && (
-          <label
-            title="Загрузить изображение"
-            style={{
-              width: 36, height: 36, borderRadius: 8, cursor: uploading ? 'default' : 'pointer',
-              border: hasImage ? '2px solid var(--accent)' : '2px dashed var(--border)',
-              outline: hasImage ? '2px solid var(--accent)' : 'none',
-              outlineOffset: 2,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: hasImage ? `url(${value}) center/cover` : 'var(--surface-2)',
-              color: 'var(--ink-3)',
-              flexShrink: 0,
-              transition: 'border-color 0.12s',
-              position: 'relative', overflow: 'hidden',
-            }}
-          >
-            {!hasImage && !uploading && <Icon name="camera" size={16} />}
-            {uploading && (
-              <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>…</span>
-            )}
-            {hasImage && (
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'oklch(0 0 0 / 0.35)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <span style={{ color: 'white', fontSize: 15, fontWeight: 700 }}>✓</span>
-              </div>
-            )}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              style={{ display: 'none' }}
-              disabled={uploading}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onFileSelect(f);
-                e.target.value = '';
-              }}
-            />
-          </label>
-        )}
-      </div>
-      {hasImage && (
-        <button
-          type="button"
-          onClick={() => onChange(COVERS[0])}
-          style={{ marginTop: 6, fontSize: 11, color: 'var(--ink-3)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-        >
-          Удалить изображение
-        </button>
-      )}
-    </div>
-  );
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-}
-
-function dayDiff(iso: string): number {
-  return Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000));
-}
 
 type Plan = 'free' | 'pro' | 'lifetime';
 
@@ -223,7 +116,6 @@ export default function Home() {
     }
   }, [books]);
 
-  // Sync from Supabase: if onboarded on another device, close modal and cache locally
   useEffect(() => {
     if (profile?.onboarded_at) {
       localStorage.setItem('as_onboarding_done', '1');
@@ -275,33 +167,18 @@ export default function Home() {
 
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ height: 60, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 32px', gap: 14, borderBottom: '1px solid var(--border-soft)' }}>
+      {/* ─── Header ─── */}
+      <header style={{ height: 60, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 32px', gap: 14, borderBottom: '1px solid var(--border-soft)' }}>
         <LogoMark size={20} />
         <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
         <span style={{ flex: 1 }} />
         <span className="hide-sm" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{displayName}</span>
-
-        <button
-          onClick={signOut}
-          title="Выйти из аккаунта"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '4px 6px',
-            borderRadius: 6,
-            color: 'var(--ink-3)',
-            display: 'flex',
-            alignItems: 'center',
-            transition: 'color 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-3)'; }}
-        >
+        <button className="tb-btn" onClick={signOut} title="Выйти из аккаунта">
           <Icon name="log-out" size={16} />
         </button>
-      </div>
+      </header>
 
+      {/* ─── Content ─── */}
       <div style={{ flex: 1, padding: isMobile ? '24px 16px' : '40px 48px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28 }}>
           <div>
@@ -325,11 +202,10 @@ export default function Home() {
 
         {books == null && <div style={{ color: 'var(--ink-3)' }}>Загрузка…</div>}
 
+        {/* ─── Empty state ─── */}
         {books && books.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 32px', textAlign: 'center' }}>
-            <div style={{
-              width: 96, height: 120, marginBottom: 32, position: 'relative', flexShrink: 0,
-            }}>
+            <div style={{ width: 96, height: 120, marginBottom: 32, position: 'relative', flexShrink: 0 }}>
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, var(--surface-2), var(--surface))', borderRadius: '4px 10px 10px 4px', border: '1px solid var(--border-soft)', boxShadow: '4px 6px 20px oklch(0 0 0 / 0.25)' }} />
               <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 6, background: 'var(--accent)', borderRadius: '2px 0 0 2px', opacity: 0.9 }} />
               <div style={{ position: 'absolute', left: 18, right: 14, top: 28, display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -345,96 +221,31 @@ export default function Home() {
             <p style={{ font: '400 14px/1.6 var(--font-ui)', color: 'var(--ink-3)', maxWidth: 360, marginBottom: 28 }}>
               Создайте книгу — все главы, персонажи и заметки будут храниться в вашем аккаунте.
             </p>
-            <button className="btn btn--primary" style={{ height: 42, padding: '0 24px', fontSize: 14 }} onClick={handleNewBookClick}>
+            <button className="btn btn--primary btn--lg" onClick={handleNewBookClick}>
               <Icon name="plus" size={15} /> Создать книгу
             </button>
           </div>
         )}
 
+        {/* ─── Books grid ─── */}
         {books && books.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}>
             {books.map((b) => (
-              <div
-                key={b.id}
-                className="book-card"
-              >
-                <Link to={`/books/${b.id}`} style={{ background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border-soft)', overflow: 'hidden', display: 'flex', flexDirection: 'column', textDecoration: 'none' }}>
-                  <div style={{
-                    height: 180,
-                    ...(b.cover && isImageUrl(b.cover)
-                      ? { backgroundImage: `url(${b.cover})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                      : { background: `linear-gradient(160deg, ${b.cover ?? '#3a3a4a'}, oklch(0.20 0.02 50))` }
-                    ),
-                    display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-                    padding: '18px 20px', borderBottom: '1px solid var(--border-soft)',
-                    position: 'relative',
-                  }}>
-                    {b.cover && isImageUrl(b.cover) && (
-                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, oklch(0.08 0.01 50 / 0.85) 0%, transparent 55%)' }} />
-                    )}
-                    <div style={{ font: '500 10px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'oklch(0.95 0.008 80 / 0.7)', marginBottom: 6 }}>
-                      {b.genre || 'Без жанра'}
-                    </div>
-                    <div style={{ font: '600 22px var(--font-serif)', color: 'oklch(0.97 0.01 80)', letterSpacing: '-0.01em', lineHeight: 1.15 }}>{b.title}</div>
-                    {b.author && (
-                      <div style={{ font: '400 11px var(--font-mono)', color: 'oklch(0.97 0.01 80 / 0.6)', marginTop: 6, letterSpacing: '0.06em' }}>{b.author}</div>
-                    )}
-                  </div>
-                  <div style={{ padding: '14px 20px 16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>
-                      {b.goal > 0 ? (
-                        <>
-                          <span>{b.words.toLocaleString('ru')} / {b.goal.toLocaleString('ru')}</span>
-                          <span>{Math.round((b.words / b.goal) * 100)}%</span>
-                        </>
-                      ) : (
-                        <span>{b.words.toLocaleString('ru')} сл.</span>
-                      )}
-                    </div>
-                    <div style={{ height: 3, background: 'var(--surface-3)', borderRadius: 999, overflow: 'hidden', marginBottom: 12, visibility: b.goal > 0 ? 'visible' : 'hidden' }}>
-                      {b.goal > 0 && (
-                        <div style={{ width: `${(b.words / b.goal) * 100}%`, minWidth: 4, height: '100%', background: b.words > 0 ? 'var(--accent)' : 'var(--ink-4)' }} />
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)' }}>
-                      <span>{dayDiff(b.created_at)} дн. в работе</span>
-                      <span>изм. {formatDate(b.updated_at)}</span>
-                    </div>
-                  </div>
-                </Link>
-                <button
-                  onClick={() => openEditBook(b)}
-                  title="Редактировать"
-                  className="book-card__edit"
-                  style={{
-                    position: 'absolute', top: 10, right: 10, zIndex: 1,
-                    width: 28, height: 28, borderRadius: 6,
-                    background: 'oklch(0.12 0.01 50 / 0.70)',
-                    border: '1px solid oklch(1 0 0 / 0.12)',
-                    backdropFilter: 'blur(6px)',
-                    cursor: 'pointer',
-                    alignItems: 'center', justifyContent: 'center',
-                    color: 'oklch(0.95 0.01 80)',
-                  }}
-                >
-                  <Icon name="pencil" size={13} />
-                </button>
-              </div>
+              <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} />
             ))}
           </div>
         )}
       </div>
 
+      {/* ─── Edit book modal ─── */}
       {editBook && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'oklch(0 0 0 / 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setEditBook(null)}
-        >
+        <div className="modal-overlay" onClick={() => setEditBook(null)}>
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Редактировать книгу"
-            style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px 28px', width: 460, display: 'flex', flexDirection: 'column', gap: 18, boxShadow: '0 24px 60px oklch(0.05 0.01 50 / 0.4)' }}
+            className="modal-panel"
+            style={{ width: 460 }}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               if (e.key === 'Escape') { setEditBook(null); return; }
@@ -498,10 +309,8 @@ export default function Home() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <button
                 type="button"
+                className="btn btn--danger-ghost"
                 onClick={() => setConfirmDeleteBook(true)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', font: '400 13px var(--font-ui)', color: 'var(--danger)', padding: '4px 0', opacity: 0.8 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.8'; }}
               >
                 Удалить книгу
               </button>
@@ -521,16 +330,15 @@ export default function Home() {
         </div>
       )}
 
+      {/* ─── Upgrade modal ─── */}
       {showUpgrade && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'oklch(0 0 0 / 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setShowUpgrade(false)}
-        >
+        <div className="modal-overlay" onClick={() => setShowUpgrade(false)}>
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Планы и подписка"
-            style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 36px', width: 480, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 24, boxShadow: '0 24px 60px oklch(0.05 0.01 50 / 0.5)' }}
+            className="modal-panel modal-panel--lg"
+            style={{ width: 480 }}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               if (e.key === 'Escape') { setShowUpgrade(false); return; }
@@ -580,15 +388,18 @@ export default function Home() {
         </div>
       )}
 
+      {/* ─── Welcome / onboarding modal ─── */}
       {showWelcome && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'oklch(0 0 0 / 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          className="modal-overlay"
+          style={{ zIndex: 200, background: 'oklch(0 0 0 / 0.65)', backdropFilter: 'blur(8px)' }}
           onClick={dismissWelcome}
         >
           <div
             role="dialog"
             aria-modal="true"
-            style={{ background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 18, padding: '36px 40px', width: 520, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 80px oklch(0 0 0 / 0.55)' }}
+            className="modal-panel modal-panel--xl"
+            style={{ width: 520 }}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               if (e.key === 'Escape') { dismissWelcome(); return; }
@@ -629,10 +440,10 @@ export default function Home() {
             </div>
 
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn--primary" style={{ flex: 1, height: 42, fontSize: 14 }} onClick={handleWelcomeCreate}>
+              <button className="btn btn--primary btn--lg" style={{ flex: 1 }} onClick={handleWelcomeCreate}>
                 <Icon name="plus" size={15} /> Создать первую книгу
               </button>
-              <button className="btn btn--ghost" style={{ height: 42, padding: '0 18px', fontSize: 14 }} onClick={dismissWelcome}>
+              <button className="btn btn--ghost btn--lg" onClick={dismissWelcome}>
                 Посмотрю позже
               </button>
             </div>
@@ -648,13 +459,16 @@ export default function Home() {
         />
       )}
 
+      {/* ─── Create book modal ─── */}
       {showCreate && (
-        <div style={{ position: 'fixed', inset: 0, background: 'oklch(0.10 0.012 50 / 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }} onClick={() => setShowCreate(false)}>
+        <div className="modal-overlay" style={{ zIndex: 50, background: 'oklch(0.10 0.012 50 / 0.55)' }} onClick={() => setShowCreate(false)}>
           <form
             onSubmit={onCreate}
             role="dialog"
             aria-modal="true"
             aria-label="Новая книга"
+            className="modal-panel"
+            style={{ width: 460 }}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               if (e.key === 'Escape') { setShowCreate(false); return; }
@@ -666,7 +480,6 @@ export default function Home() {
                 if (e.shiftKey ? document.activeElement === first : document.activeElement === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
               }
             }}
-            style={{ width: 460, background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px 28px' }}
           >
             <h2 style={{ font: '600 22px var(--font-serif)', marginBottom: 16 }}>Новая книга</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

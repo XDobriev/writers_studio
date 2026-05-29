@@ -613,6 +613,40 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .btn--primary:hover { background: oklch(0.68 0.16 30); }
 .btn--ghost { border-color: transparent; color: var(--ink-2); }
+.btn--lg { height: 42px; padding: 0 24px; font-size: 14px; }
+.btn--danger-ghost {
+  border-color: transparent; color: var(--danger);
+  background: none; opacity: 0.8;
+}
+.btn--danger-ghost:hover { opacity: 1; background: none; }
+
+/* modal overlay + panel */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: oklch(0 0 0 / 0.55);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-panel {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px 28px;
+  display: flex; flex-direction: column; gap: 18px;
+  box-shadow: 0 24px 60px oklch(0.05 0.01 50 / 0.4);
+  max-width: calc(100vw - 32px);
+}
+.modal-panel--lg {
+  border-radius: 16px;
+  padding: 32px 36px;
+  gap: 24px;
+  box-shadow: 0 24px 60px oklch(0.05 0.01 50 / 0.5);
+}
+.modal-panel--xl {
+  border-radius: 18px;
+  padding: 36px 40px;
+  box-shadow: 0 32px 80px oklch(0 0 0 / 0.55);
+}
 
 .as ::-webkit-scrollbar { width: 10px; height: 10px; }
 .as ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
