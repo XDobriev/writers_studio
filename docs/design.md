@@ -347,19 +347,41 @@ The studio is calm at rest. Motion communicates state change, not delight. Every
 
 ### Timing Vocabulary
 
-- **`0.1s`** — immediate state toggle: button active background, bubble-btn pressed state.
-- **`0.12s`** — hover response: toolbar button color, color swatch scale (`transform: scale(1.25)`), sidebar add-button color.
-- **`0.13s cubic-bezier(.22,.68,0,1.2)`** — entry spring: bubble menu appears from below with a subtle overshoot. This easing is reserved for elements that physically appear — it signals "arrival."
-- **`0.15s`** — link and chip color transitions; sidebar book title hover.
-- **`0.2s`** — scrollbar thumb color on hover.
+| Token | Duration | Use |
+|---|---|---|
+| `--dur-instant` | `0.1s` | Immediate state toggle: button active background, pressed state |
+| `--dur-hover` | `0.12s` | Hover response: toolbar button color, color swatch scale, dropdown entry |
+| `--dur-spring` | `0.13s` | Entry spring (see easing below): bubble menu, modal, dropdown appear |
+| `--dur-fast` | `0.15s` | Fade-in, link and chip color transitions, sidebar book title hover |
+| `--dur-exit` | `0.09s` | Any exit animation (~70% of enter duration) |
+| `--dur-panel` | `0.22s` | Sidebar, right panel slide entry |
+| `--dur-page` | `0.2s` | Page transitions, editor mode crossfade, scrollbar thumb hover |
+
+### Easing Curves
+
+| Token | Value | Use |
+|---|---|---|
+| `--ease-spring` | `cubic-bezier(0.22, 0.68, 0, 1.2)` | Entry-only: elements that physically appear (bubble, modal, toast). Never on persistent UI. |
+| `--ease-out-quint` | `cubic-bezier(0.22, 1, 0.36, 1)` | Standard deceleration: dropdowns, panel slides, page transitions |
+| `--ease-out-expo` | `cubic-bezier(0.16, 1, 0.3, 1)` | Decisive, confident: mode switching, hero moments |
 
 ### Keyframes
 
+**Implemented:**
 - **`bubble-in`**: `opacity 0→1, translateY(5px)→0, scale(0.96)→1` — bubble menu entry.
-- **`toast-in`**: `opacity 0→1, translateY(8px)→0, scale(0.96)→1` — toast notification entry (same shape as bubble-in, slightly more vertical travel).
+- **`toast-in`**: `opacity 0→1, translateY(8px)→0, scale(0.96)→1` — toast notification entry.
 - **`slide-down`**: `translateY(-100%)→0` — panel slide in from above.
 - **`spin`**: `rotate 360deg` linear infinite — page loading spinner (0.75s).
 - **`blink`**: step-based opacity toggle — text cursor blink.
+
+**Planned (roadmap §39–45):**
+- **`dropdown-in`**: `opacity 0→1, translateY(-6px)→0, scale(0.98)→1` — context menus, user dropdown, status menu, sound popup. Duration: `--dur-hover`, easing: `--ease-out-quint`.
+- **`modal-in`**: `opacity 0→1, scale(0.97)→1` — VersionModal and any full-screen overlays. Duration: `--dur-spring`, easing: `--ease-spring`.
+- **`fade-in`**: `opacity 0→1` — editor mode panel crossfade, scrim, page transitions. Duration: `--dur-fast`.
+- **`toast-out`**: `opacity 1→0, translateY(-4px), scale(0.97)→1` — toast exit before unmount. Duration: `--dur-exit`.
+- **`panel-enter-right`**: `translateX(100%)→0` — mobile right panel slide-in. Duration: `--dur-panel`, easing: `--ease-out-quint`.
+- **`scale-flash`**: `scale(1)→scale(1.08)→scale(1)` — copy-confirmation micro-interaction. Duration: `0.2s ease-out`.
+- **`shimmer`**: `translateX(-100%)→translateX(200%)` — skeleton loading highlight sweep. Duration: `1.4s ease-in-out infinite`. Applied via `.skeleton::after` pseudo-element.
 
 ### Named Rules
 
@@ -367,7 +389,11 @@ The studio is calm at rest. Motion communicates state change, not delight. Every
 
 **The Layout Property Rule.** Never animate `width`, `height`, `padding`, or `margin`. Only `color`, `background`, `opacity`, `transform`, and `border-color` are permitted in transitions.
 
-**The No-Bounce Default Rule.** The spring easing `cubic-bezier(.22,.68,0,1.2)` is used only for entry animations. Hover states, color changes, and persistent UI use linear or ease-out — never a bouncy curve on an element that is already visible.
+**The No-Bounce Default Rule.** The spring easing `--ease-spring` is used only for entry animations. Hover states, color changes, and persistent UI use `ease-out` curves — never a bouncy curve on an element that is already visible.
+
+**The Exit Speed Rule.** Exit animations are always ~70% of the corresponding enter duration. User has already committed to the action and is waiting for what comes next — don't make them watch the departure.
+
+**The Hero Motion Rule.** The editor mode transition (`studio → page`) is the one signature animation in the product. The crossfade of panels as the manuscript expands to full screen should feel like the studio going quiet — calm, deliberate, with the manuscript taking over. This is not a UI transition; it is the product's core promise made visible.
 
 ## 9. Light Theme
 
