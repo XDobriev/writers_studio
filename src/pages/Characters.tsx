@@ -407,14 +407,7 @@ export default function Characters() {
           </div>
 
           {/* Основное содержимое */}
-          {showGrid ? (
-            <CharacterGrid
-              characters={filtered}
-              emptyAll={characters.length === 0}
-              onSelect={selectCharacter}
-              onCreate={onCreate}
-            />
-          ) : active ? (
+          {!showGrid && active ? (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
               <HeroBlock character={active} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} />
 
@@ -510,16 +503,12 @@ export default function Characters() {
               </div>
             </div>
           ) : (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
-              <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'var(--surface)', color: 'var(--ink-4)', border: '1px solid var(--border-soft)' }}>
-                <Icon name="char" size={22} />
-              </div>
-              <div style={{ textAlign: 'center', maxWidth: 260 }}>
-                <div style={{ font: '500 14px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 6 }}>Картотека пуста</div>
-                <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.6 }}>Добавляйте персонажей, описывайте их внешность, характер и связи между ними</div>
-              </div>
-              <button onClick={onCreate} className="btn btn--primary"><Icon name="plus" size={13} /> Создать персонажа</button>
-            </div>
+            <CharacterGrid
+              characters={filtered}
+              emptyAll={characters.length === 0}
+              onSelect={selectCharacter}
+              onCreate={onCreate}
+            />
           )}
         </main>}
 
