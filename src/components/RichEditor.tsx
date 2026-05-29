@@ -124,9 +124,11 @@ export function RichEditor({
   } | null>(null);
 
   useEffect(() => {
-    if (!editor) return;
-    const dom = editor.view.dom;
-    const handleClick = (e: MouseEvent) => {
+    if (!editor || editor.isDestroyed) return;
+    let dom: HTMLElement;
+    try { dom = editor.view.dom as HTMLElement; } catch { return; }
+    const handleClick = (evt: Event) => {
+      const e = evt as MouseEvent;
       const span = (e.target as HTMLElement).closest('.lt-spell') as HTMLElement | null;
       if (!span) { setSpellPopup(null); return; }
       const suggestions = (span.dataset.lt ?? '').split('|').filter(Boolean);

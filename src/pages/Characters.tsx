@@ -826,10 +826,15 @@ function HeroBlock({ character, onChange, onError }: {
           style={{ width: '100%', font: '600 44px var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 6, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', padding: '4px 0' }}
         />
 
-        {/* Псевдонимы / алиасы */}
+        {/* Другие имена */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
-          <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
-            Псевдонимы / алиасы
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
+            <span style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+              Другие имена
+            </span>
+            <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)' }}>
+              — система найдёт упоминания в главах автоматически
+            </span>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             {aliases.map((alias) => (
@@ -854,7 +859,7 @@ function HeroBlock({ character, onChange, onError }: {
               onChange={onAliasChange}
               onKeyDown={onAliasKeyDown}
               onBlur={() => { if (aliasInput.trim()) addAlias(aliasInput); }}
-              placeholder={aliases.length === 0 ? 'Дём, Дэм, Дэмиен Старший' : '+ добавить'}
+              placeholder={aliases.length === 0 ? 'Ваня, Иваныч, Дядя Ваня…' : '+ имя'}
               style={{ flex: '1 1 120px', minWidth: 80, background: 'transparent', border: 'none', outline: 'none', font: '400 12px var(--font-ui)', color: 'var(--ink)', padding: '2px 0' }}
             />
           </div>
