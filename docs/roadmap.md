@@ -329,7 +329,8 @@ _Обновлён: 2026-05-29 (закрыты: §34 SidebarFoot div→button ✅
 **Что сделать:**
 1. `src/lib/useDebouncedSave.ts` — хук принимает `onFlush: (id, patch) => Promise<void>` и `delay = 700`; экспортирует refs (`pendingPatchRef`, `targetIdRef`) для `beforeunload`-обработчика в `Editor.tsx`
 2. `src/lib/useCharacterNavigation.ts` — хук инкапсулирует `selectCharacter / goToGrid / clearCharacter` и логику URL-параметра `?character=`; убирает ~80 строк из `Characters()` 
-3. Заменить в `Editor.tsx` и `Characters.tsx` — основная функция `Characters()` сожмётся с ~478 до ~150 строк
+3. `src/lib/useCharacterMutations.ts` — хук инкапсулирует `onCreate / onDelete / onDeleteConfirmed / onCreateRelation / onDeleteRelation / onRelationLabelChange`; убирает ещё ~150 строк из `Characters()`
+4. Заменить в `Editor.tsx` и `Characters.tsx` — основная функция `Characters()` сожмётся с ~478 до ~150 строк
 
 **Validation:** save-при-закрытии вкладки (`beforeunload`) — открыть редактор, написать текст, закрыть вкладку раньше 700мс debounce, переоткрыть — контент должен сохраниться.
 
