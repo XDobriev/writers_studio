@@ -85,6 +85,44 @@ export async function syncCharacterAcrossAllChapters(
   );
 }
 
+export async function findNameVariantsInText(
+  name: string,
+  bookId: string,
+  existingAliases: string[],
+): Promise<string[]> {
+  if (name.length < 2) return [];
+
+  const { data, error } = await supabase
+    .from('chapters')
+    .select('content')
+    .eq('book_id', bookId);
+  if (error || !data) return [];
+
+  const prefixLen = Math.max(3, Math.floor(name.length * 0.6));
+  const prefix = name.slice(0, prefixLen).toLowerCase();
+  const nameLower = name.toLowerCase();
+  const aliasesLower = new Set(existingAliases.map((a) => a.toLowerCase()));
+
+  const firstSeen = new Map<string, string>();
+  const freq = new Map<string, number>();
+
+  for (const chapter of data) {
+    const text = htmlToText(chapter.content ?? '');
+    const words = text.match(/[\p{L}]{3,}/gu) ?? [];
+    for (const word of words) {
+      const wl = word.toLowerCase();
+      if (!firstSeen.has(wl)) firstSeen.set(wl, word);
+      freq.set(wl, (freq.get(wl) ?? 0) + 1);
+    }
+  }
+
+  return Array.from(freq.entries())
+    .filter(([wl]) => wl !== nameLower && !aliasesLower.has(wl) && wl.startsWith(prefix))
+    .sort((a, b) => b[1] - a[1])
+    .map(([wl]) => firstSeen.get(wl)!)
+    .slice(0, 8);
+}
+
 export async function syncBacklinks(
   chapterId: string,
   bookId: string,

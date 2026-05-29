@@ -23,7 +23,7 @@ import {
   type CharacterRelation,
 } from '../lib/character_relations';
 import { QUERY_KEYS, useBook, useCharacters, useRelations, useChapterCharacters } from '../lib/queries';
-import { syncCharacterAcrossAllChapters } from '../lib/crossrefs';
+import { syncCharacterAcrossAllChapters, findNameVariantsInText } from '../lib/crossrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -409,7 +409,7 @@ export default function Characters() {
           {/* Основное содержимое */}
           {!showGrid && active ? (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
-              <HeroBlock character={active} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} />
+              <HeroBlock character={active} bookId={bookId!} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} />
 
               {/* Вкладки */}
               <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border-soft)', marginBottom: 28 }}>
@@ -678,8 +678,9 @@ function AddCard({ onCreate }: { onCreate: () => void }) {
 
 // ─── Блок героя (детальная карточка) ──────────────────────────────────────
 
-function HeroBlock({ character, onChange, onError }: {
+function HeroBlock({ character, bookId, onChange, onError }: {
   character: Character;
+  bookId: string;
   onChange: (patch: CharacterPatch) => void;
   onError: (msg: string) => void;
 }) {
@@ -687,6 +688,8 @@ function HeroBlock({ character, onChange, onError }: {
   const [quote, setQuote] = useState(character.quote);
   const [aliases, setAliases] = useState<string[]>(character.aliases ?? []);
   const [aliasInput, setAliasInput] = useState('');
+  const [suggestions, setSuggestions] = useState<string[] | null>(null);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [editingQuote, setEditingQuote] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarHovered, setAvatarHovered] = useState(false);
@@ -700,7 +703,7 @@ function HeroBlock({ character, onChange, onError }: {
 
   useEffect(() => { setName(character.name); }, [character.id, character.name]);
   useEffect(() => { setQuote(character.quote); }, [character.id, character.quote]);
-  useEffect(() => { setAliases(character.aliases ?? []); setAliasInput(''); }, [character.id, character.aliases]);
+  useEffect(() => { setAliases(character.aliases ?? []); setAliasInput(''); setSuggestions(null); }, [character.id, character.aliases]);
   useEffect(() => {
     if (editingQuote && quoteRef.current) {
       autoResize(quoteRef.current);
@@ -708,10 +711,24 @@ function HeroBlock({ character, onChange, onError }: {
     }
   }, [editingQuote]);
 
+  const loadSuggestions = async () => {
+    if (!name || name.length < 2) return;
+    setSuggestionsLoading(true);
+    try {
+      const found = await findNameVariantsInText(name, bookId, aliases);
+      setSuggestions(found);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  };
+
   const onNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     setName(v);
     onChange({ name: v });
+    setSuggestions(null);
   };
   const onQuoteChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const v = e.target.value;
@@ -835,6 +852,14 @@ function HeroBlock({ character, onChange, onError }: {
             <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)' }}>
               — система найдёт упоминания в главах автоматически
             </span>
+            <button
+              type="button"
+              onClick={() => { void loadSuggestions(); }}
+              disabled={suggestionsLoading || name.length < 2}
+              style={{ marginLeft: 'auto', font: '400 11px var(--font-ui)', color: 'var(--accent)', background: 'transparent', border: 'none', cursor: name.length < 2 ? 'default' : 'pointer', opacity: name.length < 2 ? 0.4 : 1, padding: 0, flexShrink: 0 }}
+            >
+              {suggestionsLoading ? 'поиск…' : 'найти в тексте'}
+            </button>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             {aliases.map((alias) => (
@@ -863,6 +888,30 @@ function HeroBlock({ character, onChange, onError }: {
               style={{ flex: '1 1 120px', minWidth: 80, background: 'transparent', border: 'none', outline: 'none', font: '400 12px var(--font-ui)', color: 'var(--ink)', padding: '2px 0' }}
             />
           </div>
+          {suggestions !== null && (
+            <div style={{ marginTop: 8, borderTop: '1px solid var(--border-soft)', paddingTop: 8 }}>
+              {suggestions.length === 0 ? (
+                <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)' }}>Вариантов не найдено</span>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
+                  <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginRight: 2 }}>В тексте:</span>
+                  {suggestions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => {
+                        addAlias(s);
+                        setSuggestions((prev) => prev ? prev.filter((x) => x !== s) : null);
+                      }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 9px', background: 'color-mix(in oklch, var(--accent) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--accent) 30%, transparent)', borderRadius: 999, font: '400 11px var(--font-ui)', color: 'var(--accent)', cursor: 'pointer' }}
+                    >
+                      + {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {editingQuote ? (
