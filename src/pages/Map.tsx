@@ -195,6 +195,21 @@ export default function MapScreen() {
               <div className="sb-book-author">карта мира · {locations.length} лок.</div>
             </div>
             <SidebarNav bookId={bookId} />
+            <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Режим</div>
+              {modeButtons.map(m => (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => setMode(m.value)}
+                  className={'sb-item' + (mode === m.value ? ' sb-item--on' : '')}
+                  style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
+                >
+                  <span>{m.icon}</span>
+                  <span className="sb-item-title">{m.label}</span>
+                </button>
+              ))}
+            </div>
             <div style={{ flex: 1 }} />
             <SidebarFoot />
           </aside>
@@ -211,26 +226,6 @@ export default function MapScreen() {
             ) : (
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Карта мира</span>
             )}
-
-            <div style={{ display: 'flex', background: 'var(--surface-2)', borderRadius: 6, padding: 2, gap: 1 }}>
-              {modeButtons.map(m => (
-                <button
-                  key={m.value}
-                  className="btn btn--ghost"
-                  style={{
-                    padding: isMobile ? '3px 10px' : '3px 12px',
-                    fontSize: 12, borderRadius: 4, gap: 5,
-                    display: 'flex', alignItems: 'center',
-                    background: mode === m.value ? 'var(--surface)' : undefined,
-                    color: mode === m.value ? 'var(--ink)' : undefined,
-                  }}
-                  onClick={() => setMode(m.value)}
-                >
-                  <span>{m.icon}</span>
-                  {!isMobile && <span>{m.label}</span>}
-                </button>
-              ))}
-            </div>
 
             <button
               className="btn btn--ghost"
