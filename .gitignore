@@ -20,3 +20,6 @@ docs/learning-plan.md
 playwright-report/
 test-results/
 .playwright/
+
+# Graphify knowledge graph (generated)
+graphify-out/
