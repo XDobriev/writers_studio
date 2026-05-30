@@ -18,6 +18,7 @@ import {
 import type { CharacterRelationship } from '../lib/character_relationships';
 import { QUERY_KEYS, useBook, useCharacters, useRelationships, useChapterCharacters } from '../lib/queries';
 import { syncCharacterAcrossAllChapters, findNameVariantsInText } from '../lib/crossrefs';
+import { getCharacterColor } from '../lib/pov';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { useCharacterNavigation } from '../lib/useCharacterNavigation';
@@ -29,9 +30,9 @@ type DetailTab = 'info' | 'chapters';
 
 const ROLE_FILTERS: { value: RoleFilter; label: string }[] = [
   { value: 'all', label: 'все' },
-  { value: 'protagonist', label: 'главные' },
-  { value: 'secondary', label: 'второстеп.' },
-  { value: 'minor', label: 'эпиз.' },
+  { value: 'protagonist', label: 'гл.' },
+  { value: 'secondary', label: 'вт.' },
+  { value: 'minor', label: 'эп.' },
 ];
 
 const ROLE_COLOR: Record<CharacterRole, string> = {
@@ -379,6 +380,7 @@ export default function Characters() {
               ) : (
                 <ChaptersTab
                   characterId={active.id}
+                  characterIndex={characters ? characters.findIndex((c) => c.id === active.id) : 0}
                   onNavigate={(chapterId) => navigate(`/books/${bookId}/editor?chapter=${chapterId}`)}
                 />
               )}
@@ -1106,8 +1108,9 @@ function RelationRow({ relId, partner, labelMine, labelTheirs, onDelete, onLabel
 
 // ─── Вкладка «Главы» ─────────────────────────────────────────────────────────
 
-function ChaptersTab({ characterId, onNavigate }: {
+function ChaptersTab({ characterId, characterIndex, onNavigate }: {
   characterId: string;
+  characterIndex: number;
   onNavigate: (chapterId: string) => void;
 }) {
   const { data: rows, isLoading } = useChapterCharacters(characterId);
@@ -1124,37 +1127,74 @@ function ChaptersTab({ characterId, onNavigate }: {
     );
   }
 
+  const povRows = rows.filter((r) => r.is_pov);
+  const presentRows = rows.filter((r) => !r.is_pov);
+  const color = getCharacterColor(characterIndex);
+
+  const chipStyle = (isPov: boolean): React.CSSProperties => isPov
+    ? {
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '8px 12px',
+        background: `color-mix(in oklch, ${color} 14%, transparent)`,
+        border: `1px solid color-mix(in oklch, ${color} 28%, transparent)`,
+        borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+        font: '400 13px var(--font-ui)', color, transition: 'opacity 0.15s',
+      }
+    : {
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 14px',
+        background: 'var(--surface)', border: '1px solid var(--border-soft)',
+        borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+        font: '400 13px var(--font-ui)', color: 'var(--ink)', transition: 'border-color 0.15s, background 0.15s',
+      };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {rows.map((cc) => (
-        <button
-          key={cc.id}
-          type="button"
-          onClick={() => onNavigate(cc.chapter_id)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '10px 14px',
-            background: 'var(--surface)',
-            border: '1px solid var(--border-soft)',
-            borderRadius: 8,
-            cursor: 'pointer',
-            textAlign: 'left',
-            font: '400 13px var(--font-ui)',
-            color: 'var(--ink)',
-            transition: 'border-color 0.15s, background 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-soft)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface)'; }}
-        >
-          <span>{cc.chapters?.title || 'Без названия'}</span>
-          {cc.auto_detected && (
-            <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)' }}>(авто)</span>
-          )}
-        </button>
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {povRows.length > 0 && (
+        <div>
+          <div style={{
+            font: '500 9px var(--font-mono)', color,
+            letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6,
+          }}>
+            POV
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {povRows.map((cc) => (
+              <button key={cc.id} type="button" onClick={() => onNavigate(cc.chapter_id)} style={chipStyle(true)}>
+                <span>{cc.chapters?.title || 'Без названия'}</span>
+                {cc.auto_detected && (
+                  <span style={{ font: '400 11px var(--font-ui)', color: `color-mix(in oklch, ${color} 60%, transparent)` }}>(авто)</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {presentRows.length > 0 && (
+        <div>
+          <div style={{
+            font: '500 9px var(--font-mono)', color: 'var(--ink-4)',
+            letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6,
+          }}>
+            Присутствует
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {presentRows.map((cc) => (
+              <button
+                key={cc.id} type="button" onClick={() => onNavigate(cc.chapter_id)} style={chipStyle(false)}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-soft)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface)'; }}
+              >
+                <span>{cc.chapters?.title || 'Без названия'}</span>
+                {cc.auto_detected && (
+                  <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)' }}>(авто)</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
-
 }
