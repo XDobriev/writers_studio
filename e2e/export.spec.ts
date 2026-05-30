@@ -13,7 +13,10 @@ test('export: скачать DOCX', async ({ page }) => {
   // Ждём заголовок страницы экспорта
   await expect(page.getByText('Экспорт книги')).toBeVisible({ timeout: 15_000 });
 
-  // DOCX должен быть выбран по умолчанию — проверяем кнопку скачивания
+  // Выбираем DOCX (по умолчанию открывается EPUB)
+  await page.locator('button', { hasText: 'Word, для редактора' }).click();
+
+  // DOCX выбран — проверяем кнопку скачивания
   const downloadBtn = page.getByRole('button', { name: /Скачать DOCX/i });
   await expect(downloadBtn).toBeVisible({ timeout: 5_000 });
 

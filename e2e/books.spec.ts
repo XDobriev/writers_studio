@@ -10,16 +10,13 @@ test('books: создать главу в существующей книге', 
 
   await page.goto(bookHref + '/outline');
 
-  // Ждём загрузки страницы Структура
-  await expect(page.getByText('Структура')).toBeVisible({ timeout: 15_000 });
-
   // Считаем ссылки на главы до создания
   const chapterLinks = page.locator('a[href*="/editor?chapter="]');
   const countBefore = await chapterLinks.count();
 
-  // Кнопка в тулбаре страницы Outline
+  // Кнопка в тулбаре страницы Outline — ждём загрузки (15 сек на первый рендер)
   const newChapterBtn = page.getByRole('button', { name: 'Новая глава' }).first();
-  await expect(newChapterBtn).toBeVisible({ timeout: 5_000 });
+  await expect(newChapterBtn).toBeVisible({ timeout: 15_000 });
   await newChapterBtn.click();
 
   // Ждём появления новой главы
