@@ -7,12 +7,110 @@ import { applyTheme, getStoredTheme, type Theme } from '../lib/theme';
 import { EDITOR_SHORTCUTS, shortcutLabel } from '../lib/shortcuts';
 
 type Plan = 'free' | 'pro' | 'lifetime';
+type Tab = 'profile' | 'interface' | 'subscription';
 
 const PLAN_META: Record<Plan, { name: string; desc: string }> = {
   free:     { name: 'Бесплатный план', desc: '1 книга · базовый редактор · без экспорта' },
   pro:      { name: 'Pro',             desc: 'Безлимит книг · все функции · экспорт' },
   lifetime: { name: 'Lifetime',        desc: 'Безлимит книг · все функции · навсегда' },
 };
+
+const PRO_FEATURES = [
+  'Безлимитное количество книг',
+  'Полный экспорт (PDF, DOCX, ePub)',
+  'Хронология и карта мира',
+  'Соавторство с редактором',
+  'Приоритетная поддержка',
+];
+
+function UpgradeModal({ onClose }: { onClose: () => void }) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={overlayRef}
+      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1100,
+        background: 'oklch(0 0 0 / 0.55)', backdropFilter: 'blur(2px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Перейти на Pro"
+        style={{
+          background: 'var(--bg)', border: '1px solid var(--border)',
+          borderRadius: 14, width: 360, maxWidth: '100%',
+          boxShadow: '0 32px 80px oklch(0.05 0.01 50 / 0.55)', overflow: 'hidden',
+        }}
+      >
+        <div style={{ padding: '20px 24px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div>
+              <div style={{ font: '600 16px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 3 }}>
+                Перейти на Pro
+              </div>
+              <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>
+                Полный доступ ко всем функциям редактора
+              </div>
+            </div>
+            <button
+              className="tb-btn"
+              onClick={onClose}
+              style={{ fontSize: 20, lineHeight: 1, padding: '0 6px', color: 'var(--ink-4)', flexShrink: 0 }}
+            >
+              ×
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+            {PRO_FEATURES.map(f => (
+              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ color: 'var(--ok)', fontSize: 13, flexShrink: 0, lineHeight: 1 }}>✓</span>
+                <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-2)' }}>{f}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            background: 'var(--surface)', borderRadius: 10,
+            padding: '12px 14px', marginBottom: 16,
+            display: 'flex', alignItems: 'baseline', gap: 6,
+          }}>
+            <span style={{ font: '700 26px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.03em' }}>290 ₽</span>
+            <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-4)' }}>/ месяц</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <a
+              href="https://avtorskaya-studiya.vercel.app/#pricing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn--primary"
+              style={{
+                textDecoration: 'none', justifyContent: 'center', fontSize: 13,
+                height: 38, display: 'flex', alignItems: 'center',
+              }}
+            >
+              Оформить подписку
+            </a>
+            <button className="btn btn--ghost" onClick={onClose} style={{ fontSize: 13, height: 38 }}>
+              Позже
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
   const { user, signOut, updatePassword } = useAuth();
@@ -21,6 +119,11 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const accountDisplay = isTelegram
     ? (user?.user_metadata?.telegram_username ? `@${user.user_metadata.telegram_username}` : `Telegram ID: ${user?.user_metadata?.telegram_id ?? ''}`)
     : (user?.email ?? '');
+
+  const [activeTab, setActiveTab] = useState<Tab>('profile');
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
   const [name, setName] = useState(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.user_metadata?.first_name ?? '');
   const [nameSaving, setNameSaving] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
@@ -54,7 +157,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
-    // Focus first interactive element on open
     const firstFocusable = dialogRef.current?.querySelector<HTMLElement>('button, input, a[href]');
     firstFocusable?.focus();
     return () => document.removeEventListener('keydown', handler);
@@ -83,210 +185,292 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const SL: CSSProperties = { font: '500 10.5px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.09em', textTransform: 'uppercase', marginBottom: 10 };
   const FL: CSSProperties = { font: '400 12px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 4 };
-  const HR: CSSProperties = { border: 'none', borderTop: '1px solid var(--border-soft)', margin: '14px 0' };
   const FG: CSSProperties = { display: 'flex', flexDirection: 'column' };
   const ROW: CSSProperties = { display: 'flex', gap: 8 };
-  const BTN: CSSProperties = { fontSize: 13, padding: '0 14px', flexShrink: 0, minWidth: 88 };
+  const H = 38;
+
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'profile', label: 'Профиль' },
+    { key: 'interface', label: 'Интерфейс' },
+    { key: 'subscription', label: 'Подписка' },
+  ];
 
   return (
-    <div
-      ref={overlayRef}
-      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
-    >
+    <>
       <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Настройки"
-        style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, width: 440, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 32px 80px oklch(0.05 0.01 50 / 0.55)', display: 'flex', flexDirection: 'column' }}
-        onKeyDown={(e) => {
-          if (e.key !== 'Tab') return;
-          const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])') ?? [];
-          const arr = Array.from(focusable);
-          if (!arr.length) return;
-          const first = arr[0];
-          const last = arr[arr.length - 1];
-          if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-            e.preventDefault();
-            (e.shiftKey ? last : first).focus();
-          }
+        ref={overlayRef}
+        onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(3px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         }}
       >
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Настройки"
+          style={{
+            background: 'var(--bg)', border: '1px solid var(--border)',
+            borderRadius: 14, width: 440, maxWidth: '100%', maxHeight: '90vh',
+            display: 'flex', flexDirection: 'column',
+            boxShadow: '0 32px 80px oklch(0.05 0.01 50 / 0.55)',
+          }}
+          onKeyDown={(e) => {
+            if (e.key !== 'Tab') return;
+            const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])') ?? [];
+            const arr = Array.from(focusable);
+            if (!arr.length) return;
+            const first = arr[0];
+            const last = arr[arr.length - 1];
+            if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
+              e.preventDefault();
+              (e.shiftKey ? last : first).focus();
+            }
+          }}
+        >
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', padding: '18px 24px 0', flexShrink: 0 }}>
+            <span style={{ font: '600 14px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Настройки</span>
+            <span style={{ flex: 1 }} />
+            <button className="tb-btn" onClick={onClose} style={{ fontSize: 20, lineHeight: 1, padding: '0 6px', color: 'var(--ink-4)' }}>×</button>
+          </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', padding: '18px 24px 16px', borderBottom: '1px solid var(--border-soft)' }}>
-          <span style={{ font: '600 14px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Настройки</span>
-          <span style={{ flex: 1 }} />
-          <button className="tb-btn" onClick={onClose} style={{ fontSize: 20, lineHeight: 1, padding: '0 6px', color: 'var(--ink-4)' }}>×</button>
-        </div>
+          {/* Tab bar */}
+          <div style={{
+            display: 'flex', padding: '12px 24px 0',
+            borderBottom: '1px solid var(--border-soft)', flexShrink: 0,
+          }}>
+            {TABS.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setActiveTab(t.key)}
+                style={{
+                  font: activeTab === t.key ? '500 13px var(--font-ui)' : '400 13px var(--font-ui)',
+                  color: activeTab === t.key ? 'var(--ink)' : 'var(--ink-4)',
+                  background: 'none', border: 'none',
+                  borderBottom: activeTab === t.key ? '2px solid var(--accent)' : '2px solid transparent',
+                  padding: '0 2px 10px', marginRight: 20, cursor: 'pointer',
+                  transition: 'color 0.15s, border-color 0.15s',
+                  letterSpacing: '-0.01em', flexShrink: 0,
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-        <div style={{ padding: '18px 24px 16px', display: 'flex', flexDirection: 'column' }}>
+          {/* Tab content */}
+          <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-          <section>
-            <div style={SL}>Профиль</div>
-            <div style={{ ...FG, gap: 10 }}>
-              <div style={FG}>
-                <span style={FL}>Имя</span>
-                <div style={ROW}>
-                  <input className="input" value={name} onChange={(e) => { setName(e.target.value); setNameSaved(false); }} placeholder="Ваше имя" style={{ flex: 1, fontSize: 13 }} />
-                  <button className="btn btn--primary" style={BTN} onClick={handleSaveName} disabled={nameSaving || !name.trim()}>
-                    {nameSaving ? '…' : nameSaved ? '✓' : 'Сохранить'}
-                  </button>
+            {activeTab === 'profile' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={FG}>
+                  <span style={FL}>Имя</span>
+                  <div style={ROW}>
+                    <input
+                      className="input"
+                      value={name}
+                      onChange={(e) => { setName(e.target.value); setNameSaved(false); }}
+                      placeholder="Ваше имя"
+                      style={{ flex: 1, fontSize: 13, height: H }}
+                    />
+                    <button
+                      className="btn btn--primary"
+                      style={{ fontSize: 13, padding: '0 14px', height: H, flexShrink: 0, minWidth: 88 }}
+                      onClick={handleSaveName}
+                      disabled={nameSaving || !name.trim()}
+                    >
+                      {nameSaving ? '…' : nameSaved ? '✓' : 'Сохранить'}
+                    </button>
+                  </div>
+                  {nameError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', marginTop: 6 }}>{nameError}</span>}
                 </div>
-                {nameError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', marginTop: 6 }}>{nameError}</span>}
-              </div>
-              <div style={FG}>
-                <span style={FL}>{accountLabel}</span>
-                <input className="input" value={accountDisplay} readOnly style={{ fontSize: 13, opacity: 0.5, cursor: 'default' }} />
-              </div>
-            </div>
-          </section>
 
-          <hr style={HR} />
-
-          <section>
-            <div style={SL}>Безопасность</div>
-            <div style={FG}>
-              <span style={FL}>Новый пароль</span>
-              <div style={ROW}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <input className="input" type={showPass ? 'text' : 'password'} value={newPass} onChange={(e) => { setNewPass(e.target.value); setPassSaved(false); setPassError(null); }} placeholder="Минимум 6 символов" style={{ width: '100%', fontSize: 13, paddingRight: 36 }} />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(v => !v)}
-                    style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: 0 }}
-                    tabIndex={-1}
-                    aria-label={showPass ? 'Скрыть пароль' : 'Показать пароль'}
-                  >
-                    <Icon name={showPass ? 'eye-off' : 'eye'} size={15} />
-                  </button>
+                <div style={FG}>
+                  <span style={FL}>{accountLabel}</span>
+                  <input
+                    className="input"
+                    value={accountDisplay}
+                    readOnly
+                    style={{ fontSize: 13, height: H, opacity: 0.5, cursor: 'default' }}
+                  />
                 </div>
-                <button className="btn btn--primary" style={BTN} onClick={handleSavePass} disabled={passSaving || !newPass}>
-                  {passSaving ? '…' : passSaved ? '✓' : 'Сменить'}
-                </button>
-              </div>
-              {passError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', marginTop: 6 }}>{passError}</span>}
-              {passSaved && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ok)', marginTop: 6 }}>Пароль изменён</span>}
-            </div>
-          </section>
 
-          <hr style={HR} />
-
-          <section>
-            <div style={SL}>Интерфейс</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={FL}>Тема</span>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button
-                  onClick={() => handleTheme('dark')}
-                  className={'btn' + (theme === 'dark' ? ' btn--primary' : ' btn--ghost')}
-                  style={{ fontSize: 12, gap: 5 }}
-                >
-                  <Icon name="moon" size={13} /> Тёмная
-                </button>
-                <button
-                  onClick={() => handleTheme('light')}
-                  className={'btn' + (theme === 'light' ? ' btn--primary' : ' btn--ghost')}
-                  style={{ fontSize: 12, gap: 5 }}
-                >
-                  <Icon name="sun" size={13} /> Светлая
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <hr style={HR} />
-
-          <section>
-            <div style={SL}>Подписка</div>
-            <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {!planLoaded
-                ? <div style={{ height: 38, borderRadius: 6, background: 'var(--surface-2)' }} />
-                : <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 2 }}>{PLAN_META[plan].name}</div>
-                    <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{PLAN_META[plan].desc}</div>
-                    {plan === 'pro' && planExpiresAt && (
-                      <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginTop: 4 }}>
-                        Активна до {new Date(planExpiresAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {!isTelegram && (
+                  <div style={FG}>
+                    <span style={FL}>Новый пароль</span>
+                    <div style={ROW}>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <input
+                          className="input"
+                          type={showPass ? 'text' : 'password'}
+                          value={newPass}
+                          onChange={(e) => { setNewPass(e.target.value); setPassSaved(false); setPassError(null); }}
+                          placeholder="Минимум 6 символов"
+                          style={{ width: '100%', fontSize: 13, height: H, paddingRight: 36 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPass(v => !v)}
+                          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: 0 }}
+                          tabIndex={-1}
+                          aria-label={showPass ? 'Скрыть пароль' : 'Показать пароль'}
+                        >
+                          <Icon name={showPass ? 'eye-off' : 'eye'} size={15} />
+                        </button>
                       </div>
-                    )}
+                      <button
+                        className="btn btn--primary"
+                        style={{ fontSize: 13, padding: '0 14px', height: H, flexShrink: 0, minWidth: 88 }}
+                        onClick={handleSavePass}
+                        disabled={passSaving || !newPass}
+                      >
+                        {passSaving ? '…' : passSaved ? '✓' : 'Сменить'}
+                      </button>
+                    </div>
+                    {passError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', marginTop: 6 }}>{passError}</span>}
+                    {passSaved && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ok)', marginTop: 6 }}>Пароль изменён</span>}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => signOut()}
+                  style={{ width: '100%', fontSize: 13, padding: '9px 0', marginTop: 4, color: 'var(--danger)', background: 'transparent', border: '1px solid color-mix(in oklch, var(--danger) 45%, transparent)', borderRadius: 8, cursor: 'pointer', letterSpacing: '-0.01em', transition: 'background 0.15s, border-color 0.15s' }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in oklch, var(--danger) 10%, transparent)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                >
+                  Выйти из аккаунта
+                </button>
+              </div>
+            )}
+
+            {activeTab === 'interface' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 2 }}>Тема</div>
+                    <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>Оформление интерфейса</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button
+                      onClick={() => handleTheme('dark')}
+                      className={'btn' + (theme === 'dark' ? ' btn--primary' : ' btn--ghost')}
+                      style={{ fontSize: 12, gap: 5 }}
+                    >
+                      <Icon name="moon" size={13} /> Тёмная
+                    </button>
+                    <button
+                      onClick={() => handleTheme('light')}
+                      className={'btn' + (theme === 'light' ? ' btn--primary' : ' btn--ghost')}
+                      style={{ fontSize: 12, gap: 5 }}
+                    >
+                      <Icon name="sun" size={13} /> Светлая
+                    </button>
                   </div>
                 </div>
-              </>}
-              {planLoaded && plan === 'free' && (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <a
-                    href="https://avtorskaya-studiya.vercel.app/#pricing"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn--primary"
-                    style={{ fontSize: 12, padding: '5px 14px', textDecoration: 'none' }}
-                  >
-                    Апгрейд до Pro
-                  </a>
+              </div>
+            )}
+
+            {activeTab === 'subscription' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '14px 16px' }}>
+                  {!planLoaded
+                    ? <div style={{ height: 52, borderRadius: 6, background: 'var(--surface-2)' }} />
+                    : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                          <div>
+                            <div style={{ font: '600 14px var(--font-ui)', color: 'var(--ink)', marginBottom: 3 }}>{PLAN_META[plan].name}</div>
+                            <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{PLAN_META[plan].desc}</div>
+                            {plan === 'pro' && planExpiresAt && (
+                              <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginTop: 5 }}>
+                                Активна до {new Date(planExpiresAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              </div>
+                            )}
+                          </div>
+                          {plan !== 'free' && (
+                            <span style={{
+                              font: '500 10.5px var(--font-mono)', color: 'var(--accent)',
+                              background: 'var(--accent-soft)',
+                              border: '1px solid color-mix(in oklch, var(--accent) 30%, transparent)',
+                              borderRadius: 6, padding: '3px 8px', letterSpacing: '0.06em', textTransform: 'uppercase',
+                              whiteSpace: 'nowrap', flexShrink: 0,
+                            }}>
+                              {plan === 'lifetime' ? 'Lifetime' : 'Pro'}
+                            </span>
+                          )}
+                        </div>
+
+                        {plan === 'free' && (
+                          <button
+                            className="btn btn--primary"
+                            onClick={() => setUpgradeOpen(true)}
+                            style={{ fontSize: 13, height: H }}
+                          >
+                            Апгрейд до Pro
+                          </button>
+                        )}
+
+                        {plan === 'pro' && (
+                          <a
+                            href={`mailto:support@avtorskaya-studiya.ru?subject=Отмена подписки&body=Прошу отменить мою подписку Pro. Email аккаунта: ${user?.email ?? ''}`}
+                            className="btn btn--ghost"
+                            style={{ fontSize: 12, padding: '5px 12px', textDecoration: 'none', color: 'var(--ink-3)' }}
+                          >
+                            Отменить подписку
+                          </a>
+                        )}
+                      </div>
+                    )
+                  }
                 </div>
-              )}
-              {planLoaded && plan === 'pro' && (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <a
-                    href={`mailto:support@avtorskaya-studiya.ru?subject=Отмена подписки&body=Прошу отменить мою подписку Pro. Email аккаунта: ${user?.email ?? ''}`}
-                    className="btn btn--ghost"
-                    style={{ fontSize: 12, padding: '5px 12px', textDecoration: 'none', color: 'var(--ink-3)' }}
-                  >
-                    Отменить подписку
-                  </a>
-                </div>
-              )}
-            </div>
-          </section>
+              </div>
+            )}
+          </div>
 
-          <hr style={HR} />
-
-          <section>
-            <div style={SL}>Горячие клавиши</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {EDITOR_SHORTCUTS.map((s) => (
-                <div
-                  key={s.label}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0' }}
-                >
-                  <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{s.label}</span>
-                  <kbd
-                    style={{
-                      font: '500 11px var(--font-mono)',
-                      color: 'var(--ink-2)',
-                      background: 'var(--surface)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 5,
-                      padding: '2px 8px',
-                      whiteSpace: 'nowrap',
-                      letterSpacing: '0.02em',
-                    }}
-                  >
-                    {shortcutLabel(s)}
-                  </kbd>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <hr style={HR} />
-
-          <section>
+          {/* Help collapsible */}
+          <div style={{ borderTop: '1px solid var(--border-soft)', padding: '0 24px', flexShrink: 0 }}>
             <button
-              onClick={() => signOut()}
-              style={{ width: '100%', fontSize: 13, padding: '9px 0', color: 'var(--danger)', background: 'transparent', border: '1px solid color-mix(in oklch, var(--danger) 45%, transparent)', borderRadius: 8, cursor: 'pointer', letterSpacing: '-0.01em', transition: 'background 0.15s, border-color 0.15s' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in oklch, var(--danger) 10%, transparent)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-            >Выйти из аккаунта</button>
-          </section>
-
+              onClick={() => setHelpOpen(v => !v)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '13px 0',
+                font: '500 10.5px var(--font-mono)',
+                color: 'var(--ink-4)', letterSpacing: '0.09em', textTransform: 'uppercase',
+              }}
+            >
+              Помощь
+              <span style={{ transition: 'transform 0.15s', transform: helpOpen ? 'rotate(180deg)' : 'rotate(0deg)', display: 'flex' }}>
+                <Icon name="chevd" size={12} />
+              </span>
+            </button>
+            {helpOpen && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 14 }}>
+                {EDITOR_SHORTCUTS.map((s) => (
+                  <div
+                    key={s.label}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}
+                  >
+                    <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{s.label}</span>
+                    <kbd style={{
+                      font: '500 11px var(--font-mono)', color: 'var(--ink-2)',
+                      background: 'var(--surface)', border: '1px solid var(--border)',
+                      borderRadius: 5, padding: '2px 8px', whiteSpace: 'nowrap', letterSpacing: '0.02em',
+                    }}>
+                      {shortcutLabel(s)}
+                    </kbd>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+      {upgradeOpen && <UpgradeModal onClose={() => setUpgradeOpen(false)} />}
+    </>
   );
 }
