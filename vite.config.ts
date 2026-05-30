@@ -5,6 +5,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     exclude: ['e2e/**', 'node_modules/**'],
+    env: {
+      VITE_SUPABASE_URL: 'https://dummy.supabase.co',
+      VITE_SUPABASE_ANON_KEY: 'dummy-anon-key-for-unit-tests',
+    },
   },
   plugins: [react()],
   server: {
