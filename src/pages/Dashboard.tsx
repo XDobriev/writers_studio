@@ -1,4 +1,4 @@
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useMemo, useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -48,6 +48,8 @@ export default function Dashboard() {
   const [editGoal, setEditGoal] = useState(0);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  const navigate = useNavigate();
 
   const windowWidth = useWindowWidth();
   const isMobile = windowWidth < 768;
@@ -291,7 +293,13 @@ export default function Dashboard() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%' }}>
     <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
-        {!isMobile && <Sidebar book={book} />}
+        {!isMobile && (
+          <Sidebar
+            book={book}
+            chapters={chapters}
+            chapterActions={{ onSelectChapter: (cid) => navigate(`/books/${id}/editor?chapter=${cid}`) }}
+          />
+        )}
 
         <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden', minWidth: 0 }}>
           <div className="tb" style={{ justifyContent: 'space-between', gap: 8 }}>
@@ -534,7 +542,11 @@ export default function Dashboard() {
             style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
           />
           <div style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)' }}>
-            <Sidebar book={book} />
+            <Sidebar
+              book={book}
+              chapters={chapters}
+              chapterActions={{ onSelectChapter: (cid) => navigate(`/books/${id}/editor?chapter=${cid}`) }}
+            />
           </div>
         </>
       )}
