@@ -34,13 +34,14 @@ export interface ChapterCharacterRow {
   chapter_id: string;
   character_id: string;
   auto_detected: boolean;
+  is_pov: boolean;
   chapters: { title: string; position: number } | null;
 }
 
 export async function listChapterCharacters(characterId: string): Promise<ChapterCharacterRow[]> {
   const { data, error } = await supabase
     .from('chapter_characters')
-    .select('id, chapter_id, character_id, auto_detected, chapters(title, position)')
+    .select('id, chapter_id, character_id, auto_detected, is_pov, chapters(title, position)')
     .eq('character_id', characterId);
   if (error) throw error;
   const rows = (data ?? []) as unknown as ChapterCharacterRow[];
@@ -79,7 +80,8 @@ export async function syncCharacterAcrossAllChapters(
           .delete()
           .eq('chapter_id', chapter.id)
           .eq('character_id', character.id)
-          .eq('auto_detected', true);
+          .eq('auto_detected', true)
+          .eq('is_pov', false);
       }
     }),
   );
@@ -153,7 +155,8 @@ export async function syncBacklinks(
           .delete()
           .eq('chapter_id', chapterId)
           .eq('character_id', character.id)
-          .eq('auto_detected', true);
+          .eq('auto_detected', true)
+          .eq('is_pov', false);
       }
     }),
   );
