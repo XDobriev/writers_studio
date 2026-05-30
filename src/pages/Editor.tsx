@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams, Navigate } from 'react-router-dom';
+import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { useQueryClient } from '@tanstack/react-query';
 import { EditorHybrid } from '../components/EditorHybrid';
 import { useAuth } from '../lib/auth';
@@ -80,9 +81,6 @@ export default function Editor() {
     }
   }, [bookId, user, chapters, queryClient, search, setSearch]);
 
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingPatch = useRef<ChapterPatch | null>(null);
-  const targetIdRef = useRef<string | null>(null);
   const sessionTokenRef = useRef<string | null>(null);
   const currentContentRef = useRef<string>('');
   const lastVersionContentRef = useRef<Map<string, string>>(new Map());
@@ -103,9 +101,39 @@ export default function Editor() {
 
   useEffect(() => { planRef.current = plan; }, [plan]);
 
+  const { scheduleSave: debouncedSave, flush, pendingPatchRef, targetIdRef } = useDebouncedSave<ChapterPatch>(
+    async (id, patch) => {
+      if (!bookId) return;
+      setSaveState('saving');
+      try {
+        const updated = await updateChapter(id, patch);
+        const { content: _c, ...updatedMeta } = updated;
+        queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+          prev ? prev.map((c) => (c.id === id ? { ...c, ...updatedMeta } : c)) : prev
+        );
+        queryClient.setQueryData<{ id: string; content: string }>(
+          QUERY_KEYS.chapterContent(id),
+          { id: updated.id, content: updated.content }
+        );
+        setSaveState('saved');
+        setSavedAt(new Date());
+        const characters = queryClient.getQueryData<Character[]>(QUERY_KEYS.characters(bookId)) ?? [];
+        if (characters.length > 0) {
+          void syncBacklinks(id, bookId, currentContentRef.current, characters)
+            .then(() => { void queryClient.invalidateQueries({ queryKey: ['chapter-characters'] }); })
+            .catch(() => { /* non-critical */ });
+        }
+      } catch (e) {
+        setSaveState('error');
+        throw e;
+      }
+    },
+    700,
+  );
+
   useEffect(() => {
     const handleBeforeUnload = () => {
-      const patch = pendingPatch.current;
+      const patch = pendingPatchRef.current;
       const id = targetIdRef.current;
       const token = sessionTokenRef.current;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -135,48 +163,9 @@ export default function Editor() {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [user?.id]);
-
-  const flush = useCallback(async () => {
-    const patch = pendingPatch.current;
-    const id = targetIdRef.current;
-    if (!patch || !id || !bookId) return;
-    // Баг 4: очищаем до await, но восстанавливаем при ошибке
-    pendingPatch.current = null;
-    setSaveState('saving');
-    try {
-      const updated = await updateChapter(id, patch);
-      // Обновляем метаданные в общем кеше глав (без контента)
-      const { content: _c, ...updatedMeta } = updated;
-      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-        prev ? prev.map((c) => (c.id === id ? { ...c, ...updatedMeta } : c)) : prev
-      );
-      // Контент — в отдельный кеш
-      queryClient.setQueryData<{ id: string; content: string }>(
-        QUERY_KEYS.chapterContent(id),
-        { id: updated.id, content: updated.content }
-      );
-      setSaveState('saved');
-      setSavedAt(new Date());
-
-      const characters = queryClient.getQueryData<Character[]>(QUERY_KEYS.characters(bookId)) ?? [];
-      if (characters.length > 0) {
-        void syncBacklinks(id, bookId, currentContentRef.current, characters)
-          .then(() => {
-            void queryClient.invalidateQueries({ queryKey: ['chapter-characters'] });
-          })
-          .catch(() => { /* non-critical */ });
-      }
-    } catch {
-      // Возвращаем патч: новые изменения (если пришли за время await) перекрывают старые
-      pendingPatch.current = { ...patch, ...(pendingPatch.current ?? {}) };
-      setSaveState('error');
-    }
-  }, [bookId, queryClient]);
+  }, [user?.id, pendingPatchRef, targetIdRef]);
 
   const scheduleSave = useCallback((id: string, patch: ChapterPatch) => {
-    targetIdRef.current = id;
-    pendingPatch.current = { ...(pendingPatch.current ?? {}), ...patch };
     if (bookId) {
       // Оптимистично обновляем метаданные (title, words, status, position)
       const { content: _c, ...metaPatch } = patch;
@@ -192,15 +181,13 @@ export default function Editor() {
       );
     }
     setSaveState('saving');
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => { void flush(); }, 700);
-  }, [flush, bookId, queryClient]);
+    debouncedSave(id, patch);
+  }, [debouncedSave, bookId, queryClient]);
 
   const lastActiveIdRef = useRef<string | null>(null);
   useEffect(() => {
     const newId = activeChapter?.id ?? null;
     if (lastActiveIdRef.current && lastActiveIdRef.current !== newId) {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
       void flush();
       const prevId = lastActiveIdRef.current;
       const userId = user?.id;
@@ -230,11 +217,6 @@ export default function Editor() {
       lastVersionContentRef.current.set(chapterId, activeContent);
     }
   }, [activeChapter?.id, activeContent]);
-
-  useEffect(() => () => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    void flush();
-  }, [flush]);
 
   useEffect(() => {
     const chapterId = activeChapter?.id;

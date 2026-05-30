@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
 import { useWindowWidth } from '../lib/useWindowWidth';
-import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
 import {
-  createCharacter,
-  deleteCharacter,
   initialsFromName,
   ROLE_LABELS,
   updateCharacter,
@@ -17,19 +15,16 @@ import {
   type CharacterPatch,
   type CharacterRole,
 } from '../lib/characters';
-import {
-  createRelation,
-  deleteRelation,
-  updateRelationLabel,
-  type CharacterRelation,
-} from '../lib/character_relations';
+import type { CharacterRelation } from '../lib/character_relations';
 import { QUERY_KEYS, useBook, useCharacters, useRelations, useChapterCharacters } from '../lib/queries';
 import { syncCharacterAcrossAllChapters, findNameVariantsInText } from '../lib/crossrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useDebouncedSave } from '../lib/useDebouncedSave';
+import { useCharacterNavigation } from '../lib/useCharacterNavigation';
+import { useCharacterMutations } from '../lib/useCharacterMutations';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type RoleFilter = 'all' | CharacterRole;
-type ViewMode = 'grid' | 'detail';
 type DetailTab = 'info' | 'chapters';
 
 const ROLE_FILTERS: { value: RoleFilter; label: string }[] = [
@@ -53,9 +48,9 @@ const ROLE_PORTRAIT_BG: Record<CharacterRole, string> = {
 
 export default function Characters() {
   const { id: bookId } = useParams<{ id: string }>();
-  const [search, setSearch] = useSearchParams();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: book } = useBook(bookId);
   const { data: characters, error: charsQueryError } = useCharacters(bookId);
@@ -66,11 +61,7 @@ export default function Characters() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [query, setQuery] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [detailTab, setDetailTab] = useState<DetailTab>('info');
-  const navigate = useNavigate();
-
-  const activeId = search.get('character');
   const isMobile = useWindowWidth() < 768;
 
   const filtered = useMemo(() => {
@@ -83,82 +74,50 @@ export default function Characters() {
     });
   }, [characters, roleFilter, query]);
 
-  // Auto-select first character only in detail mode (not grid)
-  useEffect(() => {
-    if (isMobile) return;
-    if (viewMode === 'grid') return;
-    if (!characters || characters.length === 0) return;
-    const exists = activeId && characters.some((c) => c.id === activeId);
-    if (!exists) {
-      const first = filtered[0] ?? characters[0];
-      const next = new URLSearchParams(search);
-      next.set('character', first.id);
-      setSearch(next, { replace: true });
-    }
-  }, [isMobile, viewMode, characters, filtered, activeId, search, setSearch]);
+  const { activeId, search, setSearch, viewMode, setViewMode, selectCharacter, goToGrid, clearCharacter } = useCharacterNavigation({
+    isMobile,
+    characters,
+    filtered,
+  });
 
   const active = useMemo(
     () => (characters && activeId ? characters.find((c) => c.id === activeId) ?? null : null),
     [characters, activeId],
   );
 
-  const selectCharacter = useCallback((id: string) => {
-    const next = new URLSearchParams(search);
-    next.set('character', id);
-    setSearch(next, { replace: false });
-    setViewMode('detail');
-  }, [search, setSearch]);
-
-  const goToGrid = useCallback(() => {
-    setViewMode('grid');
-  }, []);
-
-  const clearCharacter = useCallback(() => {
-    const next = new URLSearchParams(search);
-    next.delete('character');
-    setSearch(next, { replace: false });
-    setViewMode('grid');
-  }, [search, setSearch]);
-
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingPatch = useRef<CharacterPatch | null>(null);
-  const targetIdRef = useRef<string | null>(null);
-
-  const flush = useCallback(async () => {
-    const patch = pendingPatch.current;
-    const id = targetIdRef.current;
-    pendingPatch.current = null;
-    if (!patch || !id || !bookId) return;
-    setSaveState('saving');
-    try {
-      const updated = await updateCharacter(id, patch);
-      queryClient.setQueryData<Character[]>(QUERY_KEYS.characters(bookId), (prev) =>
-        prev ? prev.map((c) => (c.id === id ? updated : c)) : prev
-      );
-      setSaveState('saved');
-      if (patch.name !== undefined || patch.aliases !== undefined) {
-        void syncCharacterAcrossAllChapters(updated, bookId)
-          .then(() => { void queryClient.invalidateQueries({ queryKey: ['chapter-characters'] }); })
-          .catch(() => { /* non-critical */ });
+  const { scheduleSave: debouncedSave, flush, cancel: cancelSave } = useDebouncedSave<CharacterPatch>(
+    async (id, patch) => {
+      if (!bookId) return;
+      setSaveState('saving');
+      try {
+        const updated = await updateCharacter(id, patch);
+        queryClient.setQueryData<Character[]>(QUERY_KEYS.characters(bookId), (prev) =>
+          prev ? prev.map((c) => (c.id === id ? updated : c)) : prev
+        );
+        setSaveState('saved');
+        if (patch.name !== undefined || patch.aliases !== undefined) {
+          void syncCharacterAcrossAllChapters(updated, bookId)
+            .then(() => { void queryClient.invalidateQueries({ queryKey: ['chapter-characters'] }); })
+            .catch(() => { /* non-critical */ });
+        }
+      } catch (e) {
+        setSaveState('error');
+        setError((e as Error).message);
+        throw e;
       }
-    } catch (e) {
-      setSaveState('error');
-      setError((e as Error).message);
-    }
-  }, [bookId, queryClient]);
+    },
+    700,
+  );
 
   const scheduleSave = useCallback((id: string, patch: CharacterPatch) => {
-    targetIdRef.current = id;
-    pendingPatch.current = { ...(pendingPatch.current ?? {}), ...patch };
     if (bookId) {
       queryClient.setQueryData<Character[]>(QUERY_KEYS.characters(bookId), (prev) =>
         prev ? prev.map((c) => (c.id === id ? { ...c, ...patch } as Character : c)) : prev
       );
     }
     setSaveState('saving');
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => { void flush(); }, 700);
-  }, [flush, bookId, queryClient]);
+    debouncedSave(id, patch);
+  }, [debouncedSave, bookId, queryClient]);
 
   useEffect(() => { setDetailTab('info'); }, [activeId]);
 
@@ -166,100 +125,24 @@ export default function Characters() {
   useEffect(() => {
     const newId = active?.id ?? null;
     if (lastActiveIdRef.current && lastActiveIdRef.current !== newId) {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
       void flush();
     }
     lastActiveIdRef.current = newId;
   }, [active, flush]);
 
-  useEffect(() => () => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    void flush();
-  }, [flush]);
-
-  const onCreate = useCallback(async () => {
-    if (!bookId || !user) return;
-    const position = characters?.length ?? 0;
-    try {
-      const created = await createCharacter(bookId, user.id, {
-        name: '',
-        role: 'protagonist',
-        position,
-      });
-      queryClient.setQueryData<Character[]>(QUERY_KEYS.characters(bookId), (prev) => [...(prev ?? []), created]);
-      const next = new URLSearchParams(search);
-      next.set('character', created.id);
-      setSearch(next, { replace: false });
-      setViewMode('detail');
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [bookId, user, characters, queryClient, search, setSearch]);
-
-  const onDelete = useCallback(() => {
-    if (!active) return;
-    setConfirmDelete(true);
-  }, [active]);
-
-  const onDeleteConfirmed = useCallback(async () => {
-    if (!active || !characters || !bookId) return;
-    setConfirmDelete(false);
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    pendingPatch.current = null;
-    targetIdRef.current = null;
-    try {
-      await deleteCharacter(active.id);
-      const remaining = characters.filter((c) => c.id !== active.id);
-      queryClient.setQueryData<Character[]>(QUERY_KEYS.characters(bookId), remaining);
-      queryClient.setQueryData<CharacterRelation[]>(QUERY_KEYS.relations(bookId), (prev) =>
-        prev ? prev.filter((r) => r.from_character_id !== active.id && r.to_character_id !== active.id) : prev
-      );
-      const next = new URLSearchParams(search);
-      if (remaining.length > 0) {
-        next.set('character', remaining[0].id);
-      } else {
-        next.delete('character');
-        setViewMode('grid');
-      }
-      setSearch(next, { replace: true });
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [active, characters, bookId, queryClient, search, setSearch]);
-
-  const onCreateRelation = useCallback(async (toId: string, label: string) => {
-    if (!bookId || !user || !active) return;
-    try {
-      const created = await createRelation(bookId, user.id, active.id, toId, label);
-      queryClient.setQueryData<CharacterRelation[]>(QUERY_KEYS.relations(bookId), (prev) => [...(prev ?? []), created]);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [bookId, user, active, queryClient]);
-
-  const onDeleteRelation = useCallback(async (relationId: string) => {
-    if (!bookId) return;
-    try {
-      await deleteRelation(relationId);
-      queryClient.setQueryData<CharacterRelation[]>(QUERY_KEYS.relations(bookId), (prev) =>
-        prev ? prev.filter((r) => r.id !== relationId) : prev
-      );
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [bookId, queryClient]);
-
-  const onRelationLabelChange = useCallback(async (relationId: string, label: string) => {
-    if (!bookId) return;
-    try {
-      const updated = await updateRelationLabel(relationId, label);
-      queryClient.setQueryData<CharacterRelation[]>(QUERY_KEYS.relations(bookId), (prev) =>
-        prev ? prev.map((r) => (r.id === relationId ? updated : r)) : prev
-      );
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [bookId, queryClient]);
+  const { onCreate, onDelete, onDeleteConfirmed, onCreateRelation, onDeleteRelation, onRelationLabelChange } = useCharacterMutations({
+    bookId,
+    userId: user?.id,
+    characters,
+    active,
+    queryClient,
+    search,
+    setSearch,
+    setViewMode,
+    setConfirmDelete,
+    setError,
+    cancelSave,
+  });
 
   if (!bookId) return <Navigate to="/books" replace />;
 
