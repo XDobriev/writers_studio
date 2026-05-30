@@ -10,9 +10,10 @@ test('timeline: добавить событие', async ({ page }) => {
   const addBtn = page.getByRole('button', { name: 'Событие' });
   await expect(addBtn).toBeVisible({ timeout: 15_000 });
 
-  const countBefore = await page.getByText('Событие').count();
+  // EventCard рендерит название как <input>, не как текст — считаем по placeholder
+  const inputsBefore = await page.getByPlaceholder('Название события').count();
   await addBtn.click();
 
-  // Новое событие с дефолтным заголовком «Событие» увеличивает счётчик
-  await expect(page.getByText('Событие')).toHaveCount(countBefore + 1, { timeout: 10_000 });
+  // Новая карточка события появляется в списке
+  await expect(page.getByPlaceholder('Название события')).toHaveCount(inputsBefore + 1, { timeout: 10_000 });
 });
