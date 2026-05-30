@@ -346,14 +346,16 @@ function SortableChapterRow({
         </Link>
       )}
 
-      <PovBadge
-        chapterId={c.id}
-        bookId={bookId}
-        povEntries={povEntries}
-        allCharacters={allCharacters}
-        userId={userId}
-        onChanged={onPovChanged}
-      />
+      <div style={{ marginRight: 34 }}>
+        <PovBadge
+          chapterId={c.id}
+          bookId={bookId}
+          povEntries={povEntries}
+          allCharacters={allCharacters}
+          userId={userId}
+          onChanged={onPovChanged}
+        />
+      </div>
 
       <div
         ref={menuFor === c.id ? menuRef : null}
