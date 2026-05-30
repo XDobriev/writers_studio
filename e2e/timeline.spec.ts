@@ -6,19 +6,13 @@ test('timeline: добавить событие', async ({ page }) => {
 
   await page.goto(bookHref + '/timeline');
 
-  // Ждём загрузки страницы
-  await page.waitForLoadState('networkidle', { timeout: 15_000 });
+  // Кнопка в тулбаре видна всегда — не зависит от ResizeObserver / containerWidth
+  const addBtn = page.getByRole('button', { name: 'Событие' });
+  await expect(addBtn).toBeVisible({ timeout: 15_000 });
 
-  const isEmpty = await page.getByText('Хронология пуста').isVisible();
+  const countBefore = await page.getByText('Событие').count();
+  await addBtn.click();
 
-  if (isEmpty) {
-    // Пустое состояние — кнопка в центре страницы
-    await page.getByRole('button', { name: 'Создать событие' }).click();
-  } else {
-    // Есть события — кнопка «+» в конце ряда
-    await page.locator('button[title="Добавить событие"]').first().click();
-  }
-
-  // Новое событие появляется с дефолтным заголовком «Событие»
-  await expect(page.getByText('Событие').first()).toBeVisible({ timeout: 10_000 });
+  // Новое событие с дефолтным заголовком «Событие» увеличивает счётчик
+  await expect(page.getByText('Событие')).toHaveCount(countBefore + 1, { timeout: 10_000 });
 });
