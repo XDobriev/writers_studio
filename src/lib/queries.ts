@@ -12,6 +12,7 @@ import { listTimelineEvents, type TimelineEvent } from './timeline';
 import { listConnections, type LocationConnection } from './connections';
 import { listVersions, type ChapterVersionMeta } from './versions';
 import { listChapterCharacters, type ChapterCharacterRow } from './crossrefs';
+import { listBookPovEntries, type PovEntry } from './pov';
 
 export const QUERY_KEYS = {
   books: (userId: string) => ['books', userId] as const,
@@ -29,6 +30,7 @@ export const QUERY_KEYS = {
   connections: (bookId: string) => ['connections', bookId] as const,
   chapterVersions: (chapterId: string) => ['chapter-versions', chapterId] as const,
   chapterCharacters: (characterId: string) => ['chapter-characters', characterId] as const,
+  chapterPovMap: (bookId: string) => ['chapter-pov-map', bookId] as const,
 };
 
 export function useBook(id: string | undefined) {
@@ -169,5 +171,14 @@ export function useProfile(userId: string | undefined) {
     queryFn: () => getProfile(userId!),
     enabled: !!userId,
     staleTime: 10 * 60_000,
+  });
+}
+
+export function useChapterPovMap(bookId: string | undefined) {
+  return useQuery<PovEntry[]>({
+    queryKey: bookId ? QUERY_KEYS.chapterPovMap(bookId) : ['chapter-pov-map', null],
+    queryFn: () => listBookPovEntries(bookId!),
+    enabled: !!bookId,
+    staleTime: 30_000,
   });
 }
