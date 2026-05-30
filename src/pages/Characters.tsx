@@ -15,8 +15,8 @@ import {
   type CharacterPatch,
   type CharacterRole,
 } from '../lib/characters';
-import type { CharacterRelation } from '../lib/character_relations';
-import { QUERY_KEYS, useBook, useCharacters, useRelations, useChapterCharacters } from '../lib/queries';
+import type { CharacterRelationship } from '../lib/character_relationships';
+import { QUERY_KEYS, useBook, useCharacters, useRelationships, useChapterCharacters } from '../lib/queries';
 import { syncCharacterAcrossAllChapters, findNameVariantsInText } from '../lib/crossrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
@@ -54,9 +54,9 @@ export default function Characters() {
 
   const { data: book } = useBook(bookId);
   const { data: characters, error: charsQueryError } = useCharacters(bookId);
-  const { data: relations, error: relsQueryError } = useRelations(bookId);
+  const { data: relationships, error: relsQueryError } = useRelationships(bookId);
   const [mutationError, setError] = useState<string | null>(null);
-  const error = charsQueryError?.message ?? relsQueryError?.message ?? mutationError;
+  const error = charsQueryError?.message ?? relsQueryError?.message ?? mutationError ?? null;
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [query, setQuery] = useState('');
@@ -130,7 +130,7 @@ export default function Characters() {
     lastActiveIdRef.current = newId;
   }, [active, flush]);
 
-  const { onCreate, onDelete, onDeleteConfirmed, onCreateRelation, onDeleteRelation, onRelationLabelChange } = useCharacterMutations({
+  const { onCreate, onDelete, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange } = useCharacterMutations({
     bookId,
     userId: user?.id,
     characters,
@@ -155,7 +155,7 @@ export default function Characters() {
     );
   }
 
-  if (!book || !characters || !relations) {
+  if (!book || !characters || !relationships) {
     return (
       <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="page-spinner" />
@@ -370,10 +370,10 @@ export default function Characters() {
                   <RelationsBlock
                     activeId={active.id}
                     characters={characters}
-                    relations={relations}
-                    onCreate={onCreateRelation}
-                    onDelete={onDeleteRelation}
-                    onLabelChange={onRelationLabelChange}
+                    relationships={relationships}
+                    onCreate={onCreateRelationship}
+                    onDelete={onDeleteRelationship}
+                    onLabelChange={onRelationshipLabelChange}
                   />
                 </>
               ) : (
@@ -873,42 +873,53 @@ function FieldCard({ label, value, onChange, warn, hint }: {
 
 // ─── Блок связей ──────────────────────────────────────────────────────────
 
-function RelationsBlock({ activeId, characters, relations, onCreate, onDelete, onLabelChange, panel }: {
+const RELATION_PRESETS = ['Друг', 'Враг', 'Родственник'] as const;
+
+function RelationsBlock({ activeId, characters, relationships, onCreate, onDelete, onLabelChange, panel }: {
   activeId: string;
   characters: Character[];
-  relations: CharacterRelation[];
-  onCreate: (toId: string, label: string) => void;
-  onDelete: (relationId: string) => void;
-  onLabelChange: (relationId: string, label: string) => void;
+  relationships: CharacterRelationship[];
+  onCreate: (toId: string, labelMine: string, labelTheirs: string) => void;
+  onDelete: (id: string) => void;
+  onLabelChange: (id: string, labelMine: string, labelTheirs: string) => void;
   panel?: boolean;
 }) {
-  const mine = relations.filter((r) => r.from_character_id === activeId);
-  const occupied = new Set(mine.map((r) => r.to_character_id));
-  const candidates = characters.filter((c) => c.id !== activeId && !occupied.has(c.id));
+  const myRels = relationships.filter((r) => r.char_a_id === activeId || r.char_b_id === activeId);
+  const partnerIds = new Set(myRels.map((r) => r.char_a_id === activeId ? r.char_b_id : r.char_a_id));
+  const candidates = characters.filter((c) => c.id !== activeId && !partnerIds.has(c.id));
 
   const [adding, setAdding] = useState(false);
   const [toId, setToId] = useState('');
-  const [label, setLabel] = useState('');
+  const [labelMine, setLabelMine] = useState('');
+  const [labelTheirs, setLabelTheirs] = useState('');
 
   useEffect(() => {
     setAdding(false);
     setToId('');
-    setLabel('');
+    setLabelMine('');
+    setLabelTheirs('');
   }, [activeId]);
 
   const startAdd = () => {
     if (candidates.length === 0) return;
     setAdding(true);
     setToId(candidates[0].id);
-    setLabel('');
+    setLabelMine('');
+    setLabelTheirs('');
+  };
+
+  const applyPreset = (preset: string) => {
+    setLabelMine(preset);
+    setLabelTheirs('');
   };
 
   const submit = () => {
     if (!toId) return;
-    onCreate(toId, label);
+    onCreate(toId, labelMine, labelTheirs);
     setAdding(false);
     setToId('');
-    setLabel('');
+    setLabelMine('');
+    setLabelTheirs('');
   };
 
   const wrapStyle = panel
@@ -927,47 +938,87 @@ function RelationsBlock({ activeId, characters, relations, onCreate, onDelete, o
       </div>
 
       {adding && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 8 }}>
+        <div style={{ marginBottom: 14, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <select
             value={toId}
             onChange={(e) => setToId(e.target.value)}
             className="input"
-            style={{ flex: '0 0 200px', height: 32 }}
+            style={{ height: 32, alignSelf: 'flex-start', minWidth: 200 }}
           >
             {candidates.map((c) => (
               <option key={c.id} value={c.id}>{c.name || 'Без имени'}</option>
             ))}
           </select>
-          <input
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Кто кому? (наставник, спутник, сестра…)"
-            onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setAdding(false); }}
-            autoFocus
-            className="input"
-            style={{ flex: 1, height: 32 }}
-          />
-          <button onClick={submit} className="btn btn--primary" style={{ fontSize: 12 }}>Добавить</button>
-          <button onClick={() => setAdding(false)} className="btn btn--ghost" style={{ fontSize: 12 }}>Отмена</button>
+
+          <div style={{ display: 'flex', gap: 6 }}>
+            {RELATION_PRESETS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => applyPreset(p)}
+                className="chip"
+                style={{ cursor: 'pointer', border: 'none', fontSize: 11 }}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Как вы видите их</div>
+              <input
+                value={labelMine}
+                onChange={(e) => setLabelMine(e.target.value)}
+                placeholder="наставник, спутник, сестра…"
+                onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setAdding(false); }}
+                autoFocus
+                className="input"
+                style={{ width: '100%', height: 32 }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Как они видят вас <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(если отличается)</span></div>
+              <input
+                value={labelTheirs}
+                onChange={(e) => setLabelTheirs(e.target.value)}
+                placeholder="ученик, хозяин…"
+                onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setAdding(false); }}
+                className="input"
+                style={{ width: '100%', height: 32 }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={submit} className="btn btn--primary" style={{ fontSize: 12 }}>Добавить</button>
+            <button onClick={() => setAdding(false)} className="btn btn--ghost" style={{ fontSize: 12 }}>Отмена</button>
+          </div>
         </div>
       )}
 
-      {mine.length === 0 && !adding ? (
+      {myRels.length === 0 && !adding ? (
         <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
           {candidates.length === 0 ? 'Нет других персонажей для связи.' : 'Связей пока нет.'}
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-          {mine.map((rel) => {
-            const partner = characters.find((c) => c.id === rel.to_character_id);
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {myRels.map((rel) => {
+            const iAmA = rel.char_a_id === activeId;
+            const partnerId = iAmA ? rel.char_b_id : rel.char_a_id;
+            const partner = characters.find((c) => c.id === partnerId);
             if (!partner) return null;
+            const lMine = iAmA ? rel.label_a : rel.label_b;
+            const lTheirs = iAmA ? rel.label_b : rel.label_a;
             return (
               <RelationRow
                 key={rel.id}
-                relation={rel}
+                relId={rel.id}
                 partner={partner}
+                labelMine={lMine}
+                labelTheirs={lTheirs}
                 onDelete={() => onDelete(rel.id)}
-                onLabelChange={(v) => onLabelChange(rel.id, v)}
+                onLabelChange={(mine, theirs) => onLabelChange(rel.id, mine, theirs)}
               />
             );
           })}
@@ -979,54 +1030,71 @@ function RelationsBlock({ activeId, characters, relations, onCreate, onDelete, o
 
 // ─── Строка связи ─────────────────────────────────────────────────────────
 
-function RelationRow({ relation, partner, onDelete, onLabelChange }: {
-  relation: CharacterRelation;
+function RelationRow({ relId, partner, labelMine, labelTheirs, onDelete, onLabelChange }: {
+  relId: string;
   partner: Character;
+  labelMine: string;
+  labelTheirs: string;
   onDelete: () => void;
-  onLabelChange: (label: string) => void;
+  onLabelChange: (mine: string, theirs: string) => void;
 }) {
-  const [label, setLabel] = useState(relation.label);
-  const initialRef = useRef(relation.label);
+  const [mine, setMine] = useState(labelMine);
+  const [theirs, setTheirs] = useState(labelTheirs);
+  const mineRef = useRef(labelMine);
+  const theirsRef = useRef(labelTheirs);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (relation.label !== initialRef.current) {
-      setLabel(relation.label);
-      initialRef.current = relation.label;
-    }
-  }, [relation.label]);
+    if (labelMine !== mineRef.current) { setMine(labelMine); mineRef.current = labelMine; }
+    if (labelTheirs !== theirsRef.current) { setTheirs(labelTheirs); theirsRef.current = labelTheirs; }
+  }, [relId, labelMine, labelTheirs]);
 
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value;
-    setLabel(v);
+  const schedule = (m: string, t: string) => {
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => { onLabelChange(v); }, 700);
+    timer.current = setTimeout(() => onLabelChange(m, t), 700);
   };
 
+  const onMineChange = (e: ChangeEvent<HTMLInputElement>) => { setMine(e.target.value); schedule(e.target.value, theirs); };
+  const onTheirsChange = (e: ChangeEvent<HTMLInputElement>) => { setTheirs(e.target.value); schedule(mine, e.target.value); };
+
+  const symmetric = !theirs || theirs === mine;
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
-      <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 12px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0, overflow: 'hidden' }}>
+    <div style={{ padding: '10px 12px', border: '1px solid var(--border-soft)', borderRadius: 8, display: 'flex', gap: 12 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 12px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0, overflow: 'hidden' }}>
         {partner.avatar_url
           ? <img src={partner.avatar_url} alt={partner.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : initialsFromName(partner.name || 'Без имени')}
       </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ font: '500 13px var(--font-ui)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{partner.name || 'Без имени'}</div>
-        <input
-          value={label}
-          onChange={onChange}
-          placeholder="кем приходится"
-          style={{ width: '100%', font: '400 11.5px var(--font-ui)', color: 'var(--ink-3)', background: 'transparent', border: 'none', outline: 'none', padding: '2px 0' }}
-        />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ font: '500 13px var(--font-ui)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 6 }}>{partner.name || 'Без имени'}</div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ font: '500 9.5px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>Вы видите их</div>
+            <input
+              value={mine}
+              onChange={onMineChange}
+              placeholder="кем приходятся"
+              style={{ width: '100%', font: '400 12px var(--font-ui)', color: 'var(--ink-2)', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-soft)', outline: 'none', padding: '2px 0' }}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ font: '500 9.5px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>Они видят вас</div>
+            <input
+              value={theirs}
+              onChange={onTheirsChange}
+              placeholder={symmetric ? '(взаимная)' : 'кем вы им приходитесь'}
+              style={{ width: '100%', font: '400 12px var(--font-ui)', color: symmetric ? 'var(--ink-4)' : 'var(--ink-2)', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-soft)', outline: 'none', padding: '2px 0' }}
+            />
+          </div>
+        </div>
       </div>
       <button
         onClick={onDelete}
         title="Удалить связь"
-        style={{ background: 'transparent', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'center', borderRadius: 4, font: '400 16px var(--font-ui)', lineHeight: 1 }}
+        style={{ background: 'transparent', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'flex-start', borderRadius: 4, font: '400 16px var(--font-ui)', lineHeight: 1, flexShrink: 0 }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--danger)'; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)'; }}
       >

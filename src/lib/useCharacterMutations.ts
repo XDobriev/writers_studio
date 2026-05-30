@@ -7,11 +7,11 @@ import {
   type Character,
 } from './characters';
 import {
-  createRelation,
-  deleteRelation,
-  updateRelationLabel,
-  type CharacterRelation,
-} from './character_relations';
+  createRelationship,
+  deleteRelationship,
+  updateRelationshipLabels,
+  type CharacterRelationship,
+} from './character_relationships';
 import { QUERY_KEYS } from './queries';
 import type { CharacterViewMode } from './useCharacterNavigation';
 
@@ -74,8 +74,8 @@ export function useCharacterMutations({
       await deleteCharacter(active.id);
       const remaining = characters.filter((c) => c.id !== active.id);
       queryClient.setQueryData<Character[]>(QUERY_KEYS.characters(bookId), remaining);
-      queryClient.setQueryData<CharacterRelation[]>(QUERY_KEYS.relations(bookId), (prev) =>
-        prev ? prev.filter((r) => r.from_character_id !== active.id && r.to_character_id !== active.id) : prev
+      queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) =>
+        prev ? prev.filter((r) => r.char_a_id !== active.id && r.char_b_id !== active.id) : prev
       );
       const next = new URLSearchParams(search);
       if (remaining.length > 0) {
@@ -90,39 +90,46 @@ export function useCharacterMutations({
     }
   }, [active, characters, bookId, queryClient, search, setSearch, setViewMode, setConfirmDelete, cancelSave, setError]);
 
-  const onCreateRelation = useCallback(async (toId: string, label: string) => {
+  const onCreateRelationship = useCallback(async (toId: string, labelMine: string, labelTheirs: string) => {
     if (!bookId || !userId || !active) return;
     try {
-      const created = await createRelation(bookId, userId, active.id, toId, label);
-      queryClient.setQueryData<CharacterRelation[]>(QUERY_KEYS.relations(bookId), (prev) => [...(prev ?? []), created]);
+      const created = await createRelationship(bookId, userId, active.id, toId, labelMine, labelTheirs);
+      queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) => [...(prev ?? []), created]);
     } catch (e) {
       setError((e as Error).message);
     }
   }, [bookId, userId, active, queryClient, setError]);
 
-  const onDeleteRelation = useCallback(async (relationId: string) => {
+  const onDeleteRelationship = useCallback(async (id: string) => {
     if (!bookId) return;
     try {
-      await deleteRelation(relationId);
-      queryClient.setQueryData<CharacterRelation[]>(QUERY_KEYS.relations(bookId), (prev) =>
-        prev ? prev.filter((r) => r.id !== relationId) : prev
+      await deleteRelationship(id);
+      queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) =>
+        prev ? prev.filter((r) => r.id !== id) : prev
       );
     } catch (e) {
       setError((e as Error).message);
     }
   }, [bookId, queryClient, setError]);
 
-  const onRelationLabelChange = useCallback(async (relationId: string, label: string) => {
-    if (!bookId) return;
+  const onRelationshipLabelChange = useCallback(async (id: string, labelMine: string, labelTheirs: string) => {
+    if (!bookId || !active) return;
+    const rels = queryClient.getQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId));
+    const rel = rels?.find((r) => r.id === id);
+    if (!rel) return;
+    const iAmA = rel.char_a_id === active.id;
+    const patch = iAmA
+      ? { label_a: labelMine, label_b: labelTheirs }
+      : { label_b: labelMine, label_a: labelTheirs };
     try {
-      const updated = await updateRelationLabel(relationId, label);
-      queryClient.setQueryData<CharacterRelation[]>(QUERY_KEYS.relations(bookId), (prev) =>
-        prev ? prev.map((r) => (r.id === relationId ? updated : r)) : prev
+      const updated = await updateRelationshipLabels(id, patch);
+      queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) =>
+        prev ? prev.map((r) => (r.id === id ? updated : r)) : prev
       );
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [bookId, queryClient, setError]);
+  }, [bookId, active, queryClient, setError]);
 
-  return { onCreate, onDelete, onDeleteConfirmed, onCreateRelation, onDeleteRelation, onRelationLabelChange };
+  return { onCreate, onDelete, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange };
 }
