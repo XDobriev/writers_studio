@@ -18,8 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
-import { WithMode, SidebarFoot, SidebarNav } from '../components/Chrome';
-import { LogoMark } from '../components/LogoMark';
+import { WithMode, Sidebar } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
 import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
@@ -362,18 +361,7 @@ export default function Outline() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%' }}>
     <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
-        <aside className="sb">
-          <div className="sb-head">
-            <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, textDecoration: 'none' }}>
-              <LogoMark size={20} />
-              <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
-            </Link>
-            <div className="sb-book-title">{book?.title ?? '…'}</div>
-            <div className="sb-book-author">
-              структура · {totals.words.toLocaleString('ru')} / {(book?.goal ?? 0).toLocaleString('ru')} сл
-            </div>
-          </div>
-          <SidebarNav bookId={bookId!} />
+        <Sidebar book={book} subtitle={`структура · ${totals.words.toLocaleString('ru')} / ${(book?.goal ?? 0).toLocaleString('ru')} сл`}>
           <div className="sb-tabs">
             <button className="sb-tab sb-tab--on">Структура</button>
             <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/corkboard`)}>Доска</button>
@@ -384,9 +372,7 @@ export default function Outline() {
           <div style={{ padding: '4px 14px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
             <button className="btn" onClick={onCreate}><Icon name="plus" size={13} /> Новая глава</button>
           </div>
-        <div style={{ flex: 1 }} />
-        <SidebarFoot />
-        </aside>
+        </Sidebar>
 
         <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: 'var(--bg)' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>

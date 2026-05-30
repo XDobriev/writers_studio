@@ -1,10 +1,9 @@
 import { useCallback, useRef, useState, type ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
 import { useWindowWidth } from '../lib/useWindowWidth';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { WithMode, SidebarFoot, SidebarNav } from '../components/Chrome';
-import { LogoMark } from '../components/LogoMark';
+import { WithMode, Sidebar } from '../components/Chrome';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { WorldMap } from '../components/WorldMap';
 import { useAuth } from '../lib/auth';
@@ -187,16 +186,7 @@ export default function MapScreen() {
 
         {/* Sidebar */}
         {!isMobile && (
-          <aside className="sb">
-            <div className="sb-head">
-              <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, textDecoration: 'none' }}>
-                <LogoMark size={20} />
-                <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
-              </Link>
-              <div className="sb-book-title">{book.title}</div>
-              <div className="sb-book-author">карта мира · {locations.length} лок.</div>
-            </div>
-            <SidebarNav bookId={bookId} />
+          <Sidebar book={book} subtitle={`карта мира · ${locations.length} лок.`}>
             <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Режим</div>
               {modeButtons.map(m => (
@@ -212,9 +202,7 @@ export default function MapScreen() {
                 </button>
               ))}
             </div>
-            <div style={{ flex: 1 }} />
-            <SidebarFoot />
-          </aside>
+          </Sidebar>
         )}
 
         <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>

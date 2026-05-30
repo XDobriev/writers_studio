@@ -378,7 +378,7 @@ export function Sidebar({
             )}
           </div>
         </>
-      ) : Boolean(book?.id) ? (
+      ) : children ? children : Boolean(book?.id) ? (
         <>
           <div className="sb-section">
             <span className="sb-section-title">Главы</span>
@@ -389,7 +389,7 @@ export function Sidebar({
             </div>
           </div>
         </>
-      ) : children ? children : (
+      ) : (
         <div style={{ padding: '6px 12px 0' }}>
           <Link to="/books" className="sb-item" style={{ color: 'var(--ink-3)' }}>
             <span style={{ display: 'flex', justifyContent: 'center', color: 'var(--ink-3)' }}><Icon name="arrows" size={14} /></span>

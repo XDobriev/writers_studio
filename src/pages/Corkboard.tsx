@@ -17,8 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
-import { WithMode, SidebarFoot, SidebarNav } from '../components/Chrome';
-import { LogoMark } from '../components/LogoMark';
+import { WithMode, Sidebar } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
 import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
@@ -316,18 +315,7 @@ export default function Corkboard() {
   return (
     <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
-        <aside className="sb">
-          <div className="sb-head">
-            <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, textDecoration: 'none' }}>
-              <LogoMark size={20} />
-              <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
-            </Link>
-            <div className="sb-book-title">{book?.title ?? '…'}</div>
-            <div className="sb-book-author">
-              {counts.all} {counts.all === 1 ? 'глава' : 'глав'} · {(book?.words ?? 0).toLocaleString('ru')} сл
-            </div>
-          </div>
-          <SidebarNav bookId={bookId!} />
+        <Sidebar book={book} subtitle={`${counts.all} ${counts.all === 1 ? 'глава' : 'глав'} · ${(book?.words ?? 0).toLocaleString('ru')} сл`}>
           <div className="sb-tabs">
             <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/outline`)}>Структура</button>
             <button className="sb-tab sb-tab--on">Доска</button>
@@ -351,9 +339,7 @@ export default function Corkboard() {
               </button>
             ))}
           </div>
-          <div style={{ flex: 1 }} />
-          <SidebarFoot />
-        </aside>
+        </Sidebar>
 
         <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: 'var(--bg)' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>
