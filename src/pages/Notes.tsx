@@ -244,6 +244,7 @@ export default function Notes() {
           chapters={chapters}
           activeChapterId={activeChapterId}
           chapterActions={{ onSelectChapter: handleSelectChapter }}
+          subtitle={`заметки · ${notes.length}`}
         />
         <main className="as-main" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           <div style={{
