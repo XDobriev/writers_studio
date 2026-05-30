@@ -41,7 +41,7 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
           )}
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ font: '500 10px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'oklch(0.95 0.008 80 / 0.7)', marginBottom: 6 }}>
-              {b.genre || 'Без жанра'}
+              {(b.genres?.length ? b.genres.join(', ') : null) ?? b.genre ?? 'Без жанра'}
             </div>
             <div style={{ font: '600 22px var(--font-serif)', color: 'oklch(0.97 0.01 80)', letterSpacing: '-0.01em', lineHeight: 1.15 }}>{b.title}</div>
             {b.author && (

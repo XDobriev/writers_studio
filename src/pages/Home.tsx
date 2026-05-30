@@ -5,6 +5,7 @@ import { LogoMark } from '../components/LogoMark';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { BookCard } from '../components/BookCard';
 import { CoverPicker, COVERS } from '../components/CoverPicker';
+import { GenrePicker } from '../components/GenrePicker';
 import { supabase, type Book } from '../lib/supabase';
 import { createBook, updateBook, deleteBook as deleteBookApi } from '../lib/books';
 import { markOnboarded } from '../lib/profiles';
@@ -36,12 +37,13 @@ export default function Home() {
 
   const [editBook, setEditBook] = useState<Book | null>(null);
   const [editTitle, setEditTitle] = useState('');
-  const [editGenre, setEditGenre] = useState('');
+  const [editGenres, setEditGenres] = useState<string[]>([]);
   const [editGoal, setEditGoal] = useState(0);
   const [editCover, setEditCover] = useState(COVERS[0]);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
+  const [createGenres, setCreateGenres] = useState<string[]>([]);
   const [createCover, setCreateCover] = useState(COVERS[0]);
   const [createUploading, setCreateUploading] = useState(false);
   const [editUploading, setEditUploading] = useState(false);
@@ -82,7 +84,7 @@ export default function Home() {
   const openEditBook = (b: Book) => {
     setEditBook(b);
     setEditTitle(b.title);
-    setEditGenre(b.genre ?? '');
+    setEditGenres(b.genres ?? []);
     setEditGoal(b.goal);
     setEditCover(b.cover ?? COVERS[0]);
     setEditError(null);
@@ -93,7 +95,7 @@ export default function Home() {
     setEditSaving(true);
     setEditError(null);
     try {
-      const data = await updateBook(editBook.id, { title: editTitle.trim(), genre: editGenre.trim() || null, goal: Math.max(0, editGoal), cover: editCover });
+      const data = await updateBook(editBook.id, { title: editTitle.trim(), genres: editGenres, goal: Math.max(0, editGoal), cover: editCover });
       queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => prev?.map((b) => b.id === editBook.id ? data : b));
       setEditBook(null);
     } catch (e) {
@@ -149,15 +151,15 @@ export default function Home() {
     if (!user) return;
     const fd = new FormData(e.currentTarget);
     const title = String(fd.get('title') ?? '').trim();
-    const genre = String(fd.get('genre') ?? '').trim() || null;
     const goalRaw = String(fd.get('goal') ?? '').trim();
     const goal = goalRaw ? Math.max(0, Number(goalRaw)) : 0;
     if (!title) return;
     try {
-      const data = await createBook({ user_id: user.id, title, genre, goal, words: 0, cover: createCover });
+      const data = await createBook({ user_id: user.id, title, genre: null, genres: createGenres, goal, words: 0, cover: createCover });
       queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => [data, ...(prev ?? [])]);
       setShowCreate(false);
       setCreateCover(COVERS[0]);
+      setCreateGenres([]);
     } catch (e) {
       setErr((e as Error).message);
     }
@@ -270,16 +272,7 @@ export default function Home() {
                   autoFocus
                 />
               </div>
-              <div>
-                <label className="label">Жанр</label>
-                <input
-                  className="input"
-                  value={editGenre}
-                  onChange={(e) => setEditGenre(e.target.value)}
-                  placeholder="Фэнтези, Детектив, Триллер…"
-                  onKeyDown={(e) => { if (e.key === 'Escape') setEditBook(null); }}
-                />
-              </div>
+              <GenrePicker value={editGenres} onChange={setEditGenres} />
               <div>
                 <label className="label">Цель по словам</label>
                 <input
@@ -487,10 +480,7 @@ export default function Home() {
                 <label className="label">Название</label>
                 <input className="input" name="title" required autoFocus />
               </div>
-              <div>
-                <label className="label">Жанр</label>
-                <input className="input" name="genre" placeholder="например, тёмное фэнтези" />
-              </div>
+              <GenrePicker value={createGenres} onChange={setCreateGenres} />
               <div>
                 <label className="label">Цель по словам</label>
                 <input className="input" name="goal" type="number" min={0} step={1000} placeholder="необязательно" />

@@ -25,6 +25,7 @@ export interface Book {
   title: string;
   author: string | null;
   genre: string | null;
+  genres: string[];
   words: number;
   goal: number;
   daily_goal: number;
