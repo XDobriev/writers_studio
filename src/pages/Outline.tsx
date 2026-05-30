@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -21,7 +21,8 @@ import { Icon } from '../components/Icon';
 import { WithMode, Sidebar } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
 import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
-import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
+import { QUERY_KEYS, useBook, useChapters, useCharacters, useChapterPovMap } from '../lib/queries';
+import { getCharacterColor, setPovCharacter, removePovCharacter } from '../lib/pov';
 import { plural } from '../lib/useWritingStats';
 
 const STATUS_COLOR: Record<ChapterStatus, string> = {
@@ -29,6 +30,176 @@ const STATUS_COLOR: Record<ChapterStatus, string> = {
   progress: 'var(--accent-2)',
   done: 'var(--ok)',
 };
+
+interface PovBadgeProps {
+  chapterId: string;
+  bookId: string;
+  povEntries: Array<{ character_id: string; character_name: string; character_index: number }>;
+  allCharacters: Array<{ id: string; name: string; position: number }>;
+  userId: string;
+  onChanged: () => void;
+}
+
+function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChanged }: PovBadgeProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const handleSet = async (characterId: string) => {
+    const char = allCharacters.find((c) => c.id === characterId);
+    if (!char) return;
+    try {
+      await setPovCharacter(chapterId, characterId, bookId, userId);
+      onChanged();
+      setOpen(false);
+    } catch {
+      // network or RLS error — silently ignore, dropdown stays open
+    }
+  };
+
+  const handleRemove = async (characterId: string) => {
+    try {
+      await removePovCharacter(chapterId, characterId);
+      onChanged();
+      setOpen(false);
+    } catch {
+      // network or RLS error — silently ignore
+    }
+  };
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      {povEntries.length === 0 ? (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          style={{
+            display: 'flex', alignItems: 'center',
+            height: 22, padding: '0 8px', borderRadius: 999,
+            border: '1px dashed var(--border)', background: 'transparent',
+            cursor: 'pointer', font: '500 10px var(--font-mono)',
+            color: 'var(--ink-4)', letterSpacing: '0.08em',
+          }}
+        >
+          + POV
+        </button>
+      ) : povEntries.length === 1 ? (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            height: 22, padding: '0 8px 0 4px', borderRadius: 999,
+            border: `1px solid ${getCharacterColor(povEntries[0].character_index)}`,
+            background: `color-mix(in oklch, ${getCharacterColor(povEntries[0].character_index)} 14%, transparent)`,
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{
+            width: 16, height: 16, borderRadius: '50%',
+            background: getCharacterColor(povEntries[0].character_index),
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 8, color: 'white', fontWeight: 600, flexShrink: 0,
+          }}>
+            {povEntries[0].character_name[0]?.toUpperCase() ?? '?'}
+          </span>
+          <span style={{
+            font: '500 10px var(--font-mono)', letterSpacing: '0.03em',
+            color: getCharacterColor(povEntries[0].character_index),
+          }}>
+            {povEntries[0].character_name}
+          </span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            height: 22, padding: '0 8px 0 4px', borderRadius: 999,
+            border: '1px solid var(--border)', background: 'transparent',
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ display: 'flex' }}>
+            {povEntries.slice(0, 3).map((e, idx) => (
+              <span key={e.character_id} style={{
+                width: 18, height: 18, borderRadius: '50%',
+                background: getCharacterColor(e.character_index),
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 8, color: 'white', fontWeight: 600, flexShrink: 0,
+                marginLeft: idx > 0 ? -5 : 0,
+                border: '2px solid var(--bg-deep)',
+              }}>
+                {e.character_name[0]?.toUpperCase() ?? '?'}
+              </span>
+            ))}
+          </div>
+          <span style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)' }}>
+            {povEntries.length} POV
+          </span>
+        </button>
+      )}
+
+      {open && (
+        <div style={{
+          position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 300,
+          background: 'var(--bg-deep)', border: '1px solid var(--border-strong)',
+          borderRadius: 8, padding: 6, minWidth: 180,
+          boxShadow: '0 6px 20px oklch(0.05 0.01 50 / 0.4)',
+        }}>
+          <div style={{
+            font: '500 9px var(--font-mono)', color: 'var(--ink-4)',
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            padding: '3px 6px 7px', borderBottom: '1px solid var(--border-soft)',
+            marginBottom: 4,
+          }}>
+            POV персонаж
+          </div>
+          {allCharacters.map((char, idx) => {
+            const isPov = povEntries.some((e) => e.character_id === char.id);
+            const color = getCharacterColor(idx);
+            return (
+              <button
+                key={char.id}
+                type="button"
+                onClick={() => isPov ? handleRemove(char.id) : handleSet(char.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  width: '100%', padding: '5px 6px', borderRadius: 5,
+                  background: isPov ? `color-mix(in oklch, ${color} 12%, transparent)` : 'transparent',
+                  border: 'none', cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                <span style={{
+                  width: 18, height: 18, borderRadius: '50%', background: color,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 9, color: 'white', fontWeight: 600, flexShrink: 0,
+                }}>
+                  {char.name[0]?.toUpperCase() ?? '?'}
+                </span>
+                <span style={{ font: '400 12px var(--font-ui)', color: isPov ? color : 'var(--ink-2)', flex: 1 }}>
+                  {char.name}
+                </span>
+                {isPov && (
+                  <span style={{ font: '400 10px var(--font-ui)', color: 'var(--ink-4)' }}>✕</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface RowProps {
   chapter: ChapterMeta;
@@ -44,6 +215,10 @@ interface RowProps {
   setRenameFor: (id: string | null) => void;
   onRename: (id: string, title: string) => void;
   maxWords: number;
+  povEntries: Array<{ character_id: string; character_name: string; character_index: number }>;
+  allCharacters: Array<{ id: string; name: string; position: number }>;
+  userId: string;
+  onPovChanged: () => void;
 }
 
 const MENU_ITEM: React.CSSProperties = {
@@ -67,6 +242,10 @@ function SortableChapterRow({
   setRenameFor,
   onRename,
   maxWords,
+  povEntries,
+  allCharacters,
+  userId,
+  onPovChanged,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id });
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -143,7 +322,7 @@ function SortableChapterRow({
           to={`/books/${bookId}/editor?chapter=${c.id}`}
           style={{
             flex: 1, display: 'flex', alignItems: 'flex-start', gap: 14,
-            padding: '12px 40px 12px 0', borderRadius: 8, textDecoration: 'none',
+            padding: '12px 8px 12px 0', borderRadius: 8, textDecoration: 'none',
           }}
         >
           <span style={{ font: '500 12px var(--font-mono)', color: c.status === 'draft' ? 'var(--ink-4)' : 'var(--accent)', letterSpacing: '0.04em', marginTop: 3, minWidth: 28 }}>
@@ -166,6 +345,15 @@ function SortableChapterRow({
           <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 8, background: STATUS_COLOR[c.status] }} />
         </Link>
       )}
+
+      <PovBadge
+        chapterId={c.id}
+        bookId={bookId}
+        povEntries={povEntries}
+        allCharacters={allCharacters}
+        userId={userId}
+        onChanged={onPovChanged}
+      />
 
       <div
         ref={menuFor === c.id ? menuRef : null}
@@ -246,6 +434,12 @@ export default function Outline() {
   const queryClient = useQueryClient();
   const { data: book } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
+  const { data: characters = [] } = useCharacters(bookId);
+  const { data: povEntries = [] } = useChapterPovMap(bookId);
+
+  const handlePovChanged = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterPovMap(bookId!) });
+  }, [queryClient, bookId]);
   const [mutationError, setError] = useState<string | null>(null);
   const error = chaptersError?.message ?? mutationError;
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -432,6 +626,10 @@ export default function Outline() {
                         setRenameFor={setRenameFor}
                         onRename={onRename}
                         maxWords={maxWords}
+                        povEntries={povEntries.filter((e) => e.chapter_id === c.id)}
+                        allCharacters={characters}
+                        userId={user?.id ?? ''}
+                        onPovChanged={handlePovChanged}
                       />
                     ))}
                   </SortableContext>
