@@ -59,6 +59,31 @@ export default function Landing() {
         @media (prefers-reduced-motion: reduce) {
           .lnd-reveal { opacity: 1; transform: none; }
         }
+        .lnd-price-card--accent { transform: translateY(-8px); }
+        .lnd-sheet-float { transform: rotateY(-9deg) rotateX(2deg); }
+        details[open] .faq-chevron { transform: rotate(180deg); }
+        @media (prefers-reduced-motion: no-preference) {
+          @keyframes lnd-hero-in { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+          .lnd-hero-el { animation: lnd-hero-in 0.65s cubic-bezier(0.16,1,0.3,1) backwards; }
+          .lnd-hero-el.h1 { animation-delay: 0.1s; }
+          .lnd-hero-el.h2 { animation-delay: 0.2s; }
+          .lnd-hero-el.h3 { animation-delay: 0.35s; }
+          .lnd-hero-el.h4 { animation-delay: 0.5s; }
+          @keyframes lnd-float { 0%,100%{transform:rotateY(-9deg) rotateX(2deg) translateY(0)} 50%{transform:rotateY(-9deg) rotateX(2deg) translateY(-10px)} }
+          .lnd-sheet-float { animation: lnd-float 7s ease-in-out infinite; }
+          @keyframes lnd-note-in { from{opacity:0;transform:translateY(10px) scale(0.94)} to{opacity:1;transform:none} }
+          .lnd-note-in { animation: lnd-note-in 0.5s cubic-bezier(0.16,1,0.3,1) backwards; }
+          .lnd-note-in.n1 { animation-delay: 0.55s; }
+          .lnd-note-in.n2 { animation-delay: 0.75s; }
+          .faq-chevron { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }
+          @keyframes lnd-faq-in { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:none} }
+          details[open] > p { animation: lnd-faq-in 0.22s cubic-bezier(0.16,1,0.3,1) both; }
+          .lnd-browser-mock { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }
+          .lnd-browser-mock:hover { transform: translateY(-4px); }
+          .lnd-price-card { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }
+          .lnd-price-card:hover { transform: translateY(-4px); }
+          .lnd-price-card--accent:hover { transform: translateY(-12px); }
+        }
         .lnd-max { max-width: 1300px; margin: 0 auto; }
         .lnd-hero-grid { display: grid; grid-template-columns: 1.05fr 1.15fr; gap: 64px; align-items: center; }
         .lnd-feat-row { display: grid; grid-template-columns: 0.95fr 1.15fr; gap: 80px; align-items: center; padding: 72px 0; border-top: 1px solid var(--border-soft); }
@@ -154,23 +179,23 @@ function LandingHero() {
       <div className="lnd-max" style={{ position: 'relative' }}>
         <div className="lnd-hero-grid">
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 999, marginBottom: 28 }}>
+            <div className="lnd-hero-el" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 999, marginBottom: 28 }}>
               <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />
               <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Открытая бета · 2026</span>
             </div>
-            <h1 style={{ font: '600 clamp(52px,6vw,88px)/0.98 var(--font-serif)', letterSpacing: '-0.025em', marginBottom: 28, color: 'var(--ink)' }}>
+            <h1 className="lnd-hero-el h1" style={{ font: '600 clamp(52px,6vw,88px)/0.98 var(--font-serif)', letterSpacing: '-0.025em', marginBottom: 28, color: 'var(--ink)' }}>
               Здесь пишутся<br />
               <em style={{ fontStyle: 'italic', fontWeight: 500, color: 'var(--accent-2)' }}>книги</em>.
             </h1>
-            <p style={{ font: '400 clamp(16px,1.5vw,19px)/1.6 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 520, marginBottom: 36 }}>
+            <p className="lnd-hero-el h2" style={{ font: '400 clamp(16px,1.5vw,19px)/1.6 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 520, marginBottom: 36 }}>
               Рукопись, картотека персонажей, карта мира и хронология — в одном чистом редакторе. Без баннеров, всплывашек и нейросети, которая дописывает за вас.
             </p>
-            <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 36, flexWrap: 'wrap' }}>
+            <div className="lnd-hero-el h3" style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 36, flexWrap: 'wrap' }}>
               <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
                 Начать свою книгу
               </Link>
             </div>
-            <div style={{ paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
+            <div className="lnd-hero-el h4" style={{ paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
               <p style={{ font: '400 14px/1.6 var(--font-serif)', color: 'var(--ink-3)', maxWidth: 420, margin: 0 }}>
                 Сейчас в студии работают первые авторы — именно сейчас можно попасть в самое начало.
               </p>
@@ -178,13 +203,17 @@ function LandingHero() {
           </div>
           <div className="lnd-hero-sheet" style={{ position: 'relative', height: 540 }} aria-hidden="true">
             <FloatingSheet />
-            <div style={{ position: 'absolute', top: 54, right: -16, width: 200, transform: 'rotate(2deg)', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', boxShadow: '0 10px 30px oklch(0 0 0 / 0.35)' }}>
-              <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5 }}>Идея · 5 мин</div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.45 }}>Сделать упоминание матери Аней в начале — отзеркалит финал.</div>
+            <div style={{ position: 'absolute', top: 54, right: -16, width: 200, transform: 'rotate(2deg)' }}>
+              <div className="lnd-note-in n1" style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', boxShadow: '0 10px 30px oklch(0 0 0 / 0.35)' }}>
+                <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5 }}>Идея · 5 мин</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.45 }}>Сделать упоминание матери Аней в начале — отзеркалит финал.</div>
+              </div>
             </div>
-            <div style={{ position: 'absolute', bottom: 32, left: -22, width: 190, transform: 'rotate(-1.5deg)', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', boxShadow: '0 10px 30px oklch(0 0 0 / 0.35)' }}>
-              <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5 }}>Важно · 10 мин</div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.45 }}>НЕ называть имя 12-го картографа до главы 8.</div>
+            <div style={{ position: 'absolute', bottom: 32, left: -22, width: 190, transform: 'rotate(-1.5deg)' }}>
+              <div className="lnd-note-in n2" style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', boxShadow: '0 10px 30px oklch(0 0 0 / 0.35)' }}>
+                <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5 }}>Важно · 10 мин</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.45 }}>НЕ называть имя 12-го картографа до главы 8.</div>
+              </div>
             </div>
           </div>
         </div>
@@ -196,7 +225,7 @@ function LandingHero() {
 function FloatingSheet() {
   return (
     <div style={{ position: 'absolute', inset: 0, perspective: '1600px' }}>
-      <div style={{ position: 'absolute', inset: 0, transform: 'rotateY(-9deg) rotateX(2deg)', transformStyle: 'preserve-3d', transformOrigin: 'center center', boxShadow: '-40px 60px 120px oklch(0 0 0 / 0.5)', willChange: 'transform' }}>
+      <div className="lnd-sheet-float" style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', transformOrigin: 'center center', boxShadow: '-40px 60px 120px oklch(0 0 0 / 0.5)', willChange: 'transform' }}>
         <div style={{ background: 'var(--paper)', borderRadius: '6px 6px 0 0', padding: '48px 56px', height: '100%', color: 'var(--paper-ink)', fontFamily: 'var(--font-serif)', fontSize: 14.5, lineHeight: 1.85, overflow: 'hidden' }}>
           <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--paper-ink-2)', marginBottom: 10 }}>Глава первая</div>
           <div style={{ font: '600 26px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6, color: 'var(--paper-ink)' }}>Город, которого нет</div>
@@ -272,7 +301,7 @@ function FeatureRow({ eyebrow, headline, body, bullets, mock, reverse }: {
 
 function BrowserMock({ children }: { children: ReactNode }) {
   return (
-    <div style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--bg-deep)', border: '1px solid var(--border)', boxShadow: '0 20px 60px oklch(0 0 0 / 0.4),0 4px 16px oklch(0 0 0 / 0.3)' }}>
+    <div className="lnd-browser-mock" style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--bg-deep)', border: '1px solid var(--border)', boxShadow: '0 20px 60px oklch(0 0 0 / 0.4),0 4px 16px oklch(0 0 0 / 0.3)' }}>
       <div style={{ height: 32, background: 'oklch(0.20 0.014 50)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 6, borderBottom: '1px solid var(--border-soft)' }}>
         <span style={{ width: 11, height: 11, borderRadius: 999, background: 'oklch(0.62 0.16 25)' }} />
         <span style={{ width: 11, height: 11, borderRadius: 999, background: 'oklch(0.78 0.12 80)' }} />
@@ -533,7 +562,8 @@ function LandingPricing() {
         <SectionLabel align="center" kicker="Тарифы" title="Простая математика." subtitle="Бесплатный план — не «триал на 14 дней». Во время открытой беты все возможности доступны бесплатно." />
         <div className="lnd-prices">
           {tiers.map((t) => (
-            <div key={t.name} className="lnd-reveal" style={{ position: 'relative', background: t.accent ? 'var(--surface)' : 'var(--bg)', border: t.accent ? '1px solid var(--accent)' : '1px solid var(--border-soft)', borderRadius: 14, padding: '32px 28px 28px', display: 'flex', flexDirection: 'column', boxShadow: t.accent ? '0 20px 60px oklch(0 0 0 / 0.3),0 0 0 4px var(--accent-soft)' : 'none', transform: t.accent ? 'translateY(-8px)' : 'none' }}>
+            <div key={t.name} className="lnd-reveal">
+              <div className={`lnd-price-card${t.accent ? ' lnd-price-card--accent' : ''}`} style={{ position: 'relative', background: t.accent ? 'var(--surface)' : 'var(--bg)', border: t.accent ? '1px solid var(--accent)' : '1px solid var(--border-soft)', borderRadius: 14, padding: '32px 28px 28px', display: 'flex', flexDirection: 'column', boxShadow: t.accent ? '0 20px 60px oklch(0 0 0 / 0.3),0 0 0 4px var(--accent-soft)' : 'none' }}>
               {t.tag && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', padding: '4px 12px', borderRadius: 999, background: t.accent ? 'var(--accent)' : 'var(--surface-2)', color: t.accent ? 'oklch(0.98 0 0)' : 'var(--ink-2)', font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', border: t.accent ? 'none' : '1px solid var(--border)', whiteSpace: 'nowrap' }}>{t.tag}</div>}
               <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: t.accent ? 'var(--accent)' : 'var(--ink-3)', marginBottom: 14 }}>{t.name}</div>
               <div style={{ marginBottom: 6 }}>
@@ -555,6 +585,7 @@ function LandingPricing() {
                 ))}
               </ul>
               <Link to={t.signup ? '/login?tab=signup' : '/login'} className={t.accent ? 'btn btn--primary' : 'btn'} style={{ height: 42, fontSize: 14, justifyContent: 'center', width: '100%', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>{t.cta}</Link>
+            </div>
             </div>
           ))}
         </div>
@@ -587,7 +618,7 @@ function LandingFAQ() {
               <summary style={{ display: 'flex', alignItems: 'flex-start', gap: 16, cursor: 'pointer' }}>
                 <span style={{ font: '500 13px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.06em', marginTop: 4, flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</span>
                 <span style={{ flex: 1, font: '500 19px var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.005em' }}>{item.q}</span>
-                <span style={{ color: 'var(--ink-3)', marginTop: 6, flexShrink: 0 }}><Icon name="chevd" size={16} /></span>
+                <span className="faq-chevron" style={{ color: 'var(--ink-3)', marginTop: 6, flexShrink: 0 }}><Icon name="chevd" size={16} /></span>
               </summary>
               <p style={{ font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', marginTop: 14, paddingLeft: 42, maxWidth: 680 }}>{item.a}</p>
             </details>
