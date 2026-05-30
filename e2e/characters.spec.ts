@@ -1,21 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-
-async function loginAndGetBookHref(page: Page): Promise<string> {
-  const email = process.env.E2E_TEST_EMAIL;
-  const password = process.env.E2E_TEST_PASSWORD;
-  if (!email || !password) {
-    test.skip(true, 'E2E_TEST_EMAIL / E2E_TEST_PASSWORD не заданы — пропускаем.');
-    return '';
-  }
-  await page.goto('/login');
-  await page.locator('#auth-email').fill(email);
-  await page.locator('#auth-password').fill(password);
-  await page.getByRole('button', { name: 'Войти в студию' }).click();
-  await page.waitForURL('**/books', { timeout: 15_000 });
-  const link = page.locator('a[href^="/books/"]').first();
-  await expect(link).toBeVisible({ timeout: 10_000 });
-  return (await link.getAttribute('href')) as string;
-}
+import { test, expect } from '@playwright/test';
+import { loginAndGetBookHref } from './fixtures';
 
 test.describe('Картотека персонажей', () => {
   test('detail → клик по «Персонажи» в сайдбаре не показывает пустое состояние', async ({ page }) => {
