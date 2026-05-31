@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { LogoMark } from '../components/LogoMark';
+import AdminAnalytics, { type TopUser } from './AdminAnalytics';
 
 type Plan = 'free' | 'pro' | 'lifetime';
 
@@ -30,6 +31,7 @@ interface AdminUser {
 }
 
 type SortKey = 'created_at' | 'words_total' | 'last_active';
+type Tab = 'users' | 'analytics';
 
 const PLAN_COLOR: Record<Plan, string> = {
   free: 'var(--ink-4)',
@@ -87,6 +89,7 @@ export default function Admin() {
   const [sortKey, setSortKey] = useState<SortKey>('created_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [planChanging, setPlanChanging] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>('users');
 
   useEffect(() => {
     if (!user) return;
@@ -138,6 +141,11 @@ export default function Admin() {
   if (!user) return <Navigate to="/login" replace />;
   if (isAdmin === null) return null;
   if (isAdmin === false) return <Navigate to="/books" replace />;
+
+  const top10: TopUser[] = [...(users ?? [])]
+    .sort((a, b) => b.words_total - a.words_total)
+    .slice(0, 10)
+    .map((u) => ({ email: u.email, words_total: Number(u.words_total) }));
 
   const filtered = (users ?? [])
     .filter((u) => !search || u.email.toLowerCase().includes(search.toLowerCase()))
@@ -194,8 +202,34 @@ export default function Admin() {
           </div>
         )}
 
-        <h1 style={{ font: '600 28px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 28 }}>Панель администратора</h1>
+        <h1 style={{ font: '600 28px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 20 }}>Панель администратора</h1>
 
+        <div style={{ display: 'flex', gap: 0, marginBottom: 32, borderBottom: '1px solid var(--border-soft)' }}>
+          {(['users', 'analytics'] as Tab[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                padding: '10px 20px',
+                font: '500 11px var(--font-mono)',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: tab === t ? 'var(--accent)' : 'var(--ink-4)',
+                background: 'none',
+                border: 'none',
+                borderBottom: `2px solid ${tab === t ? 'var(--accent)' : 'transparent'}`,
+                marginBottom: -1,
+                cursor: 'pointer',
+              }}
+            >
+              {t === 'users' ? 'Пользователи' : 'Аналитика'}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'analytics' && <AdminAnalytics topUsers={top10} />}
+
+        {tab === 'users' && <>
         <SectionTitle>Пользователи</SectionTitle>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 36 }}>
           <StatCard label="Всего" value={stats?.users_total ?? '—'} />
@@ -299,6 +333,7 @@ export default function Admin() {
             </table>
           </div>
         )}
+        </>}
       </div>
     </div>
   );
