@@ -11,6 +11,7 @@ export interface Note {
   text: string;
   custom_label?: string;
   custom_color?: string;
+  position: number;
   created_at: string;
 }
 
@@ -19,6 +20,7 @@ export async function fetchNotes(bookId: string): Promise<Note[]> {
     .from('notes')
     .select('*')
     .eq('book_id', bookId)
+    .order('position', { ascending: true })
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as Note[];
@@ -41,6 +43,7 @@ export async function createNote(
       user_id: user.id,
       kind,
       text,
+      position: 0,
       ...(kind === 'custom' && { custom_label: customLabel, custom_color: customColor }),
       ...(chapterId && { chapter_id: chapterId }),
     })
@@ -75,4 +78,15 @@ export async function updateNote(
 export async function deleteNote(id: string): Promise<void> {
   const { error } = await supabase.from('notes').delete().eq('id', id);
   if (error) throw error;
+}
+
+export async function reorderNotes(updates: { id: string; position: number }[]): Promise<void> {
+  if (updates.length === 0) return;
+  const results = await Promise.all(
+    updates.map(({ id, position }) =>
+      supabase.from('notes').update({ position }).eq('id', id),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
 }

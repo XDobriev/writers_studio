@@ -1,11 +1,26 @@
 import { useState, useCallback } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { WithMode } from '../components/Chrome';
 import { Sidebar } from '../components/Chrome';
-import { createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
+import { createNote, updateNote, deleteNote, reorderNotes, type Note, type NoteKind } from '../lib/notes';
 import { QUERY_KEYS, useBook, useChapters, useNotes } from '../lib/queries';
 
 type BaseKind = 'idea' | 'question' | 'todo' | 'important';
@@ -48,6 +63,92 @@ function noteLabel(n: Note): string {
   return n.kind === 'custom' ? (n.custom_label || 'Своё') : KIND_LABELS[n.kind];
 }
 
+interface SortableNoteCardProps {
+  note: Note;
+  chapterTitle: string | null;
+  color: string;
+  colorSoft: string;
+  label: string;
+  onOpen: (n: Note) => void;
+}
+
+function SortableNoteCard({ note, chapterTitle, color, colorSoft, label, onOpen }: SortableNoteCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: note.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="note-card"
+      onClick={() => onOpen(note)}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        background: 'var(--bg-2)',
+        border: `1px solid var(--border)`,
+        borderLeft: `3px solid ${color}`,
+        borderRadius: 8,
+        padding: '14px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        height: 160,
+        overflow: 'hidden',
+        cursor: 'pointer',
+        position: 'relative',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <span style={{
+          fontSize: 11, padding: '2px 8px', borderRadius: 20,
+          background: colorSoft, color,
+          fontWeight: 500, flexShrink: 0,
+        }}>
+          {label}
+        </span>
+        {chapterTitle && (
+          <span style={{
+            fontSize: 11, color: 'var(--ink-4)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            marginLeft: 'auto', paddingRight: 20,
+          }}>
+            {chapterTitle}
+          </span>
+        )}
+        <button
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          title="Переместить"
+          style={{
+            position: 'absolute', top: 10, right: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 20, height: 20,
+            background: 'none', border: 'none',
+            color: 'var(--ink-5)', cursor: 'grab',
+            padding: 0, borderRadius: 4,
+            flexShrink: 0,
+          }}
+        >
+          <Icon name="drag" size={13} />
+        </button>
+      </div>
+
+      <p style={{
+        margin: 0, fontSize: 13, color: 'var(--ink)', lineHeight: 1.55,
+        whiteSpace: 'pre-wrap', flex: 1, overflow: 'hidden',
+        display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
+      }}>
+        {note.text}
+      </p>
+
+      <span style={{ fontSize: 11, color: 'var(--ink-4)', flexShrink: 0 }}>
+        {new Date(note.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+      </span>
+    </div>
+  );
+}
+
 export default function Notes() {
   const { id: bookId } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
@@ -77,6 +178,26 @@ export default function Notes() {
   const [filterKind, setFilterKind] = useState<NoteKind | 'all'>('all');
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; text: string } | null>(null);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  const onDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || !bookId || !notes || active.id === over.id) return;
+
+    const oldIndex = notes.findIndex((n) => n.id === active.id);
+    const newIndex = notes.findIndex((n) => n.id === over.id);
+    const reordered = arrayMove(notes, oldIndex, newIndex).map((n, i) => ({ ...n, position: i }));
+
+    queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), reordered);
+
+    try {
+      await reorderNotes(reordered.map((n) => ({ id: n.id, position: n.position })));
+    } catch (e) {
+      setError((e as Error).message);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(bookId) });
+    }
+  };
 
   const handleSelectChapter = useCallback((id: string) => {
     setActiveChapterId(prev => prev === id ? null : id);
@@ -370,65 +491,23 @@ export default function Notes() {
             )}
 
             {/* Карточки заметок */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
-              {filtered.map((n) => {
-                const chapterTitle = n.chapter_id ? (chapters?.find(c => c.id === n.chapter_id)?.title || 'Глава') : null;
-                return (
-                  <div
-                    key={n.id}
-                    className="note-card"
-                    onClick={() => openModal(n)}
-                    style={{
-                      background: 'var(--bg-2)',
-                      border: `1px solid var(--border)`,
-                      borderLeft: `3px solid ${noteColor(n)}`,
-                      borderRadius: 8,
-                      padding: '14px 16px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8,
-                      height: 160,
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {/* Тип + глава */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                      <span style={{
-                        fontSize: 11, padding: '2px 8px', borderRadius: 20,
-                        background: noteColorSoft(n), color: noteColor(n),
-                        fontWeight: 500, flexShrink: 0,
-                      }}>
-                        {noteLabel(n)}
-                      </span>
-                      {chapterTitle && (
-                        <span style={{
-                          fontSize: 11, color: 'var(--ink-4)',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          marginLeft: 'auto',
-                        }}>
-                          {chapterTitle}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Превью текста */}
-                    <p style={{
-                      margin: 0, fontSize: 13, color: 'var(--ink)', lineHeight: 1.55,
-                      whiteSpace: 'pre-wrap', flex: 1, overflow: 'hidden',
-                      display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
-                    }}>
-                      {n.text}
-                    </p>
-
-                    {/* Дата */}
-                    <span style={{ fontSize: 11, color: 'var(--ink-4)', flexShrink: 0 }}>
-                      {new Date(n.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+              <SortableContext items={filtered.map((n) => n.id)} strategy={rectSortingStrategy}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+                  {filtered.map((n) => (
+                    <SortableNoteCard
+                      key={n.id}
+                      note={n}
+                      chapterTitle={n.chapter_id ? (chapters?.find(c => c.id === n.chapter_id)?.title || 'Глава') : null}
+                      color={noteColor(n)}
+                      colorSoft={noteColorSoft(n)}
+                      label={noteLabel(n)}
+                      onOpen={openModal}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
         </main>
 
