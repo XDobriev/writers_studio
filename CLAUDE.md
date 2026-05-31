@@ -18,8 +18,7 @@
 - **IP:** `72.56.233.223`, пользователь `deploy`, SSH-ключ в GitHub Secrets (`VPS_SSH_KEY`)
 - **Деплой:** GitHub Actions (`.github/workflows/deploy-timeweb.yml`) — `npm ci` → `npm run build` → `rsync dist/ → /var/www/avtorstudio/dist/`
 - **nginx:** `/etc/nginx/sites-available/avtorstudio.com` (конфиг в `deploy/nginx.conf`)
-- **SSL:** Let's Encrypt через certbot. ⚠️ На 2026-05-25 ещё не выпущен — ждём распространения AAAA-записи DNS (Timeweb обновляет 3-24ч). Команда когда DNS обновится: `certbot --nginx -d avtorstudio.com -d www.avtorstudio.com --non-interactive --agree-tos -m frfrancuz@gmail.com`
-- **После certbot** заменить nginx конфиг: `curl -sL https://raw.githubusercontent.com/XDobriev/writers_studio/main/deploy/nginx.conf -o /etc/nginx/sites-available/avtorstudio.com && nginx -t && systemctl reload nginx`
+- **SSL:** Let's Encrypt через certbot. Выпущен 2026-05-25, действует до 2026-08-23. Продление автоматическое.
 - **Supabase-прокси** активен: `/sb/` в nginx проксирует Supabase, VPS-сборка использует `VITE_SUPABASE_URL=https://avtorstudio.com/sb`
 
 ## Команды
