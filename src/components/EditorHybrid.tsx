@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEditorLayout } from '../lib/useEditorLayout';
 import { Icon } from './Icon';
 import { Sidebar, RailNav } from './Chrome';
@@ -11,6 +12,9 @@ import type { Book } from '../lib/supabase';
 import type { ChapterMeta, ChapterActions } from '../lib/chapters';
 import { useWritingStats } from '../lib/useWritingStats';
 import { useUserDisplay } from '../lib/useUserDisplay';
+import { useAuth } from '../lib/auth';
+import { useProfile, QUERY_KEYS } from '../lib/queries';
+import { addWordToDictionary, type Profile } from '../lib/profiles';
 
 type Mode = 'studio' | 'left' | 'right' | 'page';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -23,9 +27,11 @@ interface ChapterSheetProps {
   onEditor: (editor: Editor | null) => void;
   width: number | string;
   padding: string;
+  userDictionary?: string[];
+  onAddWord?: (word: string) => void;
 }
 
-function ChapterSheet({ chapter, content, onContentChange, onTitleChange, onEditor, width, padding }: ChapterSheetProps) {
+function ChapterSheet({ chapter, content, onContentChange, onTitleChange, onEditor, width, padding, userDictionary, onAddWord }: ChapterSheetProps) {
   return (
     <div className="sheet" style={{ width, padding }}>
       <input
@@ -48,6 +54,8 @@ function ChapterSheet({ chapter, content, onContentChange, onTitleChange, onEdit
         className="sheet-body"
         style={{ minHeight: 300 }}
         onEditor={onEditor}
+        userDictionary={userDictionary}
+        onAddWord={onAddWord}
       />
     </div>
   );
@@ -112,6 +120,23 @@ export function EditorHybrid({
   const { refetch: refetchStats } = writingStats;
   const { plan } = useUserDisplay();
   const isPro = plan === 'pro' || plan === 'lifetime';
+
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { data: profile } = useProfile(user?.id);
+  const userDictionary = profile?.user_dictionary ?? [];
+
+  const handleAddWord = useCallback(async (word: string) => {
+    if (!user) return;
+    const w = word.toLowerCase();
+    queryClient.setQueryData(QUERY_KEYS.profile(user.id), (old: Profile | null | undefined) => {
+      if (!old) return old;
+      const dict = old.user_dictionary ?? [];
+      if (dict.includes(w)) return old;
+      return { ...old, user_dictionary: [...dict, w] };
+    });
+    await addWordToDictionary(user.id, w);
+  }, [user, queryClient]);
 
   const [openNoteAt, setOpenNoteAt] = useState(0);
 
@@ -353,6 +378,8 @@ export function EditorHybrid({
                 onEditor={setEditor}
                 width={sheetWidth}
                 padding={sheetPad}
+                userDictionary={userDictionary}
+                onAddWord={handleAddWord}
               />
             ) : (
               <div className="sheet" style={{ width: sheetWidth, padding: sheetPad, color: 'var(--ink-3)', textAlign: 'center' }}>

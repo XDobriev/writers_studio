@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { Icon } from './Icon';
@@ -60,6 +60,8 @@ interface RichEditorProps {
   style?: React.CSSProperties;
   attributesStyle?: string;
   onEditor?: (editor: Editor | null) => void;
+  userDictionary?: string[];
+  onAddWord?: (word: string) => void;
 }
 
 export function RichEditor({
@@ -71,7 +73,18 @@ export function RichEditor({
   style,
   attributesStyle,
   onEditor,
+  userDictionary,
+  onAddWord,
 }: RichEditorProps) {
+  const dictRef = useRef<string[]>(userDictionary ?? []);
+  useEffect(() => { dictRef.current = userDictionary ?? []; }, [userDictionary]);
+
+  const langToolExt = useMemo(
+    () => LanguageTool.configure({ getDict: () => dictRef.current }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [contentKey],
+  );
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false, bulletList: false }),
@@ -92,7 +105,7 @@ export function RichEditor({
       Subscript,
       Superscript,
       Placeholder.configure({ placeholder: placeholder ?? 'Начните писать…' }),
-      LanguageTool,
+      langToolExt,
     ],
     content: value || '',
     editorProps: {
@@ -147,7 +160,7 @@ export function RichEditor({
   }, [editor]);
 
   const [spellPopup, setSpellPopup] = useState<{
-    x: number; y: number; suggestions: string[]; from: number; to: number;
+    x: number; y: number; suggestions: string[]; from: number; to: number; word: string;
   } | null>(null);
 
   useEffect(() => {
@@ -159,7 +172,8 @@ export function RichEditor({
       const span = (e.target as HTMLElement).closest('.lt-spell') as HTMLElement | null;
       if (!span) { setSpellPopup(null); return; }
       const suggestions = (span.dataset.lt ?? '').split('|').filter(Boolean);
-      if (!suggestions.length) { setSpellPopup(null); return; }
+      const word = span.dataset.word ?? '';
+      if (!suggestions.length && !word) { setSpellPopup(null); return; }
       const coords = editor.view.posAtCoords({ left: e.clientX, top: e.clientY });
       if (!coords) return;
       const decoState = LT_KEY.getState(editor.view.state);
@@ -167,7 +181,7 @@ export function RichEditor({
       const found = decoState.find(coords.pos, coords.pos + 1);
       if (!found.length) return;
       const rect = span.getBoundingClientRect();
-      setSpellPopup({ x: rect.left, y: rect.bottom + 6, suggestions, from: found[0].from, to: found[0].to });
+      setSpellPopup({ x: rect.left, y: rect.bottom + 6, suggestions, from: found[0].from, to: found[0].to, word });
     };
     dom.addEventListener('click', handleClick);
     return () => dom.removeEventListener('click', handleClick);
@@ -202,6 +216,21 @@ export function RichEditor({
     }).run();
     setSpellPopup(null);
   }, [spellPopup, editor]);
+
+  const addToDictionary = useCallback(() => {
+    if (!spellPopup || !editor) return;
+    const { from, to, word } = spellPopup;
+    editor.chain().focus().command(({ tr, state }) => {
+      const old = LT_KEY.getState(state);
+      if (old) {
+        const toRemove = old.find(from, to);
+        if (toRemove.length) tr.setMeta(LT_KEY, old.remove(toRemove));
+      }
+      return true;
+    }).run();
+    onAddWord?.(word);
+    setSpellPopup(null);
+  }, [spellPopup, editor, onAddWord]);
 
   const applyColor = useCallback((value: string) => {
     if (!editor) return;
@@ -284,6 +313,17 @@ export function RichEditor({
               {s}
             </button>
           ))}
+          {spellPopup.word && (
+            <>
+              {spellPopup.suggestions.length > 0 && <div className="spell-popup__sep" />}
+              <button
+                className="spell-popup__item spell-popup__item--muted"
+                onMouseDown={e => { e.preventDefault(); addToDictionary(); }}
+              >
+                Добавить в словарь
+              </button>
+            </>
+          )}
         </div>
       )}
     </>

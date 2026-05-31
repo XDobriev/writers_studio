@@ -516,6 +516,21 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   background: oklch(0.28 0.01 270);
 }
 
+.spell-popup__sep {
+  height: 1px;
+  background: oklch(0.30 0.01 270);
+  margin: 2px 4px;
+}
+
+.spell-popup__item--muted {
+  color: oklch(0.60 0.01 270);
+  font-size: 12px;
+}
+
+.spell-popup__item--muted:hover {
+  color: oklch(0.90 0.01 270);
+}
+
 .lt-spell {
   text-decoration: underline wavy oklch(0.65 0.18 25);
   text-underline-offset: 4px;

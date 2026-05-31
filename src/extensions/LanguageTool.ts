@@ -5,6 +5,10 @@ import type { Node as PmNode } from '@tiptap/pm/model';
 
 export const LT_KEY = new PluginKey<DecorationSet>('languageTool');
 
+export interface LanguageToolOptions {
+  getDict: () => string[];
+}
+
 interface YaError {
   pos: number;
   len: number;
@@ -51,11 +55,13 @@ function buildTextMap(doc: PmNode): { plain: string; map: number[] } {
   return { plain, map };
 }
 
-function makeDecorations(doc: PmNode, errors: YaError[]): DecorationSet {
+function makeDecorations(doc: PmNode, errors: YaError[], dict: string[]): DecorationSet {
   const { map } = buildTextMap(doc);
   const decos: Decoration[] = [];
 
   for (const { pos, len, word, s } of errors) {
+    if (dict.includes(word.toLowerCase())) continue;
+
     const end = pos + len - 1;
     if (end >= map.length) continue;
     const from = map[pos];
@@ -72,6 +78,7 @@ function makeDecorations(doc: PmNode, errors: YaError[]): DecorationSet {
         class: 'lt-spell',
         title,
         'data-lt': s.slice(0, 5).join('|'),
+        'data-word': word,
       })
     );
   }
@@ -79,10 +86,15 @@ function makeDecorations(doc: PmNode, errors: YaError[]): DecorationSet {
   return DecorationSet.create(doc, decos);
 }
 
-export const LanguageTool = Extension.create({
+export const LanguageTool = Extension.create<LanguageToolOptions>({
   name: 'languageTool',
 
+  addOptions() {
+    return { getDict: () => [] };
+  },
+
   addProseMirrorPlugins() {
+    const getDict = this.options.getDict;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     return [
@@ -118,7 +130,7 @@ export const LanguageTool = Extension.create({
               const errors = await fetchErrors(plain, controller.signal);
               if (destroyed) return;
 
-              const decos = makeDecorations(editorView.state.doc, errors);
+              const decos = makeDecorations(editorView.state.doc, errors, getDict());
               editorView.dispatch(editorView.state.tr.setMeta(LT_KEY, decos));
             }, 1500);
           };
