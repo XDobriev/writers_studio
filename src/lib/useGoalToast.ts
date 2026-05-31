@@ -32,6 +32,7 @@ export function useGoalToast({ todayWords, dailyGoal }: Params): Result {
     if (!toast) return;
     const t = setTimeout(() => {
       setToastLeaving(true);
+      setTimeout(() => { setToast(null); setToastLeaving(false); }, 100);
     }, 3900);
     return () => clearTimeout(t);
   }, [toast]);
