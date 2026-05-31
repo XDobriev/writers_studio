@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { Icon } from './Icon';
@@ -182,7 +182,7 @@ export function RichEditor({
     return () => document.removeEventListener('mousedown', dismiss);
   }, [spellPopup]);
 
-  const applySuggestion = (suggestion: string) => {
+  const applySuggestion = useCallback((suggestion: string) => {
     if (!spellPopup || !editor) return;
     const { from, to } = spellPopup;
     editor.chain().focus().command(({ tr, state }) => {
@@ -201,29 +201,29 @@ export function RichEditor({
       return true;
     }).run();
     setSpellPopup(null);
-  };
+  }, [spellPopup, editor]);
 
-  function applyColor(value: string) {
+  const applyColor = useCallback((value: string) => {
     if (!editor) return;
     if (value === '') {
       editor.chain().focus().unsetColor().run();
     } else {
       editor.chain().focus().setColor(value).run();
     }
-  }
+  }, [editor]);
 
   const activeColor = editor
     ? (editor.getAttributes('textStyle').color as string | undefined) ?? null
     : null;
 
-  function runFmt(name: string) {
+  const runFmt = useCallback((name: string) => {
     if (!editor) return;
     const chain = editor.chain().focus();
     if (name === 'bold')      chain.toggleBold().run();
     else if (name === 'italic')    chain.toggleItalic().run();
     else if (name === 'underline') chain.toggleUnderline().run();
     else if (name === 'strike')    chain.toggleStrike().run();
-  }
+  }, [editor]);
 
   return (
     <>
