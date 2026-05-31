@@ -81,6 +81,11 @@
   --character-color-3: oklch(0.62 0.10 280);
   --character-color-4: oklch(0.65 0.09 55);
 
+  /* breakpoints — reference tokens; use literal px values in @media */
+  --bp-mobile: 768px;
+  --bp-tablet: 1024px;
+  --bp-large:  1440px;
+
   color-scheme: dark;
 }
 
@@ -431,7 +436,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .sheet-wrap::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 .sheet {
-  width: 720px; max-width: 100%;
+  width: 720px; max-width: min(100%, 760px);
   flex: 1;
   background: var(--paper);
   color: var(--paper-ink);
@@ -841,4 +846,14 @@ select.input {
     border-bottom: none;
     padding: 20px 20px 32px;
   }
+}
+
+/* ── Большие мониторы (1440px+) ── */
+@media (min-width: 1440px) {
+  .sheet { font-size: 18px; }
+}
+
+/* ── Ultra-wide (1920px+) ── */
+@media (min-width: 1920px) {
+  .sheet { font-size: 18.5px; line-height: 1.82; }
 }

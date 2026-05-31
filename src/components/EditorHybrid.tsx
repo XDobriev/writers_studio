@@ -106,7 +106,7 @@ export function EditorHybrid({
   const [showPageHint, setShowPageHint] = useState(false);
   const [goalToast, setGoalToast] = useState<'reached' | 'exceeded' | null>(null);
   const [goalToastLeaving, setGoalToastLeaving] = useState(false);
-  const { isMobile, showLeft, showRight, isPage, cols, sheetWidth, sheetPad } = useEditorLayout(mode);
+  const { isMobile, showLeft, showRight, isPage, cols, sheetWidth, sheetPad, wrapPad } = useEditorLayout(mode);
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
   const { refetch: refetchStats } = writingStats;
@@ -342,7 +342,7 @@ export function EditorHybrid({
           </div>
         )}
 
-        <div className="sheet-wrap" style={{ padding: isMobile ? '16px 8px 0' : (isPage ? '48px 56px 0' : '36px 32px 0') }}>
+        <div className="sheet-wrap" style={{ padding: wrapPad }}>
           {isReal ? (
             activeChapter ? (
               <ChapterSheet
