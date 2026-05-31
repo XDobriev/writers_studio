@@ -11,8 +11,16 @@ import '@fontsource/ibm-plex-mono/cyrillic-500.css';
 import '@fontsource/ibm-plex-mono/latin-400.css';
 import '@fontsource/ibm-plex-mono/latin-500.css';
 import '@fontsource-variable/source-serif-4/wght.css';
+import * as Sentry from '@sentry/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  environment: import.meta.env.MODE,
+  enabled: !!import.meta.env.VITE_SENTRY_DSN,
+  tracesSampleRate: 0.2,
+});
 import App from './App';
 import './styles/design-system.css';
 import { applyTheme, getStoredTheme } from './lib/theme';

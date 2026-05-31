@@ -1,4 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useGoalToast } from '../lib/useGoalToast';
+import { useKeyboardShortcuts } from '../lib/useKeyboardShortcuts';
+import { useMobileDrawers } from '../lib/useMobileDrawers';
+import { usePageHint } from '../lib/usePageHint';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEditorLayout } from '../lib/useEditorLayout';
 import { Icon } from './Icon';
@@ -109,12 +113,8 @@ export function EditorHybrid({
   const restoreContent = useCallback((content: string) => {
     editor?.commands.setContent(content, { emitUpdate: false });
   }, [editor]);
-  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
-  const [showMobileRight, setShowMobileRight] = useState(false);
-  const [showPageHint, setShowPageHint] = useState(false);
-  const [goalToast, setGoalToast] = useState<'reached' | 'exceeded' | null>(null);
-  const [goalToastLeaving, setGoalToastLeaving] = useState(false);
   const { isMobile, showLeft, showRight, isPage, cols, sheetWidth, sheetPad, wrapPad } = useEditorLayout(mode);
+  const { sidebar, right } = useMobileDrawers(isMobile);
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
   const { refetch: refetchStats } = writingStats;
@@ -138,70 +138,16 @@ export function EditorHybrid({
     await addWordToDictionary(user.id, w);
   }, [user, queryClient]);
 
-  const [openNoteAt, setOpenNoteAt] = useState(0);
-
-  // ─── Горячие клавиши редактора ───────────────────────────────────────────
-  // Используем refs, чтобы handler регистрировался единожды (стабильный effect).
-  const onSaveRef = useRef(onSave);
-  useEffect(() => { onSaveRef.current = onSave; }, [onSave]);
-  const chapterActionsRef = useRef(chapterActions);
-  useEffect(() => { chapterActionsRef.current = chapterActions; }, [chapterActions]);
-  const chaptersRef = useRef(chapters);
-  useEffect(() => { chaptersRef.current = chapters; }, [chapters]);
-  const activeChapterRef = useRef(activeChapter);
-  useEffect(() => { activeChapterRef.current = activeChapter; }, [activeChapter]);
-  const isMobileRef = useRef(false);
-  const isRealRef = useRef(false);
-  useEffect(() => { isMobileRef.current = isMobile; }, [isMobile]);
-  useEffect(() => { isRealRef.current = isReal; }, [isReal]);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (!isRealRef.current) return;
-      const mod = /mac/i.test(navigator.platform) ? e.metaKey : e.ctrlKey;
-      if (!mod) return;
-
-      const target = e.target as HTMLElement;
-      const inInput = target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA';
-
-      if (e.code === 'KeyS' && !e.shiftKey && !e.altKey) {
-        e.preventDefault();
-        onSaveRef.current?.();
-      } else if (!inInput) {
-        if (e.code === 'Enter' && !e.shiftKey && !e.altKey) {
-          e.preventDefault();
-          chapterActionsRef.current?.onCreateChapter?.();
-        } else if (e.code === 'BracketLeft' && e.shiftKey && !e.altKey) {
-          e.preventDefault();
-          const chs = chaptersRef.current;
-          const ac = activeChapterRef.current;
-          if (chs && ac) {
-            const idx = chs.findIndex((c) => c.id === ac.id);
-            if (idx > 0) chapterActionsRef.current?.onSelectChapter?.(chs[idx - 1].id);
-          }
-        } else if (e.code === 'BracketRight' && e.shiftKey && !e.altKey) {
-          e.preventDefault();
-          const chs = chaptersRef.current;
-          const ac = activeChapterRef.current;
-          if (chs && ac) {
-            const idx = chs.findIndex((c) => c.id === ac.id);
-            if (idx !== -1 && idx < chs.length - 1) chapterActionsRef.current?.onSelectChapter?.(chs[idx + 1].id);
-          }
-        } else if (e.code === 'KeyF' && e.shiftKey && !e.altKey) {
-          e.preventDefault();
-          setMode((prev) => (prev === 'page' ? 'studio' : 'page'));
-        } else if (e.code === 'KeyN' && e.shiftKey && !e.altKey) {
-          e.preventDefault();
-          if (isMobileRef.current) setShowMobileRight(true);
-          setOpenNoteAt((prev) => prev + 1);
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, []);
-  // ─────────────────────────────────────────────────────────────────────────
+  const { openNoteAt } = useKeyboardShortcuts({
+    onSave,
+    chapterActions,
+    chapters,
+    activeChapter,
+    isMobile,
+    isReal,
+    setMode,
+    openMobileRight: right.open,
+  });
 
   const prevSaveState = useRef<SaveState>(saveState);
   useEffect(() => {
@@ -211,55 +157,10 @@ export function EditorHybrid({
     prevSaveState.current = saveState;
   }, [saveState, refetchStats]);
 
-  useEffect(() => {
-    if (!isMobile) {
-      setShowMobileSidebar(false);
-      setShowMobileRight(false);
-    }
-  }, [isMobile]);
-
-  useEffect(() => {
-    if (isPage && !localStorage.getItem('editor-page-hinted')) setShowPageHint(true);
-  }, [isPage]);
-
-  useEffect(() => {
-    if (!showPageHint) return;
-    const t = setTimeout(() => {
-      setShowPageHint(false);
-      localStorage.setItem('editor-page-hinted', '1');
-    }, 8000);
-    return () => clearTimeout(t);
-  }, [showPageHint]);
-
-  const dismissPageHint = () => {
-    setShowPageHint(false);
-    localStorage.setItem('editor-page-hinted', '1');
-  };
+  const { visible: showPageHint, dismiss: dismissPageHint } = usePageHint(isPage);
 
   const dailyGoal = book?.daily_goal ?? 0;
-  const prevTodayWords = useRef<number>(0);
-  useEffect(() => {
-    const tw = writingStats.todayWords;
-    const prev = prevTodayWords.current;
-    prevTodayWords.current = tw;
-    if (!dailyGoal || tw === prev) return;
-    const todayKey = `goal-toast-${new Date().toISOString().slice(0, 10)}`;
-    if (localStorage.getItem(todayKey)) return;
-    if (prev < dailyGoal && tw >= dailyGoal) {
-      const kind = tw >= dailyGoal * 1.5 ? 'exceeded' : 'reached';
-      setGoalToast(kind);
-      localStorage.setItem(todayKey, '1');
-    }
-  }, [writingStats.todayWords, dailyGoal]);
-
-  useEffect(() => {
-    if (!goalToast) return;
-    const t = setTimeout(() => {
-      setGoalToastLeaving(true);
-      setTimeout(() => { setGoalToast(null); setGoalToastLeaving(false); }, 100);
-    }, 3900);
-    return () => clearTimeout(t);
-  }, [goalToast]);
+  const { toast: goalToast, toastLeaving: goalToastLeaving } = useGoalToast({ todayWords: writingStats.todayWords, dailyGoal });
 
   return (
     <div className="as" style={{ height: '100%', overflow: 'hidden', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative' }}>
@@ -282,7 +183,7 @@ export function EditorHybrid({
             <button
               type="button"
               className="tb-btn"
-              onClick={() => setShowMobileSidebar(true)}
+              onClick={sidebar.open}
               title="Главы"
               style={{ flexShrink: 0 }}
             >
@@ -296,8 +197,8 @@ export function EditorHybrid({
             {isReal && (
               <button
                 type="button"
-                className={'tb-btn' + (showMobileRight ? ' tb-btn--on' : '')}
-                onClick={() => setShowMobileRight(v => !v)}
+                className={'tb-btn' + (right.isOpen ? ' tb-btn--on' : '')}
+                onClick={() => right.isOpen ? right.close() : right.open()}
                 title="Заметки и версии"
                 style={{ flexShrink: 0 }}
               >
@@ -312,7 +213,7 @@ export function EditorHybrid({
               <button
                 type="button"
                 className="tb-btn"
-                onClick={() => setShowMobileSidebar(true)}
+                onClick={sidebar.open}
                 title="Главы"
                 style={{ flexShrink: 0 }}
               >
@@ -427,11 +328,11 @@ export function EditorHybrid({
         </div>
       )}
 
-      {isMobile && showMobileSidebar && (
+      {isMobile && sidebar.isOpen && (
         <>
           <div
             role="presentation"
-            onClick={() => setShowMobileSidebar(false)}
+            onClick={sidebar.close}
             style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
           />
           <div style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)' }}>
@@ -441,18 +342,18 @@ export function EditorHybrid({
               activeChapterId={activeChapter?.id ?? null}
               chapterActions={chapterActions ? {
                 ...chapterActions,
-                onSelectChapter: (id) => { chapterActions.onSelectChapter?.(id); setShowMobileSidebar(false); },
+                onSelectChapter: (id) => { chapterActions.onSelectChapter?.(id); sidebar.close(); },
               } : undefined}
             />
           </div>
         </>
       )}
 
-      {isMobile && showMobileRight && (
+      {isMobile && right.isOpen && (
         <>
           <div
             role="presentation"
-            onClick={() => setShowMobileRight(false)}
+            onClick={right.close}
             style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
           />
           <div style={{ position: 'fixed', top: 0, right: 0, width: 300, maxWidth: '90vw', height: '100%', zIndex: 41, boxShadow: '-4px 0 32px oklch(0.05 0.01 50 / 0.35)', animation: 'panel-enter-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both' }}>
