@@ -113,6 +113,7 @@ npm run preview    # превью продакшен-сборки
 - `/systematic-debugging` — методология отладки, особенно TipTap + Supabase
 - `/improve-codebase-architecture` — анализ и рефакторинг архитектуры компонентов
 - `/impeccable` — дизайн-аудит: critique, audit, polish, colorize, typeset (23 команды)
+- `/care-refactoring` — прагматичный рефакторинг: discovery → scope proposal → challenge → minimal diff → validation
 
 **Глобальные** (`~/.claude/skills/`):
 - `/gstack` — браузерный агент для QA: скриншоты, тест форм, проверка деплоя (❗ `/browse` не работает — нужен нативный Bun)

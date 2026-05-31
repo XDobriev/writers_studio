@@ -15,6 +15,12 @@ dist
 .superpowers/
 supabase/.temp/
 docs/learning-plan.md
+docs/infrastructure.md
+docs/acquisition.md
+docs/community-strategy.md
+docs/email-onboarding.md
+docs/design-audit-2026-05-29.md
+docs/feature-research-2026-05-29.md
 
 # Playwright
 playwright-report/

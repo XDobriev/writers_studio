@@ -265,6 +265,11 @@
       "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
       "computedHash": "38fb49d3b57c46cba18b07a44254bd42c4c93903fda1d8cb683429615d32fec4"
     },
+    "care-refactoring": {
+      "source": ".agents/skills/care-refactoring",
+      "sourceType": "local",
+      "skillPath": "SKILL.md"
+    },
     "systematic-debugging": {
       "source": "obra/superpowers",
       "sourceType": "github",
