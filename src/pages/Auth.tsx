@@ -336,14 +336,14 @@ export default function Auth() {
                   <input
                     id="auth-email"
                     name="email"
-                    className="input"
+                    className={`input${err ? ' input--err' : ''}`}
                     type="email"
                     required
                     autoComplete="username"
                     inputMode="email"
                     spellCheck={false}
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setErr(null); }}
                   />
                 </div>
                 <div>
@@ -363,13 +363,13 @@ export default function Auth() {
                     <input
                       id="auth-password"
                       name="password"
-                      className="input"
+                      className={`input${err ? ' input--err' : ''}`}
                       type={showPassword ? 'text' : 'password'}
                       required
                       minLength={6}
                       autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => { setPassword(e.target.value); setErr(null); }}
                       style={{ paddingRight: 36, width: '100%' }}
                     />
                     <button
