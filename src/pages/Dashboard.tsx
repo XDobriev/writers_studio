@@ -533,6 +533,74 @@ export default function Dashboard() {
             </div>
           </div>
         </main>
+
+        {editOpen && (
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'oklch(0 0 0 / 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setEditOpen(false)}
+          >
+            <div
+              style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 16, padding: '28px', width: 440, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 60px oklch(0.05 0.01 50 / 0.4)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label className="label">Название</label>
+                <input
+                  className="input"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditOpen(false); }}
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label className="label">Жанр</label>
+                <input
+                  className="input"
+                  value={editGenre}
+                  onChange={(e) => setEditGenre(e.target.value)}
+                  placeholder="Фэнтези, Детектив, Роман…"
+                  onKeyDown={(e) => { if (e.key === 'Escape') setEditOpen(false); }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label className="label">Цель по словам</label>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={editGoal || ''}
+                  placeholder="необязательно"
+                  onChange={(e) => setEditGoal(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
+                  onKeyDown={(e) => { if (e.key === 'Escape') setEditOpen(false); }}
+                />
+                <div style={{ fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                  Рассказ 1–10 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпическое фэнтези 120–300 тыс. слов
+                </div>
+              </div>
+
+              {editError && (
+                <div style={{ fontSize: 12, color: 'var(--danger)' }}>{editError}</div>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button className="btn btn--ghost" onClick={() => setEditOpen(false)}>Отмена</button>
+                <button
+                  className="btn btn--primary"
+                  onClick={saveEdit}
+                  disabled={editSaving || !editTitle.trim()}
+                >
+                  {editSaving ? 'Сохранение…' : 'Сохранить'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       {isMobile && showMobileSb && (
         <>
@@ -549,75 +617,6 @@ export default function Dashboard() {
             />
           </div>
         </>
-      )}
-
-      {editOpen && (
-        <div
-          className="as"
-          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'oklch(0 0 0 / 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setEditOpen(false)}
-        >
-          <div
-            style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 16, padding: '28px', width: 440, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 60px oklch(0.05 0.01 50 / 0.4)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label className="label">Название</label>
-              <input
-                className="input"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditOpen(false); }}
-                autoFocus
-              />
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label className="label">Жанр</label>
-              <input
-                className="input"
-                value={editGenre}
-                onChange={(e) => setEditGenre(e.target.value)}
-                placeholder="Фэнтези, Детектив, Роман…"
-                onKeyDown={(e) => { if (e.key === 'Escape') setEditOpen(false); }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label className="label">Цель по словам</label>
-              <input
-                className="input"
-                type="number"
-                min={0}
-                step={1000}
-                value={editGoal || ''}
-                placeholder="необязательно"
-                onChange={(e) => setEditGoal(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
-                onKeyDown={(e) => { if (e.key === 'Escape') setEditOpen(false); }}
-              />
-              <div style={{ fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
-                Рассказ 1–10 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпическое фэнтези 120–300 тыс. слов
-              </div>
-            </div>
-
-            {editError && (
-              <div style={{ fontSize: 12, color: 'var(--danger)' }}>{editError}</div>
-            )}
-
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button className="btn btn--ghost" onClick={() => setEditOpen(false)}>Отмена</button>
-              <button
-                className="btn btn--primary"
-                onClick={saveEdit}
-                disabled={editSaving || !editTitle.trim()}
-              >
-                {editSaving ? 'Сохранение…' : 'Сохранить'}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </WithMode>
     </motion.div>
