@@ -72,7 +72,7 @@ function formatTime(d: Date): string {
 
 function saveLabel(state: SaveState, savedAt: Date | null): string {
   if (state === 'saving') return 'Сохранение…';
-  if (state === 'error') return 'Ошибка сохранения';
+  if (state === 'error') return 'Нет соединения · текст в памяти';
   if (state === 'saved' && savedAt) return `Сохранено · ${formatTime(savedAt)}`;
   if (savedAt) return `Сохранено · ${formatTime(savedAt)}`;
   return 'Готов к работе';
@@ -156,6 +156,12 @@ export function EditorHybrid({
     }
     prevSaveState.current = saveState;
   }, [saveState, refetchStats]);
+
+  useEffect(() => {
+    if (saveState !== 'error' || !onSave) return;
+    window.addEventListener('online', onSave);
+    return () => window.removeEventListener('online', onSave);
+  }, [saveState, onSave]);
 
   const { visible: showPageHint, dismiss: dismissPageHint } = usePageHint(isPage);
 
