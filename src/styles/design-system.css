@@ -214,6 +214,14 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   font-size: 11px; color: var(--ink-3);
   letter-spacing: 0.04em; text-transform: uppercase;
 }
+.sb-share-btn {
+  font: 500 11px var(--font-ui);
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  border-radius: 5px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
 .sb-tabs {
   display: flex; gap: 2px;
   padding: 12px 14px 8px;
@@ -387,7 +395,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   transition: background var(--dur-instant), color var(--dur-instant);
 }
 .bubble-btn:hover { background: oklch(100% 0 0 / 0.1); color: var(--ink); }
-.bubble-btn--on { background: var(--accent); color: #fff; }
+.bubble-btn--on { background: var(--accent); color: oklch(0.98 0 0); }
 .bubble-sep { width: 1px; height: 18px; background: oklch(100% 0 0 / 0.13); flex-shrink: 0; }
 .bubble-colors { display: flex; align-items: center; gap: 5px; }
 .bubble-color {
@@ -401,7 +409,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .bubble-color:hover { transform: scale(1.25); }
 .bubble-color--on::after {
   content: ''; position: absolute; inset: -3px;
-  border-radius: 50%; border: 2px solid #fff;
+  border-radius: 50%; border: 2px solid oklch(0.98 0 0);
   pointer-events: none;
 }
 .bubble-color--clear {
@@ -489,8 +497,8 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .spell-popup {
   position: fixed;
   z-index: 1000;
-  background: oklch(0.18 0.01 270);
-  border: 1px solid oklch(0.30 0.01 270);
+  background: var(--bg-deep);
+  border: 1px solid var(--surface-2);
   border-radius: 8px;
   padding: 4px;
   display: flex;
@@ -508,27 +516,27 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   cursor: pointer;
   background: transparent;
   border: none;
-  color: oklch(0.90 0.01 270);
+  color: var(--ink);
   font-family: inherit;
 }
 
 .spell-popup__item:hover {
-  background: oklch(0.28 0.01 270);
+  background: var(--surface-2);
 }
 
 .spell-popup__sep {
   height: 1px;
-  background: oklch(0.30 0.01 270);
+  background: var(--surface-2);
   margin: 2px 4px;
 }
 
 .spell-popup__item--muted {
-  color: oklch(0.60 0.01 270);
+  color: var(--ink-3);
   font-size: 12px;
 }
 
 .spell-popup__item--muted:hover {
-  color: oklch(0.90 0.01 270);
+  color: var(--ink);
 }
 
 .lt-spell {
@@ -820,7 +828,6 @@ select.input {
 }
 .note-card:hover {
   border-color: var(--border-strong) !important;
-  box-shadow: 0 2px 8px oklch(0% 0 0 / 0.06);
 }
 
 /* ── Note modal ── */

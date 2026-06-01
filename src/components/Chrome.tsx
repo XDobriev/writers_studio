@@ -238,7 +238,8 @@ export function Sidebar({
                   type="button"
                   onClick={() => void handleCopy()}
                   title="Скопировать ссылку"
-                  style={{ flex: 1, font: '500 11px var(--font-ui)', color: copied ? 'var(--ok)' : 'var(--ink-2)', background: 'var(--bg-deep)', border: '1px solid var(--border-soft)', borderRadius: 5, padding: '4px 6px', cursor: 'pointer', transition: 'color var(--dur-fast)', animation: copied ? 'scale-flash 0.2s ease-out' : undefined }}
+                  className="sb-share-btn"
+                  style={{ flex: 1, color: copied ? 'var(--ok)' : 'var(--ink-2)', transition: 'color var(--dur-fast)', animation: copied ? 'scale-flash 0.2s ease-out' : undefined }}
                 >
                   {copied ? '✓ Скопировано' : '🔗 Ссылка'}
                 </button>
@@ -246,7 +247,8 @@ export function Sidebar({
                   type="button"
                   onClick={() => void handleDisable()}
                   title="Отключить доступ по ссылке"
-                  style={{ font: '500 11px var(--font-ui)', color: 'var(--danger)', background: 'var(--bg-deep)', border: '1px solid var(--border-soft)', borderRadius: 5, padding: '4px 8px', cursor: 'pointer' }}
+                  className="sb-share-btn"
+                  style={{ color: 'var(--danger)' }}
                 >
                   Откл.
                 </button>
@@ -255,7 +257,8 @@ export function Sidebar({
               <button
                 type="button"
                 onClick={() => void handleShare()}
-                style={{ font: '500 11px var(--font-ui)', color: 'var(--ink-3)', background: 'var(--bg-deep)', border: '1px solid var(--border-soft)', borderRadius: 5, padding: '4px 8px', cursor: 'pointer', width: '100%' }}
+                className="sb-share-btn"
+                style={{ color: 'var(--ink-3)', width: '100%' }}
               >
                 Поделиться
               </button>
@@ -505,6 +508,7 @@ export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
           key={k}
           to={href(segment)}
           title={label}
+          aria-label={label}
           className={'tb-btn' + (k === active ? ' tb-btn--on' : '')}
           style={{ width: 36, height: 36, borderRadius: 8 }}
         >

@@ -92,12 +92,14 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
     <aside className="rp">
       <div className="rp-head">
         <button
+          type="button"
           className={'rp-tab' + (activeTab === 'notes' ? ' rp-tab--on' : '')}
           onClick={() => setActiveTab('notes')}
         >
           Заметки
         </button>
         <button
+          type="button"
           className={'rp-tab' + (activeTab === 'versions' ? ' rp-tab--on' : '')}
           onClick={() => setActiveTab('versions')}
         >
@@ -135,6 +137,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   value={formKind}
                   onChange={(e) => setFormKind(e.target.value as NoteKind)}
                   className="input"
+                  aria-label="Тип заметки"
                   style={{ fontSize: 12 }}
                 >
                   <option value="idea">Идея</option>
