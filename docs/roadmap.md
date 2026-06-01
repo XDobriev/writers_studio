@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-01 (18 задач закрыты)_
+_Обновлён: 2026-06-02 (19 задач закрыты)_
 
 **Сейчас:** _(не задана — заполнить в начале сессии)_
 
@@ -45,12 +45,6 @@ _Обновлён: 2026-06-01 (18 задач закрыты)_
 **Исследовать:** 1) Открыть `/books/:id/export` → посмотреть на соотношение заголовков секций и контента. Шрифт 10.5px — это осознанный label-стиль (как в design.md), не нужно увеличивать. 2) Чёрный фон — `src/pages/Export.tsx` обёртка страницы: это намеренно (имитация overlay модалки на тёмном фоне). Если выглядит неожиданно — рассмотреть blur/dimm overlay вместо solid black.
 
 
-#### Два несовместимых паттерна «Редактировать книгу» (P2-1)
-**Нарушение:** одно действие — два разных UI:
-- `Home.tsx:245` — `className="modal-panel"`, `width: 460`, заголовок `font: '600 20px var(--font-serif)'`.
-- `Dashboard.tsx:559` — только inline-стили, `background: var(--surface)`, `borderRadius: 16`, `padding: 28px 32px`, заголовок `font-ui` 16px.
-**Рекомендация:** эталон — `Home.tsx`, но заголовок перевести на `font-ui` (не serif). Dashboard привести к тому же; в идеале — единый компонент `BookEditModal`.
-**Файлы:** `src/pages/Home.tsx:245`, `src/pages/Dashboard.tsx:559`.
 
 #### Две несвязанных версии «Выйти» (P3-5)
 **Нарушение:** `Home.tsx:178` — icon-only `<button className="tb-btn" title="Выйти из аккаунта">`; `Chrome.tsx` — пункт дропдауна `.sb-dropdown-item--danger`. Одно действие, два UI-языка.
@@ -442,6 +436,8 @@ dev → Vercel preview (авто) → e2e тесты → merge в main → Timew
 ---
 
 ## Закрыто
+
+_2026-06-02:_ fix(ux) модалка «Редактировать книгу» — Dashboard приведён к `modal-overlay/modal-panel`, `editGenre` (string) → `editGenres` (string[]) + `GenrePicker`; жанры корректно читаются из `book.genres`; Home.tsx — заголовок `font-serif` → `font-ui` ✅
 
 _2026-06-01 (сессия 2):_ fix(css) `text-align: justify` в `.sheet p` — проза отображается по ширине ✅; fix(a11y) `aria-label` на логотипе и кнопке Настройки в RailNav ✅; fix(ux) подсказки форматов — «Новелла 10–20 тыс.» + «Эпос / сага» вместо «Эпическое фэнтези» ✅; fix(a11y) Dashboard модалка «Редактировать книгу» — `role="dialog"`, `aria-modal`, Tab-trap ✅
 

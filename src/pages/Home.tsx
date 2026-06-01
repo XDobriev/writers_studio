@@ -260,7 +260,7 @@ export default function Home() {
               }
             }}
           >
-            <h2 style={{ font: '600 20px var(--font-serif)' }}>Редактировать книгу</h2>
+            <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label className="label">Название</label>

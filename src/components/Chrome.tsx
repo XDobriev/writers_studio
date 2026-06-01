@@ -228,7 +228,7 @@ export function Sidebar({
           <div className="sb-book-title">{book?.title ?? NOVEL.title}</div>
         )}
         <div className="sb-book-author">
-          {subtitle ?? (book ? [book.author, book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`)}
+          {subtitle ?? (book ? [book.author, book.genres?.length ? book.genres.join(', ') : book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`)}
         </div>
         {book?.id && (
           <div style={{ marginTop: 8, display: 'flex', gap: 4 }}>

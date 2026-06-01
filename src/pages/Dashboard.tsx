@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { Skeleton } from '../components/Skeleton';
+import { GenrePicker } from '../components/GenrePicker';
 import { updateBook } from '../lib/books';
 import { type Chapter } from '../lib/chapters';
 import { pluralDays, plural } from '../lib/useWritingStats';
@@ -44,7 +45,7 @@ export default function Dashboard() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');
-  const [editGenre, setEditGenre] = useState('');
+  const [editGenres, setEditGenres] = useState<string[]>([]);
   const [editGoal, setEditGoal] = useState(0);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -59,7 +60,7 @@ export default function Dashboard() {
   const openEdit = () => {
     if (!book) return;
     setEditTitle(book.title);
-    setEditGenre(book.genre ?? '');
+    setEditGenres(book.genres ?? []);
     setEditGoal(book.goal);
     setEditError(null);
     setEditOpen(true);
@@ -70,7 +71,7 @@ export default function Dashboard() {
     setEditSaving(true);
     setEditError(null);
     try {
-      const data = await updateBook(id, { title: editTitle.trim(), genre: editGenre.trim() || null, goal: Math.max(0, editGoal) });
+      const data = await updateBook(id, { title: editTitle.trim(), genres: editGenres, goal: Math.max(0, editGoal) });
       queryClient.setQueryData(QUERY_KEYS.book(id), data);
       setEditOpen(false);
     } catch (e) {
@@ -540,15 +541,13 @@ export default function Dashboard() {
         </main>
 
         {editOpen && (
-          <div
-            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'oklch(0 0 0 / 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            onClick={() => setEditOpen(false)}
-          >
+          <div className="modal-overlay" onClick={() => setEditOpen(false)}>
             <div
               role="dialog"
               aria-modal="true"
               aria-label="Редактировать книгу"
-              style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 16, padding: '28px', width: 440, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 60px oklch(0.05 0.01 50 / 0.4)' }}
+              className="modal-panel"
+              style={{ width: 460 }}
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') { setEditOpen(false); return; }
@@ -563,7 +562,7 @@ export default function Dashboard() {
             >
               <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div>
                 <label className="label">Название</label>
                 <input
                   className="input"
@@ -574,18 +573,9 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label className="label">Жанр</label>
-                <input
-                  className="input"
-                  value={editGenre}
-                  onChange={(e) => setEditGenre(e.target.value)}
-                  placeholder="Фэнтези, Детектив, Роман…"
-                  onKeyDown={(e) => { if (e.key === 'Escape') setEditOpen(false); }}
-                />
-              </div>
+              <GenrePicker value={editGenres} onChange={setEditGenres} />
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div>
                 <label className="label">Цель по словам</label>
                 <input
                   className="input"
@@ -597,7 +587,7 @@ export default function Dashboard() {
                   onChange={(e) => setEditGoal(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
                   onKeyDown={(e) => { if (e.key === 'Escape') setEditOpen(false); }}
                 />
-                <div style={{ fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
                   Рассказ 1–10 тыс. · Новелла 10–20 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпос / сага 120–300 тыс. слов
                 </div>
               </div>
