@@ -275,14 +275,19 @@ export default function Dashboard() {
 
   if (!book || !chapters || !characters || !stats) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 16 }}>
-          {Array.from({ length: 5 }, (_, i) => (
-            <div key={i} className="skeleton" style={{ height: 116, borderRadius: 12 }} />
-          ))}
+      <div className="as as-app as-app--no-right" style={{ height: '100vh', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
+        {!isMobile && (
+          <div className="skeleton" style={{ height: '100%', borderRadius: 0 }} />
+        )}
+        <div style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: 20, background: 'var(--bg)', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 16 }}>
+            {Array.from({ length: 5 }, (_, i) => (
+              <div key={i} className="skeleton" style={{ height: 116, borderRadius: 12 }} />
+            ))}
+          </div>
+          <div className="skeleton" style={{ height: 72, borderRadius: 12 }} />
+          <Skeleton lines={4} height={18} widths={[60, 75, 50, 70]} />
         </div>
-        <div className="skeleton" style={{ height: 72, borderRadius: 12 }} />
-        <Skeleton lines={4} height={18} widths={[60, 75, 50, 70]} />
       </div>
     );
   }
