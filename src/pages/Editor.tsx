@@ -66,9 +66,11 @@ export default function Editor() {
   const onCreateChapter = useCallback(async () => {
     if (!bookId || !user) return;
     const position = (chapters?.length ?? 0);
+    const nums = (chapters ?? []).map((c) => c.title.match(/^Глава (\d+)$/)).filter(Boolean).map((m) => parseInt(m![1]));
+    const nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
     try {
       const created = await createChapter(bookId, user.id, {
-        title: `Глава ${position + 1}`,
+        title: `Глава ${nextNum}`,
         position,
       });
       const { content: _, ...createdMeta } = created;

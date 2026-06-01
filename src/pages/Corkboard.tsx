@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDropdownPosition } from '../lib/useDropdownPosition';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -60,7 +61,8 @@ function SortableCorkCard({
     : 'Синопсис пока не написан. Откройте главу — первые строки появятся здесь.';
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
+  const dropdownStyle = useDropdownPosition(menuRef, menuOpen ? 'open' : null, 100);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: c.id,
@@ -72,14 +74,11 @@ function SortableCorkCard({
       setDeleteConfirm(false);
       return;
     }
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-        setDeleteConfirm(false);
-      }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setMenuOpen(false); setDeleteConfirm(false); }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, [menuOpen]);
 
   return (
@@ -145,8 +144,9 @@ function SortableCorkCard({
           {STATUS_LABEL[c.status]}
         </span>
         <span style={{ flex: 1 }} />
-        <div ref={menuRef} style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }}>
           <button
+            ref={menuRef}
             type="button"
             onClick={() => setMenuOpen((o) => !o)}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, margin: -4, background: menuOpen ? 'var(--bg-deep)' : 'transparent', border: 'none', cursor: 'pointer', borderRadius: 4, color: 'var(--ink-3)' }}
@@ -155,7 +155,9 @@ function SortableCorkCard({
             <Icon name="moremenu" size={14} />
           </button>
           {menuOpen && (
-            <div style={{ position: 'absolute', right: 0, bottom: 'calc(100% + 6px)', zIndex: 100, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px rgba(0,0,0,0.18)' }}>
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onMouseDown={() => { setMenuOpen(false); setDeleteConfirm(false); }} />
+              {dropdownStyle && <div style={{ ...dropdownStyle, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px rgba(0,0,0,0.18)' }}>
               <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px 6px' }}>Статус</div>
               {STATUS_ORDER.map((s) => (
                 <button
@@ -204,7 +206,8 @@ function SortableCorkCard({
                   Удалить главу
                 </button>
               )}
-            </div>
+              </div>}
+            </>
           )}
         </div>
       </div>
@@ -291,8 +294,10 @@ export default function Corkboard() {
   const onCreate = async () => {
     if (!bookId || !user) return;
     try {
+      const nums = (chapters ?? []).map((c) => c.title.match(/^Глава (\d+)$/)).filter(Boolean).map((m) => parseInt(m![1]));
+      const nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
       const created = await createChapter(bookId, user.id, {
-        title: `Глава ${(chapters?.length ?? 0) + 1}`,
+        title: `Глава ${nextNum}`,
         position: chapters?.length ?? 0,
       });
       const { content: _, ...createdMeta } = created;
