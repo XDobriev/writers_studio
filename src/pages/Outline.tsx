@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useDropdownPosition } from '../lib/useDropdownPosition';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -210,7 +211,8 @@ interface RowProps {
   deleteConfirmFor: string | null;
   setDeleteConfirmFor: (id: string | null) => void;
   onDelete: (id: string) => void;
-  menuRef: React.RefObject<HTMLDivElement>;
+  menuRef: React.RefObject<HTMLButtonElement>;
+  menuDropdownStyle: CSSProperties | null;
   renameFor: string | null;
   setRenameFor: (id: string | null) => void;
   onRename: (id: string, title: string) => void;
@@ -238,6 +240,7 @@ function SortableChapterRow({
   setDeleteConfirmFor,
   onDelete,
   menuRef,
+  menuDropdownStyle,
   renameFor,
   setRenameFor,
   onRename,
@@ -358,10 +361,10 @@ function SortableChapterRow({
       </div>
 
       <div
-        ref={menuFor === c.id ? menuRef : null}
         style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)' }}
       >
         <button
+          ref={menuFor === c.id ? menuRef : null}
           type="button"
           onClick={() => setMenuFor(menuFor === c.id ? null : c.id)}
           style={{
@@ -375,9 +378,9 @@ function SortableChapterRow({
           <Icon name="moremenu" size={14} />
         </button>
 
-        {menuFor === c.id && (
+        {menuFor === c.id && menuDropdownStyle && (
           <div style={{
-            position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200,
+            ...menuDropdownStyle,
             background: 'var(--bg-deep)', border: '1px solid var(--border-strong)',
             borderRadius: 6, padding: 4, minWidth: 160,
             boxShadow: '0 8px 24px oklch(0.05 0.01 50 / 0.35)',
@@ -447,7 +450,8 @@ export default function Outline() {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const [renameFor, setRenameFor] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
+  const menuDropdownStyle = useDropdownPosition(menuRef, menuFor);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -623,6 +627,7 @@ export default function Outline() {
                         setDeleteConfirmFor={setDeleteConfirmFor}
                         onDelete={onDelete}
                         menuRef={menuRef}
+                        menuDropdownStyle={menuDropdownStyle}
                         renameFor={renameFor}
                         setRenameFor={setRenameFor}
                         onRename={onRename}

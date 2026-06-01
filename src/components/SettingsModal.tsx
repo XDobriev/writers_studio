@@ -300,7 +300,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                 </div>
 
                 {!isTelegram && (
-                  <div style={FG}>
+                  <form style={FG} onSubmit={(e) => { e.preventDefault(); handleSavePass(); }}>
                     <span style={FL}>Новый пароль</span>
                     <div style={ROW}>
                       <div style={{ position: 'relative', flex: 1 }}>
@@ -311,6 +311,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                           onChange={(e) => { setNewPass(e.target.value); setPassSaved(false); setPassError(null); }}
                           placeholder="Минимум 6 символов"
                           style={{ width: '100%', fontSize: 13, height: H, paddingRight: 36 }}
+                          autoComplete="new-password"
                         />
                         <button
                           type="button"
@@ -323,9 +324,9 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                         </button>
                       </div>
                       <button
+                        type="submit"
                         className="btn btn--primary"
                         style={{ fontSize: 13, padding: '0 14px', height: H, flexShrink: 0, minWidth: 88 }}
-                        onClick={handleSavePass}
                         disabled={passSaving || !newPass}
                       >
                         {passSaving ? '…' : passSaved ? '✓' : 'Сменить'}
@@ -333,7 +334,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                     </div>
                     {passError && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', marginTop: 6 }}>{passError}</span>}
                     {passSaved && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ok)', marginTop: 6 }}>Пароль изменён</span>}
-                  </div>
+                  </form>
                 )}
 
                 <button

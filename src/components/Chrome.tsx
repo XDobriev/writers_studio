@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode } from 'react';
+import { useDropdownPosition } from '../lib/useDropdownPosition';
 import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
 import { LogoMark } from './LogoMark';
@@ -165,7 +166,8 @@ export function Sidebar({
   const isReal = Boolean(chapters);
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
-  const statusMenuRef = useRef<HTMLDivElement>(null);
+  const statusMenuRef = useRef<HTMLButtonElement>(null);
+  const dropdownStyle = useDropdownPosition(statusMenuRef, statusMenuFor);
   const [shareToken, setShareToken] = useState<string | null>(book?.share_token ?? null);
   const [copied, setCopied] = useState(false);
 
@@ -206,14 +208,11 @@ export function Sidebar({
       setDeleteConfirmFor(null);
       return;
     }
-    const handler = (e: MouseEvent) => {
-      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
-        setStatusMenuFor(null);
-        setDeleteConfirmFor(null);
-      }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setStatusMenuFor(null); setDeleteConfirmFor(null); }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, [statusMenuFor]);
   const bid = book?.id ?? '';
   return (
@@ -300,8 +299,9 @@ export function Sidebar({
                   <span className="sb-item-num">{String(i + 1).padStart(2, '0')}</span>
                   <span className="sb-item-title">{c.title || 'Без названия'}</span>
                 </button>
-                <div ref={statusMenuFor === c.id ? statusMenuRef : null} style={{ position: 'relative', flexShrink: 0, marginRight: 10 }}>
+                <div style={{ position: 'relative', flexShrink: 0, marginRight: 10 }}>
                   <button
+                    ref={statusMenuFor === c.id ? statusMenuRef : null}
                     type="button"
                     onClick={() => setStatusMenuFor(statusMenuFor === c.id ? null : c.id)}
                     title={`Статус: ${SB_STATUS_LABEL[c.status]}`}
@@ -310,7 +310,12 @@ export function Sidebar({
                     <span style={{ width: 6, height: 6, borderRadius: 999, background: SB_STATUS_COLOR[c.status], display: 'block' }} />
                   </button>
                   {statusMenuFor === c.id && (
-                    <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)', animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both' }}>
+                    <>
+                      <div
+                        style={{ position: 'fixed', inset: 0, zIndex: 199 }}
+                        onMouseDown={() => { setStatusMenuFor(null); setDeleteConfirmFor(null); }}
+                      />
+                      {dropdownStyle && <div style={{ ...dropdownStyle, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)', animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both' }}>
                       <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px 6px' }}>Статус</div>
                       {(['draft', 'progress', 'done'] as ChapterStatus[]).map((s) => (
                         <button
@@ -359,7 +364,8 @@ export function Sidebar({
                           Удалить главу
                         </button>
                       )}
-                    </div>
+                      </div>}
+                    </>
                   )}
                 </div>
               </div>
