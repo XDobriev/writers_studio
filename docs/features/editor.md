@@ -5,11 +5,22 @@
 ## Компоненты
 
 - `src/components/EditorHybrid.tsx` — главный редактор, 4 режима: studio / left / right / page.
-- `src/components/RichEditor.tsx` — TipTap wrapper (StarterKit + Underline + Placeholder + все расширения из Захода 13).
+- `src/components/RichEditor.tsx` — TipTap wrapper (StarterKit + Underline + Placeholder + все расширения).
 - `src/components/EditorToolbar.tsx` — полноценный тулбар, `variant="pill"` для режима Страница.
 - `src/pages/Focus.tsx` — фуллскрин focus-режим, тёмный фон, ESC → `/editor`.
 - `src/pages/Split.tsx` — две панели рядом, независимый автосейв, защита при <2 главах.
+- `src/pages/Outline.tsx` — структура/план глав.
+- `src/pages/Corkboard.tsx` — карточки глав (пробковая доска).
 - `src/lib/chapters.ts` — CRUD глав + `countWords`.
+
+## Хуки EditorHybrid
+
+- `useEditorLayout` — управление режимами (studio/left/right/page), ширина панелей.
+- `useKeyboardShortcuts` — горячие клавиши редактора.
+- `useMobileDrawers` — управление мобильными drawer'ами (sidebar, правая панель).
+- `usePageHint` — подсказка при первом входе в режим Страница.
+- `useGoalToast` — toast при достижении дневной цели по словам.
+- `useWritingStats` — `todayWords`, `streak` для статусной плашки.
 
 ## TipTap расширения
 
@@ -18,6 +29,10 @@ TextStyle, Color, Highlight (multicolor), Link, TextAlign (heading+paragraph), T
 ## Автосохранение
 
 Debounce 700 мс через `chapters.ts`. Подсчёт слов — `countWords` требует начало слова с буквы/цифры (одиночные `-` и `'` не считаются). Очистка HTML entities: `&[a-z0-9#]+;`.
+
+## Пользовательский словарь (§11)
+
+`addWordToDictionary` из `profiles.ts` — добавляет слово в `profiles.custom_dictionary` (text[]). Передаётся в `RichEditor` через проп `userDictionary` + колбэк `onAddWord`.
 
 ## Тулбар — группы кнопок
 
