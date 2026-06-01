@@ -24,16 +24,12 @@ export { pluralDays };
 function computeStats(data: Array<{ date: string; words: number }>): WritingStats {
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
-  const yday = new Date(today);
-  yday.setDate(yday.getDate() - 1);
-  const ydayStr = yday.toISOString().slice(0, 10);
-
   const snap: Record<string, number> = {};
   for (const row of data) snap[row.date] = row.words;
 
   const todayTotal = snap[todayStr] ?? 0;
-  const ydayTotal = snap[ydayStr] ?? 0;
-  const todayWords = Math.max(0, todayTotal - ydayTotal);
+  const prevDate = Object.keys(snap).filter(d => d < todayStr).sort().at(-1);
+  const todayWords = Math.max(0, todayTotal - (prevDate ? snap[prevDate] : 0));
 
   let streak = 0;
   const cur = new Date(today);

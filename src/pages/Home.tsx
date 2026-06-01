@@ -247,7 +247,7 @@ export default function Home() {
             aria-modal="true"
             aria-label="Редактировать книгу"
             className="modal-panel"
-            style={{ width: 460 }}
+            style={{ width: 460, maxWidth: 'calc(100vw - 32px)' }}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               if (e.key === 'Escape') { setEditBook(null); return; }
@@ -461,7 +461,7 @@ export default function Home() {
             aria-modal="true"
             aria-label="Новая книга"
             className="modal-panel"
-            style={{ width: 460 }}
+            style={{ width: 460, maxWidth: 'calc(100vw - 32px)' }}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               if (e.key === 'Escape') { setShowCreate(false); return; }

@@ -420,7 +420,7 @@ export default function Dashboard() {
                     {Array.from({ length: 52 }, (_, w) => {
                       const label = activityData.monthLabels.find(m => m.col === w);
                       return (
-                        <div key={w} style={{ flex: 1, minWidth: 0, font: '400 9px var(--font-mono)', color: 'var(--ink-3)', overflow: 'visible', whiteSpace: 'nowrap' }}>
+                        <div key={w} style={{ flex: 1, minWidth: 0, font: '400 9px var(--font-mono)', color: 'var(--ink-2)', overflow: 'visible', whiteSpace: 'nowrap' }}>
                           {label?.label ?? ''}
                         </div>
                       );
@@ -455,8 +455,8 @@ export default function Dashboard() {
                             return (
                               <div
                                 key={cell.date}
-                                title={!isMobile && !cell.future ? `${cell.date}: +${fmtNumber(cell.delta)} слов` : undefined}
-                                aria-label={isMobile && !cell.future ? `${cell.date}: +${fmtNumber(cell.delta)} слов` : undefined}
+                                title={!isMobile && !cell.future ? `${new Date(cell.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}: +${fmtNumber(cell.delta)} слов` : undefined}
+                                aria-label={isMobile && !cell.future ? `${new Date(cell.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}: +${fmtNumber(cell.delta)} слов` : undefined}
                                 style={{ width: '100%', aspectRatio: '1', borderRadius: 2, background: bg }}
                               />
                             );
