@@ -43,15 +43,14 @@ interface PovBadgeProps {
 
 function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChanged }: PovBadgeProps) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownStyle = useDropdownPosition(triggerRef, open ? 'open' : null, 300);
 
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, [open]);
 
   const handleSet = async (characterId: string) => {
@@ -77,9 +76,10 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
   };
 
   return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+    <div style={{ position: 'relative', flexShrink: 0 }}>
       {povEntries.length === 0 ? (
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
           style={{
@@ -94,6 +94,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
         </button>
       ) : povEntries.length === 1 ? (
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
           style={{
@@ -121,6 +122,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
         </button>
       ) : (
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
           style={{
@@ -151,12 +153,14 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
       )}
 
       {open && (
-        <div style={{
-          position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 300,
-          background: 'var(--bg-deep)', border: '1px solid var(--border-strong)',
-          borderRadius: 8, padding: 6, minWidth: 180,
-          boxShadow: '0 6px 20px oklch(0.05 0.01 50 / 0.4)',
-        }}>
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 299 }} onMouseDown={() => setOpen(false)} />
+          {dropdownStyle && <div style={{
+            ...dropdownStyle,
+            background: 'var(--bg-deep)', border: '1px solid var(--border-strong)',
+            borderRadius: 8, padding: 6, minWidth: 180,
+            boxShadow: '0 6px 20px oklch(0.05 0.01 50 / 0.4)',
+          }}>
           <div style={{
             font: '500 9px var(--font-mono)', color: 'var(--ink-4)',
             letterSpacing: '0.12em', textTransform: 'uppercase',
@@ -196,7 +200,8 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
               </button>
             );
           })}
-        </div>
+          </div>}
+        </>
       )}
     </div>
   );

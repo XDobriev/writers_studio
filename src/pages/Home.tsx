@@ -286,7 +286,7 @@ export default function Home() {
                   onKeyDown={(e) => { if (e.key === 'Escape') setEditBook(null); }}
                 />
                 <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
-                  Рассказ 1–10 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпическое фэнтези 120–300 тыс. слов
+                  Рассказ 1–10 тыс. · Новелла 10–20 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпос / сага 120–300 тыс. слов
                 </div>
               </div>
               <CoverPicker
@@ -485,7 +485,7 @@ export default function Home() {
                 <label className="label">Цель по словам</label>
                 <input className="input" name="goal" type="number" min={0} step={1000} placeholder="необязательно" />
                 <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
-                  Рассказ 1–10 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпическое фэнтези 120–300 тыс. слов
+                  Рассказ 1–10 тыс. · Новелла 10–20 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпос / сага 120–300 тыс. слов
                 </div>
               </div>
               <CoverPicker

@@ -585,7 +585,7 @@ export default function Dashboard() {
                   onKeyDown={(e) => { if (e.key === 'Escape') setEditOpen(false); }}
                 />
                 <div style={{ fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
-                  Рассказ 1–10 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпическое фэнтези 120–300 тыс. слов
+                  Рассказ 1–10 тыс. · Новелла 10–20 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпос / сага 120–300 тыс. слов
                 </div>
               </div>
 
