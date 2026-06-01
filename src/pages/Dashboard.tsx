@@ -545,8 +545,21 @@ export default function Dashboard() {
             onClick={() => setEditOpen(false)}
           >
             <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Редактировать книгу"
               style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 16, padding: '28px', width: 440, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 60px oklch(0.05 0.01 50 / 0.4)' }}
               onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') { setEditOpen(false); return; }
+                if (e.key === 'Tab') {
+                  const focusable = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
+                  const arr = Array.from(focusable);
+                  if (!arr.length) return;
+                  const first = arr[0], last = arr[arr.length - 1];
+                  if (e.shiftKey ? document.activeElement === first : document.activeElement === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+                }
+              }}
             >
               <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
 
