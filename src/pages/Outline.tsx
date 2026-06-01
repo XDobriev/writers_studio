@@ -525,6 +525,7 @@ export default function Outline() {
       });
       const { content: _, ...createdMeta } = created;
       queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) => [...(prev ?? []), createdMeta]);
+      navigate(`/books/${bookId}/editor?chapter=${created.id}`);
     } catch (e) {
       setError((e as Error).message);
     }
