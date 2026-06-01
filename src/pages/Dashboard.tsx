@@ -553,11 +553,12 @@ export default function Dashboard() {
 
       {editOpen && (
         <div
+          className="as"
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'oklch(0 0 0 / 0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setEditOpen(false)}
         >
           <div
-            style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 16, padding: '28px 32px', width: 440, display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 60px oklch(0.05 0.01 50 / 0.4)' }}
+            style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 16, padding: '28px', width: 440, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 60px oklch(0.05 0.01 50 / 0.4)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>

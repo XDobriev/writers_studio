@@ -19,6 +19,12 @@ import { fetchNotes, type Note } from '../lib/notes';
 
 type Format = 'epub' | 'fb2' | 'docx' | 'html' | 'txt' | 'md';
 
+const LANGUAGES = [
+  { value: 'ru-RU', label: 'Русский' },
+  { value: 'en-US', label: 'English' },
+  { value: 'uk-UA', label: 'Українська' },
+] as const;
+
 const FORMAT_MAIN: { value: Format; label: string; ext: string; desc: string }[] = [
   { value: 'epub', label: 'EPUB', ext: 'epub', desc: 'Электронные читалки' },
   { value: 'fb2', label: 'FB2', ext: 'fb2', desc: 'Русские читалки и pocketbook' },
@@ -640,6 +646,9 @@ export default function Export() {
   const [includeTitlePage, setIncludeTitlePage] = useState(true);
   const [includeNotes, setIncludeNotes] = useState(false);
   const [language, setLanguage] = useState('ru-RU');
+  const [langOpen, setLangOpen] = useState(false);
+  const [langPos, setLangPos] = useState({ top: 0, left: 0, width: 0 });
+  const langBtnRef = useRef<HTMLButtonElement>(null);
   const [paragraphStyle, setParagraphStyle] = useState<'indent' | 'spacing'>(() =>
     (localStorage.getItem('export-paragraph-style') as 'indent' | 'spacing') ?? 'indent'
   );
@@ -832,17 +841,24 @@ export default function Export() {
               <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Жанр</div>
               <div style={{ fontSize: 13.5, color: 'var(--ink)' }}>{book.genre || '—'}</div>
             </div>
-            <div style={{ padding: '6px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
+            <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
               <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Язык</div>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                style={{ background: 'none', border: 'none', color: 'var(--ink)', fontSize: 13.5, padding: 0, cursor: 'pointer', width: '100%' }}
+              <button
+                ref={langBtnRef}
+                type="button"
+                onClick={() => {
+                  if (langOpen) { setLangOpen(false); return; }
+                  const r = langBtnRef.current!.getBoundingClientRect();
+                  setLangPos({ top: r.bottom + 4, left: r.left, width: r.width });
+                  setLangOpen(true);
+                }}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', width: '100%', textAlign: 'left', fontSize: 13.5, color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'inherit', outline: 'none' }}
               >
-                <option value="ru-RU">ru-RU</option>
-                <option value="en-US">en-US</option>
-                <option value="uk-UA">uk-UA</option>
-              </select>
+                <span>{LANGUAGES.find(l => l.value === language)?.label}</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--ink-3)', flexShrink: 0 }}>
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -926,6 +942,22 @@ export default function Export() {
           </button>
         </div>
       </div>
+
+      {langOpen && <div onClick={() => setLangOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />}
+      {langOpen && (
+        <div style={{ position: 'fixed', top: langPos.top, left: langPos.left, width: langPos.width, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, zIndex: 9999, boxShadow: '0 8px 24px oklch(0 0 0 / 0.5)', overflow: 'hidden' }}>
+          {LANGUAGES.map(l => (
+            <button
+              key={l.value}
+              type="button"
+              onClick={() => { setLanguage(l.value); setLangOpen(false); }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13.5, background: language === l.value ? 'var(--surface-2, oklch(0.22 0.01 50))' : 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontFamily: 'inherit' }}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
