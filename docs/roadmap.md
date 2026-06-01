@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-01 (8 багов закрыты)_
+_Обновлён: 2026-06-01 (13 багов закрыты)_
 
 **Сейчас:** _(не задана — заполнить в начале сессии)_
 
@@ -81,40 +81,12 @@ _Обновлён: 2026-06-01 (8 багов закрыты)_
 **Проверить:** Tab до иконки RailNav → screen-reader называет раздел («Персонажи», «Хронология» и т.д.).
 
 
-#### Hardcoded #fff в bubble-menu нарушает Warm Neutral Doctrine (P2-3)
-**Нарушение:** `design-system.css:390` — `.bubble-btn--on { color: #fff }` и строка 404 — `border: 2px solid #fff`. Чистый белый запрещён, должен быть `oklch(0.98 0 0)`.
-**Фикс:** заменить оба `#fff` на `oklch(0.98 0 0)`.
-**Файлы:** `src/styles/design-system.css:390, 404`.
-**Проверить:** нет `#fff` в `design-system.css`.
-
 #### Два несовместимых паттерна «Редактировать книгу» (P2-1)
 **Нарушение:** одно действие — два разных UI:
 - `Home.tsx:245` — `className="modal-panel"`, `width: 460`, заголовок `font: '600 20px var(--font-serif)'`.
 - `Dashboard.tsx:559` — только inline-стили, `background: var(--surface)`, `borderRadius: 16`, `padding: 28px 32px`, заголовок `font-ui` 16px.
 **Рекомендация:** эталон — `Home.tsx`, но заголовок перевести на `font-ui` (не serif). Dashboard привести к тому же; в идеале — единый компонент `BookEditModal`.
 **Файлы:** `src/pages/Home.tsx:245`, `src/pages/Dashboard.tsx:559`.
-
-#### Share-кнопки в сайдбаре — дублирующиеся inline-стили (P2-7)
-**Нарушение:** `Chrome.tsx:238-259` — три кнопки шаринга имеют практически идентичные inline-стили (`font`, `background`, `border`, `borderRadius`, `padding`). По правилу: 3+ повторения → CSS-класс.
-**Фикс:** создать `.sb-share-btn` в `design-system.css` с общими свойствами; убрать дублирование из inline.
-**Файлы:** `src/components/Chrome.tsx:238-259`, `src/styles/design-system.css`.
-
-#### spell-popup — цвета системно-чужеродны (P3-1)
-**Нарушение:** `.spell-popup` использует hue 270 (холодный фиолетовый): `oklch(*.* 0.01 270)` — не соответствует палитре oak/ink (hue 50–80). Всплывающее окно орфографии визуально выбивается из системы.
-**Фикс:** заменить на токены: фон → `var(--bg-deep)`, hover → `var(--surface-2)`, разделитель → `var(--border-soft)`, текст → `var(--ink)`, muted → `var(--ink-3)`.
-**Файлы:** `src/styles/design-system.css:489-531`.
-**Проверить:** spell-popup совпадает с остальным UI по цветовой температуре.
-
-#### note-card:hover — box-shadow нарушает Shadowless Default Rule (P3-3)
-**Нарушение:** `design-system.css:821-823` — `.note-card:hover` добавляет `box-shadow: 0 2px 8px oklch(0% 0 0 / 0.06)`. По правилу тень разрешена только у floating-элементов (модалки, bubble-menu). Карточка заметки — статичный элемент.
-**Фикс:** убрать `box-shadow` из `.note-card:hover`, оставить только `border-color: var(--border-strong)`.
-**Файлы:** `src/styles/design-system.css:823`.
-
-#### Select типа заметки без label (P3-2)
-**Нарушение:** `RightPanel.tsx:134` — `<select>` выбора типа заметки (Идея/Вопрос/TODO/Важно) не имеет `<label>` или `aria-label`. Screen-reader не идентифицирует поле.
-**Фикс:** добавить `aria-label="Тип заметки"` к `<select>`.
-**Файлы:** `src/components/RightPanel.tsx:134`.
-**Проверить:** Tab до select → screen-reader называет «Тип заметки».
 
 #### Две несвязанных версии «Выйти» (P3-5)
 **Нарушение:** `Home.tsx:178` — icon-only `<button className="tb-btn" title="Выйти из аккаунта">`; `Chrome.tsx` — пункт дропдауна `.sb-dropdown-item--danger`. Одно действие, два UI-языка.
@@ -480,7 +452,7 @@ _Задачи с явным "не делать сейчас". Вернуться
 
 ## Закрыто
 
-_2026-06-01:_ fix(auth) `.input--err` на полях email/password при ошибке входа + сброс ошибки при наборе ✅; fix(roadmap) убран закрытый баг «Белая рамка экспорта» (кастомный дропдаун уже исправил проблему) ✅; fix(statusbar) кнопка «Повторить» при ошибке сохранения — `onRetry` prop в StatusBar, передаётся из EditorHybrid при `saveState === 'error'` ✅; fix(rp-tab) `type="button"` на вкладках Заметки/Версии — уже присутствовало ✅
+_2026-06-01:_ fix(auth) `.input--err` на полях email/password при ошибке входа + сброс при наборе ✅; fix(design) `#fff`→`oklch(0.98 0 0)` в bubble-menu ✅; fix(design) убран `box-shadow` с `.note-card:hover` ✅; fix(a11y) `aria-label="Тип заметки"` на select в RightPanel ✅; fix(css) `.sb-share-btn` — убраны дублирующиеся inline-стили ✅; fix(design) spell-popup переведён на дизайн-токены ✅; fix(roadmap) убран баг «Белая рамка экспорта» (уже исправлен кастомным дропдауном) ✅; fix(statusbar) кнопка «Повторить» при ошибке сохранения ✅; fix(rp-tab) `type="button"` на вкладках — уже присутствовало ✅
 
 _2026-05-31:_ feat(sentry) `@sentry/react` подключён в `main.tsx` — мониторинг ошибок в проде ✅; §16 жанры книги — `genres text[]`, `GenrePicker`, multi-select с «Другое» ✅; feat(pov) `is_pov` column in `chapter_characters`, `useChapterPovMap`, утилиты управления POV-записями ✅; feat(design) палитра цветов персонажей ✅; fix(backlinks) не удалять POV-записи при обновлении ✅
 
