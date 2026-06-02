@@ -145,6 +145,14 @@ export default function Characters() {
     cancelSave,
   });
 
+  useEffect(() => {
+    if (search.get('create') !== 'true') return;
+    const next = new URLSearchParams(search);
+    next.delete('create');
+    setSearch(next, { replace: true });
+    void onCreate();
+  }, [search, setSearch, onCreate]);
+
   if (!bookId) return <Navigate to="/books" replace />;
 
   if (error) {
