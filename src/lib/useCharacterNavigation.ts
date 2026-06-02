@@ -17,6 +17,13 @@ export function useCharacterNavigation({
   const [viewMode, setViewMode] = useState<CharacterViewMode>('grid');
   const activeId = search.get('character');
 
+  // Возврат в grid-режим когда activeId сброшен извне (например, клик по «Персонажи» в сайдбаре)
+  useEffect(() => {
+    if (!isMobile && viewMode === 'detail' && !activeId) {
+      setViewMode('grid');
+    }
+  }, [isMobile, viewMode, activeId]);
+
   // Auto-select first character when entering detail mode without a valid selection
   useEffect(() => {
     if (isMobile) return;
