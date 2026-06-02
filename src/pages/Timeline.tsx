@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
 import { useWindowWidth } from '../lib/useWindowWidth';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -103,6 +103,13 @@ export default function Timeline() {
       setError((e as Error).message);
     }
   }, [bookId, user, events, queryClient]);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('create') !== 'true') return;
+    setSearchParams({}, { replace: true });
+    void onCreate();
+  }, [searchParams, setSearchParams, onCreate]);
 
   const onUpdate = useCallback(
     async (id: string, patch: TimelineEventPatch) => {
