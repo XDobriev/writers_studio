@@ -325,6 +325,8 @@ export default function Dashboard() {
     );
   }
 
+  const isEmpty = book.words === 0 && chapters.length === 0 && characters.length === 0;
+
   const navTo = (path: string) => `/books/${id}${path}`;
 
   return (
@@ -367,16 +369,34 @@ export default function Dashboard() {
           </div>
 
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '20px 16px 40px' : '28px 32px 40px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(190px, 1fr))', gap: isMobile ? 10 : 16, marginBottom: 20 }}>
-              {statCards.map((s) => (
-                <div key={s.l} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 20px' }}>
-                  <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>{s.l}</div>
-                  <div style={{ font: '600 32px var(--font-mono)', letterSpacing: '-0.012em', color: 'var(--ink)' }}>{s.v}</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>{s.sub}</div>
-                  <div style={{ font: '500 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 10, letterSpacing: '0.04em' }}>{s.delta}</div>
+            {isEmpty ? (
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: isMobile ? '24px 20px' : '28px 32px', marginBottom: 20 }}>
+                <div style={{ font: '500 15px var(--font-ui)', color: 'var(--ink)', marginBottom: 6 }}>Книга создана. Пора начинать.</div>
+                <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 20, lineHeight: 1.5 }}>
+                  Добавьте первую главу или сразу откройте редактор.
                 </div>
-              ))}
-            </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <Link to={navTo('/outline?create=true')} className="btn btn--primary" style={{ textDecoration: 'none' }}>
+                    <Icon name="tree" size={14} /> Новая глава
+                  </Link>
+                  <Link to={navTo('/editor')} className="btn btn--ghost" style={{ textDecoration: 'none' }}>
+                    <Icon name="book" size={14} /> Открыть редактор
+                  </Link>
+                  <button className="btn btn--ghost" onClick={openEdit}>Настроить книгу</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(190px, 1fr))', gap: isMobile ? 10 : 16, marginBottom: 20 }}>
+                {statCards.map((s) => (
+                  <div key={s.l} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 20px' }}>
+                    <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>{s.l}</div>
+                    <div style={{ font: '600 32px var(--font-mono)', letterSpacing: '-0.012em', color: 'var(--ink)' }}>{s.v}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>{s.sub}</div>
+                    <div style={{ font: '500 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 10, letterSpacing: '0.04em' }}>{s.delta}</div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 10, marginTop: 4 }}>
               Быстрые действия
