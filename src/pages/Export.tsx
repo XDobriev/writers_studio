@@ -458,7 +458,7 @@ ${opts.includeTitlePage ? `<title><p>${escapeXml(book.title)}</p>${book.author ?
 
 function getEpubCss(paragraphStyle: 'indent' | 'spacing'): string {
   const pRule = paragraphStyle === 'indent'
-    ? 'p{margin:0 0 0.15em;text-indent:1.4em}\np.no-indent{text-indent:0}'
+    ? 'p{margin:0 0 0.15em;text-indent:1.4em}\np.no-indent,p:first-of-type{text-indent:0}'
     : 'p{margin:0 0 1.1em;text-indent:0}\np.no-indent{text-indent:0}';
   return `body{font:1em/1.75 Georgia,'Times New Roman',serif;margin:1.5em 2em}
 h1,h2,h3{font-weight:600;margin:1.5em 0 0.5em;line-height:1.3}

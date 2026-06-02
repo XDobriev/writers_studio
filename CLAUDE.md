@@ -47,6 +47,7 @@ npm run preview    # превью продакшен-сборки
 - `src/components/Sidebar/index.ts` — barrel-экспорт Sidebar/*.
 - `src/components/RailNav.tsx` — иконочная рейлнавигация (режимы Focus/Split).
 - `src/components/EditorHybrid.tsx` — главный редактор, 4 режима (studio/left/right/page).
+- `src/components/CharacterHoverCard.tsx` — портальная hover-карточка персонажа в редакторе: аватар, имя, роль, snippet, навигация в Characters.
 - `src/components/RichEditor.tsx` — TipTap wrapper.
 - `src/components/EditorToolbar.tsx` — полноценный тулбар TipTap.
 - `src/components/RightPanel.tsx` — правая панель редактора: версии, персонажи главы, POV.
@@ -87,6 +88,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/relationships.ts` — единый модуль связей: направленные (`CharacterRelation`, `character_relations`) и двусторонние (`CharacterRelationship`, `character_relationships`, канонический порядок charIdA < charIdB).
 - `src/lib/crossrefs.ts` — бэклинки: поиск упоминаний персонажей по главам.
 - `src/lib/useChapterVersioning.ts` — хук версионирования главы: session token, interval-снапшоты, chapter_switch, beforeunload-keepalive.
+- `src/lib/useCharacterHover.ts` — mousemove 500ms debounce + Unicode-поиск alias персонажа под курсором в TipTap DOM; возвращает `{ shown, onCardEnter, onCardLeave }`.
 - `src/lib/useErrorState.ts` — хук error-состояния: `{ error, setError(Error|string), clearError() }`.
 - `src/lib/chapterMutations.ts` — helpers обновления кэша React Query после мутаций глав: `updateChapterWithCache`, `createChapterWithCache`, `deleteChapterWithCache`, `invalidateChaptersCache`.
 - `src/lib/useResponsive.ts` — `BREAKPOINTS` константы + `useResponsive()` → `{ isMobile, isTablet, isNarrow }` через matchMedia.

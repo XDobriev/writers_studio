@@ -17,7 +17,9 @@ import type { ChapterMeta, ChapterActions } from '../lib/chapters';
 import { useWritingStats } from '../lib/useWritingStats';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useAuth } from '../lib/auth';
-import { useProfile, QUERY_KEYS } from '../lib/queries';
+import { useProfile, QUERY_KEYS, useCharacters } from '../lib/queries';
+import { useCharacterHover } from '../lib/useCharacterHover';
+import { CharacterHoverCard } from './CharacterHoverCard';
 import { addWordToDictionary, type Profile } from '../lib/profiles';
 
 type Mode = 'studio' | 'left' | 'right' | 'page';
@@ -121,6 +123,10 @@ export function EditorHybrid({
   const { refetch: refetchStats } = writingStats;
   const { plan } = useUserDisplay();
   const isPro = plan === 'pro' || plan === 'lifetime';
+
+  const { data: characters = [] } = useCharacters(book?.id);
+  const editorDom = editor ? (editor.view.dom as HTMLElement) : null;
+  const { shown: hoveredChar, onCardEnter, onCardLeave } = useCharacterHover(editorDom, characters);
 
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -378,6 +384,15 @@ export function EditorHybrid({
             />
           </div>
         </>
+      )}
+
+      {hoveredChar && book?.id && (
+        <CharacterHoverCard
+          state={hoveredChar}
+          bookId={book.id}
+          onMouseEnter={onCardEnter}
+          onMouseLeave={onCardLeave}
+        />
       )}
 
       {goalToast && (
