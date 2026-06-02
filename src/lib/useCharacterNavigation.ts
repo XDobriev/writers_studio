@@ -14,8 +14,8 @@ export function useCharacterNavigation({
   filtered: Character[];
 }) {
   const [search, setSearch] = useSearchParams();
-  const [viewMode, setViewMode] = useState<CharacterViewMode>('grid');
   const activeId = search.get('character');
+  const [viewMode, setViewMode] = useState<CharacterViewMode>(() => activeId ? 'detail' : 'grid');
 
   // Возврат в grid-режим когда activeId сброшен извне (например, клик по «Персонажи» в сайдбаре)
   useEffect(() => {
