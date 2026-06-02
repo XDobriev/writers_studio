@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useDropdownPosition } from '../lib/useDropdownPosition';
 import { motion } from 'framer-motion';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -511,7 +511,7 @@ export default function Outline() {
     }
   };
 
-  const onCreate = async () => {
+  const onCreate = useCallback(async () => {
     if (!bookId || !user) return;
     try {
       const nums = (chapters ?? [])
@@ -529,7 +529,14 @@ export default function Outline() {
     } catch (e) {
       setError((e as Error).message);
     }
-  };
+  }, [bookId, user, chapters, queryClient, navigate, setError]);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('create') !== 'true') return;
+    setSearchParams({}, { replace: true });
+    void onCreate();
+  }, [searchParams, setSearchParams, onCreate]);
 
   const onRename = async (id: string, title: string) => {
     if (!bookId) return;
