@@ -1,10 +1,66 @@
-import { type ComponentProps, type ReactNode, useEffect, useState } from 'react';
+import { type ComponentProps, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { Icon } from '../components/Icon';
 import { LogoMark } from '../components/LogoMark';
 
 type IName = ComponentProps<typeof Icon>['name'];
+
+// ─── Animation hooks ──────────────────────────────────────────────────────────
+
+function useInViewOnce(threshold = 0.5) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setInView(true); io.disconnect(); } },
+      { threshold }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [threshold]);
+  return [ref, inView] as const;
+}
+
+const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function useScramble(text: string, trigger: boolean): string {
+  const [display, setDisplay] = useState(text);
+  const rafRef = useRef<number>(0);
+  useEffect(() => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!trigger || reduced) { setDisplay(text); return; }
+    const start = performance.now();
+    const tick = (now: number) => {
+      if (now - start >= 200) { setDisplay(text); return; }
+      setDisplay(text.split('').map(c => (c === ' ' || c === '·') ? c : SCRAMBLE_CHARS[Math.floor(Math.random() * 26)]).join(''));
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [trigger, text]);
+  return display;
+}
+
+function useCounter(target: number, active: boolean, duration = 1200): number {
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [value, setValue] = useState(prefersReduced ? target : 0);
+  const rafRef = useRef<number>(0);
+  useEffect(() => {
+    if (!active || prefersReduced) return;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      setValue(Math.round((1 - Math.pow(1 - p, 3)) * target));
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [active, target, duration, prefersReduced]);
+  return value;
+}
 
 const MC = [
   { num: 1, title: 'Город, которого нет', status: 'done' as const },
@@ -31,7 +87,11 @@ export default function Landing() {
     if (!els.length) return;
     const io = new IntersectionObserver(
       entries => entries.forEach(e => {
-        if (e.isIntersecting) { e.target.classList.add('lnd-visible'); io.unobserve(e.target); }
+        if (e.isIntersecting) {
+          e.target.classList.add('lnd-visible');
+          if (e.target.classList.contains('lnd-manifesto-row')) e.target.classList.add('lnd-line-reveal');
+          io.unobserve(e.target);
+        }
       }),
       { threshold: 0.08 }
     );
@@ -46,38 +106,51 @@ export default function Landing() {
       <style>{`
         @media (prefers-reduced-motion: no-preference) {
           @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-          @keyframes lnd-fade-up { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+          @keyframes lnd-fade-up { from{opacity:0;transform:translateY(44px)} to{opacity:1;transform:translateY(0)} }
+          @keyframes lnd-slide-left  { from{opacity:0;transform:translateX(-36px)} to{opacity:1;transform:none} }
+          @keyframes lnd-slide-right { from{opacity:0;transform:translateX( 36px)} to{opacity:1;transform:none} }
         }
         .lnd-reveal { opacity: 0; }
         @media (prefers-reduced-motion: no-preference) {
-          .lnd-reveal { transform: translateY(18px); }
+          .lnd-reveal { transform: translateY(44px); }
           .lnd-reveal.lnd-visible { animation: lnd-fade-up 0.55s cubic-bezier(0.16,1,0.3,1) forwards; }
           .lnd-reveal.lnd-visible.d1 { animation-delay: 0.1s; }
           .lnd-reveal.lnd-visible.d2 { animation-delay: 0.2s; }
           .lnd-reveal.lnd-visible.d3 { animation-delay: 0.3s; }
+          .lnd-feat-row.lnd-reveal { opacity: 1; transform: none; animation: none; }
+          .lnd-feat-row .lnd-text { opacity: 0; transform: translateX(-36px); }
+          .lnd-feat-row .lnd-mock { opacity: 0; transform: translateX( 36px); }
+          .lnd-feat-row--rev .lnd-text { transform: translateX( 36px); }
+          .lnd-feat-row--rev .lnd-mock { transform: translateX(-36px); }
+          .lnd-feat-row.lnd-visible .lnd-text { animation: lnd-slide-left  0.65s cubic-bezier(0.16,1,0.3,1) both; }
+          .lnd-feat-row.lnd-visible .lnd-mock { animation: lnd-slide-right 0.65s cubic-bezier(0.16,1,0.3,1) 0.12s both; }
+          .lnd-feat-row--rev.lnd-visible .lnd-text { animation: lnd-slide-right 0.65s cubic-bezier(0.16,1,0.3,1) both; }
+          .lnd-feat-row--rev.lnd-visible .lnd-mock { animation: lnd-slide-left  0.65s cubic-bezier(0.16,1,0.3,1) 0.12s both; }
         }
         @media (prefers-reduced-motion: reduce) {
           .lnd-reveal { opacity: 1; transform: none; }
+          .lnd-feat-row .lnd-text,
+          .lnd-feat-row .lnd-mock { opacity: 1; transform: none; }
         }
         .lnd-price-card--accent { transform: translateY(-8px); }
-        .lnd-sheet-float { transform: rotateY(-9deg) rotateX(2deg); }
-        details[open] .faq-chevron { transform: rotate(180deg); }
+        .lnd-sheet-float { /* base tilt lives on js-controlled wrapper */ }
+        .faq-chevron.open { transform: rotate(180deg); }
         @media (prefers-reduced-motion: no-preference) {
-          @keyframes lnd-hero-in { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+          @keyframes lnd-hero-in { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:none} }
           .lnd-hero-el { animation: lnd-hero-in 0.65s cubic-bezier(0.16,1,0.3,1) backwards; }
-          .lnd-hero-el.h1 { animation-delay: 0.1s; }
           .lnd-hero-el.h2 { animation-delay: 0.2s; }
+          @keyframes lnd-word-in { from{transform:translateY(105%)} to{transform:translateY(0)} }
+          .lnd-word-inner { display:inline-block; animation: lnd-word-in 0.72s cubic-bezier(0.16,1,0.3,1) backwards; }
           .lnd-hero-el.h3 { animation-delay: 0.35s; }
           .lnd-hero-el.h4 { animation-delay: 0.5s; }
-          @keyframes lnd-float { 0%,100%{transform:rotateY(-9deg) rotateX(2deg) translateY(0)} 50%{transform:rotateY(-9deg) rotateX(2deg) translateY(-10px)} }
+          @keyframes lnd-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
           .lnd-sheet-float { animation: lnd-float 7s ease-in-out infinite; }
           @keyframes lnd-note-in { from{opacity:0;transform:translateY(10px) scale(0.94)} to{opacity:1;transform:none} }
           .lnd-note-in { animation: lnd-note-in 0.5s cubic-bezier(0.16,1,0.3,1) backwards; }
           .lnd-note-in.n1 { animation-delay: 0.55s; }
           .lnd-note-in.n2 { animation-delay: 0.75s; }
           .faq-chevron { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }
-          @keyframes lnd-faq-in { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:none} }
-          details[open] > p { animation: lnd-faq-in 0.22s cubic-bezier(0.16,1,0.3,1) both; }
+          .faq-body { transition: height 0.3s cubic-bezier(0.16,1,0.3,1); }
           .lnd-browser-mock { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }
           .lnd-browser-mock:hover { transform: translateY(-4px); }
           .lnd-price-card { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }
@@ -95,9 +168,13 @@ export default function Landing() {
         .lnd-prices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1100px; margin: 0 auto; }
         .lnd-nav-links { display: flex; gap: 28px; font-size: 13.5px; color: var(--ink-2); }
         .lnd-manifesto { display: flex; flex-direction: column; }
-        .lnd-manifesto-row { display: grid; grid-template-columns: 52px 1fr; gap: 40px; padding: 36px 0; border-top: 1px solid var(--border-soft); align-items: start; }
+        .lnd-manifesto-row { display: grid; grid-template-columns: 52px 1fr; gap: 40px; padding: 36px 0; align-items: start; position: relative; }
+        .lnd-manifesto-row::before { content: ''; position: absolute; top: 0; left: 0; height: 1px; background: var(--border-soft); width: 100%; }
+        @media (prefers-reduced-motion: no-preference) {
+          .lnd-manifesto-row::before { width: 0; transition: width 0.5s ease; }
+          .lnd-manifesto-row.lnd-line-reveal::before { width: 100%; }
+        }
         .lnd-footer-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 40px; }
-        details summary::marker, details summary::-webkit-details-marker { display: none; }
         @media (max-width: 1023px) {
           .lnd-hero-grid { grid-template-columns: 1fr; }
           .lnd-hero-sheet { display: none; }
@@ -173,8 +250,40 @@ function LandingNav() {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function LandingHero() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const tiltRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number>(0);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const section = sectionRef.current;
+    const tilt = tiltRef.current;
+    if (!section || !tilt) return;
+    const rect = section.getBoundingClientRect();
+    const nx = (e.clientX - rect.left) / rect.width * 2 - 1;
+    const ny = (e.clientY - rect.top) / rect.height * 2 - 1;
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      if (!tiltRef.current) return;
+      tiltRef.current.style.transition = 'transform 0.1s ease-out';
+      tiltRef.current.style.transform = `rotateY(${-9 + nx * 4}deg) rotateX(${2 - ny * 4}deg)`;
+    });
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    cancelAnimationFrame(rafRef.current);
+    if (!tiltRef.current) return;
+    tiltRef.current.style.transition = 'transform 0.65s cubic-bezier(0.16,1,0.3,1)';
+    tiltRef.current.style.transform = 'rotateY(-9deg) rotateX(2deg)';
+  }, []);
+
   return (
-    <section style={{ position: 'relative', padding: 'clamp(120px,14vw,160px) clamp(20px,4vw,56px) clamp(64px,8vw,80px)', background: 'var(--bg-deep)', overflow: 'hidden' }}>
+    <section
+      ref={sectionRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ position: 'relative', padding: 'clamp(120px,14vw,160px) clamp(20px,4vw,56px) clamp(64px,8vw,80px)', background: 'var(--bg-deep)', overflow: 'hidden' }}
+    >
       <div style={{ position: 'absolute', inset: 0, opacity: 0.08, backgroundImage: 'linear-gradient(oklch(0.95 0.01 80) 1px,transparent 1px),linear-gradient(90deg,oklch(0.95 0.01 80) 1px,transparent 1px)', backgroundSize: '56px 56px', pointerEvents: 'none' }} />
       <div className="lnd-max" style={{ position: 'relative' }}>
         <div className="lnd-hero-grid">
@@ -183,9 +292,25 @@ function LandingHero() {
               <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />
               <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Открытая бета · 2026</span>
             </div>
-            <h1 className="lnd-hero-el h1" style={{ font: '600 clamp(52px,6vw,88px)/0.98 var(--font-serif)', letterSpacing: '-0.025em', marginBottom: 28, color: 'var(--ink)' }}>
-              Здесь пишете<br />
-              <em style={{ fontStyle: 'italic', fontWeight: 500, color: 'var(--accent-2)' }}>только вы</em>.
+            <h1 style={{ font: '600 clamp(52px,6vw,88px)/0.98 var(--font-serif)', letterSpacing: '-0.025em', marginBottom: 28, color: 'var(--ink)' }}>
+              <span style={{ display:'inline-block', overflow:'hidden', verticalAlign:'bottom', paddingBottom:'0.12em', marginBottom:'-0.12em' }}>
+                <span className="lnd-word-inner" style={{ animationDelay:'0.08s' }}>Здесь</span>
+              </span>
+              {' '}
+              <span style={{ display:'inline-block', overflow:'hidden', verticalAlign:'bottom', paddingBottom:'0.12em', marginBottom:'-0.12em' }}>
+                <span className="lnd-word-inner" style={{ animationDelay:'0.14s' }}>пишете</span>
+              </span>
+              <br />
+              <em style={{ fontStyle: 'italic', fontWeight: 500, color: 'var(--accent-2)' }}>
+                <span style={{ display:'inline-block', overflow:'hidden', verticalAlign:'bottom', paddingBottom:'0.12em', marginBottom:'-0.12em' }}>
+                  <span className="lnd-word-inner" style={{ animationDelay:'0.20s', animationDuration:'0.88s' }}>только</span>
+                </span>
+                {' '}
+                <span style={{ display:'inline-block', overflow:'hidden', verticalAlign:'bottom', paddingBottom:'0.12em', marginBottom:'-0.12em' }}>
+                  <span className="lnd-word-inner" style={{ animationDelay:'0.26s', animationDuration:'0.88s' }}>вы</span>
+                </span>
+              </em>
+              .
             </h1>
             <p className="lnd-hero-el h2" style={{ font: '400 clamp(16px,1.5vw,19px)/1.6 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 520, marginBottom: 36 }}>
               Рукопись, картотека персонажей, карта мира и хронология — в одном чистом редакторе. Без нейросети, которая дописывает за вас.
@@ -202,7 +327,7 @@ function LandingHero() {
             </div>
           </div>
           <div className="lnd-hero-sheet" style={{ position: 'relative', height: 540 }} aria-hidden="true">
-            <FloatingSheet />
+            <FloatingSheet tiltRef={tiltRef} />
             <div style={{ position: 'absolute', top: 54, right: -16, width: 200, transform: 'rotate(2deg)' }}>
               <div className="lnd-note-in n1" style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', boxShadow: '0 10px 30px oklch(0 0 0 / 0.35)' }}>
                 <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5 }}>Идея · 5 мин</div>
@@ -222,10 +347,14 @@ function LandingHero() {
   );
 }
 
-function FloatingSheet() {
+function FloatingSheet({ tiltRef }: { tiltRef: React.RefObject<HTMLDivElement> }) {
   return (
     <div style={{ position: 'absolute', inset: 0, perspective: '1600px' }}>
-      <div className="lnd-sheet-float" style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', transformOrigin: 'center center', boxShadow: '-40px 60px 120px oklch(0 0 0 / 0.5)', willChange: 'transform' }}>
+      <div
+        ref={tiltRef}
+        style={{ position: 'absolute', inset: 0, transform: 'rotateY(-9deg) rotateX(2deg)', transformOrigin: 'center center', transformStyle: 'preserve-3d', willChange: 'transform' }}
+      >
+      <div className="lnd-sheet-float" style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', transformOrigin: 'center center', boxShadow: '-40px 60px 120px oklch(0 0 0 / 0.5)' }}>
         <div style={{ background: 'var(--paper)', borderRadius: '6px 6px 0 0', padding: '48px 56px', height: '100%', color: 'var(--paper-ink)', fontFamily: 'var(--font-serif)', fontSize: 14.5, lineHeight: 1.85, overflow: 'hidden' }}>
           <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--paper-ink-2)', marginBottom: 10 }}>Глава первая</div>
           <div style={{ font: '600 26px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6, color: 'var(--paper-ink)' }}>Город, которого нет</div>
@@ -236,6 +365,7 @@ function FloatingSheet() {
           <p style={{ margin: 0, textIndent: '1.4em' }}>Аней не подняла голову. Кисть вела мягкую кривую — северный край озера, мнимый, но обязательный для атласа.<span style={{ display: 'inline-block', width: 2, height: '1em', background: 'var(--accent)', marginLeft: 1, verticalAlign: 'middle', animation: 'blink 1s step-end infinite' }} /></p>
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -243,10 +373,12 @@ function FloatingSheet() {
 // ─── Features ─────────────────────────────────────────────────────────────────
 
 function SectionLabel({ kicker, title, subtitle, align = 'left' }: { kicker?: string; title: string; subtitle?: string; align?: 'left' | 'center' }) {
+  const [kickerRef, kickerInView] = useInViewOnce();
+  const scrambledKicker = useScramble(kicker ?? '', kickerInView);
   const c = align === 'center';
   return (
     <div style={{ marginBottom: 80, ...(c ? { textAlign: 'center', margin: '0 auto 80px', maxWidth: 780 } : { maxWidth: 780 }) }}>
-      {kicker && <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 18 }}>{kicker}</div>}
+      {kicker && <div ref={kickerRef} style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 18 }}>{scrambledKicker}</div>}
       <h2 style={{ font: '600 clamp(32px,4vw,56px)/1.05 var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 16, color: 'var(--ink)' }}>{title}</h2>
       {subtitle && <p style={{ font: '400 17px/1.6 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 640, ...(c ? { margin: '0 auto' } : {}) }}>{subtitle}</p>}
     </div>
@@ -272,10 +404,12 @@ function FeatureRow({ eyebrow, headline, body, bullets, mock, reverse }: {
   bullets: [IName, string, string][];
   mock: ReactNode; reverse?: boolean;
 }) {
+  const [eyebrowRef, eyebrowInView] = useInViewOnce();
+  const scrambledEyebrow = useScramble(eyebrow, eyebrowInView);
   return (
     <div className={`lnd-feat-row${reverse ? ' lnd-feat-row--rev' : ''} lnd-reveal`}>
       <div className="lnd-text">
-        <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 18 }}>{eyebrow}</div>
+        <div ref={eyebrowRef} style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 18 }}>{scrambledEyebrow}</div>
         <h3 style={{ font: '600 clamp(24px,3vw,38px)/1.1 var(--font-serif)', letterSpacing: '-0.015em', marginBottom: 18, color: 'var(--ink)' }}>{headline}</h3>
         <p style={{ font: '400 16px/1.65 var(--font-serif)', color: 'var(--ink-2)', marginBottom: 28, maxWidth: 480 }}>{body}</p>
         <div className="lnd-bullets">
@@ -301,7 +435,7 @@ function FeatureRow({ eyebrow, headline, body, bullets, mock, reverse }: {
 
 function BrowserMock({ children }: { children: ReactNode }) {
   return (
-    <div className="lnd-browser-mock" style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--bg-deep)', border: '1px solid var(--border)', boxShadow: '0 20px 60px oklch(0 0 0 / 0.4),0 4px 16px oklch(0 0 0 / 0.3)' }}>
+    <div className="lnd-browser-mock" style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--bg-deep)', border: '1px solid var(--border)', boxShadow: '0 0 0 1px var(--border), 0 24px 72px oklch(0 0 0 / 0.55), 0 0 56px oklch(0.63 0.16 30 / 0.07)' }}>
       <div style={{ height: 32, background: 'oklch(0.20 0.014 50)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 6, borderBottom: '1px solid var(--border-soft)' }}>
         <span style={{ width: 11, height: 11, borderRadius: 999, background: 'oklch(0.62 0.16 25)' }} />
         <span style={{ width: 11, height: 11, borderRadius: 999, background: 'oklch(0.78 0.12 80)' }} />
@@ -397,6 +531,12 @@ function MockWorld() {
 }
 
 function MockDashboard() {
+  const [containerRef, inView] = useInViewOnce(0.3);
+  const words = useCounter(21540, inView);
+  const days = useCounter(7, inView);
+  const workDays = useCounter(48, inView);
+  const fmtWords = (n: number) => n < 1000 ? String(n) : `${Math.floor(n / 1000)} ${String(n % 1000).padStart(3, '0')}`;
+
   const cells = Array.from({ length: 14 * 7 }, (_, i) => {
     const w = Math.floor(i / 7), d = i % 7;
     if (w < 2 && d < 4) return 0;
@@ -405,9 +545,13 @@ function MockDashboard() {
   });
   const hc = (v: number) => (['var(--surface-2)', 'oklch(0.40 0.10 30)', 'oklch(0.50 0.13 30)', 'oklch(0.58 0.15 30)', 'var(--accent)'] as const)[v];
   return (
-    <div style={{ height: '100%', padding: 24, background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div ref={containerRef} style={{ height: '100%', padding: 24, background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-        {([['21 540', 'слов', '+348'], ['7', 'дней подряд', 'серия'], ['48', 'рабочих дней', 'из 184']] as const).map(([v, l, d], i) => (
+        {([
+          [fmtWords(words), 'слов', '+348'],
+          [String(days), 'дней подряд', 'серия'],
+          [String(workDays), 'рабочих дней', 'из 184'],
+        ] as [string, string, string][]).map(([v, l, d], i) => (
           <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 14px' }}>
             <div style={{ font: '500 9px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 6 }}>{l}</div>
             <div style={{ font: '600 22px var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{v}</div>
@@ -599,6 +743,56 @@ function LandingPricing() {
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 
+function FAQItem({ q, a, index, defaultOpen = false }: { q: string; a: string; index: number; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [height, setHeight] = useState(defaultOpen ? 'auto' : '0px');
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  const toggle = () => {
+    const el = bodyRef.current;
+    if (!el) return;
+    if (open) {
+      setHeight(el.scrollHeight + 'px');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setHeight('0px');
+        setOpen(false);
+      }));
+    } else {
+      setOpen(true);
+      setHeight(el.scrollHeight + 'px');
+    }
+  };
+
+  const onTransitionEnd = () => {
+    if (open) setHeight('auto');
+  };
+
+  return (
+    <div style={{ borderTop: '1px solid var(--border-soft)', padding: '24px 0' }}>
+      <button
+        onClick={toggle}
+        style={{ display: 'flex', width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', alignItems: 'flex-start', gap: 16 }}
+      >
+        <span style={{ font: '500 13px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.06em', marginTop: 4, flexShrink: 0 }}>
+          {String(index + 1).padStart(2, '0')}
+        </span>
+        <span style={{ flex: 1, font: '500 19px var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.005em' }}>{q}</span>
+        <span className={`faq-chevron${open ? ' open' : ''}`} style={{ color: 'var(--ink-3)', marginTop: 6, flexShrink: 0 }}>
+          <Icon name="chevd" size={16} />
+        </span>
+      </button>
+      <div
+        ref={bodyRef}
+        className="faq-body"
+        style={{ overflow: 'hidden', height }}
+        onTransitionEnd={onTransitionEnd}
+      >
+        <p style={{ font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', marginTop: 14, paddingLeft: 42, maxWidth: 680 }}>{a}</p>
+      </div>
+    </div>
+  );
+}
+
 function LandingFAQ() {
   const items = [
     { q: 'Это нейросеть пишет за меня?', a: 'Нет. Авторская студия — это редактор и хранилище материалов книги. Никакого автодополнения, генерации абзацев и «исправь стиль» по умолчанию. Если когда-нибудь добавим — это будет отдельный режим с явным выключателем.' },
@@ -614,14 +808,7 @@ function LandingFAQ() {
         <SectionLabel title="Что обычно спрашивают." />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {items.map((item, i) => (
-            <details key={i} open={i === 0} style={{ borderTop: '1px solid var(--border-soft)', padding: '24px 0' }}>
-              <summary style={{ display: 'flex', alignItems: 'flex-start', gap: 16, cursor: 'pointer' }}>
-                <span style={{ font: '500 13px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.06em', marginTop: 4, flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</span>
-                <span style={{ flex: 1, font: '500 19px var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.005em' }}>{item.q}</span>
-                <span className="faq-chevron" style={{ color: 'var(--ink-3)', marginTop: 6, flexShrink: 0 }}><Icon name="chevd" size={16} /></span>
-              </summary>
-              <p style={{ font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', marginTop: 14, paddingLeft: 42, maxWidth: 680 }}>{item.a}</p>
-            </details>
+            <FAQItem key={i} q={item.q} a={item.a} index={i} defaultOpen={i === 0} />
           ))}
         </div>
       </div>
@@ -632,9 +819,22 @@ function LandingFAQ() {
 // ─── CTA ──────────────────────────────────────────────────────────────────────
 
 function LandingCTA() {
+  const decoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = decoRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      el.style.transform = `translateY(calc(-50% + ${window.scrollY * 0.25}px)) rotate(-8deg)`;
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
     <section style={{ padding: 'clamp(100px,12vw,140px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', right: -100, top: '50%', transform: 'translateY(-50%) rotate(-8deg)', font: '600 280px/1 var(--font-serif)', color: 'var(--surface-2)', opacity: 0.4, pointerEvents: 'none', letterSpacing: '-0.04em', userSelect: 'none' }} aria-hidden="true">книга</div>
+      <div ref={decoRef} style={{ position: 'absolute', right: -100, top: '50%', transform: 'translateY(-50%) rotate(-8deg)', font: '600 280px/1 var(--font-serif)', color: 'var(--surface-2)', opacity: 0.4, pointerEvents: 'none', letterSpacing: '-0.04em', userSelect: 'none' }} aria-hidden="true">книга</div>
       <div className="lnd-reveal" style={{ position: 'relative', maxWidth: 880, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 24 }}>Открытая бета</div>
         <h2 style={{ font: '600 clamp(44px,6vw,76px)/1.02 var(--font-serif)', letterSpacing: '-0.022em', marginBottom: 24, color: 'var(--ink)' }}>
