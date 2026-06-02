@@ -11,15 +11,16 @@
     <meta name="google-site-verification" content="wvMyN9CUTGAGAtgq20p056MClRMU9Tc702f1est0cjo" />
     <title>Авторская студия — редактор для писателей</title>
     <meta name="description" content="Редактор для писателей на русском. Главы, персонажи, хронология, статистика — всё в одном месте. Ваш Scrivener в браузере." />
+    <link rel="canonical" href="https://avtorstudio.com/" />
 
     <!-- Open Graph (Telegram, ВКонтакте, Discord) -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://avtorskaya-studiya.vercel.app/" />
+    <meta property="og:url" content="https://avtorstudio.com/" />
     <meta property="og:site_name" content="Авторская студия" />
     <meta property="og:locale" content="ru_RU" />
     <meta property="og:title" content="Авторская студия — редактор для писателей" />
     <meta property="og:description" content="Пишите книги удобно. Главы, персонажи, хронология и статистика — всё в одном месте." />
-    <meta property="og:image" content="https://avtorskaya-studiya.vercel.app/og.png" />
+    <meta property="og:image" content="https://avtorstudio.com/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Авторская студия — редактор для писателей" />
@@ -28,7 +29,87 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Авторская студия — редактор для писателей" />
     <meta name="twitter:description" content="Пишите книги удобно. Главы, персонажи, хронология и статистика — всё в одном месте." />
-    <meta name="twitter:image" content="https://avtorskaya-studiya.vercel.app/og.png" />
+    <meta name="twitter:image" content="https://avtorstudio.com/og.png" />
+
+    <!-- Schema.org: SoftwareApplication + FAQPage -->
+    <script type="application/ld+json">
+    [
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Авторская студия",
+        "url": "https://avtorstudio.com",
+        "description": "Редактор для писателей на русском. Главы, персонажи, хронология, статистика — всё в одном месте.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Web",
+        "inLanguage": "ru",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "RUB"
+        }
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Это нейросеть пишет за меня?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Нет. Авторская студия — это редактор и хранилище материалов книги. Никакого автодополнения, генерации абзацев и «исправь стиль» по умолчанию. Если когда-нибудь добавим — это будет отдельный режим с явным выключателем."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Что будет, если я перестану платить?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Все ваши книги остаются. Доступ к Pro-функциям отключается, но вы продолжаете писать в Free-режиме на той книге, которую укажете главной. Никто не блокирует и не удаляет файлы."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Можно ли импортировать рукопись из Word или Scrivener?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Прямого импорта пока нет. Вставьте текст напрямую в редактор или разбейте на главы вручную — это занимает несколько минут. Импорт из DOCX добавим в следующих версиях."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Хранятся ли мои книги в облаке?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Да, в защищённой облачной базе данных с шифрованием. Доступ только у вас — через email или Google. В любой момент можно скачать полный экспорт рукописи."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Я пишу не роман — поэзия / нон-фикшн / сценарий. Подойдёт?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Поэзия и эссеистика — да, без оговорок. Нон-фикшн — да, особенно если он структурный (главы, разделы). Сценарии — пока нет специальной разметки Fountain / Final Draft, на дорожной карте."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Если я нашёл баг или хочу фичу?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Напишите в issues на GitHub или на почту — ответ обычно в течение суток. Pro-подписчики попадают в Telegram-чат с разработчиком напрямую."
+            }
+          }
+        ]
+      }
+    ]
+    </script>
+    <noscript><style>
+      .lnd-reveal,
+      .lnd-feat-row .lnd-text,
+      .lnd-feat-row .lnd-mock { opacity: 1 !important; transform: none !important; }
+    </style></noscript>
   </head>
   <body>
     <div id="root"></div>

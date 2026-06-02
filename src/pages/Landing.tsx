@@ -85,18 +85,19 @@ export default function Landing() {
   useEffect(() => {
     const els = document.querySelectorAll<Element>('.lnd-reveal');
     if (!els.length) return;
+    const reveal = (el: Element) => {
+      el.classList.add('lnd-visible');
+      if (el.classList.contains('lnd-manifesto-row')) el.classList.add('lnd-line-reveal');
+    };
     const io = new IntersectionObserver(
-      entries => entries.forEach(e => {
-        if (e.isIntersecting) {
-          e.target.classList.add('lnd-visible');
-          if (e.target.classList.contains('lnd-manifesto-row')) e.target.classList.add('lnd-line-reveal');
-          io.unobserve(e.target);
-        }
-      }),
+      entries => entries.forEach(e => { if (e.isIntersecting) { reveal(e.target); io.unobserve(e.target); } }),
       { threshold: 0.08 }
     );
     els.forEach(el => io.observe(el));
-    return () => io.disconnect();
+    const fallback = window.setTimeout(() => {
+      document.querySelectorAll<Element>('.lnd-reveal:not(.lnd-visible)').forEach(reveal);
+    }, 4000);
+    return () => { io.disconnect(); clearTimeout(fallback); };
   }, []);
 
   if (session) return <Navigate to="/books" replace />;
@@ -195,6 +196,11 @@ export default function Landing() {
         @media (max-width: 479px) {
           .lnd-footer-grid { grid-template-columns: 1fr; }
         }
+        .lnd-hero-mobile-card { display: none; }
+        @media (max-width: 1023px) {
+          .lnd-hero-mobile-card { display: block; margin-top: 40px; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 32px oklch(0 0 0 / 0.45); }
+          .lnd-hero-text { max-width: 640px; }
+        }
       `}</style>
       <LandingNav />
       <main>
@@ -287,7 +293,7 @@ function LandingHero() {
       <div style={{ position: 'absolute', inset: 0, opacity: 0.08, backgroundImage: 'linear-gradient(oklch(0.95 0.01 80) 1px,transparent 1px),linear-gradient(90deg,oklch(0.95 0.01 80) 1px,transparent 1px)', backgroundSize: '56px 56px', pointerEvents: 'none' }} />
       <div className="lnd-max" style={{ position: 'relative' }}>
         <div className="lnd-hero-grid">
-          <div>
+          <div className="lnd-hero-text">
             <div className="lnd-hero-el" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 999, marginBottom: 28 }}>
               <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />
               <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Открытая бета · 2026</span>
@@ -324,6 +330,15 @@ function LandingHero() {
               <p style={{ font: '400 14px/1.6 var(--font-serif)', color: 'var(--ink-3)', maxWidth: 420, margin: 0 }}>
                 Открытая бета: все функции без ограничений, без привязки карты.
               </p>
+            </div>
+            <div className="lnd-hero-mobile-card" aria-hidden="true">
+              <div style={{ background: 'var(--paper)', padding: '24px 28px', color: 'var(--paper-ink)', fontFamily: 'var(--font-serif)', fontSize: 14, lineHeight: 1.8 }}>
+                <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--paper-ink-2)', marginBottom: 8 }}>Глава первая</div>
+                <div style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 12, color: 'var(--paper-ink)' }}>Город, которого нет</div>
+                <div style={{ width: 24, height: 1, background: 'var(--paper-ink)', opacity: 0.25, marginBottom: 16 }} />
+                <p style={{ margin: '0 0 0.8em' }}>Ворна исчезла за одну ночь, и никто из тех, кто жил в Тереее, не желал в это верить.</p>
+                <p style={{ margin: 0, textIndent: '1.4em', color: 'var(--paper-ink-2)' }}>Аней Ворон узнала об этом в архиве, на третьем этаже башни, где пахло железом и устым мхом…</p>
+              </div>
             </div>
           </div>
           <div className="lnd-hero-sheet" style={{ position: 'relative', height: 540 }} aria-hidden="true">
@@ -588,7 +603,7 @@ function LandingProcess() {
         <div className="lnd-proc">
           {steps.map((s, i) => (
             <div key={s.n} className={`lnd-reveal d${i}`} style={{ position: 'relative' }}>
-              <div style={{ width: 48, height: 48, borderRadius: 999, background: 'var(--bg-deep)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 14px var(--font-mono)', color: 'var(--accent)', marginBottom: 22, position: 'relative', zIndex: 1 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 999, background: 'var(--bg-deep)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '600 18px var(--font-mono)', color: 'var(--accent)', marginBottom: 22, position: 'relative', zIndex: 1 }}>
                 {String(s.n).padStart(2, '0')}
               </div>
               <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>{s.tag}</div>

@@ -68,16 +68,22 @@ npm install vite-plugin-prerender --save-dev
 ```
 Добавить в `vite.config.ts` и прописать список pre-render маршрутов. App-маршруты (`/books/*`) не трогать — они за `AuthGuard`.
 
-**Шаг 2 — Meta-теги (`react-helmet-async`):**
-Установить `react-helmet-async`, обернуть `App.tsx` в `<HelmetProvider>`, добавить в `Landing.tsx`:
-- `<title>` и `<meta name="description">` — основные
-- `<meta property="og:title/description/image">` — для ВКонтакте и мессенджеров
-- `<link rel="canonical" href="https://avtorstudio.com/">`
-- `<meta name="robots" content="noindex">` — в Auth, Dashboard и всех `/books/*` страницах
-- `<meta name="yandex-verification" content="...">` — код получить в Яндекс.Вебмастер
+**Шаг 2 — Meta-теги:**
+- ✅ `<link rel="canonical" href="https://avtorstudio.com/">` — добавлен в `index.html`
+- ✅ `og:url`, `og:image`, `twitter:image` — исправлены на `avtorstudio.com` в `index.html`
+- ✅ Schema.org JSON-LD — `SoftwareApplication` + `FAQPage` с 6 вопросами добавлены в `index.html`
+- ⬜ `<meta name="robots" content="noindex">` — в Auth, Dashboard и всех `/books/*` страницах (через `react-helmet-async`)
+- ⬜ `<meta name="yandex-verification" content="...">` — код получить в Яндекс.Вебмастер
 
-**Шаг 3 — `robots.txt` и `sitemap.xml`:**
-Проверить `public/robots.txt` — там не должно быть `Disallow: /`. Создать `public/sitemap.xml` с записями для `/`, `/privacy`, `/terms`.
+**Шаг 3 — ✅ Выполнено:** `public/robots.txt` исправлен (URL sitemap → `avtorstudio.com`). `public/sitemap.xml` создан.
+
+**Шаг 3.1 — H1/H2 — нет ключевых слов (SEO-аудит, среднее):**
+H1 лендинга: *«Здесь пишете только вы.»* — сильный слоган, но Google не видит ключевой фразы. Ключевые слова есть только в `<title>` и `<meta description>`. Минимальный фикс: добавить в subtitle features-секции (`src/pages/Landing.tsx`, `SectionLabel subtitle`) что-то вроде «...онлайн-редактор для писателей на русском языке». Это не меняет дизайн, только текст.
+**Файлы:** `src/pages/Landing.tsx:392` (subtitle первой SectionLabel)
+
+**Шаг 3.2 — Добавить `twitter:site` (SEO-аудит, низкое):**
+Если есть X/Twitter аккаунт — добавить `<meta name="twitter:site" content="@handle">` в `index.html`.
+**Файлы:** `index.html`
 
 **Шаг 4 — Яндекс.Вебмастер:**
 Зарегистрировать сайт `avtorstudio.com` → добавить sitemap → проверить индексацию через «Инструменты» → «Проверить URL». Это главный инструмент мониторинга для RU-рынка.
@@ -86,7 +92,7 @@ npm install vite-plugin-prerender --save-dev
 Создать счётчик, добавить скрипт в `index.html`. Яндекс.Метрика — поведенческий сигнал ранжирования в Яндексе (CTR, время на сайте). Без неё сигналы не передаются.
 
 **Шаг 6 — Google Search Console:**
-Добавить `avtorstudio.com` как новый ресурс (верификация через DNS TXT или `public/google-site-verification.html`), загрузить sitemap — параллельно с Яндексом. Google умеет JS, но pre-rendering ускоряет индексацию. После подтверждения удалить `avtorskaya-studiya.vercel.app` из GSC (если Шаг 0 выполнен — Vercel уже будет с noindex).
+Верификация через `public/google41b7face4a88ca87.html` уже есть. ⬜ Загрузить `https://avtorstudio.com/sitemap.xml` в GSC → Sitemaps. После подтверждения удалить `avtorskaya-studiya.vercel.app` из GSC.
 
 **Файлы:** `vite.config.ts`, `src/pages/Landing.tsx`, `src/App.tsx`, `public/robots.txt`, `public/sitemap.xml`, `index.html`
 **Проверить:** `npm run build && npm run preview` → view-source на `/` → полный HTML (не пустой `<div id="root">`)

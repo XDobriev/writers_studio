@@ -4,4 +4,4 @@ Allow: /
 Disallow: /books/
 Disallow: /admin/
 
-Sitemap: https://avtorskaya-studiya.vercel.app/sitemap.xml
+Sitemap: https://avtorstudio.com/sitemap.xml
