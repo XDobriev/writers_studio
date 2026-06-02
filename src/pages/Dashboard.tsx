@@ -23,6 +23,13 @@ const STATUS_DOT: Record<Chapter['status'], string> = {
   done: 'var(--ok)',
 };
 
+const QUICK_ACTIONS: Array<{ title: string; dest: string; icon: 'tree' | 'char' | 'note' | 'clock'; path: string }> = [
+  { title: 'Новая глава',    dest: 'Структура →',  icon: 'tree',  path: '/outline?create=true'    },
+  { title: 'Новый персонаж', dest: 'Картотека →',  icon: 'char',  path: '/characters?create=true' },
+  { title: 'Новая заметка',  dest: 'Заметки →',    icon: 'note',  path: '/notes?create=true'      },
+  { title: 'Новое событие',  dest: 'Хронология →', icon: 'clock', path: '/timeline?create=true'   },
+];
+
 function fmtNumber(n: number): string {
   return n.toLocaleString('ru-RU').replace(/,/g, ' ');
 }
@@ -343,6 +350,54 @@ export default function Dashboard() {
                   <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>{s.sub}</div>
                   <div style={{ font: '500 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 10, letterSpacing: '0.04em' }}>{s.delta}</div>
                 </div>
+              ))}
+            </div>
+
+            <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 10, marginTop: 4 }}>
+              Быстрые действия
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+              {QUICK_ACTIONS.map(({ title, dest, icon, path }) => (
+                <Link
+                  key={title}
+                  to={navTo(path)}
+                  style={{
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border-soft)',
+                    borderRadius: 12,
+                    padding: 16,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                    textDecoration: 'none',
+                    color: 'var(--ink)',
+                    transition: 'background 0.12s, border-color 0.12s',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)';
+                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = 'var(--surface)';
+                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-soft)';
+                  }}
+                >
+                  <div style={{
+                    width: 32,
+                    height: 32,
+                    background: 'oklch(0.63 0.16 30 / 0.13)',
+                    borderRadius: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--accent)',
+                    flexShrink: 0,
+                  }}>
+                    <Icon name={icon} size={15} />
+                  </div>
+                  <div style={{ font: '500 12.5px var(--font-ui)', color: 'var(--ink)' }}>{title}</div>
+                  <div style={{ font: '400 10.5px var(--font-mono)', letterSpacing: '0.06em', color: 'var(--ink-4)', marginTop: 'auto' }}>{dest}</div>
+                </Link>
               ))}
             </div>
 
