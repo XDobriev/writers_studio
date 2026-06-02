@@ -56,6 +56,8 @@ export default function Dashboard() {
   const [editGoal, setEditGoal] = useState(0);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [weeklyToast, setWeeklyToast] = useState<string | null>(null);
+  const [weeklyToastLeaving, setWeeklyToastLeaving] = useState(false);
 
   const navigate = useNavigate();
 
@@ -181,8 +183,31 @@ export default function Dashboard() {
       }
     }
 
-    return { cells, weeks, maxDelta, maxWeek, todayWords, streak, monthLabels, cumulativeLine };
+    const last7 = cells.filter(c => !c.future).slice(-7);
+    const avg7 = last7.reduce((s, c) => s + c.delta, 0) / 7;
+    const lastWeekWords = weeks[50] ?? 0;
+
+    return { cells, weeks, maxDelta, maxWeek, todayWords, streak, monthLabels, cumulativeLine, avg7, lastWeekWords };
   }, [snapshots]);
+
+  useEffect(() => {
+    if (!activityData || activityData.lastWeekWords <= 0) return;
+    const today = new Date();
+    if (today.getDay() !== 1) return;
+    const key = `weekly-toast-${today.toISOString().slice(0, 10)}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, '1');
+    setWeeklyToast(`На прошлой неделе — ${fmtNumber(activityData.lastWeekWords)} ${plural(activityData.lastWeekWords, 'слово', 'слова', 'слов')}`);
+  }, [activityData]);
+
+  useEffect(() => {
+    if (!weeklyToast) return;
+    const t = setTimeout(() => {
+      setWeeklyToastLeaving(true);
+      setTimeout(() => { setWeeklyToast(null); setWeeklyToastLeaving(false); }, 100);
+    }, 5000);
+    return () => clearTimeout(t);
+  }, [weeklyToast]);
 
   const recentChapters = useMemo(
     () =>
@@ -415,6 +440,17 @@ export default function Dashboard() {
                     Осталось <span style={{ color: 'var(--ink-2)' }}>{fmtNumber(book.goal - book.words)}</span> слов до цели.
                   </div>
                 )}
+                {activityData && activityData.avg7 > 0 && book.goal > book.words && (() => {
+                  const etaDays = Math.ceil((book.goal - book.words) / activityData.avg7);
+                  return (
+                    <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink-3)' }}>
+                      Темп за 7 дней:{' '}
+                      <span style={{ color: 'var(--ink-2)' }}>{fmtNumber(Math.round(activityData.avg7))} слов/день</span>
+                      {' · '}завершение через{' '}
+                      <span style={{ color: 'var(--ink-2)' }}>≈ {etaDays} {pluralDays(etaDays)}</span>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -682,6 +718,22 @@ export default function Dashboard() {
         </>
       )}
     </WithMode>
+
+    {weeklyToast && (
+      <div style={{
+        position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+        background: 'var(--surface-2)', border: '1px solid var(--border)',
+        borderRadius: 10, padding: '10px 18px',
+        display: 'flex', alignItems: 'center', gap: 10,
+        font: '500 13px var(--font-ui)', color: 'var(--ink)',
+        boxShadow: '0 4px 24px oklch(0 0 0 / 0.18)',
+        zIndex: 1000, pointerEvents: 'none',
+        animation: weeklyToastLeaving ? 'toast-out 0.1s ease-in both' : 'toast-in 0.2s cubic-bezier(0.22,0.68,0,1.2)',
+      }}>
+        <span style={{ fontSize: 16 }}>📅</span>
+        {weeklyToast}
+      </div>
+    )}
     </motion.div>
   );
 }
