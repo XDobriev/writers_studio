@@ -24,12 +24,14 @@ export function useCharacterNavigation({
     }
   }, [isMobile, viewMode, activeId]);
 
-  // Auto-select first character when entering detail mode without a valid selection
+  // Auto-select first character when in detail mode with a stale/deleted activeId
   useEffect(() => {
     if (isMobile) return;
     if (viewMode === 'grid') return;
     if (!characters || characters.length === 0) return;
-    const exists = activeId && characters.some((c) => c.id === activeId);
+    // Guard: activeId=null is a transient state between setViewMode and URL update — skip
+    if (!activeId) return;
+    const exists = characters.some((c) => c.id === activeId);
     if (!exists) {
       const first = filtered[0] ?? characters[0];
       const next = new URLSearchParams(search);
