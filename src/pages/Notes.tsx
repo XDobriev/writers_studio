@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { useState, useCallback, useEffect } from 'react';
+import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -161,6 +161,12 @@ export default function Notes() {
 
   // Форма создания
   const [showForm, setShowForm] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('create') !== 'true') return;
+    setSearchParams({}, { replace: true });
+    setShowForm(true);
+  }, [searchParams, setSearchParams]);
   const [formKind, setFormKind] = useState<NoteKind>('idea');
   const [formText, setFormText] = useState('');
   const [formCustomLabel, setFormCustomLabel] = useState('');
