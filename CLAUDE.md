@@ -35,16 +35,50 @@ npm run preview    # превью продакшен-сборки
 
 ## Архитектура
 
+### Точки входа
+- `src/main.tsx` — точка входа, инициализирует `@sentry/react` (мониторинг ошибок в проде).
 - `src/App.tsx` — роутер. Все маршруты `/books/:id/...` под `<AuthGuard>`.
+
+### Компоненты
 - `src/components/Chrome.tsx` — Sidebar, Toolbar, RightPanel, RailNav, WithMode, StatusBar, Sheet.
 - `src/components/EditorHybrid.tsx` — главный редактор, 4 режима (studio/left/right/page).
 - `src/components/RichEditor.tsx` — TipTap wrapper.
 - `src/components/EditorToolbar.tsx` — полноценный тулбар TipTap.
+- `src/components/RightPanel.tsx` — правая панель редактора: версии, персонажи главы, POV.
+- `src/components/SettingsModal.tsx` — настройки пользователя: тема, цель по словам, план.
+- `src/components/StatusBar.tsx` — статус-бар: ambient sounds, темп письма, автосохранение.
+- `src/components/ConfirmDialog.tsx` — диалог подтверждения (заменяет `window.confirm`).
+- `src/components/GenrePicker.tsx` — мультиселект жанров (`genres text[]`).
+- `src/components/Skeleton.tsx` — скелетон-загрузка для async-состояний.
+- `src/components/VersionsPanel.tsx` + `VersionModal.tsx` — UI снапшотов/версий.
+- `src/components/AuthGuard.tsx` — защита роутов.
+- `src/components/ErrorBoundary.tsx` — перехват краша компонентов, fallback UI.
 - `src/styles/design-system.css` — CSS-переменные (oklch), классы `.as`, `.sb`, `.tb`, `.sheet`, `.btn`, `.input`, `.label`.
+
+### Страницы
+- `src/pages/Home.tsx` — список книг пользователя.
+- `src/pages/Dashboard.tsx` — дашборд книги: heatmap, completion ETA, weekly summary toast.
+- `src/pages/Editor.tsx` + `Focus.tsx` + `Split.tsx` — режимы редактирования.
+- `src/pages/Corkboard.tsx` — пробковая доска глав.
+- `src/pages/Outline.tsx` — структура/конспект глав (pacing visualization).
+- `src/pages/Characters.tsx` — картотека персонажей: grid, поиск, фильтры, связи.
+- `src/pages/Timeline.tsx` — хронология событий.
+- `src/pages/Notes.tsx` — заметки книги.
+- `src/pages/Map.tsx` — карта мира.
+- `src/pages/Export.tsx` — экспорт: DOCX, EPUB, FB2, HTML.
+- `src/pages/Admin.tsx` + `AdminAnalytics.tsx` — AdminOnly: управление пользователями.
+- `src/pages/Landing.tsx` — публичный лендинг.
+
+### lib/
 - `src/lib/supabase.ts` — Supabase клиент.
 - `src/lib/auth.tsx` — `AuthProvider`, `useAuth`.
-- `src/components/AuthGuard.tsx` — защита роутов.
-- `src/components/ErrorBoundary.tsx` — перехват краша компонентов, показывает fallback UI.
+- `src/lib/queries.ts` — централизованные React Query хуки (books, chapters, characters, notes…).
+- `src/lib/useDebouncedSave.ts` — debounced автосохранение глав.
+- `src/lib/useDropdownPosition.ts` — позиционирование дропдаунов (backdrop-паттерн).
+- `src/lib/versions.ts` — логика снапшотов/версий.
+- `src/lib/pov.ts` — управление POV-записями глав.
+- `src/lib/characters.ts` + `character_relations.ts` + `character_relationships.ts` — CRUD + двусторонние связи.
+- `src/lib/crossrefs.ts` — бэклинки: поиск упоминаний персонажей по главам.
 
 ## Supabase
 
@@ -101,6 +135,7 @@ npm run preview    # превью продакшен-сборки
 - **При обнаружении нового бага или планируемой фичи — сразу добавлять в `docs/roadmap.md`** в соответствующую зону критичности: если баг блокирует работу или критичен для пользователя — вверх раздела (перед остальными); если некритичен — вниз раздела. Не откладывать и не ждать явного запроса.
 - **Периодически запускать `npx knip` и `npm run typecheck`** для проверки мёртвого кода, неиспользуемых экспортов и зависимостей. Инструмент: `knip` (без установки, через `npx`). Делать перед каждым крупным релизом или по явному запросу.
 - **После изменений в feature-коде обновлять соответствующий `docs/features/*.md`**: новые поля БД, новые компоненты, новые lib-файлы, deprecated-пометки. Не переписывать целиком — только точечные правки. Цель: быстрая ориентация без чтения исходников.
+- **При создании нового файла в `src/components/`, `src/pages/` или `src/lib/` — добавить одну строку в `## Архитектура` в `CLAUDE.md`** с кратким описанием назначения файла. Хук в `.claude/settings.json` напоминает об этом автоматически.
 
 ## Скиллы
 
