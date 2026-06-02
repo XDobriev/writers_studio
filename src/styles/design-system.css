@@ -111,9 +111,28 @@
   --ink:   oklch(0.18 0.022 60);
   --ink-2: oklch(0.36 0.018 60);
   --ink-3: oklch(0.43 0.014 60); /* было 0.52 → 3.97:1, теперь ≈4.8:1, WCAG AA */
-  --ink-4: oklch(0.56 0.012 60); /* было 0.64 → тоже ниже порога на малом тексте */
+  --ink-4: oklch(0.50 0.012 60); /* было 0.64 → тоже ниже порога на малом тексте */
 
   color-scheme: light;
+}
+
+/* Bubble menu имеет hard-coded тёмный фон — text должен быть светлым */
+[data-theme="light"] .bubble-btn { color: oklch(0.88 0.008 80); }
+[data-theme="light"] .bubble-sep { background: oklch(100% 0 0 / 0.13); }
+
+[data-theme="light"] .skeleton::after {
+  background: linear-gradient(90deg,
+    transparent,
+    oklch(0.60 0.008 60 / 0.09),
+    transparent);
+}
+
+[data-theme="light"] {
+  --character-color-0: oklch(0.45 0.16 30);
+  --character-color-1: oklch(0.42 0.12 220);
+  --character-color-2: oklch(0.42 0.10 160);
+  --character-color-3: oklch(0.46 0.10 280);
+  --character-color-4: oklch(0.48 0.09 55);
 }
 
 html, body, #root {
@@ -304,7 +323,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   width: 28px; height: 28px; border-radius: 999px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   display: flex; align-items: center; justify-content: center;
-  font: 500 11px var(--font-ui); color: var(--bg-deep);
+  font: 500 11px var(--font-ui); color: oklch(0.98 0 0);
 }
 .sb-foot-name { font-size: 12.5px; color: var(--ink); }
 .sb-foot-meta { font-size: 11px; color: var(--ink-3); }
@@ -720,7 +739,7 @@ input[type="number"].input:hover::-webkit-inner-spin-button,
 input[type="number"].input:hover::-webkit-outer-spin-button { opacity: 0.8; }
 select.input {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2373645A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   padding-right: 32px;

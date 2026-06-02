@@ -247,11 +247,11 @@ export default function MapScreen() {
       {/* Background upload modal */}
       {bgModalOpen && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setBgModalOpen(false)}
         >
           <div
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '24px 28px', width: 340, boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '24px 28px', width: 340, boxShadow: '0 8px 40px oklch(0 0 0 / 0.6)' }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>

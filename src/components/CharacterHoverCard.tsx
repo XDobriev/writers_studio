@@ -15,8 +15,8 @@ function avatarColor(name: string) {
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0x7fffffff;
   const hue = AVATAR_HUES[h % AVATAR_HUES.length];
   return {
-    bg: `oklch(0.63 0.16 ${hue} / 0.14)`,
-    text: `oklch(0.72 0.18 ${hue})`,
+    bg: `oklch(0.63 0.16 ${hue} / 0.18)`,
+    text: `oklch(0.40 0.18 ${hue})`,
   };
 }
 

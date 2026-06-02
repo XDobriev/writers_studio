@@ -450,6 +450,7 @@ function FeatureRow({ eyebrow, headline, body, bullets, mock, reverse }: {
 
 function BrowserMock({ children }: { children: ReactNode }) {
   return (
+    <div data-theme="dark">
     <div className="lnd-browser-mock" style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--bg-deep)', border: '1px solid var(--border)', boxShadow: '0 0 0 1px var(--border), 0 24px 72px oklch(0 0 0 / 0.55), 0 0 56px oklch(0.63 0.16 30 / 0.07)' }}>
       <div style={{ height: 32, background: 'oklch(0.20 0.014 50)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 6, borderBottom: '1px solid var(--border-soft)' }}>
         <span style={{ width: 11, height: 11, borderRadius: 999, background: 'oklch(0.62 0.16 25)' }} />
@@ -458,6 +459,7 @@ function BrowserMock({ children }: { children: ReactNode }) {
         <span style={{ flex: 1, textAlign: 'center', font: '400 11px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.06em' }}>avtorstudio.com</span>
       </div>
       <div style={{ height: 380, position: 'relative', overflow: 'hidden' }}>{children}</div>
+    </div>
     </div>
   );
 }

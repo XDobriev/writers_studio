@@ -427,7 +427,7 @@ export function WorldMap({
               position: 'absolute', left: popupLeft, top: popupTop,
               width: 240, background: 'var(--surface)', border: '1px solid var(--border)',
               borderRadius: 10, padding: '12px 14px',
-              boxShadow: '0 6px 28px rgba(0,0,0,0.45)', zIndex: 20,
+              boxShadow: '0 6px 28px oklch(0 0 0 / 0.45)', zIndex: 20,
             }}
             onPointerDown={e => e.stopPropagation()}
           >
@@ -495,7 +495,7 @@ export function WorldMap({
           const clampedTop  = Math.max(midY - 20, 8);
           return (
             <div
-              style={{ position: 'absolute', left: clampedLeft, top: clampedTop, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)', zIndex: 15, display: 'flex', gap: 8, alignItems: 'center' }}
+              style={{ position: 'absolute', left: clampedLeft, top: clampedTop, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', boxShadow: '0 4px 16px oklch(0 0 0 / 0.4)', zIndex: 15, display: 'flex', gap: 8, alignItems: 'center' }}
               onPointerDown={e => e.stopPropagation()}
             >
               <input
@@ -531,7 +531,7 @@ export function WorldMap({
         })()}
 
         {/* ── Hint bar ── */}
-        <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '6px 14px', font: '400 11px var(--font-ui)', color: 'var(--ink-3)', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', pointerEvents: 'none', zIndex: 10, whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '6px 14px', font: '400 11px var(--font-ui)', color: 'var(--ink-3)', boxShadow: '0 2px 10px oklch(0 0 0 / 0.1)', pointerEvents: 'none', zIndex: 10, whiteSpace: 'nowrap' }}>
           {hintText}
         </div>
 
@@ -539,7 +539,7 @@ export function WorldMap({
         {isMobile && unmapped.length > 0 && (
           <button
             onClick={() => setUnmappedSheetOpen(true)}
-            style={{ position: 'absolute', top: 10, right: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: '5px 10px 5px 8px', display: 'flex', alignItems: 'center', gap: 5, font: '400 11px var(--font-ui)', color: 'var(--ink-3)', boxShadow: '0 2px 12px rgba(0,0,0,0.3)', cursor: 'pointer', zIndex: 10 }}
+            style={{ position: 'absolute', top: 10, right: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: '5px 10px 5px 8px', display: 'flex', alignItems: 'center', gap: 5, font: '400 11px var(--font-ui)', color: 'var(--ink-3)', boxShadow: '0 2px 12px oklch(0 0 0 / 0.3)', cursor: 'pointer', zIndex: 10 }}
           >
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-2)', flexShrink: 0, display: 'inline-block' }} />
             {unmapped.length} не размещены
@@ -571,7 +571,7 @@ export function WorldMap({
 
       {/* ── Mobile: bottom sheet (edit location) ── */}
       {isMobile && selected && mode === 'place' && (
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--surface)', borderTop: '1px solid var(--border)', borderRadius: '16px 16px 0 0', padding: '0 16px 24px', boxShadow: '0 -4px 32px rgba(0,0,0,0.5)', zIndex: 30 }}>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--surface)', borderTop: '1px solid var(--border)', borderRadius: '16px 16px 0 0', padding: '0 16px 24px', boxShadow: '0 -4px 32px oklch(0 0 0 / 0.5)', zIndex: 30 }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--surface-3)', margin: '10px auto 12px' }} onPointerDown={() => setSelectedId(null)} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 4, padding: '2px 7px' }}>
@@ -623,7 +623,7 @@ export function WorldMap({
 
       {/* ── Mobile: unmapped bottom sheet ── */}
       {isMobile && unmappedSheetOpen && (
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--surface)', borderTop: '1px solid var(--border)', borderRadius: '16px 16px 0 0', boxShadow: '0 -4px 32px rgba(0,0,0,0.5)', zIndex: 30 }}>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--surface)', borderTop: '1px solid var(--border)', borderRadius: '16px 16px 0 0', boxShadow: '0 -4px 32px oklch(0 0 0 / 0.5)', zIndex: 30 }}>
           <div style={{ padding: '14px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ font: '500 12px var(--font-ui)', color: 'var(--ink-2)' }}>Не размещены на карте</span>
             <button onClick={() => setUnmappedSheetOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-4)', font: '20px var(--font-ui)', cursor: 'pointer' }}>×</button>
@@ -634,7 +634,7 @@ export function WorldMap({
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc.name}</span>
               <button
                 onClick={() => { setPendingPlaceId(loc.id); setUnmappedSheetOpen(false); }}
-                style={{ background: 'var(--accent-soft)', border: '1px solid rgba(192,80,48,0.3)', borderRadius: 5, color: 'var(--accent)', font: '400 11px var(--font-ui)', padding: '3px 10px', cursor: 'pointer' }}
+                style={{ background: 'var(--accent-soft)', border: '1px solid oklch(0.63 0.16 30 / 0.3)', borderRadius: 5, color: 'var(--accent)', font: '400 11px var(--font-ui)', padding: '3px 10px', cursor: 'pointer' }}
               >
                 Разместить
               </button>

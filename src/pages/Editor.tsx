@@ -273,7 +273,7 @@ export default function Editor() {
           <span>⚠ Последнее изменение не сохранено — нет соединения. Не закрывайте вкладку.</span>
           <button
             onClick={() => { void flush(); }}
-            style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff',
+            style={{ background: 'oklch(1 0 0 / 0.2)', border: 'none', color: 'oklch(0.98 0 0)',
               borderRadius: 4, padding: '2px 10px', cursor: 'pointer', fontSize: 12 }}
           >
             Повторить

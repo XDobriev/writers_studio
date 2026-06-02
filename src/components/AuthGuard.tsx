@@ -13,7 +13,7 @@ function SessionExpiredOverlay({ onDismiss }: { onDismiss: () => void }) {
       justifyContent: 'center',
       backdropFilter: 'blur(6px)',
       WebkitBackdropFilter: 'blur(6px)',
-      background: 'rgba(0, 0, 0, 0.45)',
+      background: 'oklch(0 0 0 / 0.45)',
     }}>
       <div style={{
         background: 'var(--bg-deep)',
@@ -26,7 +26,7 @@ function SessionExpiredOverlay({ onDismiss }: { onDismiss: () => void }) {
         gap: 10,
         textAlign: 'center',
         maxWidth: 280,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        boxShadow: '0 8px 32px oklch(0 0 0 / 0.4)',
       }}>
         <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
           Сессия завершена

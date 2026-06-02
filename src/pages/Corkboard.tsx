@@ -163,7 +163,7 @@ function SortableCorkCard({
           {menuOpen && (
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onMouseDown={() => { setMenuOpen(false); setDeleteConfirm(false); }} />
-              {dropdownStyle && <div style={{ ...dropdownStyle, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px rgba(0,0,0,0.18)' }}>
+              {dropdownStyle && <div style={{ ...dropdownStyle, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px oklch(0 0 0 / 0.18)' }}>
               <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px 6px' }}>Статус</div>
               {STATUS_ORDER.map((s) => (
                 <button
