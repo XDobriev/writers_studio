@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
-import { useWindowWidth } from '../lib/useWindowWidth';
+import { useErrorState } from '../lib/useErrorState';
+import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
@@ -15,7 +16,7 @@ import {
   type CharacterPatch,
   type CharacterRole,
 } from '../lib/characters';
-import type { CharacterRelationship } from '../lib/character_relationships';
+import type { CharacterRelationship } from '../lib/relationships';
 import { QUERY_KEYS, useBook, useCharacters, useRelationships, useChapterCharacters } from '../lib/queries';
 import { syncCharacterAcrossAllChapters, findNameVariantsInText } from '../lib/crossrefs';
 import { getCharacterColor } from '../lib/pov';
@@ -56,14 +57,14 @@ export default function Characters() {
   const { data: book } = useBook(bookId);
   const { data: characters, error: charsQueryError } = useCharacters(bookId);
   const { data: relationships, error: relsQueryError } = useRelationships(bookId);
-  const [mutationError, setError] = useState<string | null>(null);
+  const { error: mutationError, setError } = useErrorState();
   const error = charsQueryError?.message ?? relsQueryError?.message ?? mutationError ?? null;
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [query, setQuery] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [detailTab, setDetailTab] = useState<DetailTab>('info');
-  const isMobile = useWindowWidth() < 768;
+  const { isMobile } = useResponsive();
 
   const filtered = useMemo(() => {
     if (!characters) return [];
@@ -131,18 +132,35 @@ export default function Characters() {
     lastActiveIdRef.current = newId;
   }, [active, flush]);
 
-  const { onCreate, onDelete, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange } = useCharacterMutations({
+  const handleCreated = useCallback((id: string) => {
+    const next = new URLSearchParams(search);
+    next.set('character', id);
+    setSearch(next, { replace: false });
+    setViewMode('detail');
+  }, [search, setSearch, setViewMode]);
+
+  const handleDeleted = useCallback((remaining: Character[]) => {
+    setConfirmDelete(false);
+    const next = new URLSearchParams(search);
+    if (remaining.length > 0) {
+      next.set('character', remaining[0].id);
+    } else {
+      next.delete('character');
+      setViewMode('grid');
+    }
+    setSearch(next, { replace: true });
+  }, [search, setSearch, setViewMode, setConfirmDelete]);
+
+  const { onCreate, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange } = useCharacterMutations({
     bookId,
     userId: user?.id,
     characters,
     active,
     queryClient,
-    search,
-    setSearch,
-    setViewMode,
-    setConfirmDelete,
-    setError,
     cancelSave,
+    onError: setError,
+    onCreated: handleCreated,
+    onDeleted: handleDeleted,
   });
 
   useEffect(() => {
@@ -394,7 +412,7 @@ export default function Characters() {
               )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, paddingBottom: 32 }}>
-                <button onClick={onDelete} className="btn btn--ghost" style={{ color: 'var(--danger)' }}>Удалить персонажа</button>
+                <button onClick={() => active && setConfirmDelete(true)} className="btn btn--ghost" style={{ color: 'var(--danger)' }}>Удалить персонажа</button>
               </div>
             </div>
           ) : (

@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
 export type ChapterStatus = 'draft' | 'progress' | 'done';
+export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 export interface Chapter {
   id: string;

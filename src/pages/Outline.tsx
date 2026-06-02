@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useDropdownPosition } from '../lib/useDropdownPosition';
+import { useErrorState } from '../lib/useErrorState';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -450,7 +451,7 @@ export default function Outline() {
   const handlePovChanged = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterPovMap(bookId!) });
   }, [queryClient, bookId]);
-  const [mutationError, setError] = useState<string | null>(null);
+  const { error: mutationError, setError } = useErrorState();
   const error = chaptersError?.message ?? mutationError;
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);

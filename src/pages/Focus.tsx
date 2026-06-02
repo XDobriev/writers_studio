@@ -1,112 +1,79 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { RichEditor } from '../components/RichEditor';
-import { type Book } from '../lib/supabase';
-import { getBook } from '../lib/books';
 import {
   countWords,
-  listChapters,
   updateChapter,
-  type Chapter,
   type ChapterPatch,
+  type SaveState,
 } from '../lib/chapters';
-
-type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+import { useBook, useChapters, useChapterContent } from '../lib/queries';
+import { updateChapterWithCache } from '../lib/chapterMutations';
+import { useDebouncedSave } from '../lib/useDebouncedSave';
 
 export default function Focus() {
   const { id: bookId } = useParams<{ id: string }>();
   const [search] = useSearchParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [chapters, setChapters] = useState<Chapter[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data: book, error: bookError } = useBook(bookId);
+  const { data: chapters, error: chaptersError } = useChapters(bookId);
+
+  const requestedId = search.get('chapter');
+  const activeId = useMemo(() => {
+    if (!chapters || chapters.length === 0) return null;
+    if (requestedId && chapters.some((c) => c.id === requestedId)) return requestedId;
+    return chapters[0].id;
+  }, [chapters, requestedId]);
+
+  const { data: chapterContentData } = useChapterContent(activeId ?? undefined);
+  const activeContent = chapterContentData?.content ?? '';
+
+  const activeChapter = useMemo(
+    () => (chapters && activeId ? chapters.find((c) => c.id === activeId) ?? null : null),
+    [chapters, activeId],
+  );
+
   const [saveState, setSaveState] = useState<SaveState>('idle');
 
-  const requestedChapter = search.get('chapter');
-
-  useEffect(() => {
-    if (!bookId) return;
-    let cancelled = false;
-    (async () => {
+  const { scheduleSave, flush } = useDebouncedSave<ChapterPatch>(
+    async (id, patch) => {
+      if (!bookId) return;
+      setSaveState('saving');
       try {
-        const [book, list] = await Promise.all([
-          getBook(bookId),
-          listChapters(bookId),
-        ]);
-        if (cancelled) return;
-        setBook(book);
-        setChapters(list);
+        const updated = await updateChapter(id, patch);
+        updateChapterWithCache(queryClient, bookId, updated);
+        setSaveState('saved');
       } catch (e) {
-        if (!cancelled) setError((e as Error).message);
+        setSaveState('error');
+        throw e;
       }
-    })();
-    return () => { cancelled = true; };
-  }, [bookId]);
+    },
+    700,
+  );
 
-  const activeChapter = useMemo(() => {
-    if (!chapters || chapters.length === 0) return null;
-    if (requestedChapter) {
-      const found = chapters.find((c) => c.id === requestedChapter);
-      if (found) return found;
-    }
-    return chapters[0];
-  }, [chapters, requestedChapter]);
-
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingPatch = useRef<ChapterPatch | null>(null);
-  const targetIdRef = useRef<string | null>(null);
-
-  const flush = useCallback(async () => {
-    const patch = pendingPatch.current;
-    const id = targetIdRef.current;
-    pendingPatch.current = null;
-    if (!patch || !id) return;
-    setSaveState('saving');
-    try {
-      const updated = await updateChapter(id, patch);
-      setChapters((prev) => prev ? prev.map((c) => (c.id === id ? updated : c)) : prev);
-      setSaveState('saved');
-    } catch (e) {
-      setSaveState('error');
-      setError((e as Error).message);
-    }
-  }, []);
-
-  const scheduleSave = useCallback((id: string, patch: ChapterPatch) => {
-    targetIdRef.current = id;
-    pendingPatch.current = { ...(pendingPatch.current ?? {}), ...patch };
-    setSaveState('saving');
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => { void flush(); }, 700);
-  }, [flush]);
-
-  useEffect(() => () => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    void flush();
-  }, [flush]);
+  const error = (bookError ?? chaptersError)?.message ?? null;
 
   const exit = useCallback(() => {
-    if (saveTimer.current) {
-      clearTimeout(saveTimer.current);
-      void flush();
-    }
-    const target = activeChapter ? `/books/${bookId}/editor?chapter=${activeChapter.id}` : `/books/${bookId}/editor`;
+    void flush();
+    const target = activeId
+      ? `/books/${bookId}/editor?chapter=${activeId}`
+      : `/books/${bookId}/editor`;
     navigate(target);
-  }, [activeChapter, bookId, flush, navigate]);
+  }, [activeId, bookId, flush, navigate]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') exit();
-    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') exit(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [exit]);
 
   const onContentChange = useCallback((html: string) => {
-    if (!activeChapter) return;
-    scheduleSave(activeChapter.id, { content: html, words: countWords(html) });
-  }, [activeChapter, scheduleSave]);
+    if (!activeId) return;
+    scheduleSave(activeId, { content: html, words: countWords(html) });
+  }, [activeId, scheduleSave]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
@@ -138,10 +105,10 @@ export default function Focus() {
 
   const idx = chapters.findIndex((c) => c.id === activeChapter.id);
   const saveLabel: Record<SaveState, { text: string; color: string }> = {
-    idle: { text: '', color: 'var(--ink-4)' },
-    saving: { text: '● сохранение', color: 'var(--accent-2)' },
-    saved: { text: '● сохранено', color: 'var(--ok)' },
-    error: { text: '● ошибка', color: 'var(--danger)' },
+    idle:   { text: '',               color: 'var(--ink-4)'    },
+    saving: { text: '● сохранение',  color: 'var(--accent-2)' },
+    saved:  { text: '● сохранено',   color: 'var(--ok)'       },
+    error:  { text: '● ошибка',      color: 'var(--danger)'   },
   };
 
   const focusEditorStyle =
@@ -172,7 +139,7 @@ export default function Focus() {
 
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '80px 40px 60px', overflow: 'auto' }}>
         <RichEditor
-          value={activeChapter.content}
+          value={activeContent}
           onChange={onContentChange}
           contentKey={activeChapter.id}
           placeholder="Только текст и вы. Печатайте…"

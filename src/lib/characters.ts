@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { createRepository } from './repository';
 
 export type CharacterRole = 'protagonist' | 'secondary' | 'minor';
 
@@ -28,51 +29,30 @@ export type CharacterPatch = Partial<
   Pick<Character, 'name' | 'role' | 'age' | 'quote' | 'appearance' | 'personality' | 'interior_life' | 'exterior_life' | 'gap' | 'backstory' | 'notes' | 'position' | 'avatar_url' | 'aliases'>
 >;
 
-export async function listCharacters(bookId: string): Promise<Character[]> {
-  const { data, error } = await supabase
-    .from('characters')
-    .select('*')
-    .eq('book_id', bookId)
-    .order('position', { ascending: true })
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as Character[];
+const repo = createRepository<Character>(
+  'characters',
+  { name: 'Без имени', role: 'protagonist', position: 0 },
+  [{ column: 'position', ascending: true }, { column: 'created_at', ascending: true }],
+);
+
+export function listCharacters(bookId: string): Promise<Character[]> {
+  return repo.list(bookId);
 }
 
-export async function createCharacter(
+export function createCharacter(
   bookId: string,
   userId: string,
   patch: { name?: string; role?: CharacterRole; position?: number } = {},
 ): Promise<Character> {
-  const { data, error } = await supabase
-    .from('characters')
-    .insert({
-      book_id: bookId,
-      user_id: userId,
-      name: patch.name ?? 'Без имени',
-      role: patch.role ?? 'protagonist',
-      position: patch.position ?? 0,
-    })
-    .select('*')
-    .single();
-  if (error) throw error;
-  return data as Character;
+  return repo.create(bookId, userId, patch);
 }
 
-export async function updateCharacter(id: string, patch: CharacterPatch): Promise<Character> {
-  const { data, error } = await supabase
-    .from('characters')
-    .update(patch)
-    .eq('id', id)
-    .select('*')
-    .single();
-  if (error) throw error;
-  return data as Character;
+export function updateCharacter(id: string, patch: CharacterPatch): Promise<Character> {
+  return repo.update(id, patch as Record<string, unknown>);
 }
 
-export async function deleteCharacter(id: string): Promise<void> {
-  const { error } = await supabase.from('characters').delete().eq('id', id);
-  if (error) throw error;
+export function deleteCharacter(id: string): Promise<void> {
+  return repo.delete(id);
 }
 
 export async function uploadCharacterAvatar(characterId: string, userId: string, file: File): Promise<string> {

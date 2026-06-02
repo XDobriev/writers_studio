@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useWindowWidth } from '../lib/useWindowWidth';
+import { useResponsive } from '../lib/useResponsive';
 
 interface StatusBarProps {
   words?: number;
@@ -10,6 +10,8 @@ interface StatusBarProps {
   goalWords?: number;
   streak?: number;
   onGoalChange?: (goal: number) => void;
+  focusMode?: boolean;
+  onToggleFocusMode?: () => void;
 }
 
 const SOUNDS = [
@@ -25,10 +27,10 @@ type SoundId = typeof SOUNDS[number]['id'];
 const FADE_STEPS = 20;
 const FADE_MS = 500;
 
-export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, todayWords, goalWords = 1000, streak, onGoalChange }: StatusBarProps) {
+export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, todayWords, goalWords = 1000, streak, onGoalChange, focusMode, onToggleFocusMode }: StatusBarProps) {
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
-  const isNarrow = useWindowWidth() < 480;
+  const { isNarrow } = useResponsive();
 
   const [popupOpen, setPopupOpen] = useState(false);
   const [activeSound, setActiveSound] = useState<SoundId | null>(
@@ -265,6 +267,32 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, tod
             </>
           )}
         </>
+      )}
+      {!isNarrow && onToggleFocusMode && (
+        <button
+          onClick={onToggleFocusMode}
+          title={focusMode ? 'Выключить режим фокуса' : 'Режим фокуса'}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 22,
+            height: 22,
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            padding: 0,
+            color: focusMode ? 'var(--accent)' : 'var(--ink-3)',
+            borderRadius: 4,
+            marginLeft: 4,
+          }}
+        >
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M3 12h2M19 12h2M12 3v2M12 19v2"/>
+            <path d="M5.6 5.6l1.4 1.4M16.9 16.9l1.4 1.4M5.6 18.4l1.4-1.4M16.9 7.1l1.4-1.4"/>
+          </svg>
+        </button>
       )}
       {!isNarrow && (
         <div ref={wrapperRef} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>

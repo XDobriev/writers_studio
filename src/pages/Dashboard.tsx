@@ -1,6 +1,7 @@
 import { Link, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useMemo, useState, useEffect } from 'react';
+import { useErrorState } from '../lib/useErrorState';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
@@ -10,7 +11,7 @@ import { updateBook } from '../lib/books';
 import { type Chapter } from '../lib/chapters';
 import { pluralDays, plural } from '../lib/useWritingStats';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useWritingSnapshots } from '../lib/queries';
-import { useWindowWidth } from '../lib/useWindowWidth';
+import { useResponsive } from '../lib/useResponsive';
 
 const STATUS_LABEL: Record<Chapter['status'], string> = {
   draft: 'черновик',
@@ -55,14 +56,13 @@ export default function Dashboard() {
   const [editGenres, setEditGenres] = useState<string[]>([]);
   const [editGoal, setEditGoal] = useState(0);
   const [editSaving, setEditSaving] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
+  const { error: editError, setError: setEditError, clearError: clearEditError } = useErrorState();
   const [weeklyToast, setWeeklyToast] = useState<string | null>(null);
   const [weeklyToastLeaving, setWeeklyToastLeaving] = useState(false);
 
   const navigate = useNavigate();
 
-  const windowWidth = useWindowWidth();
-  const isMobile = windowWidth < 768;
+  const { isMobile } = useResponsive();
   const [showMobileSb, setShowMobileSb] = useState(false);
   useEffect(() => { if (!isMobile) setShowMobileSb(false); }, [isMobile]);
 
@@ -71,14 +71,14 @@ export default function Dashboard() {
     setEditTitle(book.title);
     setEditGenres(book.genres ?? []);
     setEditGoal(book.goal);
-    setEditError(null);
+    clearEditError();
     setEditOpen(true);
   };
 
   const saveEdit = async () => {
     if (!editTitle.trim() || !id) return;
     setEditSaving(true);
-    setEditError(null);
+    clearEditError();
     try {
       const data = await updateBook(id, { title: editTitle.trim(), genres: editGenres, goal: Math.max(0, editGoal) });
       queryClient.setQueryData(QUERY_KEYS.book(id), data);

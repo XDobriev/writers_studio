@@ -1,4 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useResponsive } from '../lib/useResponsive';
+import { useErrorState } from '../lib/useErrorState';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { LogoMark } from '../components/LogoMark';
@@ -29,8 +31,8 @@ export default function Home() {
   const { data: books, error: booksError } = useBooks(user?.id);
   const { data: profile } = useProfile(user?.id);
   const plan = ((profile?.plan ?? 'free') as Plan);
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-  const [err, setErr] = useState<string | null>(null);
+  const { isMobile } = useResponsive();
+  const { error: err, setError: setErr } = useErrorState();
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -41,7 +43,7 @@ export default function Home() {
   const [editGoal, setEditGoal] = useState(0);
   const [editCover, setEditCover] = useState(COVERS[0]);
   const [editSaving, setEditSaving] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
+  const { error: editError, setError: setEditError, clearError: clearEditError } = useErrorState();
 
   const [createGenres, setCreateGenres] = useState<string[]>([]);
   const [createCover, setCreateCover] = useState(COVERS[0]);
@@ -87,13 +89,13 @@ export default function Home() {
     setEditGenres(b.genres ?? []);
     setEditGoal(b.goal);
     setEditCover(b.cover ?? COVERS[0]);
-    setEditError(null);
+    clearEditError();
   };
 
   const saveEditBook = async () => {
     if (!editBook || !editTitle.trim()) return;
     setEditSaving(true);
-    setEditError(null);
+    clearEditError();
     try {
       const data = await updateBook(editBook.id, { title: editTitle.trim(), genres: editGenres, goal: Math.max(0, editGoal), cover: editCover });
       queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => prev?.map((b) => b.id === editBook.id ? data : b));
@@ -105,12 +107,6 @@ export default function Home() {
     }
   };
 
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)');
-    const handler = () => setIsMobile(mq.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
 
   useEffect(() => {
     if (books != null && books.length === 0 && !localStorage.getItem('as_onboarding_done')) {

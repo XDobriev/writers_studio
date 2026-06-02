@@ -748,7 +748,6 @@ select.input {
 .sheet .tiptap em,
 .sheet .tiptap strong {
   color: var(--paper-ink);
-  opacity: 1 !important;
 }
 .tiptap p { margin: 0 0 1em; }
 .tiptap p:last-child { margin-bottom: 0; }
@@ -812,6 +811,27 @@ select.input {
 .tiptap sup { vertical-align: super; font-size: 0.75em; }
 /* text cursor inside editor is sufficient focus indicator */
 .tiptap:focus-visible { outline: none; }
+
+/* Focus Mode — paragraph dimming */
+.focus-mode .sheet .tiptap p,
+.focus-mode .sheet .tiptap li,
+.focus-mode .sheet .tiptap h1,
+.focus-mode .sheet .tiptap h2,
+.focus-mode .sheet .tiptap h3,
+.focus-mode .sheet .tiptap blockquote {
+  opacity: 0.38;
+  transition: opacity 0.2s ease;
+}
+.focus-mode .sheet .tiptap .has-focus {
+  opacity: 1;
+}
+.focus-mode .sheet .sheet-title {
+  opacity: 0.38;
+  transition: opacity 0.2s ease;
+}
+.focus-mode .sheet .sheet-title:focus {
+  opacity: 1;
+}
 
 /* book card — карточка книги на Home */
 .book-card { position: relative; }

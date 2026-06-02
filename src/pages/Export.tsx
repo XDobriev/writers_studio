@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { useErrorState } from '../lib/useErrorState';
 import { useAuth } from '../lib/auth';
 import {
   AlignmentType,
@@ -636,7 +637,7 @@ export default function Export() {
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[] | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const { error, setError, clearError } = useErrorState();
   const [authorName, setAuthorName] = useState('');
   const authorInitialized = useRef(false);
 
@@ -673,7 +674,7 @@ export default function Export() {
       }
     })();
     return () => { cancelled = true; };
-  }, [bookId]);
+  }, [bookId, setError]);
 
   // Инициализируем автора из книги или профиля пользователя (однократно)
   useEffect(() => {
@@ -705,7 +706,7 @@ export default function Export() {
     if (!book) return;
     if (selectedChapters.length === 0) { setError('Нет глав для экспорта.'); return; }
     setBusy(true);
-    setError(null);
+    clearError();
     const bookWithAuthor = { ...book, author: authorName.trim() || book.author };
     const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle };
     try {
@@ -727,7 +728,7 @@ export default function Export() {
     } finally {
       setBusy(false);
     }
-  }, [book, authorName, selectedChapters, format, includeChapterTitles, includeTitlePage, includeNotes, notes, language, paragraphStyle, filename]);
+  }, [book, authorName, selectedChapters, format, includeChapterTitles, includeTitlePage, includeNotes, notes, language, paragraphStyle, filename, setError, clearError]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 

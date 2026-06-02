@@ -1,4 +1,5 @@
 import { useWindowWidth } from './useWindowWidth';
+import { BREAKPOINTS } from './useResponsive';
 
 type Mode = 'studio' | 'left' | 'right' | 'page';
 
@@ -17,12 +18,12 @@ interface EditorLayout {
 
 export function useEditorLayout(mode: Mode): EditorLayout {
   const windowWidth = useWindowWidth();
-  const isMobile = windowWidth < 768;
-  const isNarrow = windowWidth < 480;
-  const isTablet = !isMobile && windowWidth < 1024;
+  const isMobile = windowWidth < BREAKPOINTS.MOBILE;
+  const isNarrow = windowWidth < BREAKPOINTS.NARROW;
+  const isTablet = !isMobile && windowWidth < BREAKPOINTS.TABLET;
   const showLeft = !isMobile && (mode === 'studio' || mode === 'left');
   // На мобильном RightPanel доступна через drawer — в грид не включаем
-  const showRight = !isMobile && ((mode === 'studio' && windowWidth >= 1200) || mode === 'right');
+  const showRight = !isMobile && ((mode === 'studio' && windowWidth >= BREAKPOINTS.WIDE) || mode === 'right');
   const isPage = mode === 'page';
 
   const cols = isPage

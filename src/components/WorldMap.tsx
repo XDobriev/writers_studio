@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useWindowWidth } from '../lib/useWindowWidth';
+import { useResponsive } from '../lib/useResponsive';
 import { TYPE_GLYPHS, TYPE_LABELS, type Location, type LocationPatch, type LocationType } from '../lib/locations';
 import { CONNECTION_STYLES, type LocationConnection, type ConnectionPatch } from '../lib/connections';
 import type { MapMode } from '../pages/Map';
@@ -29,7 +29,7 @@ export function WorldMap({
   onCreateConnection, onDeleteConnection, onUpdateConnection,
 }: WorldMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const isMobile = useWindowWidth() < 768;
+  const { isMobile } = useResponsive();
 
   // ── Pan / zoom state ─────────────────────────────────────────────────────
   const [pan, setPan] = useState({ x: 0, y: 0 });

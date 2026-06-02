@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { createRepository } from './repository';
 
 export type ConnectionStyle = 'road' | 'river' | 'path' | 'border';
 
@@ -27,43 +27,29 @@ export const CONNECTION_STYLES: Record<ConnectionStyle, {
   border: { label: 'Граница', stroke: 'var(--ink-3)',    width: 2,   dash: '8 3' },
 };
 
-export async function listConnections(bookId: string): Promise<LocationConnection[]> {
-  const { data, error } = await supabase
-    .from('location_connections')
-    .select('*')
-    .eq('book_id', bookId)
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as LocationConnection[];
+const repo = createRepository<LocationConnection>(
+  'location_connections',
+  {},
+  [{ column: 'created_at', ascending: true }],
+);
+
+export function listConnections(bookId: string): Promise<LocationConnection[]> {
+  return repo.list(bookId);
 }
 
-export async function createConnection(
+export function createConnection(
   bookId: string,
   userId: string,
   fromId: string,
   toId: string,
 ): Promise<LocationConnection> {
-  const { data, error } = await supabase
-    .from('location_connections')
-    .insert({ book_id: bookId, user_id: userId, from_id: fromId, to_id: toId })
-    .select('*')
-    .single();
-  if (error) throw error;
-  return data as LocationConnection;
+  return repo.create(bookId, userId, { from_id: fromId, to_id: toId });
 }
 
-export async function updateConnection(id: string, patch: ConnectionPatch): Promise<LocationConnection> {
-  const { data, error } = await supabase
-    .from('location_connections')
-    .update(patch)
-    .eq('id', id)
-    .select('*')
-    .single();
-  if (error) throw error;
-  return data as LocationConnection;
+export function updateConnection(id: string, patch: ConnectionPatch): Promise<LocationConnection> {
+  return repo.update(id, patch as Record<string, unknown>);
 }
 
-export async function deleteConnection(id: string): Promise<void> {
-  const { error } = await supabase.from('location_connections').delete().eq('id', id);
-  if (error) throw error;
+export function deleteConnection(id: string): Promise<void> {
+  return repo.delete(id);
 }

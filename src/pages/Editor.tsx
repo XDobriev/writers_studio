@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams, Navigate } from 'react-router-dom';
+import { useErrorState } from '../lib/useErrorState';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { useQueryClient } from '@tanstack/react-query';
 import { EditorHybrid } from '../components/EditorHybrid';
@@ -14,14 +15,19 @@ import {
   type ChapterMeta,
   type ChapterPatch,
   type ChapterStatus,
+  type SaveState,
 } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters, useChapterContent } from '../lib/queries';
-import { createVersion, createVersionKeepAlive } from '../lib/versions';
+import {
+  updateChapterWithCache,
+  createChapterWithCache,
+  deleteChapterWithCache,
+  invalidateChaptersCache,
+} from '../lib/chapterMutations';
 import { useUserDisplay } from '../lib/useUserDisplay';
+import { useChapterVersioning } from '../lib/useChapterVersioning';
 import { syncBacklinks } from '../lib/crossrefs';
 import type { Character } from '../lib/characters';
-
-type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 export default function Editor() {
   const { id: bookId } = useParams<{ id: string }>();
@@ -31,7 +37,7 @@ export default function Editor() {
   const queryClient = useQueryClient();
   const { data: book, error: bookError } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
-  const [mutationError, setError] = useState<string | null>(null);
+  const { error: mutationError, setError } = useErrorState();
   const error = (bookError ?? chaptersError)?.message ?? mutationError;
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [savedAt, setSavedAt] = useState<Date | null>(null);
@@ -73,23 +79,24 @@ export default function Editor() {
         title: `Глава ${nextNum}`,
         position,
       });
-      const { content: _, ...createdMeta } = created;
-      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId!), (prev) => [...(prev ?? []), createdMeta]);
+      createChapterWithCache(queryClient, bookId!, created);
       const next = new URLSearchParams(search);
       next.set('chapter', created.id);
       setSearch(next, { replace: false });
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [bookId, user, chapters, queryClient, search, setSearch]);
+  }, [bookId, user, chapters, queryClient, search, setSearch, setError]);
 
   const sessionTokenRef = useRef<string | null>(null);
-  const currentContentRef = useRef<string>('');
-  const lastVersionContentRef = useRef<Map<string, string>>(new Map());
   const { plan } = useUserDisplay();
   const isPro = plan === 'pro' || plan === 'lifetime';
-  // null означает "план ещё не загружен"; обновляется через useEffect ниже
-  const planRef = useRef<string | null>(null);
+
+  const { currentContentRef, onContentTracked, onChapterSwitch, onBeforeUnload } = useChapterVersioning({
+    chapterId: activeId,
+    userId: user?.id,
+    isPro,
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -101,22 +108,13 @@ export default function Editor() {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => { planRef.current = plan; }, [plan]);
-
   const { scheduleSave: debouncedSave, flush, pendingPatchRef, targetIdRef } = useDebouncedSave<ChapterPatch>(
     async (id, patch) => {
       if (!bookId) return;
       setSaveState('saving');
       try {
         const updated = await updateChapter(id, patch);
-        const { content: _c, ...updatedMeta } = updated;
-        queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-          prev ? prev.map((c) => (c.id === id ? { ...c, ...updatedMeta } : c)) : prev
-        );
-        queryClient.setQueryData<{ id: string; content: string }>(
-          QUERY_KEYS.chapterContent(id),
-          { id: updated.id, content: updated.content }
-        );
+        updateChapterWithCache(queryClient, bookId, updated);
         setSaveState('saved');
         setSavedAt(new Date());
         const characters = queryClient.getQueryData<Character[]>(QUERY_KEYS.characters(bookId)) ?? [];
@@ -153,19 +151,11 @@ export default function Editor() {
           keepalive: true,
         });
       }
-      const content = currentContentRef.current;
-      const userId = user?.id;
-      // Пропускаем keepalive-снимок если контент не изменился с последнего снимка.
-      // createVersionKeepAlive использует raw fetch без проверки дублей — в отличие от createVersion.
-      // lastVersionContentRef.get(id) === undefined означает baseline ещё не установлен,
-      // но тогда content тоже будет '' (данные не загрузились) → условие ниже уже пропустит.
-      if (id && userId && content && token && lastVersionContentRef.current.get(id) !== content) {
-        createVersionKeepAlive(id, userId, content, countWords(content), supabaseUrl, anonKey, token);
-      }
+      onBeforeUnload();
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [user?.id, pendingPatchRef, targetIdRef]);
+  }, [pendingPatchRef, targetIdRef, onBeforeUnload]);
 
   const scheduleSave = useCallback((id: string, patch: ChapterPatch) => {
     if (bookId) {
@@ -191,55 +181,23 @@ export default function Editor() {
     const newId = activeChapter?.id ?? null;
     if (lastActiveIdRef.current && lastActiveIdRef.current !== newId) {
       void flush();
-      const prevId = lastActiveIdRef.current;
-      const userId = user?.id;
-      const content = currentContentRef.current;
-      if (userId && content && lastVersionContentRef.current.get(prevId) !== content) {
-        lastVersionContentRef.current.set(prevId, content);
-        void createVersion(prevId, userId, content, countWords(content), 'chapter_switch', (planRef.current ?? 'free') === 'pro' || (planRef.current ?? 'free') === 'lifetime');
-      }
+      onChapterSwitch(lastActiveIdRef.current);
     }
     lastActiveIdRef.current = newId;
-  }, [activeChapter, flush, user?.id]);
+  }, [activeChapter, flush, onChapterSwitch]);
 
   // ВАЖНО: этот effect должен быть ПОСЛЕ chapter_switch effect выше.
   // Оба могут сработать в одном цикле рендера (когда activeChapter и activeContent
   // меняются одновременно при переходе на закэшированную главу).
   // Порядок объявления = порядок выполнения: chapter_switch читает currentContentRef
   // до того, как он будет перезаписан контентом новой главы.
-  useEffect(() => { currentContentRef.current = activeContent; }, [activeContent]);
-
-  // Инициализация baseline для snapshot-diff при первой загрузке контента главы.
-  // Без этого таймер при первом срабатывании создаёт снимок даже если ничего не менялось,
-  // т.к. lastVersionContentRef пустая (undefined !== content).
-  useEffect(() => {
-    const chapterId = activeChapter?.id;
-    if (!chapterId || !activeContent) return;
-    if (!lastVersionContentRef.current.has(chapterId)) {
-      lastVersionContentRef.current.set(chapterId, activeContent);
-    }
-  }, [activeChapter?.id, activeContent]);
-
-  useEffect(() => {
-    const chapterId = activeChapter?.id;
-    const userId = user?.id;
-    if (!chapterId || !userId) return;
-    const intervalMs = isPro ? 30 * 60_000 : 2 * 60 * 60_000;
-    const id = setInterval(() => {
-      const content = currentContentRef.current;
-      if (!content) return;
-      if (lastVersionContentRef.current.get(chapterId) === content) return;
-      lastVersionContentRef.current.set(chapterId, content);
-      void createVersion(chapterId, userId, content, countWords(content), 'timer', (planRef.current ?? 'free') === 'pro' || (planRef.current ?? 'free') === 'lifetime');
-    }, intervalMs);
-    return () => clearInterval(id);
-  }, [activeChapter?.id, user?.id, isPro]);
+  useEffect(() => { onContentTracked(activeContent); }, [activeContent, onContentTracked]);
 
   const onContentChange = useCallback((html: string) => {
     if (!activeChapter) return;
-    currentContentRef.current = html;
+    onContentTracked(html);
     scheduleSave(activeChapter.id, { content: html, words: countWords(html) });
-  }, [activeChapter, scheduleSave]);
+  }, [activeChapter, scheduleSave, onContentTracked]);
 
   const onTitleChange = useCallback((title: string) => {
     if (!activeChapter) return;
@@ -253,7 +211,7 @@ export default function Editor() {
       );
     }
     await updateChapter(id, { status }).catch(() => {
-      if (bookId) void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
+      if (bookId) invalidateChaptersCache(queryClient, bookId);
     });
   }, [bookId, queryClient]);
 
@@ -268,17 +226,15 @@ export default function Editor() {
   const onDeleteChapter = useCallback(async (id: string) => {
     try {
       await deleteChapter(id);
+      if (bookId) deleteChapterWithCache(queryClient, bookId, id);
       const remaining = (chapters ?? []).filter((c) => c.id !== id);
-      if (bookId) {
-        queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), remaining);
-      }
       if (id === activeId && remaining.length > 0) {
         const next = new URLSearchParams(search);
         next.set('chapter', remaining[0].id);
         setSearch(next, { replace: false });
       }
     } catch {
-      if (bookId) void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
+      if (bookId) invalidateChaptersCache(queryClient, bookId);
     }
   }, [chapters, activeId, bookId, queryClient, search, setSearch]);
 

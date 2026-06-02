@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
-import { useWindowWidth } from '../lib/useWindowWidth';
+import { useErrorState } from '../lib/useErrorState';
+import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { WithMode, Sidebar } from '../components/Chrome';
@@ -31,13 +32,13 @@ export default function MapScreen() {
   const { id: bookId } = useParams<{ id: string }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const isMobile = useWindowWidth() < 768;
+  const { isMobile } = useResponsive();
 
   const { data: book } = useBook(bookId);
   const { data: locations, error: locErr } = useLocations(bookId);
   const { data: connections, error: connErr } = useConnections(bookId);
 
-  const [mutationError, setError] = useState<string | null>(null);
+  const { error: mutationError, setError } = useErrorState();
   const [bgModalOpen, setBgModalOpen] = useState(false);
   const error = locErr?.message ?? connErr?.message ?? mutationError;
 
@@ -55,7 +56,7 @@ export default function MapScreen() {
       const created = await createLocation(bookId, user.id, { position, x, y });
       queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), prev => [...(prev ?? []), created]);
     } catch (e) { setError((e as Error).message); }
-  }, [bookId, user, locations, queryClient]);
+  }, [bookId, user, locations, queryClient, setError]);
 
   const onUpdate = useCallback(async (id: string, patch: LocationPatch) => {
     if (!bookId) return;
@@ -71,7 +72,7 @@ export default function MapScreen() {
       setError((e as Error).message);
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.locations(bookId) });
     }
-  }, [bookId, queryClient]);
+  }, [bookId, queryClient, setError]);
 
   const onDelete = useCallback((id: string) => {
     setConfirmDeleteId(id);
@@ -87,7 +88,7 @@ export default function MapScreen() {
         prev ? prev.filter(l => l.id !== id) : prev
       );
     } catch (e) { setError((e as Error).message); }
-  }, [bookId, confirmDeleteId, queryClient]);
+  }, [bookId, confirmDeleteId, queryClient, setError]);
 
   // ── Connection handlers ──────────────────────────────────────────────────
 
@@ -99,7 +100,7 @@ export default function MapScreen() {
         [...(prev ?? []), created]
       );
     } catch (e) { setError((e as Error).message); }
-  }, [bookId, user, queryClient]);
+  }, [bookId, user, queryClient, setError]);
 
   const onUpdateConnection = useCallback(async (id: string, patch: ConnectionPatch) => {
     if (!bookId) return;
@@ -115,7 +116,7 @@ export default function MapScreen() {
       setError((e as Error).message);
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.connections(bookId) });
     }
-  }, [bookId, queryClient]);
+  }, [bookId, queryClient, setError]);
 
   const onDeleteConnection = useCallback(async (id: string) => {
     if (!bookId) return;
@@ -128,7 +129,7 @@ export default function MapScreen() {
       setError((e as Error).message);
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.connections(bookId) });
     }
-  }, [bookId, queryClient]);
+  }, [bookId, queryClient, setError]);
 
   // ── Background image upload ──────────────────────────────────────────────
 
@@ -147,7 +148,7 @@ export default function MapScreen() {
       await updateBook(bookId, { map_bg_url: cacheBusted });
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
     } catch (e) { setError((e as Error).message); }
-  }, [bookId, user, queryClient]);
+  }, [bookId, user, queryClient, setError]);
 
   // ── Guards ───────────────────────────────────────────────────────────────
 

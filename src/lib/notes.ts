@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { createRepository } from './repository';
 
 export type NoteKind = 'idea' | 'question' | 'todo' | 'important' | 'custom';
 
@@ -15,15 +16,14 @@ export interface Note {
   created_at: string;
 }
 
-export async function fetchNotes(bookId: string): Promise<Note[]> {
-  const { data, error } = await supabase
-    .from('notes')
-    .select('*')
-    .eq('book_id', bookId)
-    .order('position', { ascending: true })
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as Note[];
+const repo = createRepository<Note>(
+  'notes',
+  {},
+  [{ column: 'position', ascending: true }, { column: 'created_at', ascending: false }],
+);
+
+export function fetchNotes(bookId: string): Promise<Note[]> {
+  return repo.list(bookId);
 }
 
 export async function createNote(
@@ -53,31 +53,23 @@ export async function createNote(
   return data as Note;
 }
 
-export async function updateNote(
+export function updateNote(
   id: string,
   kind: NoteKind,
   text: string,
   customLabel?: string,
   customColor?: string,
 ): Promise<Note> {
-  const { data, error } = await supabase
-    .from('notes')
-    .update({
-      kind,
-      text,
-      custom_label: kind === 'custom' ? (customLabel ?? null) : null,
-      custom_color: kind === 'custom' ? (customColor ?? null) : null,
-    })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as Note;
+  return repo.update(id, {
+    kind,
+    text,
+    custom_label: kind === 'custom' ? (customLabel ?? null) : null,
+    custom_color: kind === 'custom' ? (customColor ?? null) : null,
+  });
 }
 
-export async function deleteNote(id: string): Promise<void> {
-  const { error } = await supabase.from('notes').delete().eq('id', id);
-  if (error) throw error;
+export function deleteNote(id: string): Promise<void> {
+  return repo.delete(id);
 }
 
 export async function reorderNotes(updates: { id: string; position: number }[]): Promise<void> {

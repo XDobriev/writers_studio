@@ -7,6 +7,9 @@ export default defineConfig({
     exclude: ['e2e/**', 'node_modules/**'],
   },
   plugins: [react()],
+  optimizeDeps: {
+    include: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+  },
   server: {
     port: 5273,
     strictPort: true,

@@ -40,7 +40,12 @@ npm run preview    # превью продакшен-сборки
 - `src/App.tsx` — роутер. Все маршруты `/books/:id/...` под `<AuthGuard>`.
 
 ### Компоненты
-- `src/components/Chrome.tsx` — Sidebar, Toolbar, RightPanel, RailNav, WithMode, StatusBar, Sheet.
+- `src/components/Chrome.tsx` — тонкий barrel: re-exports Sidebar/*, RailNav; содержит WithMode.
+- `src/components/Sidebar/Sidebar.tsx` — основной сайдбар: шапка книги, список глав, share.
+- `src/components/Sidebar/SidebarFoot.tsx` — футер сайдбара: дропдаун аккаунта, выход.
+- `src/components/Sidebar/SidebarNav.tsx` — nav-ссылки сайдбара (Дэшборд, Манускрипт и т.д.).
+- `src/components/Sidebar/index.ts` — barrel-экспорт Sidebar/*.
+- `src/components/RailNav.tsx` — иконочная рейлнавигация (режимы Focus/Split).
 - `src/components/EditorHybrid.tsx` — главный редактор, 4 режима (studio/left/right/page).
 - `src/components/RichEditor.tsx` — TipTap wrapper.
 - `src/components/EditorToolbar.tsx` — полноценный тулбар TipTap.
@@ -70,6 +75,7 @@ npm run preview    # превью продакшен-сборки
 - `src/pages/Landing.tsx` — публичный лендинг.
 
 ### lib/
+- `src/lib/repository.ts` — фабрика `createRepository<T>(table, defaults, orderBy)` → `{ list, create, update, delete }` с единой обработкой ошибок; используется в characters, locations, timeline, connections, notes.
 - `src/lib/supabase.ts` — Supabase клиент.
 - `src/lib/auth.tsx` — `AuthProvider`, `useAuth`.
 - `src/lib/queries.ts` — централизованные React Query хуки (books, chapters, characters, notes…).
@@ -77,8 +83,13 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/useDropdownPosition.ts` — позиционирование дропдаунов (backdrop-паттерн).
 - `src/lib/versions.ts` — логика снапшотов/версий.
 - `src/lib/pov.ts` — управление POV-записями глав.
-- `src/lib/characters.ts` + `character_relations.ts` + `character_relationships.ts` — CRUD + двусторонние связи.
+- `src/lib/characters.ts` — CRUD персонажей.
+- `src/lib/relationships.ts` — единый модуль связей: направленные (`CharacterRelation`, `character_relations`) и двусторонние (`CharacterRelationship`, `character_relationships`, канонический порядок charIdA < charIdB).
 - `src/lib/crossrefs.ts` — бэклинки: поиск упоминаний персонажей по главам.
+- `src/lib/useChapterVersioning.ts` — хук версионирования главы: session token, interval-снапшоты, chapter_switch, beforeunload-keepalive.
+- `src/lib/useErrorState.ts` — хук error-состояния: `{ error, setError(Error|string), clearError() }`.
+- `src/lib/chapterMutations.ts` — helpers обновления кэша React Query после мутаций глав: `updateChapterWithCache`, `createChapterWithCache`, `deleteChapterWithCache`, `invalidateChaptersCache`.
+- `src/lib/useResponsive.ts` — `BREAKPOINTS` константы + `useResponsive()` → `{ isMobile, isTablet, isNarrow }` через matchMedia.
 
 ## Supabase
 

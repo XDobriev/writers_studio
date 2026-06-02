@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useResponsive } from '../lib/useResponsive';
+import { useErrorState } from '../lib/useErrorState';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth, type TelegramAuthData } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
@@ -46,23 +48,16 @@ export default function Auth() {
   const [oauthBusy, setOauthBusy] = useState<'google' | 'telegram' | null>(null);
   const [tgHover, setTgHover] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const { error: err, setError: setErr, clearError: clearErr } = useErrorState();
   const [info, setInfo] = useState<string | null>(null);
   const tgSlotRef = useRef<HTMLDivElement | null>(null);
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)');
-    const handler = () => setIsMobile(mq.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
+  const { isMobile } = useResponsive();
 
   useEffect(() => {
     if (!TG_BOT_USERNAME || !tgSlotRef.current) return;
     window[TG_CALLBACK] = async (user) => {
       setOauthBusy('telegram');
-      setErr(null);
+      clearErr();
       const { error } = await signInWithTelegram(user);
       setOauthBusy(null);
       if (error) setErr(`Telegram: ${te(error)}`);
@@ -92,7 +87,7 @@ export default function Auth() {
       slot.innerHTML = '';
       delete window[TG_CALLBACK];
     };
-  }, [signInWithTelegram]);
+  }, [signInWithTelegram, clearErr, setErr]);
 
   if (session) {
     const from = (location.state as { from?: string } | null)?.from ?? '/books';
@@ -101,7 +96,7 @@ export default function Auth() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setErr(null);
+    clearErr();
     setInfo(null);
     setBusy(true);
     if (flow === 'reset-request') {
@@ -130,7 +125,7 @@ export default function Auth() {
   };
 
   const onGoogle = async () => {
-    setErr(null);
+    clearErr();
     setOauthBusy('google');
     const { error } = await signInWithGoogle();
     if (error) {
@@ -183,7 +178,7 @@ export default function Auth() {
                 type="button"
                 className="btn btn--ghost"
                 style={{ fontSize: 13 }}
-                onClick={() => { setFlow('auth'); setErr(null); }}
+                onClick={() => { setFlow('auth'); clearErr(); }}
               >
                 ← Вернуться к входу
               </button>
@@ -195,7 +190,7 @@ export default function Auth() {
             <>
               <button
                 type="button"
-                onClick={() => { setFlow('auth'); setErr(null); }}
+                onClick={() => { setFlow('auth'); clearErr(); }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', font: '400 13px var(--font-ui)', color: 'var(--ink-3)', padding: '0 0 20px', display: 'flex', alignItems: 'center', gap: 6 }}
               >
                 ← Назад
@@ -343,7 +338,7 @@ export default function Auth() {
                     inputMode="email"
                     spellCheck={false}
                     value={email}
-                    onChange={(e) => { setEmail(e.target.value); setErr(null); }}
+                    onChange={(e) => { setEmail(e.target.value); clearErr(); }}
                   />
                 </div>
                 <div>
@@ -352,7 +347,7 @@ export default function Auth() {
                     {tab === 'signin' && (
                       <button
                         type="button"
-                        onClick={() => { setErr(null); setInfo(null); setFlow('reset-request'); }}
+                        onClick={() => { clearErr(); setInfo(null); setFlow('reset-request'); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--ink-3)', padding: 0, lineHeight: 1 }}
                       >
                         Забыли пароль?
@@ -369,7 +364,7 @@ export default function Auth() {
                       minLength={6}
                       autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
                       value={password}
-                      onChange={(e) => { setPassword(e.target.value); setErr(null); }}
+                      onChange={(e) => { setPassword(e.target.value); clearErr(); }}
                       style={{ paddingRight: 36, width: '100%' }}
                     />
                     <button

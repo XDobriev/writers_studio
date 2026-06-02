@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useErrorState } from '../lib/useErrorState';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
@@ -128,7 +129,7 @@ export default function AdminAnalytics({ topUsers }: Props) {
   const [dau, setDau] = useState<DauPoint[] | null>(null);
   const [retention, setRetention] = useState<RetentionData | null>(null);
   const [anomalies, setAnomalies] = useState<AnomaliesData | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const { error: err, setError: setErr } = useErrorState();
 
   useEffect(() => {
     Promise.all([
@@ -136,16 +137,13 @@ export default function AdminAnalytics({ topUsers }: Props) {
       supabase.rpc('get_admin_retention'),
       supabase.rpc('get_admin_anomalies'),
     ]).then(([dauRes, retRes, anRes]) => {
-      if (dauRes.error) setErr(dauRes.error.message);
-      else setDau((dauRes.data as DauPoint[]) ?? []);
-
-      if (retRes.error) setErr((p) => p ?? retRes.error!.message);
-      else setRetention(retRes.data as RetentionData);
-
-      if (anRes.error) setErr((p) => p ?? anRes.error!.message);
-      else setAnomalies(anRes.data as AnomaliesData);
+      const firstErr = dauRes.error?.message ?? retRes.error?.message ?? anRes.error?.message ?? null;
+      if (firstErr) setErr(firstErr);
+      if (!dauRes.error) setDau((dauRes.data as DauPoint[]) ?? []);
+      if (!retRes.error) setRetention(retRes.data as RetentionData);
+      if (!anRes.error) setAnomalies(anRes.data as AnomaliesData);
     });
-  }, []);
+  }, [setErr]);
 
   const maxWords = topUsers[0]?.words_total || 1;
 

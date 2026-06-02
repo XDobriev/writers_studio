@@ -16,6 +16,7 @@ import { TaskItem } from '@tiptap/extension-task-item';
 import { Subscript } from '@tiptap/extension-subscript';
 import { Superscript } from '@tiptap/extension-superscript';
 import { LanguageTool, LT_KEY } from '../extensions/LanguageTool';
+import Focus from '@tiptap/extension-focus';
 
 export type { Editor };
 
@@ -105,6 +106,7 @@ export function RichEditor({
       Subscript,
       Superscript,
       Placeholder.configure({ placeholder: placeholder ?? 'Начните писать…' }),
+      Focus.configure({ className: 'has-focus', mode: 'shallowest' }),
       langToolExt,
     ],
     content: value || '',

@@ -4,8 +4,7 @@ import { getProfile, type Profile } from './profiles';
 import type { Book } from './supabase';
 import { listChaptersMeta, getChapterContent, type ChapterMeta } from './chapters';
 import { listCharacters, type Character } from './characters';
-import { listRelations, type CharacterRelation } from './character_relations';
-import { listRelationships, type CharacterRelationship } from './character_relationships';
+import { listRelations, type CharacterRelation, listRelationships, type CharacterRelationship } from './relationships';
 import { fetchNotes, type Note } from './notes';
 import { listLocations, type Location } from './locations';
 import { listTimelineEvents, type TimelineEvent } from './timeline';
@@ -33,67 +32,69 @@ export const QUERY_KEYS = {
   chapterPovMap: (bookId: string) => ['chapter-pov-map', bookId] as const,
 };
 
+function makeQuery<T>(key: readonly unknown[], fn: () => Promise<T>, staleTime: number) {
+  return {
+    queryKey: key,
+    queryFn: fn,
+    enabled: key[key.length - 1] !== null,
+    staleTime,
+  };
+}
+
 export function useBook(id: string | undefined) {
-  return useQuery({
-    queryKey: id ? QUERY_KEYS.book(id) : ['book', null],
-    queryFn: () => getBook(id!),
-    enabled: !!id,
-    staleTime: 5 * 60_000,
-  });
+  return useQuery(makeQuery(
+    id ? QUERY_KEYS.book(id) : ['book', null],
+    () => getBook(id!),
+    5 * 60_000,
+  ));
 }
 
 export function useChapters(bookId: string | undefined) {
-  return useQuery<ChapterMeta[]>({
-    queryKey: bookId ? QUERY_KEYS.chapters(bookId) : ['chapters', null],
-    queryFn: () => listChaptersMeta(bookId!),
-    enabled: !!bookId,
-    staleTime: 60_000,
-  });
+  return useQuery<ChapterMeta[]>(makeQuery(
+    bookId ? QUERY_KEYS.chapters(bookId) : ['chapters', null],
+    () => listChaptersMeta(bookId!),
+    60_000,
+  ));
 }
 
 export function useChapterContent(chapterId: string | undefined) {
-  return useQuery<{ id: string; content: string }>({
-    queryKey: chapterId ? QUERY_KEYS.chapterContent(chapterId) : ['chapter-content', null],
-    queryFn: () => getChapterContent(chapterId!),
-    enabled: !!chapterId,
-    staleTime: 30_000,
-  });
+  return useQuery<{ id: string; content: string }>(makeQuery(
+    chapterId ? QUERY_KEYS.chapterContent(chapterId) : ['chapter-content', null],
+    () => getChapterContent(chapterId!),
+    30_000,
+  ));
 }
 
 export function useCharacters(bookId: string | undefined) {
-  return useQuery<Character[]>({
-    queryKey: bookId ? QUERY_KEYS.characters(bookId) : ['characters', null],
-    queryFn: () => listCharacters(bookId!),
-    enabled: !!bookId,
-    staleTime: 2 * 60_000,
-  });
+  return useQuery<Character[]>(makeQuery(
+    bookId ? QUERY_KEYS.characters(bookId) : ['characters', null],
+    () => listCharacters(bookId!),
+    2 * 60_000,
+  ));
 }
 
 export function useNotes(bookId: string | undefined) {
-  return useQuery<Note[]>({
-    queryKey: bookId ? QUERY_KEYS.notes(bookId) : ['notes', null],
-    queryFn: () => fetchNotes(bookId!),
-    enabled: !!bookId,
-    staleTime: 2 * 60_000,
-  });
+  return useQuery<Note[]>(makeQuery(
+    bookId ? QUERY_KEYS.notes(bookId) : ['notes', null],
+    () => fetchNotes(bookId!),
+    2 * 60_000,
+  ));
 }
 
 export function useRelations(bookId: string | undefined) {
-  return useQuery<CharacterRelation[]>({
-    queryKey: bookId ? QUERY_KEYS.relations(bookId) : ['relations', null],
-    queryFn: () => listRelations(bookId!),
-    enabled: !!bookId,
-    staleTime: 2 * 60_000,
-  });
+  return useQuery<CharacterRelation[]>(makeQuery(
+    bookId ? QUERY_KEYS.relations(bookId) : ['relations', null],
+    () => listRelations(bookId!),
+    2 * 60_000,
+  ));
 }
 
 export function useRelationships(bookId: string | undefined) {
-  return useQuery<CharacterRelationship[]>({
-    queryKey: bookId ? QUERY_KEYS.relationships(bookId) : ['relationships', null],
-    queryFn: () => listRelationships(bookId!),
-    enabled: !!bookId,
-    staleTime: 2 * 60_000,
-  });
+  return useQuery<CharacterRelationship[]>(makeQuery(
+    bookId ? QUERY_KEYS.relationships(bookId) : ['relationships', null],
+    () => listRelationships(bookId!),
+    2 * 60_000,
+  ));
 }
 
 const SNAPSHOTS_FROM = (() => {
@@ -103,82 +104,73 @@ const SNAPSHOTS_FROM = (() => {
 })();
 
 export function useWritingSnapshots(bookId: string | undefined) {
-  return useQuery({
-    queryKey: bookId ? QUERY_KEYS.writingSnapshots(bookId) : ['writing-snapshots', null],
-    queryFn: () => listWritingSnapshots(bookId!, SNAPSHOTS_FROM),
-    enabled: !!bookId,
-    staleTime: 5 * 60_000,
-  });
+  return useQuery(makeQuery(
+    bookId ? QUERY_KEYS.writingSnapshots(bookId) : ['writing-snapshots', null],
+    () => listWritingSnapshots(bookId!, SNAPSHOTS_FROM),
+    5 * 60_000,
+  ));
 }
 
 export function useLocations(bookId: string | undefined) {
-  return useQuery<Location[]>({
-    queryKey: bookId ? QUERY_KEYS.locations(bookId) : ['locations', null],
-    queryFn: () => listLocations(bookId!),
-    enabled: !!bookId,
-    staleTime: 2 * 60_000,
-  });
+  return useQuery<Location[]>(makeQuery(
+    bookId ? QUERY_KEYS.locations(bookId) : ['locations', null],
+    () => listLocations(bookId!),
+    2 * 60_000,
+  ));
 }
 
 export function useTimelineEvents(bookId: string | undefined) {
-  return useQuery<TimelineEvent[]>({
-    queryKey: bookId ? QUERY_KEYS.timelineEvents(bookId) : ['timeline-events', null],
-    queryFn: () => listTimelineEvents(bookId!),
-    enabled: !!bookId,
-    staleTime: 2 * 60_000,
-  });
+  return useQuery<TimelineEvent[]>(makeQuery(
+    bookId ? QUERY_KEYS.timelineEvents(bookId) : ['timeline-events', null],
+    () => listTimelineEvents(bookId!),
+    2 * 60_000,
+  ));
 }
 
 export function useConnections(bookId: string | undefined) {
-  return useQuery<LocationConnection[]>({
-    queryKey: bookId ? QUERY_KEYS.connections(bookId) : ['connections', null],
-    queryFn: () => listConnections(bookId!),
-    enabled: !!bookId,
-    staleTime: 2 * 60_000,
-  });
+  return useQuery<LocationConnection[]>(makeQuery(
+    bookId ? QUERY_KEYS.connections(bookId) : ['connections', null],
+    () => listConnections(bookId!),
+    2 * 60_000,
+  ));
 }
 
 export function useChapterCharacters(characterId: string | undefined) {
-  return useQuery<ChapterCharacterRow[]>({
-    queryKey: characterId ? QUERY_KEYS.chapterCharacters(characterId) : ['chapter-characters', null],
-    queryFn: () => listChapterCharacters(characterId!),
-    enabled: !!characterId,
-    staleTime: 30_000,
-  });
+  return useQuery<ChapterCharacterRow[]>(makeQuery(
+    characterId ? QUERY_KEYS.chapterCharacters(characterId) : ['chapter-characters', null],
+    () => listChapterCharacters(characterId!),
+    30_000,
+  ));
 }
 
 export function useChapterVersions(chapterId: string | undefined) {
-  return useQuery<ChapterVersionMeta[]>({
-    queryKey: chapterId ? QUERY_KEYS.chapterVersions(chapterId) : ['chapter-versions', null],
-    queryFn: () => listVersions(chapterId!),
-    enabled: !!chapterId,
-    staleTime: 30_000,
-  });
+  return useQuery<ChapterVersionMeta[]>(makeQuery(
+    chapterId ? QUERY_KEYS.chapterVersions(chapterId) : ['chapter-versions', null],
+    () => listVersions(chapterId!),
+    30_000,
+  ));
 }
 
 export function useBooks(userId: string | undefined) {
-  return useQuery<Book[]>({
-    queryKey: userId ? QUERY_KEYS.books(userId) : ['books', null],
-    queryFn: listBooks,
-    enabled: !!userId,
-    staleTime: 2 * 60_000,
-  });
+  return useQuery<Book[]>(makeQuery(
+    userId ? QUERY_KEYS.books(userId) : ['books', null],
+    listBooks,
+    2 * 60_000,
+  ));
 }
 
 export function useProfile(userId: string | undefined) {
-  return useQuery<Profile | null>({
-    queryKey: userId ? QUERY_KEYS.profile(userId) : ['profile', null],
-    queryFn: () => getProfile(userId!),
-    enabled: !!userId,
-    staleTime: 10 * 60_000,
-  });
+  return useQuery<Profile | null>(makeQuery(
+    userId ? QUERY_KEYS.profile(userId) : ['profile', null],
+    () => getProfile(userId!),
+    10 * 60_000,
+  ));
 }
 
 export function useChapterPovMap(bookId: string | undefined) {
-  return useQuery<PovEntry[]>({
-    queryKey: bookId ? QUERY_KEYS.chapterPovMap(bookId) : ['chapter-pov-map', null],
-    queryFn: () => listBookPovEntries(bookId!),
-    enabled: !!bookId,
-    staleTime: 30_000,
-  });
+  return useQuery<PovEntry[]>(makeQuery(
+    bookId ? QUERY_KEYS.chapterPovMap(bookId) : ['chapter-pov-map', null],
+    () => listBookPovEntries(bookId!),
+    30_000,
+  ));
 }

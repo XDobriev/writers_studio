@@ -109,6 +109,7 @@ export function EditorHybrid({
   onSave,
 }: EditorHybridProps) {
   const [mode, setMode] = useState<Mode>(defaultMode);
+  const [focusMode, setFocusMode] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
   const restoreContent = useCallback((content: string) => {
     editor?.commands.setContent(content, { emitUpdate: false });
@@ -183,7 +184,7 @@ export function EditorHybrid({
         </div>
       )}
 
-      <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
+      <main className={focusMode ? 'focus-mode' : undefined} style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
         {isMobile && !isPage && (
           <div style={{ display: 'flex', alignItems: 'center', height: 44, padding: '0 12px', gap: 8, borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)', flexShrink: 0 }}>
             <button
@@ -312,6 +313,8 @@ export function EditorHybrid({
               goalWords={book?.daily_goal ?? 1000}
               streak={writingStats.streak}
               onGoalChange={onGoalChange}
+              focusMode={focusMode}
+              onToggleFocusMode={() => setFocusMode(f => !f)}
             />
           ) : (
             <StatusBar />

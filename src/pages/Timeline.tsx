@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
-import { useWindowWidth } from '../lib/useWindowWidth';
+import { useErrorState } from '../lib/useErrorState';
+import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -65,7 +66,7 @@ export default function Timeline() {
   const { data: book } = useBook(bookId);
   const { data: events, error: eventsQueryError } = useTimelineEvents(bookId);
   const { data: chapters } = useChapters(bookId);
-  const [mutationError, setError] = useState<string | null>(null);
+  const { error: mutationError, setError } = useErrorState();
   const error = eventsQueryError?.message ?? mutationError;
   const [filter, setFilter] = useState<TypeFilter>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export default function Timeline() {
   );
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
 
-  const isMobile = useWindowWidth() < 768;
+  const { isMobile } = useResponsive();
 
   const activeEvent = useMemo(
     () => events?.find((e) => e.id === activeEventId) ?? null,
@@ -102,7 +103,7 @@ export default function Timeline() {
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [bookId, user, events, queryClient]);
+  }, [bookId, user, events, queryClient, setError]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -127,7 +128,7 @@ export default function Timeline() {
         void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timelineEvents(bookId) });
       }
     },
-    [bookId, queryClient]
+    [bookId, queryClient, setError]
   );
 
   const onDelete = useCallback((id: string) => {
@@ -147,7 +148,7 @@ export default function Timeline() {
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [bookId, confirmDeleteId, activeEventId, queryClient]);
+  }, [bookId, confirmDeleteId, activeEventId, queryClient, setError]);
 
   const onDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -170,7 +171,7 @@ export default function Timeline() {
         void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timelineEvents(bookId) });
       }
     },
-    [bookId, events, queryClient]
+    [bookId, events, queryClient, setError]
   );
 
   const filtered = useMemo(() => {

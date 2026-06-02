@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { useErrorState } from '../lib/useErrorState';
 import { Icon } from '../components/Icon';
 import { RichEditor } from '../components/RichEditor';
 import { type Book } from '../lib/supabase';
@@ -10,10 +11,11 @@ import {
   updateChapter,
   type Chapter,
   type ChapterPatch,
+  type SaveState,
 } from '../lib/chapters';
+import { useDebouncedSave } from '../lib/useDebouncedSave';
 
 type Side = 'left' | 'right';
-type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 export default function Split() {
   const { id: bookId } = useParams<{ id: string }>();
@@ -21,7 +23,7 @@ export default function Split() {
 
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { error, setError } = useErrorState();
   const [saveState, setSaveState] = useState<Record<Side, SaveState>>({ left: 'idle', right: 'idle' });
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export default function Split() {
       }
     })();
     return () => { cancelled = true; };
-  }, [bookId]);
+  }, [bookId, setError]);
 
   const leftId = search.get('left');
   const rightId = search.get('right');
@@ -87,7 +89,7 @@ export default function Split() {
       setSaveState((s) => ({ ...s, [side]: 'error' }));
       setError((e as Error).message);
     }
-  }, []);
+  }, [setError]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
@@ -169,39 +171,23 @@ function Pane({ side, chapter, chapters, saveState, onSelect, onPersist }: {
   onSelect: (id: string) => void;
   onPersist: (id: string, patch: ChapterPatch) => void;
 }) {
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingPatch = useRef<ChapterPatch | null>(null);
-  const targetIdRef = useRef<string | null>(null);
-
-  const flush = useCallback(() => {
-    const patch = pendingPatch.current;
-    const id = targetIdRef.current;
-    pendingPatch.current = null;
-    if (!patch || !id) return;
-    onPersist(id, patch);
-  }, [onPersist]);
-
-  useEffect(() => () => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    flush();
-  }, [flush]);
+  const { scheduleSave, flush } = useDebouncedSave<ChapterPatch>(
+    async (id, patch) => { onPersist(id, patch); },
+    700,
+  );
 
   const lastChIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (lastChIdRef.current && lastChIdRef.current !== chapter?.id) {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      flush();
+      void flush();
     }
     lastChIdRef.current = chapter?.id ?? null;
   }, [chapter?.id, flush]);
 
   const onContentChange = useCallback((html: string) => {
     if (!chapter) return;
-    targetIdRef.current = chapter.id;
-    pendingPatch.current = { ...(pendingPatch.current ?? {}), content: html, words: countWords(html) };
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => { flush(); }, 700);
-  }, [chapter, flush]);
+    scheduleSave(chapter.id, { content: html, words: countWords(html) });
+  }, [chapter, scheduleSave]);
 
   const labels: Record<SaveState, { text: string; color: string }> = {
     idle: { text: '', color: 'var(--ink-4)' },

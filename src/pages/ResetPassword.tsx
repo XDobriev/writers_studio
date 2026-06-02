@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useErrorState } from '../lib/useErrorState';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
@@ -22,7 +23,7 @@ export default function ResetPassword() {
   const [state, setState] = useState<State>('waiting');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [err, setErr] = useState<string | null>(null);
+  const { error: err, setError: setErr, clearError: clearErr } = useErrorState();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export default function ResetPassword() {
       return;
     }
     setState('busy');
-    setErr(null);
+    clearErr();
     const { error } = await updatePassword(password);
     if (error) {
       setErr(te(error));

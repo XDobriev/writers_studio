@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { useErrorState } from '../lib/useErrorState';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -156,7 +157,7 @@ export default function Notes() {
   const { data: book, error: bookError } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
   const { data: notes, error: notesError } = useNotes(bookId);
-  const [error, setError] = useState<string | null>(null);
+  const { error, setError } = useErrorState();
   const queryError = (bookError ?? chaptersError ?? notesError)?.message ?? null;
 
   // Форма создания

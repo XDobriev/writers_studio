@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
-import type { NavigateOptions } from 'react-router-dom';
 import {
   createCharacter,
   deleteCharacter,
@@ -11,9 +10,8 @@ import {
   deleteRelationship,
   updateRelationshipLabels,
   type CharacterRelationship,
-} from './character_relationships';
+} from './relationships';
 import { QUERY_KEYS } from './queries';
-import type { CharacterViewMode } from './useCharacterNavigation';
 
 interface UseCharacterMutationsOptions {
   bookId: string | undefined;
@@ -21,12 +19,10 @@ interface UseCharacterMutationsOptions {
   characters: Character[] | undefined;
   active: Character | null;
   queryClient: QueryClient;
-  search: URLSearchParams;
-  setSearch: (next: URLSearchParams, opts?: NavigateOptions) => void;
-  setViewMode: (mode: CharacterViewMode) => void;
-  setConfirmDelete: (v: boolean) => void;
-  setError: (msg: string | null) => void;
   cancelSave: () => void;
+  onError: (msg: string) => void;
+  onCreated: (id: string) => void;
+  onDeleted: (remaining: Character[]) => void;
 }
 
 export function useCharacterMutations({
@@ -35,12 +31,10 @@ export function useCharacterMutations({
   characters,
   active,
   queryClient,
-  search,
-  setSearch,
-  setViewMode,
-  setConfirmDelete,
-  setError,
   cancelSave,
+  onError,
+  onCreated,
+  onDeleted,
 }: UseCharacterMutationsOptions) {
   const onCreate = useCallback(async () => {
     if (!bookId || !userId) return;
@@ -52,23 +46,14 @@ export function useCharacterMutations({
         position,
       });
       queryClient.setQueryData<Character[]>(QUERY_KEYS.characters(bookId), (prev) => [...(prev ?? []), created]);
-      const next = new URLSearchParams(search);
-      next.set('character', created.id);
-      setSearch(next, { replace: false });
-      setViewMode('detail');
+      onCreated(created.id);
     } catch (e) {
-      setError((e as Error).message);
+      onError((e as Error).message);
     }
-  }, [bookId, userId, characters, queryClient, search, setSearch, setViewMode, setError]);
-
-  const onDelete = useCallback(() => {
-    if (!active) return;
-    setConfirmDelete(true);
-  }, [active, setConfirmDelete]);
+  }, [bookId, userId, characters, queryClient, onCreated, onError]);
 
   const onDeleteConfirmed = useCallback(async () => {
     if (!active || !characters || !bookId) return;
-    setConfirmDelete(false);
     cancelSave();
     try {
       await deleteCharacter(active.id);
@@ -77,18 +62,11 @@ export function useCharacterMutations({
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) =>
         prev ? prev.filter((r) => r.char_a_id !== active.id && r.char_b_id !== active.id) : prev
       );
-      const next = new URLSearchParams(search);
-      if (remaining.length > 0) {
-        next.set('character', remaining[0].id);
-      } else {
-        next.delete('character');
-        setViewMode('grid');
-      }
-      setSearch(next, { replace: true });
+      onDeleted(remaining);
     } catch (e) {
-      setError((e as Error).message);
+      onError((e as Error).message);
     }
-  }, [active, characters, bookId, queryClient, search, setSearch, setViewMode, setConfirmDelete, cancelSave, setError]);
+  }, [active, characters, bookId, queryClient, cancelSave, onDeleted, onError]);
 
   const onCreateRelationship = useCallback(async (toId: string, labelMine: string, labelTheirs: string) => {
     if (!bookId || !userId || !active) return;
@@ -96,9 +74,9 @@ export function useCharacterMutations({
       const created = await createRelationship(bookId, userId, active.id, toId, labelMine, labelTheirs);
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) => [...(prev ?? []), created]);
     } catch (e) {
-      setError((e as Error).message);
+      onError((e as Error).message);
     }
-  }, [bookId, userId, active, queryClient, setError]);
+  }, [bookId, userId, active, queryClient, onError]);
 
   const onDeleteRelationship = useCallback(async (id: string) => {
     if (!bookId) return;
@@ -108,9 +86,9 @@ export function useCharacterMutations({
         prev ? prev.filter((r) => r.id !== id) : prev
       );
     } catch (e) {
-      setError((e as Error).message);
+      onError((e as Error).message);
     }
-  }, [bookId, queryClient, setError]);
+  }, [bookId, queryClient, onError]);
 
   const onRelationshipLabelChange = useCallback(async (id: string, labelMine: string, labelTheirs: string) => {
     if (!bookId || !active) return;
@@ -127,9 +105,9 @@ export function useCharacterMutations({
         prev ? prev.map((r) => (r.id === id ? updated : r)) : prev
       );
     } catch (e) {
-      setError((e as Error).message);
+      onError((e as Error).message);
     }
-  }, [bookId, active, queryClient, setError]);
+  }, [bookId, active, queryClient, onError]);
 
-  return { onCreate, onDelete, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange };
+  return { onCreate, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange };
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
+import { useErrorState } from '../lib/useErrorState';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { LogoMark } from '../components/LogoMark';
@@ -83,7 +84,7 @@ export default function Admin() {
   const { user, loading, signOut } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUser[] | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const { error: err, setError: setErr, clearError: clearErr } = useErrorState();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('created_at');
@@ -102,15 +103,15 @@ export default function Admin() {
         return;
       }
       setIsAdmin(true);
-      if (statsRes.error) setErr(statsRes.error.message);
-      else setStats(statsRes.data as AdminStats);
-      if (usersRes.error) setErr((prev) => prev ?? usersRes.error!.message);
-      else setUsers(usersRes.data as AdminUser[]);
+      const firstErr = statsRes.error?.message ?? usersRes.error?.message ?? null;
+      if (firstErr) setErr(firstErr);
+      if (!statsRes.error) setStats(statsRes.data as AdminStats);
+      if (!usersRes.error) setUsers(usersRes.data as AdminUser[]);
     }).catch((e: Error) => {
       setIsAdmin(false);
       setErr(e.message);
     });
-  }, [user]);
+  }, [user, setErr]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -124,7 +125,7 @@ export default function Admin() {
   const handlePlanChange = async (u: AdminUser, next: Plan) => {
     if (next === u.plan) return;
     setPlanChanging(u.id);
-    setErr(null);
+    clearErr();
     const { error } = await supabase.rpc('set_user_plan', {
       target_user_id: u.id,
       new_plan: next,
