@@ -48,6 +48,15 @@ Color открывает popover (9 цветов + сброс), Highlight — 7 
 
 Навигационные пункты рендерятся как `<Link>` с реальными путями `/books/:id/characters`, `/books/:id/map`, `/books/:id/timeline`, `/books/:id`. Если `bid` не определён — пункты задизейблены (`opacity: 0.5, cursor: default`).
 
+## Focus Mode (§R6)
+
+Режим затемнения абзацев при письме. Тоггл-кнопка в `StatusBar` (иконка crosshair, только на desktop). При включении:
+- `<main className="focus-mode">` в `EditorHybrid`
+- CSS: `.focus-mode .sheet .tiptap p/li/h1/h2/h3/blockquote { opacity: 0.38 }`, активный абзац (`.has-focus`) — `opacity: 1`
+- `@tiptap/extension-focus` добавляет класс `has-focus` на узел с курсором (`mode: 'shallowest'`)
+- Заголовок главы `.sheet-title` тоже приглушается до 0.38, полная яркость при `:focus`
+- Состояние не персистируется (сбрасывается при перезагрузке)
+
 ## Статусная плашка
 
 Реальные данные: слова и знаки из активной главы, `todayWords` и `streak` из `writingStats` (хук в `EditorHybrid`). При `!isReal` (демо-режим) рендерится `<StatusBar />` с дефолтами.

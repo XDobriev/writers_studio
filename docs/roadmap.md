@@ -280,17 +280,6 @@ npm install vite-plugin-prerender --save-dev
 
 ---
 
-### §R6. Focus Mode — затемнение при письме
-
-**Что это:** опциональный режим в редакторе:
-- **Абзац:** весь остальной текст приглушается до opacity 0.3
-- **Предложение:** приглушается всё кроме текущего предложения
-- **Typewriter Scrolling:** текущая строка фиксирована вертикально
-
-**Контекст:** iA Writer и Ulysses сделали это killer feature для minimalist editors. У нас уже есть page mode — Focus внутри него усилит аргумент против iA Writer. CSS-решения хорошо задокументированы, `prefers-reduced-motion` уже уважается в дизайн-системе. Риск: избыточность — если уже есть page mode, нужно убедиться что Focus Mode добавляет, а не дублирует.
-
-**Файлы:** `src/components/RichEditor.tsx` (TipTap NodeView), `src/components/EditorHybrid.tsx`, `src/styles/design-system.css`
-
 ---
 
 ## Заморожено
@@ -385,6 +374,8 @@ dev → Vercel preview (авто) → e2e тесты → merge в main → Timew
 ---
 
 ## Закрыто
+
+_2026-06-02:_ feat(editor) §R6 Focus Mode — затемнение абзацев при письме: `@tiptap/extension-focus` + `.focus-mode` CSS + тоггл-кнопка в StatusBar ✅
 
 _2026-06-02:_ fix(versions) §R2 Named Snapshots — именованные вехи всегда сохраняются при ручном создании, даже если контент не изменился с последнего авто-снимка ✅
 
