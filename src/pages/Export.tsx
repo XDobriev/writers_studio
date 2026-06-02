@@ -31,8 +31,8 @@ const FORMAT_MAIN: { value: Format; label: string; ext: string; desc: string }[]
   { value: 'docx', label: 'DOCX', ext: 'docx', desc: 'Word, для редактора' },
 ];
 
-const FORMAT_TEXT: { value: Format; label: string; ext: string }[] = [
-  { value: 'html', label: 'HTML', ext: 'html' },
+const FORMAT_TEXT: { value: Format; label: string; ext: string; desc?: string }[] = [
+  { value: 'html', label: 'HTML', ext: 'html', desc: 'для публикации на сайте' },
   { value: 'md', label: 'Markdown', ext: 'md' },
   { value: 'txt', label: 'TXT', ext: 'txt' },
 ];
@@ -815,7 +815,9 @@ export default function Export() {
                 </button>
               );
             })}
-            <span style={{ fontSize: 11, color: 'var(--ink-4)', alignSelf: 'center', marginLeft: 4 }}>текстовые форматы</span>
+            <span style={{ fontSize: 11, color: 'var(--ink-4)', alignSelf: 'center', marginLeft: 4 }}>
+              {FORMAT_TEXT.find(f => f.value === format)?.desc ?? 'текстовые форматы'}
+            </span>
           </div>
 
           {/* Metadata */}
