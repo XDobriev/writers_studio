@@ -403,9 +403,9 @@ The light theme activates via `[data-theme="light"]` on `<html>`. Only surface (
 
 Light surfaces use a parchment-linen family (hue 55–70), with luminance inverted relative to dark mode:
 
-- `--bg: oklch(0.96 0.008 70)` — main area, near-white with amber tint. The "floor."
-- `--bg-deep: oklch(0.89 0.012 65)` — sidebar, status bar, right panel. Slightly deeper parchment.
-- `--surface` → `--surface-3`: steps down from 0.93 to 0.83, all carrying chroma 0.010–0.012 toward hue 55–65.
+- `--bg: oklch(0.91 0.010 68)` — main area, medium parchment. The "desk." Noticeably darker than the paper surface to ensure the sheet is visible.
+- `--bg-deep: oklch(0.86 0.014 65)` — sidebar, status bar, right panel. Deeper parchment.
+- `--surface` → `--surface-3`: steps from 0.95 (hover/elevated) down to 0.83, all carrying chroma 0.010–0.012 toward hue 55–65.
 
 ### Ink (Light)
 

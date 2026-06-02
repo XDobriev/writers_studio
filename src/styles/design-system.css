@@ -95,10 +95,10 @@
    одинаково работают в обеих темах. */
 [data-theme="light"] {
   /* surfaces — тёплый пергамент/льняная бумага */
-  --bg-void: oklch(0.83 0.012 65);
-  --bg-deep: oklch(0.89 0.012 65);
-  --bg:      oklch(0.96 0.008 70);
-  --surface:   oklch(0.93 0.010 65);
+  --bg-void: oklch(0.80 0.014 65);
+  --bg-deep: oklch(0.86 0.014 65);
+  --bg:      oklch(0.91 0.010 68);
+  --surface:   oklch(0.95 0.010 65);
   --surface-2: oklch(0.88 0.012 60);
   --surface-3: oklch(0.83 0.012 55);
 
