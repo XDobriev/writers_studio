@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-02 (19 задач закрыты)_
+_Обновлён: 2026-06-02 (21 задача закрыта)_
 
 **Сейчас:** _(не задана — заполнить в начале сессии)_
 
@@ -47,8 +47,8 @@ _Обновлён: 2026-06-02 (19 задач закрыты)_
 
 
 #### Две несвязанных версии «Выйти» (P3-5)
-**Нарушение:** `Home.tsx:178` — icon-only `<button className="tb-btn" title="Выйти из аккаунта">`; `Chrome.tsx` — пункт дропдауна `.sb-dropdown-item--danger`. Одно действие, два UI-языка.
-**Рекомендация:** добавить к кнопке в `Home.tsx` `aria-label="Выйти из аккаунта"` (title уже есть, но aria-label нужен явно); при рефакторинге — унифицировать с Chrome-дропдауном.
+**Нарушение:** `Home.tsx:178` — icon-only кнопка; `Chrome.tsx` — пункт дропдауна. Одно действие, два UI-языка.
+**Сделано:** `aria-label="Выйти из аккаунта"` добавлен. При рефакторинге — унифицировать с Chrome-дропдауном.
 **Файлы:** `src/pages/Home.tsx:178`.
 
 ---
@@ -68,22 +68,7 @@ _Обновлён: 2026-06-02 (19 задач закрыты)_
 
 **Контекст:** приложение — Vite + React SPA. Яндексбот практически не рендерит JS, поэтому без pre-rendering лендинг не проиндексируется. Все шаги ниже — обязательные, выполнять последовательно.
 
-**Шаг 0 — Заблокировать индексацию Vercel (сделать сейчас, не ждать релиза):**
-Vercel-деплой (`avtorskaya-studiya.vercel.app`) — тестовая среда, а не прод. Гугл уже начал его индексировать (он добавлен в GSC). Нужно:
-1. Добавить в `vercel.json` заголовок `X-Robots-Tag: noindex, nofollow` для всех маршрутов — чтобы поисковики не трогали тестовую среду.
-2. Удалить `avtorskaya-studiya.vercel.app` из Google Search Console (после того как Google обработает `noindex`, обычно 1–2 недели).
-```json
-{
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
-    }
-  ]
-}
-```
-**Файлы:** `vercel.json`
-**Проверить:** `curl -I https://avtorskaya-studiya.vercel.app` → в ответе `x-robots-tag: noindex, nofollow`
+**Шаг 0 — ✅ Выполнено:** `X-Robots-Tag: noindex, nofollow` добавлен в `vercel.json`. После деплоя удалить `avtorskaya-studiya.vercel.app` из Google Search Console (Google обработает noindex за 1–2 недели).
 
 **Шаг 1 — Pre-rendering лендинга (`vite-plugin-prerender`):**
 Установить `vite-plugin-prerender`, настроить рендер маршрутов `/`, `/privacy`, `/terms` при сборке. После этого nginx отдаёт Яндексботу готовый HTML вместо пустого `<div id="root">`.
@@ -436,6 +421,8 @@ dev → Vercel preview (авто) → e2e тесты → merge в main → Timew
 ---
 
 ## Закрыто
+
+_2026-06-02:_ chore(seo) `X-Robots-Tag: noindex, nofollow` в `vercel.json` — Vercel-деплой скрыт от поисковиков ✅; fix(a11y) `aria-label="Выйти из аккаунта"` на кнопке в `Home.tsx:178` ✅
 
 _2026-06-02:_ fix(ux) модалка «Редактировать книгу» — Dashboard приведён к `modal-overlay/modal-panel`, `editGenre` (string) → `editGenres` (string[]) + `GenrePicker`; жанры корректно читаются из `book.genres`; Home.tsx — заголовок `font-serif` → `font-ui` ✅
 

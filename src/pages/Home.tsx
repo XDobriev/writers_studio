@@ -175,7 +175,7 @@ export default function Home() {
         <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
         <span style={{ flex: 1 }} />
         <span className="hide-sm" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{displayName}</span>
-        <button className="tb-btn" onClick={signOut} title="Выйти из аккаунта">
+        <button className="tb-btn" onClick={signOut} title="Выйти из аккаунта" aria-label="Выйти из аккаунта">
           <Icon name="log-out" size={16} />
         </button>
       </header>
