@@ -50,7 +50,7 @@ export async function createVersion(
     .limit(1)
     .maybeSingle();
 
-  if (last && (last as { content: string }).content === content) return;
+  if (!label && last && (last as { content: string }).content === content) return;
 
   const { error } = await supabase.from('chapter_versions').insert({
     chapter_id: chapterId,
