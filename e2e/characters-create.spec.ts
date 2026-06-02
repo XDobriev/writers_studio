@@ -24,9 +24,10 @@ test('characters: создать нового персонажа', async ({ page
   // Создание открывает detail-mode: URL должен содержать ?character=
   await expect(page).toHaveURL(/character=/, { timeout: 10_000 });
 
-  // Возвращаемся в grid-mode убирая query-параметр
-  const gridUrl = bookHref + '/characters';
-  await page.goto(gridUrl);
+  // Возвращаемся в grid-mode через кнопку (сохраняем React Query кэш с новым персонажем)
+  const gridBtn = page.locator('button[title="Картотека (сетка)"]');
+  await expect(gridBtn).toBeVisible({ timeout: 5_000 });
+  await gridBtn.click();
 
   // Карточек стало больше
   await expect(page.locator('[data-testid="character-card"]')).toHaveCount(
