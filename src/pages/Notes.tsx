@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { useErrorState } from '../lib/useErrorState';
 import { useQueryClient } from '@tanstack/react-query';
