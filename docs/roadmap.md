@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-03 (38 задач закрыто)_
+_Обновлён: 2026-06-03 (47 задач закрыто; все admin-расширения завершены; добавлен §5 Бэкапы)_
 
 
 
@@ -102,33 +102,87 @@ _Обновлён: 2026-06-03 (38 задач закрыто)_
 
 ---
 
-### 4. ЮKassa — платёжный провайдер
+### 4. Robokassa — платёжный провайдер
 
-**Что это:** без платёжной системы нет монетизации. ЮKassa поддерживает самозанятых (4% с физлиц), работает без ИП.
+**Что это:** без платёжной системы нет монетизации. Robokassa выбрана вместо ЮKassa: поддерживает самозанятых, рекуррентные платежи и **автоматически формирует чеки** через РобоЧеки СМЗ (интеграция с «Мой налог»). Комиссия 3,9% (от 100к/мес — 3,4%).
+
+**Как работает интеграция:**
+- Первый платёж: редирект пользователя на Robokassa → он вводит карту → Robokassa шлёт POST на **Result URL** → ты проверяешь MD5-подпись → возвращаешь `OK{InvId}` → активируешь план
+- Рекуррентные: твой планировщик раз в месяц дёргает Robokassa API с параметром `PreviousInvoiceID` — списание без участия пользователя
+- Подпись: `MD5(MerchantLogin:OutSum:InvId:Password1)` — для создания; `MD5(OutSum:InvId:Password2)` — для проверки вебхука
+- Чеки: автоматически через РобоЧеки СМЗ (подключается один раз в ЛК → «Фискализация» → «Самозанятые ФНС» → подтвердить в «Мой налог»)
 
 **Что уже сделано:**
-- ✅ `supabase/functions/yukassa-webhook/index.ts` — вебхук обрабатывает `pro`, `pro_annual`, `lifetime`; верифицирует платёж через ЮKassa API; декрементирует `lifetime_slots_remaining`; ставит `grandfathered = true` если `GRANDFATHERING_ENDS_AT` не истекло
+- ✅ `supabase/functions/yukassa-webhook/index.ts` — старый вебхук ЮKassa (нужно переписать под Robokassa)
 - ✅ `app_settings.lifetime_slots_remaining = 50` + атомарный RPC `decrement_lifetime_slot()` (миграция 0025)
 - ✅ `profiles.grandfathered boolean` (миграция 0026)
 - ✅ Лендинг и UpgradeModal показывают живой счётчик Lifetime-слотов; при 0 вариант скрывается
 - ✅ В настройках у грандфазированных пользователей: «✦ Ранняя цена · 290 ₽/мес навсегда»
 
 **Что осталось сделать:**
-1. Зарегистрироваться в ЮKassa, получить `shop_id` и `secret_key`. Включить интеграцию с ФНС (чеки для самозанятых — автоматически, бесплатно).
-2. Установить Secrets в Supabase Dashboard → Edge Functions → Secrets:
-   - `YUKASSA_SHOP_ID`, `YUKASSA_SECRET_KEY`
-   - `GRANDFATHERING_ENDS_AT` = ISO-дата окончания грандфазеринга, например `2026-09-01`
-3. Задеплоить Edge Function: `supabase functions deploy yukassa-webhook --project-ref joaxeoavjvlqmtlepkrr`
-4. Зарегистрировать URL вебхука в ЮKassa Личном кабинете: `https://joaxeoavjvlqmtlepkrr.supabase.co/functions/v1/yukassa-webhook`
-5. Построить flow создания платежа: при клике «Оформить подписку» / «Купить Lifetime» — создать платёж через ЮKassa API с `metadata: { user_id, plan: 'pro'|'lifetime' }`, перенаправить на `confirmation.confirmation_url`. После оплаты ЮKassa вызывает вебхук автоматически.
-6. Добавить акцепт оферты у кнопки оплаты (требование §5).
+1. Зарегистрироваться на robokassa.ru → выбрать «Самозанятый» → заполнить анкету (ИНН, паспорт, справка из «Мой налог»)
+2. Создать магазин в ЛК → Технические настройки → сгенерировать **Пароль #1** и **Пароль #2** → указать Result/Success/Fail URL
+3. Подключить РобоЧеки СМЗ: ЛК → Фискализация → «Самозанятые ФНС» → «Отправить заявку» → подтвердить в приложении «Мой налог»
+4. Переписать Edge Function под Robokassa (`supabase/functions/robokassa-webhook/index.ts`):
+   - Принимать POST с `OutSum`, `InvId`, `SignatureValue`, `shp_user_id`, `shp_plan`
+   - Проверять подпись: `MD5(OutSum:InvId:Password2:Shp_*)` (параметры `shp_*` в подписи — по алфавиту)
+   - При успехе — обновить `profiles.plan`, задекрементировать `lifetime_slots_remaining` если Lifetime
+   - Вернуть строку `OK{InvId}` — иначе Robokassa будет повторять запрос
+5. Установить Secrets в Supabase → Edge Functions:
+   - `ROBOKASSA_MERCHANT_LOGIN`, `ROBOKASSA_PASSWORD2`
+   - `GRANDFATHERING_ENDS_AT` (ISO-дата, например `2026-09-01`)
+6. Построить flow создания платежа: при клике «Оформить» — твой сервер формирует ссылку `https://auth.robokassa.ru/Merchant/Index.aspx?MerchantLogin=...&OutSum=...&InvId=...&shp_user_id=...&shp_plan=...&SignatureValue=...` → редиректишь пользователя
+7. Для рекуррентных: после первого платежа сохранить `InvId` → при продлении POST на `https://auth.robokassa.ru/Merchant/Recurring/...` с `PreviousInvoiceID`
+8. Добавить акцепт оферты у кнопки оплаты (требование §5 — уже есть)
 
-**Файлы:** `supabase/functions/yukassa-webhook/index.ts` (готово), `src/components/SettingsModal.tsx` (кнопки → реальный чекаут), `src/pages/Landing.tsx` (то же)
-**Проверить:** тестовый вебхук ЮKassa (из Личного кабинета) → `profiles.plan = 'pro'` обновляется → `SettingsModal` показывает Pro; Lifetime → `lifetime_slots_remaining` убывает
-**Deps:** §5 (оферта)
+**Ограничение:** sandbox для рекуррентных платежей недоступен — тестировать первые подписки на реальных небольших суммах (например, тариф за 1 ₽).
+
+**Файлы:** `supabase/functions/yukassa-webhook/index.ts` (переписать → `robokassa-webhook`), `src/components/SettingsModal.tsx` (кнопки → реальный чекаут), `src/pages/Landing.tsx` (то же)
+**Проверить:** оплатить тестовую подписку → `profiles.plan = 'pro'` обновился → `SettingsModal` показывает Pro; Lifetime → `lifetime_slots_remaining` убывает; чек пришёл на email покупателя автоматически
+**Deps:** §5 (оферта — ✅ готово)
 
 ---
 
+### 5. Бэкапы рукописей — защита пользовательских данных ⚠️
+
+**Контекст:** потеря рукописи — катастрофа для пользователя. Supabase Free tier даёт 1 бэкап в неделю без PITR. Между бэкапами данные за 6 дней не защищены.
+
+**Что сделать:**
+
+**Шаг 1 — Supabase Pro ($25/мес) — обязателен до коммерческого запуска:**
+- Ежедневные бэкапы + 30 дней retention
+- PITR (Point-in-Time Recovery) — восстановление на любой момент
+- Supabase Dashboard → Settings → Billing → Upgrade
+
+**Шаг 2 — Автоматический `pg_dump` через GitHub Actions (промежуточное решение / дополнительная страховка):**
+1. Добавить в `.github/workflows/` новый workflow `backup.yml` по cron (`0 3 * * *` — каждую ночь в 3:00)
+2. `pg_dump` → сжать → загрузить в Supabase Storage или внешний S3/R2
+3. Secrets: `DATABASE_URL` (прямое подключение к Postgres, не через API)
+4. Retention: хранить последние 30 дней, удалять старее
+
+**Шаг 3 — UX: напоминание об экспорте в интерфейсе:**
+- Страница `/export` уже есть (DOCX, EPUB, FB2, HTML)
+- Добавить тихий баннер в Dashboard: «Экспортируйте рукопись раз в неделю» (localStorage dismissed)
+
+**Файлы:** `.github/workflows/backup.yml` (создать), `src/pages/Dashboard.tsx` (баннер)
+**Проверить:** workflow отработал → файл появился в хранилище → восстановление тестового дампа прошло без ошибок
+
+---
+
+### Архитектурная чистка — 5 задач
+
+**Что это:** 5 независимых рефакторингов, выявленных при аудите кодовой базы. Каждый изолирован — можно брать в любом порядке. Подробный план с diff-кодом: [docs/superpowers/plans/2026-06-03-architecture-cleanup.md](../superpowers/plans/2026-06-03-architecture-cleanup.md).
+
+1. **Batch crossrefs (N+1 → 2)** — `src/lib/crossrefs.ts`: `syncCharacterAcrossAllChapters` и `syncBacklinks` делают 1 upsert + 1 delete **на каждую главу** внутри `Promise.all`. При 100 главах = 200 запросов. Фикс: собрать результаты, потом 1 batch upsert + 1 batch delete.
+2. **relationships.ts → createRepository** — `listRelations`, `createRelation`, `updateRelationLabel`, `deleteRelation` дублируют то, что `createRepository` уже делает. Убрать ручные запросы.
+3. **ROLE_COLOR / ROLE_PORTRAIT_BG → characters.ts** — константы определены в `Characters.tsx` (строки 39–49), но логически должны жить рядом с `ROLE_LABELS` в `characters.ts`.
+4. **Typed DbError** — `repository.ts` бросает сырой `PostgrestError`. `Dashboard.tsx` читает `.code` через небезопасный `as { code?: string }`. Экспортировать класс `DbError`, заменить касты на `instanceof`.
+5. **Safety limit на repository.list()** — необязательный параметр `limit` + cap 500 в `useCharacters` на случай аномально большого датасета.
+
+**Файлы:** `src/lib/crossrefs.ts`, `src/lib/relationships.ts`, `src/lib/characters.ts`, `src/pages/Characters.tsx`, `src/lib/repository.ts`, `src/pages/Dashboard.tsx`, `src/lib/queries.ts`
+**Проверить:** `npm run typecheck && npm run lint` → 0 ошибок; страница Персонажей — загружается, CRUD работает
+
+---
 
 ### 8. Соавторство — приглашение редактора
 
@@ -167,7 +221,7 @@ _Обновлён: 2026-06-03 (38 задач закрыто)_
 | 3 | Выход из аккаунта | Редирект на Landing, `/books/*` заблокирован |
 | 4 | Создать книгу → создать главу → напечатать текст → подождать 3 сек → обновить страницу | Текст сохранился |
 | 5 | Split-режим на 375px | ✅ Редирект на Editor (split недоступен на мобильном) |
-| 6 | ЮKassa тестовый платёж → webhook | `profiles.plan` обновился в SettingsModal (когда §4 будет реализован) |
+| 6 | Robokassa тестовый платёж → webhook | `profiles.plan` обновился в SettingsModal (когда §4 будет реализован) |
 
 #### Важно — исправить до первых 100 пользователей
 
@@ -220,7 +274,16 @@ _Обновлён: 2026-06-03 (38 задач закрыто)_
 **Что это:** сейчас `public/sounds/*.wav` — это синтетический шум (белый/розовый/коричневый), сгенерированный скриптом Node.js. Для продакшена нужны реальные атмосферные записи.
 
 **Что сделать:**
+Для твоего проекта я бы начал с 8 атмосфер:
 
+Кафе
+Дождь
+Костёр
+Лес
+Волны
+Поезд
+Библиотека
+Белый шум
 1. Зайти на [freesound.org](https://freesound.org) (бесплатный аккаунт).
 2. Найти и скачать 5 звуков с лицензией **CC0** или **CC BY** (Attribution). Искать по запросам:
    - `cafe ambience loop` → сохранить как `cafe.wav`
@@ -311,8 +374,8 @@ _Задачи с явным "не делать сейчас". Вернуться
 **Установка:** `npx skills add zarazhangrui/frontend-slides`
 
 ### 🔵 Expense Tracker Market — `AlariCode/expense-tracker-market`
-**Когда:** при подключении платёжной системы (ЮKassa §4) и запуске монетизации.  
-**Что даёт:** возможно — паттерны для биллинговых UI и маркетплейс-механик. Изучить README при запуске §3.  
+**Когда:** при подключении Robokassa (§4) и запуске монетизации.  
+**Что даёт:** возможно — паттерны для биллинговых UI и маркетплейс-механик. Изучить README при запуске §4.  
 **Установка:** `npx skills add AlariCode/expense-tracker-market`
 
 ## CI/CD — реструктуризация деплоя
@@ -352,6 +415,8 @@ dev → Vercel preview (авто) → e2e тесты → merge в main → Timew
 ---
 
 ## Закрыто
+
+_2026-06-03:_ feat(admin) Расширение панели — все 8 задач завершены: история платежей (вкладка «Платежи»), Suspend/Unsuspend, CSV-экспорт, карточка `/admin/users/:id` (книги + история плана + сброс пароля), ручная правка Lifetime-слотов, grace period +7д Pro, revenue-метрики MRR/churn (вкладка «Финансы»), feature flags (вкладка «Флаги»); миграции 0028_admin_actions + 0029_revenue_flags ✅
 
 _2026-06-03:_ fix(shortcuts) §10 аудит горячих клавиш — два бага исправлены: `Ctrl+Enter` вставлял `<br>` в текущую главу параллельно с созданием новой (добавлен `!e.defaultPrevented` в `useKeyboardShortcuts`); `Ctrl+Shift+N` конфликтовал с инкогнито Chrome (переименован в `Ctrl+Shift+M`); остальные шорткаты корректны во всех 4 режимах, Mac Cmd-замена работает ✅
 

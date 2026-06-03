@@ -19,6 +19,10 @@ interface PlanHistoryEntry {
 }
 
 interface UserDetail {
+  email: string | null;
+  created_at: string | null;
+  plan: string | null;
+  suspended: boolean | null;
   books: BookSummary[];
   plan_history: PlanHistoryEntry[];
 }
@@ -68,9 +72,7 @@ export default function AdminUserDetail() {
       if (err) { setError(err.message); return; }
       const d = data as UserDetail;
       setDetail(d);
-      // Пробуем вытащить email из истории (payload.email есть у suspend/unsuspend)
-      const entry = d.plan_history?.find((e) => e.payload?.email);
-      if (entry?.payload?.email) setUserEmail(entry.payload.email);
+      if (d.email) setUserEmail(d.email);
     });
   }, [user, userId, setError]);
 

@@ -367,7 +367,7 @@ function SortableChapterRow({
       </div>
 
       <div
-        style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)' }}
+        style={{ position: 'absolute', right: 8, top: 0, bottom: 0, display: 'flex', alignItems: 'center' }}
       >
         <button
           ref={menuFor === c.id ? menuRef : null}

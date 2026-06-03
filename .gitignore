@@ -29,3 +29,4 @@ test-results/
 
 # Graphify knowledge graph (generated)
 graphify-out/
+.gstack/
