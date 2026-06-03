@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { createRepository } from './repository';
 
 // --- Directed relations (character_relations: from → to) ---
 
@@ -13,46 +13,36 @@ export interface CharacterRelation {
   updated_at: string;
 }
 
-export async function listRelations(bookId: string): Promise<CharacterRelation[]> {
-  const { data, error } = await supabase
-    .from('character_relations')
-    .select('*')
-    .eq('book_id', bookId)
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as CharacterRelation[];
+const relationsRepo = createRepository<CharacterRelation>(
+  'character_relations',
+  {},
+  [{ column: 'created_at', ascending: true }],
+);
+
+export function listRelations(bookId: string): Promise<CharacterRelation[]> {
+  return relationsRepo.list(bookId);
 }
 
-export async function createRelation(
+export function createRelation(
   bookId: string,
   userId: string,
   fromId: string,
   toId: string,
   label: string,
 ): Promise<CharacterRelation> {
-  const { data, error } = await supabase
-    .from('character_relations')
-    .insert({ book_id: bookId, user_id: userId, from_character_id: fromId, to_character_id: toId, label })
-    .select('*')
-    .single();
-  if (error) throw error;
-  return data as CharacterRelation;
+  return relationsRepo.create(bookId, userId, {
+    from_character_id: fromId,
+    to_character_id: toId,
+    label,
+  });
 }
 
-export async function updateRelationLabel(id: string, label: string): Promise<CharacterRelation> {
-  const { data, error } = await supabase
-    .from('character_relations')
-    .update({ label })
-    .eq('id', id)
-    .select('*')
-    .single();
-  if (error) throw error;
-  return data as CharacterRelation;
+export function updateRelationLabel(id: string, label: string): Promise<CharacterRelation> {
+  return relationsRepo.update(id, { label });
 }
 
-export async function deleteRelation(id: string): Promise<void> {
-  const { error } = await supabase.from('character_relations').delete().eq('id', id);
-  if (error) throw error;
+export function deleteRelation(id: string): Promise<void> {
+  return relationsRepo.delete(id);
 }
 
 // --- Bilateral relationships (character_relationships: charIdA < charIdB canonical) ---
@@ -69,17 +59,17 @@ export interface CharacterRelationship {
   updated_at: string;
 }
 
-export async function listRelationships(bookId: string): Promise<CharacterRelationship[]> {
-  const { data, error } = await supabase
-    .from('character_relationships')
-    .select('*')
-    .eq('book_id', bookId)
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as CharacterRelationship[];
+const relationshipsRepo = createRepository<CharacterRelationship>(
+  'character_relationships',
+  {},
+  [{ column: 'created_at', ascending: true }],
+);
+
+export function listRelationships(bookId: string): Promise<CharacterRelationship[]> {
+  return relationshipsRepo.list(bookId);
 }
 
-export async function createRelationship(
+export function createRelationship(
   bookId: string,
   userId: string,
   charIdA: string,
@@ -87,39 +77,22 @@ export async function createRelationship(
   labelMine: string,
   labelTheirs: string,
 ): Promise<CharacterRelationship> {
-  // Каноническое хранение: char_a_id < char_b_id
   const canonical = charIdA < charIdB;
-  const { data, error } = await supabase
-    .from('character_relationships')
-    .insert({
-      book_id: bookId,
-      user_id: userId,
-      char_a_id: canonical ? charIdA : charIdB,
-      char_b_id: canonical ? charIdB : charIdA,
-      label_a: canonical ? labelMine : labelTheirs,
-      label_b: canonical ? labelTheirs : labelMine,
-    })
-    .select('*')
-    .single();
-  if (error) throw error;
-  return data as CharacterRelationship;
+  return relationshipsRepo.create(bookId, userId, {
+    char_a_id: canonical ? charIdA : charIdB,
+    char_b_id: canonical ? charIdB : charIdA,
+    label_a: canonical ? labelMine : labelTheirs,
+    label_b: canonical ? labelTheirs : labelMine,
+  });
 }
 
-export async function updateRelationshipLabels(
+export function updateRelationshipLabels(
   id: string,
   patch: { label_a?: string; label_b?: string },
 ): Promise<CharacterRelationship> {
-  const { data, error } = await supabase
-    .from('character_relationships')
-    .update(patch)
-    .eq('id', id)
-    .select('*')
-    .single();
-  if (error) throw error;
-  return data as CharacterRelationship;
+  return relationshipsRepo.update(id, patch);
 }
 
-export async function deleteRelationship(id: string): Promise<void> {
-  const { error } = await supabase.from('character_relationships').delete().eq('id', id);
-  if (error) throw error;
+export function deleteRelationship(id: string): Promise<void> {
+  return relationshipsRepo.delete(id);
 }
