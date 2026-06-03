@@ -10,8 +10,8 @@ export interface Note {
   chapter_id?: string | null;
   kind: NoteKind;
   text: string;
-  custom_label?: string;
-  custom_color?: string;
+  custom_label?: string | null;
+  custom_color?: string | null;
   position: number;
   created_at: string;
 }
@@ -74,11 +74,8 @@ export function deleteNote(id: string): Promise<void> {
 
 export async function reorderNotes(updates: { id: string; position: number }[]): Promise<void> {
   if (updates.length === 0) return;
-  const results = await Promise.all(
-    updates.map(({ id, position }) =>
-      supabase.from('notes').update({ position }).eq('id', id),
-    ),
-  );
-  const failed = results.find((r) => r.error);
-  if (failed?.error) throw failed.error;
+  const { error } = await supabase
+    .from('notes')
+    .upsert(updates, { onConflict: 'id' });
+  if (error) throw error;
 }

@@ -48,7 +48,7 @@ export function createCharacter(
 }
 
 export function updateCharacter(id: string, patch: CharacterPatch): Promise<Character> {
-  return repo.update(id, patch as Record<string, unknown>);
+  return repo.update(id, patch);
 }
 
 export function deleteCharacter(id: string): Promise<void> {

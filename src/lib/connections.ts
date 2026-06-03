@@ -47,7 +47,7 @@ export function createConnection(
 }
 
 export function updateConnection(id: string, patch: ConnectionPatch): Promise<LocationConnection> {
-  return repo.update(id, patch as Record<string, unknown>);
+  return repo.update(id, patch);
 }
 
 export function deleteConnection(id: string): Promise<void> {

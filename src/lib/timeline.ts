@@ -40,7 +40,7 @@ export function createTimelineEvent(
 }
 
 export function updateTimelineEvent(id: string, patch: TimelineEventPatch): Promise<TimelineEvent> {
-  return repo.update(id, patch as Record<string, unknown>);
+  return repo.update(id, patch);
 }
 
 export function deleteTimelineEvent(id: string): Promise<void> {
@@ -62,9 +62,9 @@ export const TYPE_COLORS: Record<TimelineEventType, string> = {
 };
 
 export async function reorderTimelineEvents(updates: { id: string; position: number }[]): Promise<void> {
-  await Promise.all(
-    updates.map(({ id, position }) =>
-      supabase.from('timeline_events').update({ position }).eq('id', id),
-    ),
-  );
+  if (updates.length === 0) return;
+  const { error } = await supabase
+    .from('timeline_events')
+    .upsert(updates, { onConflict: 'id' });
+  if (error) throw error;
 }

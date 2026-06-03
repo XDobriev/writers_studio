@@ -23,7 +23,7 @@ export interface OrderClause {
 export interface Repository<T> {
   list(bookId: string, options?: { limit?: number }): Promise<T[]>;
   create(bookId: string, userId: string, patch?: Record<string, unknown>): Promise<T>;
-  update(id: string, patch: Record<string, unknown>): Promise<T>;
+  update(id: string, patch: Partial<T>): Promise<T>;
   delete(id: string): Promise<void>;
 }
 
@@ -55,7 +55,7 @@ export function createRepository<T>(
     async update(id, patch) {
       const { data, error } = await supabase
         .from(table)
-        .update(patch)
+        .update(patch as Record<string, unknown>)
         .eq('id', id)
         .select('*')
         .single();

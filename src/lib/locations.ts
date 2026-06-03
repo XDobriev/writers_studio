@@ -40,7 +40,7 @@ export function createLocation(
 }
 
 export function updateLocation(id: string, patch: LocationPatch): Promise<Location> {
-  return repo.update(id, patch as Record<string, unknown>);
+  return repo.update(id, patch);
 }
 
 export function deleteLocation(id: string): Promise<void> {
