@@ -94,11 +94,13 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/useErrorState.ts` — хук error-состояния: `{ error, setError(Error|string), clearError() }`.
 - `src/lib/chapterMutations.ts` — helpers обновления кэша React Query после мутаций глав: `updateChapterWithCache`, `createChapterWithCache`, `deleteChapterWithCache`, `invalidateChaptersCache`.
 - `src/lib/useResponsive.ts` — `BREAKPOINTS` константы + `useResponsive()` → `{ isMobile, isTablet, isNarrow }` через matchMedia.
+- `src/lib/profiles.ts` — `getProfile(userId)`, `getLifetimeSlotsRemaining()` (читает `app_settings`), `markOnboarded`, `addWordToDictionary`.
 
 ## Supabase
 
 - Клиент читает `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY` из `.env`.
 - Миграции: `supabase/migrations/*.sql`. Применять через Supabase MCP (`apply_migration` / `execute_sql`). CLI локально не используется.
+- Edge Functions: `supabase/functions/telegram-auth/` — авторизация через Telegram. `supabase/functions/yukassa-webhook/` — вебхук ЮKassa: Pro/Lifetime-подписки, декремент lifetime_slots, grandfathered (требует Secrets: `YUKASSA_SHOP_ID`, `YUKASSA_SECRET_KEY`, опционально `GRANDFATHERING_ENDS_AT`).
 - **При добавлении таблиц: обязательно RLS** `auth.uid() = user_id` (образец: `0001_init.sql`).
 - **При добавлении таблиц: обязательно GRANT** (с 30.10.2026 без него supabase-js не видит таблицу): `GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.<table> TO anon, authenticated;`
 - Auth URL: `site_url=https://avtorskaya-studiya.vercel.app`, allow-list включает прод + `avtorskaya-studiya-*.vercel.app` + `localhost:5273`.
@@ -117,6 +119,16 @@ npm run preview    # превью продакшен-сборки
 - Inline-стили допустимы, но при 3+ повторениях — выносить в CSS-класс.
 - Импорты относительные (`../components/Icon`). Алиас `@/*` объявлён в `tsconfig.app.json`, пока не используется.
 - **Reset-правила в `.as` обёрнуты в `:where()`** — критично для специфичности. Не разворачивать в `.as button`.
+
+### Паттерны работы с Supabase
+
+- **Всегда использовать `createRepository`** для таблиц с `book_id`. Никаких ручных `.from(table).select('*').eq('book_id', ...)` снаружи `repository.ts`. Исключение: запросы с нестандартными JOIN-ами или `.select('id, content')` (частичная выборка).
+- **Никогда `Promise.all(array.map(id => supabase.update(id)))`** для мутаций. Вместо этого — `upsert([...rows])` или `.delete().in('id', ids)`. Один upsert/delete — нормально. Цикл — нет.
+- **Ошибки из `createRepository` — это `DbError`** (`src/lib/repository.ts`). При проверке кода ошибки использовать `instanceof DbError` и `err.code`, не `as { code?: string }`.
+
+### Паттерны локальности
+
+- **Константы живут рядом с типом.** `ROLE_LABELS`, `ROLE_COLOR`, `TYPE_LABELS`, `TYPE_GLYPHS` — в том файле, где объявлен тип (`characters.ts`, `locations.ts`, `timeline.ts`). Не определять их в компоненте, который первым их использует.
 
 ## Что не трогать
 
@@ -140,6 +152,7 @@ npm run preview    # превью продакшен-сборки
 
 ## Workflow Rules
 
+- **Новые фичи не должны ломать существующий функционал.** Перед завершением правки — проверить смежные компоненты и хуки, которые она затрагивает. Например: смена `position: absolute` → `position: fixed` требует аудита предков на `transform`/`filter`/`will-change`, которые создают containing block; перенос `ref` с контейнера на кнопку может сломать хук, читающий геометрию.
 - Одна задача за раз, только в рамках текущей feature.
 - **При создании или изменении любого UI-компонента читать `docs/design.md`** — цвета, типографику, скроллбары, анимации, компонентные правила. Не изобретать новые токены или паттерны не сверившись с документом.
 - Предпочитать изменение существующих компонентов вместо переписывания систем.
