@@ -3,6 +3,7 @@ import { useResponsive } from '../lib/useResponsive';
 import { useErrorState } from '../lib/useErrorState';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
+import { AccountMenu } from '../components/AccountMenu';
 import { LogoMark } from '../components/LogoMark';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { BookCard } from '../components/BookCard';
@@ -25,7 +26,7 @@ const ONBOARDING_FEATURES = [
 type Plan = 'free' | 'pro' | 'lifetime';
 
 export default function Home() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { displayName } = useUserDisplay();
   const queryClient = useQueryClient();
   const { data: books, error: booksError } = useBooks(user?.id);
@@ -171,9 +172,13 @@ export default function Home() {
         <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
         <span style={{ flex: 1 }} />
         <span className="hide-sm" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{displayName}</span>
-        <button className="tb-btn" onClick={signOut} title="Выйти из аккаунта" aria-label="Выйти из аккаунта">
-          <Icon name="log-out" size={16} />
-        </button>
+        <AccountMenu placement="below">
+          {({ onClick, open }) => (
+            <button className="tb-btn" onClick={onClick} aria-label="Аккаунт" aria-haspopup="menu" aria-expanded={open}>
+              <Icon name="user" size={16} />
+            </button>
+          )}
+        </AccountMenu>
       </header>
 
       {/* ─── Content ─── */}

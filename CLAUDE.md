@@ -57,6 +57,7 @@ npm run preview    # превью продакшен-сборки
 - `src/components/GenrePicker.tsx` — мультиселект жанров (`genres text[]`).
 - `src/components/Skeleton.tsx` — скелетон-загрузка для async-состояний.
 - `src/components/VersionsPanel.tsx` + `VersionModal.tsx` — UI снапшотов/версий.
+- `src/components/AccountMenu.tsx` — переиспользуемый дропдаун аккаунта (Настройки + Выйти); render-prop `children` для кастомного триггера; `placement="above"|"below"`.
 - `src/components/AuthGuard.tsx` — защита роутов.
 - `src/components/ErrorBoundary.tsx` — перехват краша компонентов, fallback UI.
 - `src/styles/design-system.css` — CSS-переменные (oklch), классы `.as`, `.sb`, `.tb`, `.sheet`, `.btn`, `.input`, `.label`.
@@ -74,6 +75,7 @@ npm run preview    # превью продакшен-сборки
 - `src/pages/Export.tsx` — экспорт: DOCX, EPUB, FB2, HTML.
 - `src/pages/Admin.tsx` + `AdminAnalytics.tsx` — AdminOnly: управление пользователями.
 - `src/pages/Landing.tsx` — публичный лендинг.
+- `src/pages/Offer.tsx` — публичная страница оферты `/offer`: тарифы, цены, возврат, акцепт.
 
 ### lib/
 - `src/lib/repository.ts` — фабрика `createRepository<T>(table, defaults, orderBy)` → `{ list, create, update, delete }` с единой обработкой ошибок; используется в characters, locations, timeline, connections, notes.

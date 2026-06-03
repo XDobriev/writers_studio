@@ -753,7 +753,7 @@ export default function Export() {
   const downloadLabel = busy ? 'Генерация…' : `Скачать ${FORMAT_MAIN.find((f) => f.value === format)?.label ?? format.toUpperCase()}`;
 
   return (
-    <div className="as" style={{ minHeight: '100vh', background: 'var(--bg-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+    <div className="as" style={{ minHeight: '100vh', background: 'var(--bg-void)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div style={{ width: 680, maxWidth: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
 
         {/* Header */}
