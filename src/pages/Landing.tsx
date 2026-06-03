@@ -1,6 +1,7 @@
 import { type ComponentProps, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { getLifetimeSlotsRemaining } from '../lib/profiles';
 import { Icon } from '../components/Icon';
 import { LogoMark } from '../components/LogoMark';
 
@@ -404,7 +405,7 @@ function LandingFeatures() {
   return (
     <section id="features" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
       <div className="lnd-max">
-        <SectionLabel kicker="Возможности" title="Студия, а не текстовое поле." subtitle="Каждая часть книги живёт рядом с рукописью — не в отдельном приложении, не на отдельной вкладке. Открыли главу — видите её мир." />
+        <SectionLabel kicker="Возможности" title="Студия, а не текстовое поле." subtitle="Каждая часть книги живёт рядом с рукописью в этом онлайн-редакторе для писателей на русском языке — не в отдельном приложении, не на отдельной вкладке. Открыли главу — видите её мир." />
         <FeatureRow eyebrow="Редактор" headline="Четыре режима. Один редактор." body="Полная студия с заметками и оглавлением — для редактуры. Только страница — для черновика. Промежуточные режимы — для всего, что между. Состояние помнит, на каком вы остановились." bullets={[['layout','Студия','все панели открыты'],['panel','Сайдбар','только оглавление'],['note','Полей','только заметки'],['focus','Страница','только текст']]} mock={<MockEditorModes />} />
         <FeatureRow reverse eyebrow="Структура" headline="Книга как картотека. Не как длинный документ." body="Перетаскивайте главы и сцены. Смотрите доску с карточками или дерево с целями по словам. Любая глава — двойной клик и она открыта." bullets={[['layout','Outline','дерево частей и сцен'],['grid','Corkboard','индексные карточки'],['tree','Списком','плоский список'],['arrows','Drag-ord','перетаскивание']]} mock={<MockCorkboard />} />
         <FeatureRow eyebrow="Мир книги" headline="Весь мир книги — рядом с главой." body="Всё что нужно автору длинной формы — без выхода из проекта. Локации и события привязаны к главам, в которых упоминаются. Свяжите персонажа с главой — он автоматически появится в её обзоре." bullets={[['map','Карта мира','пины + районы'],['clock','Хронология','события и эпохи'],['char','Персонажи','связи + появления'],['link','Привязки','к главам']]} mock={<MockWorld />} />
@@ -673,6 +674,16 @@ function LandingPrinciples() {
 // ─── Pricing ──────────────────────────────────────────────────────────────────
 
 function LandingPricing() {
+  const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
+
+  useEffect(() => {
+    getLifetimeSlotsRemaining().then((slots) => {
+      if (slots !== null) setLifetimeSlots(slots);
+    });
+  }, []);
+
+  const slotsLabel = lifetimeSlots !== null ? `${lifetimeSlots}` : '…';
+
   const tiers = [
     {
       name: 'Free', price: '0 ₽', sub: 'навсегда',
@@ -704,7 +715,7 @@ function LandingPricing() {
     },
     {
       name: 'Lifetime', price: '4 900 ₽', sub: 'один раз · навсегда',
-      summary: 'Разовая оплата. Все обновления Pro — на всю жизнь. Только первые 50 мест.',
+      summary: `Разовая оплата. Все обновления Pro — на всю жизнь. Осталось ${slotsLabel} мест.`,
       features: [
         ['Всё из тарифа Pro', true],
         ['Все будущие обновления', true],
@@ -712,17 +723,21 @@ function LandingPricing() {
         ['Приоритетная поддержка', true],
         ['Имя в титрах беты', true],
         ['Закрытое сообщество авторов', true],
-        ['Только первые 50 покупателей', true],
+        [`Только первые 50 покупателей`, true],
       ] as [string, boolean][],
-      cta: 'Купить Lifetime', accent: false, tag: '50 мест · ранний доступ', signup: true,
+      cta: 'Купить Lifetime', accent: false, tag: `${slotsLabel} мест · ранний доступ`, signup: true,
     },
   ];
+
+  // Скрываем Lifetime если слоты закончились (0)
+  const visibleTiers = lifetimeSlots === 0 ? tiers.filter(t => t.name !== 'Lifetime') : tiers;
+
   return (
     <section id="pricing" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)' }}>
       <div className="lnd-max">
         <SectionLabel align="center" kicker="Тарифы" title="Начните бесплатно." subtitle="Бесплатный план — не «триал на 14 дней». Одна книга, навсегда, без ограничений по времени." />
         <div className="lnd-prices">
-          {tiers.map((t) => (
+          {visibleTiers.map((t) => (
             <div key={t.name} className="lnd-reveal">
               <div className={`lnd-price-card${t.accent ? ' lnd-price-card--accent' : ''}`} style={{ position: 'relative', background: t.accent ? 'var(--surface)' : 'var(--bg)', border: t.accent ? '1px solid var(--accent)' : '1px solid var(--border-soft)', borderRadius: 14, padding: '32px 28px 28px', display: 'flex', flexDirection: 'column', boxShadow: t.accent ? '0 20px 60px oklch(0 0 0 / 0.3),0 0 0 4px var(--accent-soft)' : 'none' }}>
               {t.tag && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', padding: '4px 12px', borderRadius: 999, background: t.accent ? 'var(--accent)' : 'var(--surface-2)', color: t.accent ? 'oklch(0.98 0 0)' : 'var(--ink-2)', font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', border: t.accent ? 'none' : '1px solid var(--border)', whiteSpace: 'nowrap' }}>{t.tag}</div>}

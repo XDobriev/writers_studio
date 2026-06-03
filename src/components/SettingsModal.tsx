@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type CSSProperties } from 'react';
 import { Icon } from './Icon';
 import { supabase } from '../lib/supabase';
-import { getProfile } from '../lib/profiles';
+import { getProfile, getLifetimeSlotsRemaining } from '../lib/profiles';
 import { useAuth } from '../lib/auth';
 import { applyTheme, getStoredTheme, type Theme } from '../lib/theme';
 import { EDITOR_SHORTCUTS, shortcutLabel } from '../lib/shortcuts';
@@ -25,12 +25,21 @@ const PRO_FEATURES = [
 
 function UpgradeModal({ onClose }: { onClose: () => void }) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
+
+  useEffect(() => {
+    getLifetimeSlotsRemaining().then((slots) => {
+      if (slots !== null) setLifetimeSlots(slots);
+    });
+  }, []);
+
+  const showLifetime = lifetimeSlots !== null && lifetimeSlots > 0;
 
   return (
     <div
@@ -106,6 +115,41 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
               Позже
             </button>
           </div>
+
+          {showLifetime && (
+            <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 16, paddingTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div>
+                  <span style={{ font: '600 14px var(--font-ui)', color: 'var(--ink)' }}>Lifetime</span>
+                  <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)', marginLeft: 8 }}>один раз · навсегда</span>
+                </div>
+                <span style={{
+                  font: '500 10px var(--font-mono)', letterSpacing: '0.08em',
+                  color: 'var(--accent)', background: 'var(--accent-soft)',
+                  border: '1px solid color-mix(in oklch, var(--accent) 30%, transparent)',
+                  borderRadius: 5, padding: '2px 7px',
+                }}>
+                  {lifetimeSlots} мест
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}>
+                <span style={{ font: '700 22px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.03em' }}>4 900 ₽</span>
+                <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>разовый платёж</span>
+              </div>
+              <a
+                href="https://avtorskaya-studiya.vercel.app/#pricing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn"
+                style={{
+                  textDecoration: 'none', justifyContent: 'center', fontSize: 13,
+                  height: 36, display: 'flex', alignItems: 'center', width: '100%',
+                }}
+              >
+                Купить Lifetime
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -136,6 +180,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [theme, setTheme] = useState<Theme>(getStoredTheme);
   const [plan, setPlan] = useState<Plan>('free');
   const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
+  const [grandfathered, setGrandfathered] = useState(false);
   const [planLoaded, setPlanLoaded] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -145,6 +190,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     getProfile(user.id).then((profile) => {
       if (profile?.plan) setPlan(profile.plan as Plan);
       if (profile?.plan_expires_at) setPlanExpiresAt(profile.plan_expires_at);
+      if (profile?.grandfathered) setGrandfathered(true);
       setPlanLoaded(true);
     });
   }, [user]);
@@ -389,6 +435,12 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                             {plan === 'pro' && planExpiresAt && (
                               <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginTop: 5 }}>
                                 Активна до {new Date(planExpiresAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              </div>
+                            )}
+                            {plan === 'pro' && grandfathered && (
+                              <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ok)', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span>✦</span>
+                                <span>Ранняя цена · 290 ₽/мес навсегда</span>
                               </div>
                             )}
                           </div>
