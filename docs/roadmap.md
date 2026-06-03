@@ -1,6 +1,8 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-03 (29 задач закрыто)_
+_Обновлён: 2026-06-03 (34 задачи закрыто)_
+
+
 
 **Сейчас:** _(не задана — заполнить в начале сессии)_
 
@@ -24,9 +26,30 @@ _Обновлён: 2026-06-03 (29 задач закрыто)_
 
 
 
+
 ---
 
 ## Задачи — от критичного к некритичному
+
+---
+
+### 1. Transactional email — Resend SMTP + брендированные шаблоны
+
+**Симптом:** при регистрации пользователь получает некрасивое дефолтное письмо от Supabase.
+
+**Что готово:** 4 HTML-шаблона в стиле студии → `docs/email-templates/`. Подробная инструкция → `docs/email-templates/SETUP.md`.
+
+**Что осталось (ручные шаги, ~15 мин):**
+1. Зарегистрироваться на resend.com
+2. Domains → Add Domain: `avtorstudio.com` → добавить DNS-записи в Timeweb → дождаться Verified ✓
+3. API Keys → Create API Key → скопировать (`re_...`)
+4. Supabase Dashboard → **Project Settings → Authentication → SMTP Settings** → Enable Custom SMTP:
+   - Host: `smtp.resend.com` · Port: `465` · Username: `resend` · Password: `<API-ключ>`
+   - Sender Name: `Авторская студия` · Sender Email: `hello@avtorstudio.com`
+5. Supabase Dashboard → **Authentication → Email Templates** → вставить HTML из 4 файлов
+
+**Файлы:** `docs/email-templates/confirm-signup.html`, `reset-password.html`, `magic-link.html`, `email-change.html`
+**Проверить:** зарегистрировать тестового пользователя → inbox → брендированное письмо с тёмным фоном студии
 
 ---
 
@@ -47,41 +70,32 @@ _Обновлён: 2026-06-03 (29 задач закрыто)_
 
 **Шаг 0 — ✅ Выполнено:** `X-Robots-Tag: noindex, nofollow` добавлен в `vercel.json`. После деплоя удалить `avtorskaya-studiya.vercel.app` из Google Search Console (Google обработает noindex за 1–2 недели).
 
-**Шаг 1 — Pre-rendering лендинга (`vite-plugin-prerender`):**
-Установить `vite-plugin-prerender`, настроить рендер маршрутов `/`, `/privacy`, `/terms` при сборке. После этого nginx отдаёт Яндексботу готовый HTML вместо пустого `<div id="root">`.
-```bash
-npm install vite-plugin-prerender --save-dev
-```
-Добавить в `vite.config.ts` и прописать список pre-render маршрутов. App-маршруты (`/books/*`) не трогать — они за `AuthGuard`.
+**Шаг 1 — ✅ Выполнено:** Pre-rendering через `scripts/prerender.mjs` (Playwright + vite preview). Рендерит `/`, `/privacy`, `/terms` → HTML в `dist/`. `npm run build` запускает пострендер автоматически. В CI (`deploy-timeweb.yml`) добавлен шаг `npx playwright install chromium --with-deps`.
 
 **Шаг 2 — Meta-теги:**
 - ✅ `<link rel="canonical" href="https://avtorstudio.com/">` — добавлен в `index.html`
 - ✅ `og:url`, `og:image`, `twitter:image` — исправлены на `avtorstudio.com` в `index.html`
 - ✅ Schema.org JSON-LD — `SoftwareApplication` + `FAQPage` с 6 вопросами добавлены в `index.html`
-- ⬜ `<meta name="robots" content="noindex">` — в Auth, Dashboard и всех `/books/*` страницах (через `react-helmet-async`)
-- ⬜ `<meta name="yandex-verification" content="...">` — код получить в Яндекс.Вебмастер
+- ✅ `X-Robots-Tag: noindex` на `/books/*`, `/login`, `/admin` и т.д. — nginx `deploy/nginx.conf`. Применить на VPS: скопировать конфиг → `nginx -t && systemctl reload nginx`
+- ⬜ `<meta name="yandex-verification" content="...">` — получить код на webmaster.yandex.ru, раскомментировать placeholder в `index.html`
 
-**Шаг 3 — ✅ Выполнено:** `public/robots.txt` исправлен (URL sitemap → `avtorstudio.com`). `public/sitemap.xml` создан.
+**Шаг 3 — ✅ Выполнено:** `public/robots.txt` исправлен. `public/sitemap.xml` создан.
 
-**Шаг 3.1 — H1/H2 — нет ключевых слов (SEO-аудит, среднее):**
-H1 лендинга: *«Здесь пишете только вы.»* — сильный слоган, но Google не видит ключевой фразы. Ключевые слова есть только в `<title>` и `<meta description>`. Минимальный фикс: добавить в subtitle features-секции (`src/pages/Landing.tsx`, `SectionLabel subtitle`) что-то вроде «...онлайн-редактор для писателей на русском языке». Это не меняет дизайн, только текст.
-**Файлы:** `src/pages/Landing.tsx:392` (subtitle первой SectionLabel)
+**Шаг 3.1 — ✅ Выполнено:** Ключевые слова «онлайн-редактор для писателей на русском языке» добавлены в subtitle секции «Возможности» (`src/pages/Landing.tsx:408`).
 
-**Шаг 3.2 — Добавить `twitter:site` (SEO-аудит, низкое):**
-Если есть X/Twitter аккаунт — добавить `<meta name="twitter:site" content="@handle">` в `index.html`.
-**Файлы:** `index.html`
+**Шаг 4 — Яндекс.Вебмастер (ручной шаг):**
+1. Зарегистрировать `avtorstudio.com` на webmaster.yandex.ru
+2. Получить код верификации → раскомментировать `<meta name="yandex-verification">` в `index.html` → задеплоить
+3. Добавить sitemap `https://avtorstudio.com/sitemap.xml`
 
-**Шаг 4 — Яндекс.Вебмастер:**
-Зарегистрировать сайт `avtorstudio.com` → добавить sitemap → проверить индексацию через «Инструменты» → «Проверить URL». Это главный инструмент мониторинга для RU-рынка.
+**Шаг 5 — Яндекс.Метрика (ручной шаг):**
+Создать счётчик на metrika.yandex.ru → заменить `XXXXXXXX` на ID → раскомментировать блок в `index.html` → задеплоить.
 
-**Шаг 5 — Яндекс.Метрика:**
-Создать счётчик, добавить скрипт в `index.html`. Яндекс.Метрика — поведенческий сигнал ранжирования в Яндексе (CTR, время на сайте). Без неё сигналы не передаются.
-
-**Шаг 6 — Google Search Console:**
+**Шаг 6 — Google Search Console (ручной шаг):**
 Верификация через `public/google41b7face4a88ca87.html` уже есть. ⬜ Загрузить `https://avtorstudio.com/sitemap.xml` в GSC → Sitemaps. После подтверждения удалить `avtorskaya-studiya.vercel.app` из GSC.
 
-**Файлы:** `vite.config.ts`, `src/pages/Landing.tsx`, `src/App.tsx`, `public/robots.txt`, `public/sitemap.xml`, `index.html`
-**Проверить:** `npm run build && npm run preview` → view-source на `/` → полный HTML (не пустой `<div id="root">`)
+**Файлы:** `scripts/prerender.mjs`, `deploy/nginx.conf`, `src/pages/Landing.tsx`, `index.html`, `.github/workflows/deploy-timeweb.yml`
+**Проверить:** `npm run build` → view-source на `dist/index.html` → полный HTML лендинга (не пустой `<div id="root">`)
 **Deps:** §2 желательно сделать раньше
 
 > 🛠 **Скиллы:** `/ai-seo` и `/seo-audit` из `marketingskills` — для аудита после индексации; `/site-architecture` — если понадобится расширить структуру публичных страниц.
@@ -90,39 +104,31 @@ H1 лендинга: *«Здесь пишете только вы.»* — сил
 
 ### 4. ЮKassa — платёжный провайдер
 
-**Что это:** без платёжной системы нет монетизации. ЮKassa поддерживает самозанятых (4% с физлиц), работает без ИП. Нужна Edge Function для приёма вебхуков от ЮKassa и обновления поля `plan` в таблице `profiles`.
+**Что это:** без платёжной системы нет монетизации. ЮKassa поддерживает самозанятых (4% с физлиц), работает без ИП.
 
-**Что сделать:** зарегистрироваться в ЮKassa, получить `shop_id` и `secret_key` → создать Supabase Edge Function `yukassa-webhook` → при успешной оплате обновлять `profiles.plan = 'pro'` и `profiles.plan_expires_at`. При регистрации включить партнёрскую интеграцию с ФНС — чеки для самозанятых формируются и отправляются клиентам автоматически, бесплатно.
+**Что уже сделано:**
+- ✅ `supabase/functions/yukassa-webhook/index.ts` — вебхук обрабатывает `pro`, `pro_annual`, `lifetime`; верифицирует платёж через ЮKassa API; декрементирует `lifetime_slots_remaining`; ставит `grandfathered = true` если `GRANDFATHERING_ENDS_AT` не истекло
+- ✅ `app_settings.lifetime_slots_remaining = 50` + атомарный RPC `decrement_lifetime_slot()` (миграция 0025)
+- ✅ `profiles.grandfathered boolean` (миграция 0026)
+- ✅ Лендинг и UpgradeModal показывают живой счётчик Lifetime-слотов; при 0 вариант скрывается
+- ✅ В настройках у грандфазированных пользователей: «✦ Ранняя цена · 290 ₽/мес навсегда»
 
-**Файлы:** `supabase/functions/yukassa-webhook/` (новая), `supabase/migrations/` (новая миграция для `plan_expires_at`), `src/components/SettingsModal.tsx` (отображение плана)
-**Проверить:** тестовый вебхук ЮKassa → `profiles.plan = 'pro'` обновляется → `SettingsModal` показывает Pro-статус
-**Deps:** §5, §6, §7 зависят от этой задачи
+**Что осталось сделать:**
+1. Зарегистрироваться в ЮKassa, получить `shop_id` и `secret_key`. Включить интеграцию с ФНС (чеки для самозанятых — автоматически, бесплатно).
+2. Установить Secrets в Supabase Dashboard → Edge Functions → Secrets:
+   - `YUKASSA_SHOP_ID`, `YUKASSA_SECRET_KEY`
+   - `GRANDFATHERING_ENDS_AT` = ISO-дата окончания грандфазеринга, например `2026-09-01`
+3. Задеплоить Edge Function: `supabase functions deploy yukassa-webhook --project-ref joaxeoavjvlqmtlepkrr`
+4. Зарегистрировать URL вебхука в ЮKassa Личном кабинете: `https://joaxeoavjvlqmtlepkrr.supabase.co/functions/v1/yukassa-webhook`
+5. Построить flow создания платежа: при клике «Оформить подписку» / «Купить Lifetime» — создать платёж через ЮKassa API с `metadata: { user_id, plan: 'pro'|'lifetime' }`, перенаправить на `confirmation.confirmation_url`. После оплаты ЮKassa вызывает вебхук автоматически.
+6. Добавить акцепт оферты у кнопки оплаты (требование §5).
 
----
-
-### 6. Lifetime deal — 50 мест
-
-**Что это:** при публичном анонсе предложить первые 50 мест за 4 900 ₽ (вместо 290 ₽/мес × навсегда). Ограниченность создаёт срочность. После 50 продаж — убрать Lifetime, оставить только месячный/годовой планы.
-
-**Что сделать:** добавить поле `lifetime_slots_remaining integer` в таблицу `settings` (или как env). Показывать счётчик на лендинге и в модалке апгрейда: «осталось X мест». Декрементировать через вебхук ЮKassa при каждой Lifetime-покупке.
-
-**Файлы:** `src/pages/Landing.tsx`, `src/components/SettingsModal.tsx`, `supabase/migrations/` (счётчик слотов)
-**Проверить:** счётчик на лендинге убывает после каждой тестовой Lifetime-покупки; при 0 — вариант скрывается
-**Deps:** §4
-
----
-
-### 7. Грандфазеринг — заморозка цены для первых пользователей
-
-**Что это:** первые ~100–200 пользователей на месячном плане должны навсегда платить 290 ₽, даже когда цена поднимется до 390 ₽. Это стимул для ранней регистрации и обязательство перед аудиторией.
-
-**Что сделать:** добавить поле `grandfathered boolean default false` в таблицу `profiles`. Выставлять `true` при создании подписки в Фазе 1. Биллинговая логика: если `grandfathered = true` → списывать 290 ₽, иначе → актуальная цена.
-
-**Файлы:** `supabase/migrations/` (поле `grandfathered`), `supabase/functions/yukassa-webhook/`
-**Проверить:** пользователь с `grandfathered=true` — биллинг 290₽; без флага — актуальная цена
-**Deps:** §4
+**Файлы:** `supabase/functions/yukassa-webhook/index.ts` (готово), `src/components/SettingsModal.tsx` (кнопки → реальный чекаут), `src/pages/Landing.tsx` (то же)
+**Проверить:** тестовый вебхук ЮKassa (из Личного кабинета) → `profiles.plan = 'pro'` обновляется → `SettingsModal` показывает Pro; Lifetime → `lifetime_slots_remaining` убывает
+**Deps:** §5 (оферта)
 
 ---
+
 
 ### 8. Соавторство — приглашение редактора
 
@@ -148,20 +154,36 @@ H1 лендинга: *«Здесь пишете только вы.»* — сил
 
 ---
 
-### 10. Проверка горячих клавиш
+### 10. Ручное тестирование перед публичным запуском
 
-**Что это:** горячие клавиши перечислены в настройках (`Ctrl+S`, `Ctrl+Enter`, `Ctrl+Shift+[/]`, `Ctrl+Shift+F`, `Ctrl+Shift+N`), но не проверялось, все ли они работают корректно во всех режимах редактора (studio / left / right / page) и на разных платформах (Windows / Mac).
+**Что это:** полный прогон критических пользовательских сценариев перед первым публичным запуском. ~1–2 часа. Аккаунт для тестирования: `e2e@avtorskaya-studiya.vercel.app`.
 
-**Что проверить:**
-- Каждая клавиша из списка в настройках — срабатывает ли в редакторе?
-- Конфликты с браузерными и системными шорткатами (особенно `Ctrl+Shift+N` — новое окно инкогнито в Chrome).
-- Режим «Страница» (page mode) — активны ли те же шорткаты?
-- Mac: `Ctrl` → `Cmd` — реализована ли замена?
+#### Критично — блокирует запуск
 
-**Файлы:** `src/components/RichEditor.tsx`, `src/components/EditorHybrid.tsx`, `src/components/SettingsModal.tsx` (список шорткатов)
-**Проверить:** каждый шорткат из `SettingsModal` — проверить во всех 4 режимах, зафиксировать конфликты
+| # | Сценарий | Ожидаемый результат |
+|---|---|---|
+| 1 | Регистрация нового пользователя | Письма нет (confirm отключён), сразу попадает в Home |
+| 2 | Повторный вход | Сессия восстанавливается без ошибки |
+| 3 | Выход из аккаунта | Редирект на Landing, `/books/*` заблокирован |
+| 4 | Создать книгу → создать главу → напечатать текст → подождать 3 сек → обновить страницу | Текст сохранился |
+| 5 | Split-режим на 375px | Обе панели скроллятся, нет layout-поломок |
+| 6 | ЮKassa тестовый платёж → webhook | `profiles.plan` обновился в SettingsModal (когда §4 будет реализован) |
 
-> 🛠 **Скилл:** `gstack` — браузерный агент для ручного тестирования шорткатов в живом приложении.
+#### Важно — исправить до первых 100 пользователей
+
+| # | Сценарий | Ожидаемый результат |
+|---|---|---|
+| 7 | Создать персонажа с аватаром | Аватар виден в grid и hover-карточке в редакторе |
+| 8 | Связь между персонажами: создать → удалить | Видна в Characters, удаляется без ошибки |
+| 9 | Экспорт DOCX или FB2 | Файл скачивается и открывается |
+| 10 | Экспорт пустой книги | Не крашится |
+| 11 | Хронология / Заметки / Карта: создать → обновить → удалить | Happy path каждой страницы |
+| 12 | Модалки (настройки, версии, подтверждения) на 375px | Не выходят за экран, кнопки доступны |
+
+**Файлы:** все страницы и компоненты приложения  
+**Проверить:** все 12 пунктов выше без ошибок в консоли
+
+> 🛠 **Скиллы:** `gstack` — для автоматизации части сценариев через headless-браузер; `systematic-debugging` — при обнаружении багов.
 
 ---
 
@@ -324,7 +346,13 @@ dev → Vercel preview (авто) → e2e тесты → merge в main → Timew
 
 ## Закрыто
 
+_2026-06-03:_ fix(shortcuts) §10 аудит горячих клавиш — два бага исправлены: `Ctrl+Enter` вставлял `<br>` в текущую главу параллельно с созданием новой (добавлен `!e.defaultPrevented` в `useKeyboardShortcuts`); `Ctrl+Shift+N` конфликтовал с инкогнито Chrome (переименован в `Ctrl+Shift+M`); остальные шорткаты корректны во всех 4 режимах, Mac Cmd-замена работает ✅
+
+_2026-06-03:_ feat(monetization) §6 Lifetime deal + §7 Грандфазеринг — `app_settings.lifetime_slots_remaining = 50`, RPC `decrement_lifetime_slot` (миграция 0025); `profiles.grandfathered boolean` (миграция 0026); вебхук декрементирует счётчик и ставит `grandfathered` если `GRANDFATHERING_ENDS_AT` не истекло; лендинг и UpgradeModal показывают живой счётчик, скрывают Lifetime при 0; настройки показывают «✦ Ранняя цена» ✅
+
 _2026-06-03:_ feat(legal) §5 оферта, акцепт, email-подтверждение — `/offer` страница, акцепт у кнопок Pro/Lifetime, Edge Function `payment-confirmation` (Resend) ✅
+
+_2026-06-03:_ seo(prerender) §3 — `scripts/prerender.mjs` (Playwright + vite preview): рендер `/`, `/privacy`, `/terms` → HTML в `dist/` при сборке; nginx `X-Robots-Tag: noindex` для `/books/*`, `/login`, `/admin`; ключевые слова в subtitle лендинга; `index.html` placeholders для Метрики + Вебмастера ✅
 
 _2026-06-03:_ fix(a11y) три contrast failure в светлой теме — цвета приведены к WCAG AA ✅; fix(characters) не запускать auto-select в промежуточном состоянии `activeId=null` ✅; ci: hardening — pre-push hook, tiptap patch-pin, E2E robust wait, HTML report ✅; fix(e2e) заменить `page.goto` на in-app переход в `characters-create` ✅; seo: canonical, og-теги, sitemap, Schema.org + UI-правки лендинга ✅
 

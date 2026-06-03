@@ -197,9 +197,9 @@ export default function Characters() {
     error: 'Ошибка сохранения',
   };
 
-  const showSidebar = !isMobile || !activeId;
-  const showMain = !isMobile || Boolean(activeId);
-  const showGrid = !isMobile && viewMode === 'grid';
+  const showSidebar = !isMobile;
+  const showMain = true;
+  const showGrid = !isMobile ? viewMode === 'grid' : !activeId;
 
   const activeIndex = active ? filtered.findIndex((c) => c.id === active.id) : -1;
   const prevChar = activeIndex > 0 ? (filtered[activeIndex - 1] ?? null) : null;
@@ -215,7 +215,7 @@ export default function Characters() {
           {/* Тулбар */}
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {isMobile && (
+              {isMobile && activeId && (
                 <button className="tb-btn" onClick={clearCharacter} title="К списку персонажей">
                   <Icon name="arrows" size={16} />
                 </button>
@@ -258,6 +258,24 @@ export default function Characters() {
                         {f.label}
                       </button>
                     ))}
+                  </div>
+                  <button onClick={onCreate} className="tb-btn" title="Новый персонаж">
+                    <Icon name="plus" size={14} />
+                  </button>
+                </>
+              )}
+
+              {/* Mobile: поиск + кнопка создания (список персонажей) */}
+              {isMobile && showGrid && (
+                <>
+                  <div style={{ height: 28, padding: '0 9px', border: '1px solid var(--border-soft)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ink-3)' }}>
+                    <Icon name="search" size={12} />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Поиск"
+                      style={{ width: 90, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', fontSize: 12 }}
+                    />
                   </div>
                   <button onClick={onCreate} className="tb-btn" title="Новый персонаж">
                     <Icon name="plus" size={14} />

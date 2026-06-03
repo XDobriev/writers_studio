@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useErrorState } from '../lib/useErrorState';
+import { useResponsive } from '../lib/useResponsive';
 import { Icon } from '../components/Icon';
 import { RichEditor } from '../components/RichEditor';
 import { type Book } from '../lib/supabase';
@@ -19,7 +20,13 @@ type Side = 'left' | 'right';
 
 export default function Split() {
   const { id: bookId } = useParams<{ id: string }>();
+  const { isMobile } = useResponsive();
+  const navigate = useNavigate();
   const [search, setSearch] = useSearchParams();
+
+  useEffect(() => {
+    if (isMobile && bookId) navigate(`/books/${bookId}/editor`, { replace: true });
+  }, [isMobile, bookId, navigate]);
 
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[] | null>(null);
@@ -108,6 +115,10 @@ export default function Split() {
         Загрузка…
       </div>
     );
+  }
+
+  if (isMobile) {
+    return <Navigate to={`/books/${bookId}/editor${leftId ? `?chapter=${leftId}` : ''}`} replace />;
   }
 
   if (chapters.length < 2) {
