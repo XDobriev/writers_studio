@@ -534,15 +534,23 @@ export default function Dashboard() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {/* Month labels */}
-                  <div style={{ display: 'flex', gap: 2, paddingLeft: 22 }}>
-                    {Array.from({ length: 52 }, (_, w) => {
-                      const label = activityData.monthLabels.find(m => m.col === w);
-                      return (
-                        <div key={w} style={{ flex: 1, minWidth: 0, font: '400 9px var(--font-mono)', color: 'var(--ink-2)', overflow: 'visible', whiteSpace: 'nowrap' }}>
-                          {label?.label ?? ''}
-                        </div>
-                      );
-                    })}
+                  <div style={{ position: 'relative', height: 14, paddingLeft: 22 }}>
+                    {activityData.monthLabels.map(({ col, label }) => (
+                      <span
+                        key={col}
+                        style={{
+                          position: 'absolute',
+                          left: `calc(22px + ${col} * (100% - 22px) / 52)`,
+                          top: 0,
+                          lineHeight: '14px',
+                          font: '400 9px var(--font-mono)',
+                          color: 'var(--ink-2)',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {label}
+                      </span>
+                    ))}
                   </div>
 
                   {/* Heatmap */}
@@ -729,7 +737,7 @@ export default function Dashboard() {
             onClick={() => setShowMobileSb(false)}
             style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
           />
-          <div style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)' }}>
+          <div className="as" style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)' }}>
             <Sidebar
               book={book}
               chapters={chapters}

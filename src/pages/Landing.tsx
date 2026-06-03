@@ -467,7 +467,7 @@ function BrowserMock({ children }: { children: ReactNode }) {
 
 function MockEditorModes() {
   return (
-    <div style={{ height: '100%', display: 'grid', gridTemplateColumns: '180px 1fr 180px', background: 'var(--bg)' }}>
+    <div style={{ height: '100%', display: 'grid', gridTemplateColumns: '1fr 1.8fr 1fr', background: 'var(--bg)' }}>
       <div style={{ background: 'var(--bg-deep)', padding: 14, borderRight: '1px solid var(--border-soft)' }}>
         <div style={{ font: '500 9px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>Часть I</div>
         {MC.map((c, i) => (
