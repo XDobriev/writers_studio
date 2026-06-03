@@ -209,6 +209,28 @@ html, body, #root {
 .as-app--no-right { grid-template-columns: 260px 1fr; }
 .as-app--rail { grid-template-columns: 56px 1fr 320px; }
 
+/* ── Планшет portrait (768–1023px): скрыть правую панель ── */
+@media (max-width: 1023px) {
+  .as-app       { grid-template-columns: 260px 1fr; }
+  .as-app--rail { grid-template-columns: 56px 1fr; }
+}
+
+/* ── Мобильный (<768px): одна колонка ── */
+@media (max-width: 767px) {
+  .as-app,
+  .as-app--no-right,
+  .as-app--rail { grid-template-columns: 1fr; }
+
+  /* sidebar скрыт по умолчанию — компоненты управляют через showSidebar */
+  .as-app > .sb { display: none; }
+}
+
+/* ── Узкие телефоны (<480px): уплотнить отступы ── */
+@media (max-width: 479px) {
+  .sb-head { padding: 14px 16px 10px; }
+  .tb-btn  { min-height: 48px; min-width: 48px; }
+}
+
 /* sidebar */
 .sb {
   background: var(--bg-deep);
