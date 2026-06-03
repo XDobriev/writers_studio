@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Character } from './characters';
 
@@ -16,13 +16,14 @@ export function useCharacterNavigation({
   const [search, setSearch] = useSearchParams();
   const activeId = search.get('character');
   const [viewMode, setViewMode] = useState<CharacterViewMode>(() => activeId ? 'detail' : 'grid');
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
 
   // Возврат в grid-режим когда activeId сброшен извне (например, клик по «Персонажи» в сайдбаре).
-  // viewMode намеренно вне deps: эффект реагирует только на смену activeId — иначе
-  // промежуточный рендер с viewMode='detail'/activeId=null сбрасывает режим раньше времени.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // viewMode читается через ref, чтобы не попадать в deps и не вызывать сброс
+  // в промежуточном состоянии viewMode='detail'/activeId=null.
   useEffect(() => {
-    if (!isMobile && viewMode === 'detail' && !activeId) {
+    if (!isMobile && viewModeRef.current === 'detail' && !activeId) {
       setViewMode('grid');
     }
   }, [isMobile, activeId]);

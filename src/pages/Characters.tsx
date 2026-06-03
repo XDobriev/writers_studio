@@ -562,15 +562,14 @@ function CharacterCard({ character: c, onSelect }: { character: Character; onSel
 }
 
 function AddCard({ onCreate }: { onCreate: () => void }) {
-  const [hovered, setHovered] = useState(false);
   return (
     <button
       onClick={onCreate}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--ink-3)'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-soft)'; (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)'; }}
       style={{
         background: 'transparent',
-        border: `1px dashed ${hovered ? 'var(--border)' : 'var(--border-soft)'}`,
+        border: '1px dashed var(--border-soft)',
         borderRadius: 10,
         cursor: 'pointer',
         display: 'flex',
@@ -579,7 +578,7 @@ function AddCard({ onCreate }: { onCreate: () => void }) {
         gap: 6,
         alignSelf: 'stretch',
         minHeight: 120,
-        color: hovered ? 'var(--ink-3)' : 'var(--ink-4)',
+        color: 'var(--ink-4)',
         font: '400 12px var(--font-ui)',
         transition: 'border-color 0.15s, color 0.15s',
         width: '100%',
@@ -912,6 +911,7 @@ function RelationsBlock({ activeId, characters, relationships, onCreate, onDelet
   onLabelChange: (id: string, labelMine: string, labelTheirs: string) => void;
   panel?: boolean;
 }) {
+  const charMap = useMemo(() => new Map(characters.map((c) => [c.id, c])), [characters]);
   const myRels = relationships.filter((r) => r.char_a_id === activeId || r.char_b_id === activeId);
   const partnerIds = new Set(myRels.map((r) => r.char_a_id === activeId ? r.char_b_id : r.char_a_id));
   const candidates = characters.filter((c) => c.id !== activeId && !partnerIds.has(c.id));
@@ -1034,7 +1034,7 @@ function RelationsBlock({ activeId, characters, relationships, onCreate, onDelet
           {myRels.map((rel) => {
             const iAmA = rel.char_a_id === activeId;
             const partnerId = iAmA ? rel.char_b_id : rel.char_a_id;
-            const partner = characters.find((c) => c.id === partnerId);
+            const partner = charMap.get(partnerId);
             if (!partner) return null;
             const lMine = iAmA ? rel.label_a : rel.label_b;
             const lTheirs = iAmA ? rel.label_b : rel.label_a;

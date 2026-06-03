@@ -306,7 +306,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!book || !chapters || !characters || !stats) {
+  if (!book || !chapters || !characters) {
     return (
       <div className="as as-app as-app--no-right" style={{ height: '100vh', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
         {!isMobile && (
@@ -446,7 +446,7 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {book.goal > 0 && (
+            {book.goal > 0 && stats && (
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
                   <div style={{ font: '500 13px var(--font-ui)' }}>Цель по словам</div>
