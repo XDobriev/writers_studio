@@ -78,3 +78,15 @@ export const ROLE_LABELS: Record<CharacterRole, string> = {
   secondary: 'Второстепенный',
   minor: 'Эпизодический',
 };
+
+export const ROLE_COLOR: Record<CharacterRole, string> = {
+  protagonist: 'var(--accent)',
+  secondary: 'var(--info)',
+  minor: 'var(--ink-4)',
+};
+
+export const ROLE_PORTRAIT_BG: Record<CharacterRole, string> = {
+  protagonist: 'linear-gradient(160deg, oklch(0.38 0.12 30), oklch(0.22 0.07 30))',
+  secondary: 'linear-gradient(160deg, oklch(0.34 0.035 60), oklch(0.22 0.02 55))',
+  minor: 'linear-gradient(160deg, oklch(0.30 0.03 80), oklch(0.20 0.02 80))',
+};

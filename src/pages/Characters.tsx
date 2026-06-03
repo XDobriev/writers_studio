@@ -10,6 +10,8 @@ import { useAuth } from '../lib/auth';
 import {
   initialsFromName,
   ROLE_LABELS,
+  ROLE_COLOR,
+  ROLE_PORTRAIT_BG,
   updateCharacter,
   uploadCharacterAvatar,
   type Character,
@@ -36,17 +38,6 @@ const ROLE_FILTERS: { value: RoleFilter; label: string }[] = [
   { value: 'minor', label: 'эп.' },
 ];
 
-const ROLE_COLOR: Record<CharacterRole, string> = {
-  protagonist: 'var(--accent)',
-  secondary: 'var(--info)',
-  minor: 'var(--ink-4)',
-};
-
-const ROLE_PORTRAIT_BG: Record<CharacterRole, string> = {
-  protagonist: 'linear-gradient(160deg, oklch(0.38 0.12 30), oklch(0.22 0.07 30))',
-  secondary: 'linear-gradient(160deg, oklch(0.34 0.035 60), oklch(0.22 0.02 55))',
-  minor: 'linear-gradient(160deg, oklch(0.30 0.03 80), oklch(0.20 0.02 80))',
-};
 
 export default function Characters() {
   const { id: bookId } = useParams<{ id: string }>();
