@@ -17,12 +17,15 @@ export function useCharacterNavigation({
   const activeId = search.get('character');
   const [viewMode, setViewMode] = useState<CharacterViewMode>(() => activeId ? 'detail' : 'grid');
 
-  // Возврат в grid-режим когда activeId сброшен извне (например, клик по «Персонажи» в сайдбаре)
+  // Возврат в grid-режим когда activeId сброшен извне (например, клик по «Персонажи» в сайдбаре).
+  // viewMode намеренно вне deps: эффект реагирует только на смену activeId — иначе
+  // промежуточный рендер с viewMode='detail'/activeId=null сбрасывает режим раньше времени.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!isMobile && viewMode === 'detail' && !activeId) {
       setViewMode('grid');
     }
-  }, [isMobile, viewMode, activeId]);
+  }, [isMobile, activeId]);
 
   // Auto-select first character when in detail mode with a stale/deleted activeId
   useEffect(() => {
