@@ -945,7 +945,7 @@ function LandingFooter() {
           <Link to="/privacy" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Конфиденциальность</Link>
           <Link to="/offer" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Оферта</Link>
           <span style={{ flex: 1 }} />
-          <span>Самозанятый Добриев Хамзат Юсупович · ИНН 290133229106 ·</span>
+          <span>Самозанятый Добриев Хамзат Юсупович · ИНН 290133229106 · г. Назрань ·</span>
           <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--ink-4)', textDecoration: 'none' }} rel="noopener noreferrer">frfrancuz@gmail.com</a>
         </div>
       </div>
