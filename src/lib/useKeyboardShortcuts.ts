@@ -52,7 +52,7 @@ export function useKeyboardShortcuts({
       if (e.code === 'KeyS' && !e.shiftKey && !e.altKey) {
         e.preventDefault();
         onSaveRef.current?.();
-      } else if (!inInput) {
+      } else if (!inInput && !e.defaultPrevented) {
         if (e.code === 'Enter' && !e.shiftKey && !e.altKey) {
           e.preventDefault();
           chapterActionsRef.current?.onCreateChapter?.();
@@ -75,7 +75,7 @@ export function useKeyboardShortcuts({
         } else if (e.code === 'KeyF' && e.shiftKey && !e.altKey) {
           e.preventDefault();
           setMode((prev) => (prev === 'page' ? 'studio' : 'page'));
-        } else if (e.code === 'KeyN' && e.shiftKey && !e.altKey) {
+        } else if (e.code === 'KeyM' && e.shiftKey && !e.altKey) {
           e.preventDefault();
           if (isMobileRef.current) openMobileRight();
           setOpenNoteAt((prev) => prev + 1);

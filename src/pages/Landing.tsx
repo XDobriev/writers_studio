@@ -746,6 +746,12 @@ function LandingPricing() {
                 ))}
               </ul>
               <Link to={t.signup ? '/login?tab=signup' : '/login'} className={t.accent ? 'btn btn--primary' : 'btn'} style={{ height: 42, fontSize: 14, justifyContent: 'center', width: '100%', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>{t.cta}</Link>
+              {t.name !== 'Free' && (
+                <p style={{ margin: '10px 0 0', fontSize: 11, color: 'var(--ink-4)', textAlign: 'center', lineHeight: 1.5 }}>
+                  Нажимая кнопку, вы соглашаетесь с{' '}
+                  <Link to="/offer" style={{ color: 'var(--ink-3)', textDecoration: 'underline' }}>условиями оферты</Link>
+                </p>
+              )}
             </div>
             </div>
           ))}
@@ -922,6 +928,7 @@ function LandingFooter() {
           <span>·</span>
           <Link to="/terms" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Соглашение</Link>
           <Link to="/privacy" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Конфиденциальность</Link>
+          <Link to="/offer" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Оферта</Link>
           <span style={{ flex: 1 }} />
           <span>Добриев Хамзат Юсупович ·</span>
           <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--ink-4)', textDecoration: 'none' }} rel="noopener noreferrer">frfrancuz@gmail.com</a>

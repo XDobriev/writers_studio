@@ -12,7 +12,7 @@ export const EDITOR_SHORTCUTS: ShortcutDef[] = [
   { keys: 'Ctrl + Shift + [',  macKeys: '⌘ ⇧ [',   label: 'Предыдущая глава' },
   { keys: 'Ctrl + Shift + ]',  macKeys: '⌘ ⇧ ]',   label: 'Следующая глава' },
   { keys: 'Ctrl + Shift + F',  macKeys: '⌘ ⇧ F',   label: 'Режим «Страница»' },
-  { keys: 'Ctrl + Shift + N',  macKeys: '⌘ ⇧ N',   label: 'Новая заметка на полях' },
+  { keys: 'Ctrl + Shift + M',  macKeys: '⌘ ⇧ M',   label: 'Новая заметка на полях' },
 ];
 
 const _isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform);

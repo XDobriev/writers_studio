@@ -29,6 +29,7 @@ const Notes      = lazy(() => import('./pages/Notes'));
 const Admin      = lazy(() => import('./pages/Admin'));
 const Privacy    = lazy(() => import('./pages/Privacy'));
 const Terms      = lazy(() => import('./pages/Terms'));
+const Offer      = lazy(() => import('./pages/Offer'));
 const ShareBook  = lazy(() => import('./pages/ShareBook'));
 const NotFound   = lazy(() => import('./pages/NotFound'));
 
@@ -71,6 +72,7 @@ function AnimatedRoutes() {
         <Route path="/admin" element={<Guard><Admin /></Guard>} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/offer" element={<Offer />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>
