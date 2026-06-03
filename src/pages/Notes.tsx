@@ -152,6 +152,7 @@ function SortableNoteCard({ note, chapterTitle, color, colorSoft, label, onOpen 
 
 export default function Notes() {
   const { id: bookId } = useParams<{ id: string }>();
+  const { isMobile } = useResponsive();
   const queryClient = useQueryClient();
 
   const { data: book, error: bookError } = useBook(bookId);
@@ -366,14 +367,16 @@ export default function Notes() {
 
   return (
     <WithMode>
-      <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
-        <Sidebar
-          book={book}
-          chapters={chapters}
-          activeChapterId={activeChapterId}
-          chapterActions={{ onSelectChapter: handleSelectChapter }}
-          subtitle={`заметки · ${notes.length}`}
-        />
+      <div className="as as-app as-app--no-right" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
+        {!isMobile && (
+          <Sidebar
+            book={book}
+            chapters={chapters}
+            activeChapterId={activeChapterId}
+            chapterActions={{ onSelectChapter: handleSelectChapter }}
+            subtitle={`заметки · ${notes.length}`}
+          />
+        )}
         <main className="as-main" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 12,
