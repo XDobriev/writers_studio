@@ -68,7 +68,7 @@ export function useChapterContent(chapterId: string | undefined) {
 export function useCharacters(bookId: string | undefined) {
   return useQuery<Character[]>(makeQuery(
     bookId ? QUERY_KEYS.characters(bookId) : ['characters', null],
-    () => listCharacters(bookId!),
+    () => listCharacters(bookId!, { limit: 500 }),
     2 * 60_000,
   ));
 }

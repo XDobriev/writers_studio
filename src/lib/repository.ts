@@ -21,7 +21,7 @@ export interface OrderClause {
 }
 
 export interface Repository<T> {
-  list(bookId: string): Promise<T[]>;
+  list(bookId: string, options?: { limit?: number }): Promise<T[]>;
   create(bookId: string, userId: string, patch?: Record<string, unknown>): Promise<T>;
   update(id: string, patch: Record<string, unknown>): Promise<T>;
   delete(id: string): Promise<void>;
@@ -33,9 +33,10 @@ export function createRepository<T>(
   orderBy: OrderClause[] = [{ column: 'created_at', ascending: true }],
 ): Repository<T> {
   return {
-    async list(bookId) {
+    async list(bookId, options = {}) {
       const base = supabase.from(table).select('*').eq('book_id', bookId);
-      const q = orderBy.reduce((acc, o) => acc.order(o.column, { ascending: o.ascending }), base);
+      let q = orderBy.reduce((acc, o) => acc.order(o.column, { ascending: o.ascending }), base);
+      if (options.limit) q = q.limit(options.limit);
       const { data, error } = await q;
       if (error) throw toDbError(error, table);
       return (data ?? []) as T[];
