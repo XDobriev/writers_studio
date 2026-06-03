@@ -74,6 +74,7 @@ npm run preview    # превью продакшен-сборки
 - `src/pages/Map.tsx` — карта мира.
 - `src/pages/Export.tsx` — экспорт: DOCX, EPUB, FB2, HTML.
 - `src/pages/Admin.tsx` + `AdminAnalytics.tsx` — AdminOnly: управление пользователями.
+- `src/pages/AdminUserDetail.tsx` — карточка пользователя `/admin/users/:id`: книги, история плана, сброс пароля.
 - `src/pages/Landing.tsx` — публичный лендинг.
 - `src/pages/Offer.tsx` — публичная страница оферты `/offer`: тарифы, цены, возврат, акцепт.
 

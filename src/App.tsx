@@ -26,7 +26,8 @@ const Focus      = lazy(() => import('./pages/Focus'));
 const Split      = lazy(() => import('./pages/Split'));
 const Export     = lazy(() => import('./pages/Export'));
 const Notes      = lazy(() => import('./pages/Notes'));
-const Admin      = lazy(() => import('./pages/Admin'));
+const Admin           = lazy(() => import('./pages/Admin'));
+const AdminUserDetail = lazy(() => import('./pages/AdminUserDetail'));
 const Privacy    = lazy(() => import('./pages/Privacy'));
 const Terms      = lazy(() => import('./pages/Terms'));
 const Offer      = lazy(() => import('./pages/Offer'));
@@ -70,6 +71,7 @@ function AnimatedRoutes() {
 
         <Route path="/share/:token" element={<ShareBook />} />
         <Route path="/admin" element={<Guard><Admin /></Guard>} />
+        <Route path="/admin/users/:userId" element={<Guard><AdminUserDetail /></Guard>} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/offer" element={<Offer />} />
