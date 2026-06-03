@@ -57,34 +57,41 @@ export async function syncCharacterAcrossAllChapters(
     .select('id, content')
     .eq('book_id', bookId);
   if (error || !data) return;
+
   const aliases = [character.name, ...(character.aliases ?? [])].filter(Boolean);
-  await Promise.all(
-    data.map(async (chapter) => {
-      const found = extractCharacterMentions(chapter.content ?? '', aliases);
-      if (found) {
-        await supabase
-          .from('chapter_characters')
-          .upsert(
-            {
-              book_id: bookId,
-              user_id: character.user_id,
-              chapter_id: chapter.id,
-              character_id: character.id,
-              auto_detected: true,
-            },
-            { onConflict: 'chapter_id,character_id', ignoreDuplicates: true },
-          );
-      } else {
-        await supabase
-          .from('chapter_characters')
-          .delete()
-          .eq('chapter_id', chapter.id)
-          .eq('character_id', character.id)
-          .eq('auto_detected', true)
-          .eq('is_pov', false);
-      }
-    }),
-  );
+  const found: string[] = [];
+  const notFound: string[] = [];
+
+  for (const chapter of data) {
+    if (extractCharacterMentions(chapter.content ?? '', aliases)) {
+      found.push(chapter.id);
+    } else {
+      notFound.push(chapter.id);
+    }
+  }
+
+  if (found.length > 0) {
+    await supabase.from('chapter_characters').upsert(
+      found.map((chapterId) => ({
+        book_id: bookId,
+        user_id: character.user_id,
+        chapter_id: chapterId,
+        character_id: character.id,
+        auto_detected: true,
+      })),
+      { onConflict: 'chapter_id,character_id', ignoreDuplicates: true },
+    );
+  }
+
+  if (notFound.length > 0) {
+    await supabase
+      .from('chapter_characters')
+      .delete()
+      .in('chapter_id', notFound)
+      .eq('character_id', character.id)
+      .eq('auto_detected', true)
+      .eq('is_pov', false);
+  }
 }
 
 export async function findNameVariantsInText(
@@ -131,33 +138,37 @@ export async function syncBacklinks(
   content: string,
   characters: Character[],
 ): Promise<void> {
-  await Promise.all(
-    characters.map(async (character) => {
-      const aliases = [character.name, ...(character.aliases ?? [])].filter(Boolean);
-      const found = extractCharacterMentions(content, aliases);
+  const foundRows: { book_id: string; user_id: string; chapter_id: string; character_id: string; auto_detected: boolean }[] = [];
+  const notFoundIds: string[] = [];
 
-      if (found) {
-        await supabase
-          .from('chapter_characters')
-          .upsert(
-            {
-              book_id: bookId,
-              user_id: character.user_id,
-              chapter_id: chapterId,
-              character_id: character.id,
-              auto_detected: true,
-            },
-            { onConflict: 'chapter_id,character_id', ignoreDuplicates: true },
-          );
-      } else {
-        await supabase
-          .from('chapter_characters')
-          .delete()
-          .eq('chapter_id', chapterId)
-          .eq('character_id', character.id)
-          .eq('auto_detected', true)
-          .eq('is_pov', false);
-      }
-    }),
-  );
+  for (const character of characters) {
+    const aliases = [character.name, ...(character.aliases ?? [])].filter(Boolean);
+    if (extractCharacterMentions(content, aliases)) {
+      foundRows.push({
+        book_id: bookId,
+        user_id: character.user_id,
+        chapter_id: chapterId,
+        character_id: character.id,
+        auto_detected: true,
+      });
+    } else {
+      notFoundIds.push(character.id);
+    }
+  }
+
+  if (foundRows.length > 0) {
+    await supabase
+      .from('chapter_characters')
+      .upsert(foundRows, { onConflict: 'chapter_id,character_id', ignoreDuplicates: true });
+  }
+
+  if (notFoundIds.length > 0) {
+    await supabase
+      .from('chapter_characters')
+      .delete()
+      .eq('chapter_id', chapterId)
+      .in('character_id', notFoundIds)
+      .eq('auto_detected', true)
+      .eq('is_pov', false);
+  }
 }
