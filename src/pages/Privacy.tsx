@@ -23,7 +23,7 @@ export default function Privacy() {
           <p>
             Физическое лицо <strong>Добриев Хамзат Юсупович</strong>, контактный адрес:{' '}
             <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--accent)' }}>frfrancuz@gmail.com</a>.
-            Сервис: <strong>Авторская студия</strong> (avtorskaya-studiya.vercel.app).
+            Сервис: <strong>Авторская студия</strong> (avtorstudio.com).
           </p>
         </Section>
 
@@ -97,7 +97,7 @@ export default function Privacy() {
           <p>
             При существенных изменениях мы уведомим пользователей по email не менее чем за 7 дней.
             Актуальная версия всегда доступна по адресу{' '}
-            <strong>avtorskaya-studiya.vercel.app/privacy</strong>.
+            <strong>avtorstudio.com/privacy</strong>.
           </p>
         </Section>
 

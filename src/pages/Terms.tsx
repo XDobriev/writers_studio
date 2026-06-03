@@ -26,7 +26,7 @@ export default function Terms() {
             контактный адрес:{' '}
             <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--accent)' }}>frfrancuz@gmail.com</a>,
             и пользователем сервиса <strong>Авторская студия</strong>{' '}
-            (avtorskaya-studiya.vercel.app).
+            (avtorstudio.com).
           </p>
           <p>
             Используя сервис, вы принимаете условия настоящего соглашения в полном объёме.
@@ -76,7 +76,7 @@ export default function Terms() {
             Актуальные условия тарифов опубликованы на главной странице сайта.
           </p>
           <p>
-            Оплата осуществляется через сервис ЮKassa. При отмене подписки доступ к
+            Оплата осуществляется через сервис Robokassa. При отмене подписки доступ к
             платным функциям сохраняется до конца оплаченного периода. Возврат средств —
             в течение 14 дней с момента оплаты по письменному запросу на{' '}
             <a href="mailto:frfrancuz@gmail.com?subject=Возврат средств" style={{ color: 'var(--accent)' }}>frfrancuz@gmail.com</a>.
@@ -121,7 +121,7 @@ export default function Terms() {
             При существенных изменениях мы уведомим пользователей по email не менее чем
             за 7 дней. Продолжение использования сервиса после вступления изменений в силу
             означает согласие с новой редакцией. Актуальная версия всегда доступна по адресу{' '}
-            <strong>avtorskaya-studiya.vercel.app/terms</strong>.
+            <strong>avtorstudio.com/terms</strong>.
           </p>
         </Section>
 
