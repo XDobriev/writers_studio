@@ -8,6 +8,7 @@ import { Sidebar, WithMode } from '../components/Chrome';
 import { Skeleton } from '../components/Skeleton';
 import { GenrePicker } from '../components/GenrePicker';
 import { updateBook } from '../lib/books';
+import { DbError } from '../lib/repository';
 import { type Chapter } from '../lib/chapters';
 import { pluralDays, plural } from '../lib/useWritingStats';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useWritingSnapshots } from '../lib/queries';
@@ -49,7 +50,7 @@ export default function Dashboard() {
   const { data: characters, error: charsError } = useCharacters(id);
   const { data: snapshots, error: snapsError } = useWritingSnapshots(id);
   const error = (bookError ?? chaptersError ?? charsError ?? snapsError)?.message ?? null;
-  const isBookNotFound = (bookError as { code?: string } | null)?.code === 'PGRST116';
+  const isBookNotFound = bookError instanceof DbError && bookError.code === 'PGRST116';
 
   const [editOpen, setEditOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');

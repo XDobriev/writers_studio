@@ -1,5 +1,20 @@
 import { supabase } from './supabase';
 
+export class DbError extends Error {
+  constructor(
+    message: string,
+    readonly code: string | undefined,
+    readonly table: string,
+  ) {
+    super(`[${table}] ${message}`);
+    this.name = 'DbError';
+  }
+}
+
+function toDbError(err: { message: string; code?: string }, table: string): DbError {
+  return new DbError(err.message, err.code, table);
+}
+
 export interface OrderClause {
   column: string;
   ascending: boolean;
@@ -22,7 +37,7 @@ export function createRepository<T>(
       const base = supabase.from(table).select('*').eq('book_id', bookId);
       const q = orderBy.reduce((acc, o) => acc.order(o.column, { ascending: o.ascending }), base);
       const { data, error } = await q;
-      if (error) throw error;
+      if (error) throw toDbError(error, table);
       return (data ?? []) as T[];
     },
 
@@ -32,7 +47,7 @@ export function createRepository<T>(
         .insert({ book_id: bookId, user_id: userId, ...defaults, ...patch })
         .select('*')
         .single();
-      if (error) throw error;
+      if (error) throw toDbError(error, table);
       return data as T;
     },
 
@@ -43,13 +58,13 @@ export function createRepository<T>(
         .eq('id', id)
         .select('*')
         .single();
-      if (error) throw error;
+      if (error) throw toDbError(error, table);
       return data as T;
     },
 
     async delete(id) {
       const { error } = await supabase.from(table).delete().eq('id', id);
-      if (error) throw error;
+      if (error) throw toDbError(error, table);
     },
   };
 }
