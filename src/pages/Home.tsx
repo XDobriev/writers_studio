@@ -407,7 +407,7 @@ export default function Home() {
             }}
             tabIndex={-1}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: 28 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: 16 }}>
               <div style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, color: 'oklch(0.98 0 0)' }}>
                 <Icon name="feather" size={26} />
               </div>
@@ -422,7 +422,7 @@ export default function Home() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 28 }}>
               {ONBOARDING_FEATURES.map(({ icon, title, desc }) => (
                 <div key={title} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '10px 12px', borderRadius: 10, background: 'var(--surface)' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--accent)' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'oklch(0.63 0.16 30 / 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--accent)' }}>
                     <Icon name={icon} size={16} />
                   </div>
                   <div>
@@ -437,7 +437,7 @@ export default function Home() {
               <button className="btn btn--primary btn--lg" style={{ flex: 1 }} onClick={handleWelcomeCreate}>
                 <Icon name="plus" size={15} /> Создать первую книгу
               </button>
-              <button className="btn btn--ghost btn--lg" onClick={dismissWelcome}>
+              <button className="btn btn--ghost btn--lg" style={{ borderColor: 'var(--border)' }} onClick={dismissWelcome}>
                 Посмотрю позже
               </button>
             </div>
