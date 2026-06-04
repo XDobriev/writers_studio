@@ -163,9 +163,6 @@ export default function Auth() {
             <p style={{ font: '400 14px/1.6 var(--font-serif)', color: 'var(--ink-3)', fontStyle: 'italic', margin: 0 }}>
               «Писать надо только тогда, когда не можешь не писать.»
             </p>
-            <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4, var(--ink-3))', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>
-              А. П. Чехов
-            </div>
           </div>
         )}
 
