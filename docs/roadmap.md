@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-03 (47 задач закрыто; все admin-расширения завершены; добавлен §5 Бэкапы)_
+_Обновлён: 2026-06-04 (52 задачи закрыто; архитектурная чистка завершена; §5 Бэкапы удалён)_
 
 
 
@@ -143,47 +143,6 @@ _Обновлён: 2026-06-03 (47 задач закрыто; все admin-рас
 
 ---
 
-### 5. Бэкапы рукописей — защита пользовательских данных ⚠️
-
-**Контекст:** потеря рукописи — катастрофа для пользователя. Supabase Free tier даёт 1 бэкап в неделю без PITR. Между бэкапами данные за 6 дней не защищены.
-
-**Что сделать:**
-
-**Шаг 1 — Supabase Pro ($25/мес) — обязателен до коммерческого запуска:**
-- Ежедневные бэкапы + 30 дней retention
-- PITR (Point-in-Time Recovery) — восстановление на любой момент
-- Supabase Dashboard → Settings → Billing → Upgrade
-
-**Шаг 2 — Автоматический `pg_dump` через GitHub Actions (промежуточное решение / дополнительная страховка):**
-1. Добавить в `.github/workflows/` новый workflow `backup.yml` по cron (`0 3 * * *` — каждую ночь в 3:00)
-2. `pg_dump` → сжать → загрузить в Supabase Storage или внешний S3/R2
-3. Secrets: `DATABASE_URL` (прямое подключение к Postgres, не через API)
-4. Retention: хранить последние 30 дней, удалять старее
-
-**Шаг 3 — UX: напоминание об экспорте в интерфейсе:**
-- Страница `/export` уже есть (DOCX, EPUB, FB2, HTML)
-- Добавить тихий баннер в Dashboard: «Экспортируйте рукопись раз в неделю» (localStorage dismissed)
-
-**Файлы:** `.github/workflows/backup.yml` (создать), `src/pages/Dashboard.tsx` (баннер)
-**Проверить:** workflow отработал → файл появился в хранилище → восстановление тестового дампа прошло без ошибок
-
----
-
-### Архитектурная чистка — 5 задач
-
-**Что это:** 5 независимых рефакторингов, выявленных при аудите кодовой базы. Каждый изолирован — можно брать в любом порядке. Подробный план с diff-кодом: [docs/superpowers/plans/2026-06-03-architecture-cleanup.md](../superpowers/plans/2026-06-03-architecture-cleanup.md).
-
-1. **Batch crossrefs (N+1 → 2)** — `src/lib/crossrefs.ts`: `syncCharacterAcrossAllChapters` и `syncBacklinks` делают 1 upsert + 1 delete **на каждую главу** внутри `Promise.all`. При 100 главах = 200 запросов. Фикс: собрать результаты, потом 1 batch upsert + 1 batch delete.
-2. **relationships.ts → createRepository** — `listRelations`, `createRelation`, `updateRelationLabel`, `deleteRelation` дублируют то, что `createRepository` уже делает. Убрать ручные запросы.
-3. **ROLE_COLOR / ROLE_PORTRAIT_BG → characters.ts** — константы определены в `Characters.tsx` (строки 39–49), но логически должны жить рядом с `ROLE_LABELS` в `characters.ts`.
-4. **Typed DbError** — `repository.ts` бросает сырой `PostgrestError`. `Dashboard.tsx` читает `.code` через небезопасный `as { code?: string }`. Экспортировать класс `DbError`, заменить касты на `instanceof`.
-5. **Safety limit на repository.list()** — необязательный параметр `limit` + cap 500 в `useCharacters` на случай аномально большого датасета.
-
-**Файлы:** `src/lib/crossrefs.ts`, `src/lib/relationships.ts`, `src/lib/characters.ts`, `src/pages/Characters.tsx`, `src/lib/repository.ts`, `src/pages/Dashboard.tsx`, `src/lib/queries.ts`
-**Проверить:** `npm run typecheck && npm run lint` → 0 ошибок; страница Персонажей — загружается, CRUD работает
-
----
-
 ### 8. Соавторство — приглашение редактора
 
 **Что это:** владелец книги может пригласить другого пользователя редактировать. Нужна таблица `book_collaborators` с ролями `editor | viewer`.
@@ -238,34 +197,6 @@ _Обновлён: 2026-06-03 (47 задач закрыто; все admin-рас
 **Проверить:** все 12 пунктов выше без ошибок в консоли
 
 > 🛠 **Скиллы:** `gstack` — для автоматизации части сценариев через headless-браузер; `systematic-debugging` — при обнаружении багов.
-
----
-
-### 11. Мобильный QA перед релизом — проверка всех сценариев
-
-**Что это:** перед публичным запуском проверить отображение и функциональность всех элементов интерфейса во всех пользовательских сценариях на мобильных устройствах. Охватить весь флоу: регистрация → создание книги → редактор → персонажи → хронология → карта → экспорт → настройки.
-
-**✅ Исправлено (2026-06-03) — mobile-first responsive:**
-- Notes: сайдбар скрыт на мобильном, контент занимает всю ширину
-- Characters: список персонажей доступен на мобильном (showMain=true), grid адаптирован
-- Split: редирект на Editor при isMobile (split не имеет смысла на маленьком экране)
-- Map: canvas заполняет высоту (height: 100% + minHeight: 0 на main)
-- CSS: добавлены media queries для tablet (768–1023px) и mobile (<768px) в design-system.css
-
-**Что проверить по разделам:**
-- Лендинг и авторизация — корректность на 375px (iPhone SE) и 390px (iPhone 14).
-- Дашборд книг — карточки, кнопки создания, навигация.
-- Редактор — все 4 режима (studio / left / right / page), тулбар форматирования, сохранение.
-- Картотека персонажей — ✅ layout исправлен; проверить поиск и детальную карточку.
-- Хронология — скролл, добавление событий, EventCard.
-- Карта мира — ✅ canvas-высота исправлена; проверить touch-жесты.
-- Заметки — ✅ layout исправлен; проверить полный флоу.
-- Модалы (настройки, подтверждения, версии) — не выходят ли за экран.
-
-**Файлы:** `src/components/Chrome.tsx`, `src/components/EditorHybrid.tsx`, `src/pages/Characters.tsx`, `src/pages/Timeline.tsx`, `src/pages/Map.tsx`, `src/pages/Notes.tsx`
-**Проверить:** DevTools → Responsive 375px → полный флоу без overflow / обрезанных кнопок / недоступных tap-таргетов
-
-> 🛠 **Скиллы:** `gstack` — скриншоты в реальном браузере; `systematic-debugging` — при обнаружении багов.
 
 ---
 
@@ -415,6 +346,10 @@ dev → Vercel preview (авто) → e2e тесты → merge в main → Timew
 ---
 
 ## Закрыто
+
+_2026-06-04:_ fix(mobile) §11 Мобильный QA — все 4 бага подтверждены исправленными кодом: Split редирект на Editor при isMobile, Map canvas заполняет высоту, Notes сайдбар скрыт, Characters грид виден без сайдбара; typecheck чистый ✅
+
+_2026-06-04:_ refactor(arch) Архитектурная чистка — 5 задач: batch crossrefs N+1→2 (`crossrefs.ts`), `relationships.ts`→`createRepository`, `ROLE_COLOR`/`ROLE_PORTRAIT_BG`→`characters.ts`, typed `DbError` класс, safety limit `repository.list()` ✅
 
 _2026-06-03:_ feat(admin) Расширение панели — все 8 задач завершены: история платежей (вкладка «Платежи»), Suspend/Unsuspend, CSV-экспорт, карточка `/admin/users/:id` (книги + история плана + сброс пароля), ручная правка Lifetime-слотов, grace period +7д Pro, revenue-метрики MRR/churn (вкладка «Финансы»), feature flags (вкладка «Флаги»); миграции 0028_admin_actions + 0029_revenue_flags ✅
 
