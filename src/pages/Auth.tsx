@@ -111,7 +111,15 @@ export default function Auth() {
     }
     if (tab === 'signin') {
       const { error } = await signIn(email, password);
-      if (error) setErr(te(error));
+      if (error) {
+        if (error === 'Invalid login credentials') {
+          setTab('signup');
+          setConsent(false);
+          setInfo('Аккаунт с такой почтой не найден — завершите регистрацию.');
+        } else {
+          setErr(te(error));
+        }
+      }
     } else {
       const { error } = await signUp(email, password);
       if (error) {
