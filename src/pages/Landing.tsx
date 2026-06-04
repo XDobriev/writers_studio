@@ -1,11 +1,9 @@
-import { type ComponentProps, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { getLifetimeSlotsRemaining } from '../lib/profiles';
 import { Icon } from '../components/Icon';
 import { LogoMark } from '../components/LogoMark';
-
-type IName = ComponentProps<typeof Icon>['name'];
 
 // ─── Animation hooks ──────────────────────────────────────────────────────────
 
@@ -164,9 +162,7 @@ export default function Landing() {
         .lnd-feat-row { display: grid; grid-template-columns: 0.95fr 1.15fr; gap: 80px; align-items: center; padding: 72px 0; border-top: 1px solid var(--border-soft); }
         .lnd-feat-row--rev .lnd-text { order: 2; }
         .lnd-feat-row--rev .lnd-mock { order: 1; }
-        .lnd-bullets { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 480px; }
-        .lnd-proc { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; position: relative; }
-        .lnd-proc::before { content:''; position:absolute; top:24px; left:calc(12.5% - 9px); right:calc(12.5% - 9px); height:1px; background:var(--border); }
+        .lnd-feat-row-full { padding: 72px 0; border-top: 1px solid var(--border-soft); }
         .lnd-prices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1100px; margin: 0 auto; }
         .lnd-nav-links { display: flex; gap: 28px; font-size: 13.5px; color: var(--ink-2); }
         .lnd-manifesto { display: flex; flex-direction: column; }
@@ -183,15 +179,12 @@ export default function Landing() {
           .lnd-feat-row { grid-template-columns: 1fr; gap: 40px; padding: 48px 0; }
           .lnd-feat-row--rev .lnd-text { order: 1; }
           .lnd-feat-row--rev .lnd-mock { order: 2; }
+          .lnd-feat-row-full { padding: 48px 0; }
           .lnd-prices { grid-template-columns: 1fr; }
-          .lnd-proc { grid-template-columns: repeat(2, 1fr); }
-          .lnd-proc::before { display: none; }
           .lnd-nav-links { display: none; }
           .lnd-footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
         }
         @media (max-width: 639px) {
-          .lnd-bullets { grid-template-columns: 1fr; }
-          .lnd-proc { grid-template-columns: 1fr; }
           .lnd-manifesto-row { grid-template-columns: 40px 1fr; gap: 20px; padding: 28px 0; }
         }
         @media (max-width: 479px) {
@@ -245,7 +238,7 @@ function LandingNav() {
         <a href="#features" style={{ textDecoration: 'none', color: 'inherit' }}>Возможности</a>
         <a href="#process" style={{ textDecoration: 'none', color: 'inherit' }}>Процесс</a>
         <a href="#pricing" style={{ textDecoration: 'none', color: 'inherit' }}>Цены</a>
-        <a href="#faq" style={{ textDecoration: 'none', color: 'inherit' }}>FAQ</a>
+        <a href="#faq" style={{ textDecoration: 'none', color: 'inherit' }}>Вопросы</a>
       </nav>
       <span style={{ width: 1, height: 18, background: 'var(--border-soft)' }} />
       <Link to="/login" style={{ fontSize: 13.5, color: 'var(--ink-2)', textDecoration: 'none' }}>Войти</Link>
@@ -297,7 +290,7 @@ function LandingHero() {
           <div className="lnd-hero-text">
             <div className="lnd-hero-el" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 999, marginBottom: 28 }}>
               <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />
-              <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Открытая бета · 2026</span>
+              <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Ранний доступ · 2026</span>
             </div>
             <h1 style={{ font: '600 clamp(52px,6vw,88px)/0.98 var(--font-serif)', letterSpacing: '-0.025em', marginBottom: 28, color: 'var(--ink)' }}>
               <span style={{ display:'inline-block', overflow:'hidden', verticalAlign:'bottom', paddingBottom:'0.12em', marginBottom:'-0.12em' }}>
@@ -405,51 +398,79 @@ function LandingFeatures() {
   return (
     <section id="features" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
       <div className="lnd-max">
-        <SectionLabel kicker="Возможности" title="Студия, а не текстовое поле." subtitle="Каждая часть книги живёт рядом с рукописью в этом онлайн-редакторе для писателей на русском языке — не в отдельном приложении, не на отдельной вкладке. Открыли главу — видите её мир." />
-        <FeatureRow eyebrow="Редактор" headline="Четыре режима. Один редактор." body="Полная студия с заметками и оглавлением — для редактуры. Только страница — для черновика. Промежуточные режимы — для всего, что между. Состояние помнит, на каком вы остановились." bullets={[['layout','Студия','все панели открыты'],['panel','Сайдбар','только оглавление'],['note','Полей','только заметки'],['focus','Страница','только текст']]} mock={<MockEditorModes />} />
-        <FeatureRow reverse eyebrow="Структура" headline="Книга как картотека. Не как длинный документ." body="Перетаскивайте главы и сцены. Смотрите доску с карточками или дерево с целями по словам. Любая глава — двойной клик и она открыта." bullets={[['layout','Outline','дерево частей и сцен'],['grid','Corkboard','индексные карточки'],['tree','Списком','плоский список'],['arrows','Drag-ord','перетаскивание']]} mock={<MockCorkboard />} />
-        <FeatureRow eyebrow="Мир книги" headline="Весь мир книги — рядом с главой." body="Всё что нужно автору длинной формы — без выхода из проекта. Локации и события привязаны к главам, в которых упоминаются. Свяжите персонажа с главой — он автоматически появится в её обзоре." bullets={[['map','Карта мира','пины + районы'],['clock','Хронология','события и эпохи'],['char','Персонажи','связи + появления'],['link','Привязки','к главам']]} mock={<MockWorld />} />
-        <FeatureRow reverse eyebrow="Прогресс" headline="Серия дней без шейминга." body="Цель по словам — мягкая. Heatmap активности — для тех, кто любит данные. Серия дней — для тех, кому нужна привычка. Никаких уведомлений «вы не писали 3 дня»." bullets={[['layout','Дэшборд','графики книги'],['clock','Heatmap','год активности'],['dot','Серия','дни подряд'],['save','Снимки','версии глав']]} mock={<MockDashboard />} />
+        <SectionLabel title="Студия, а не текстовое поле." subtitle="Каждая часть книги живёт рядом с рукописью в этом онлайн-редакторе для писателей на русском языке — не в отдельном приложении, не на отдельной вкладке. Открыли главу — видите её мир." />
+        <FeatureRowFull
+          headline="Четыре режима. Один редактор."
+          body="Полная студия с заметками и оглавлением — для редактуры. Только страница — для черновика. Промежуточные режимы — для всего, что между. Состояние помнит, на каком вы остановились."
+          mock={<MockEditorModesStrip />}
+        />
+        <FeatureRow
+          reverse
+          headline="Книга как картотека. Не как длинный документ."
+          body="Перетаскивайте главы и сцены. Смотрите доску с карточками или дерево с целями по словам."
+          mock={<MockCorkboard />}
+        />
+        <FeatureRow
+          headline="Весь мир книги — рядом с главой."
+          body="Всё что нужно автору длинной формы — без выхода из проекта. Локации и события привязаны к главам, в которых упоминаются. Свяжите персонажа с главой — он автоматически появится в её обзоре."
+          mock={<MockWorld />}
+          noBrowserChrome
+          mockHeight={480}
+          largeHeadline
+        />
+        <FeatureRow
+          reverse
+          headline="Серия дней без упрёков."
+          body="Цель по словам — мягкая. Карта активности — для тех, кто любит данные. Серия дней — для тех, кому нужна привычка. Никаких уведомлений «вы не писали 3 дня»."
+          mock={<MockDashboard />}
+        />
       </div>
     </section>
   );
 }
 
-function FeatureRow({ eyebrow, headline, body, bullets, mock, reverse }: {
-  eyebrow: string; headline: string; body: string;
-  bullets: [IName, string, string][];
+function FeatureRowFull({ headline, body, mock }: { headline: string; body: string; mock: ReactNode }) {
+  return (
+    <div className="lnd-feat-row-full lnd-reveal">
+      <div style={{ marginBottom: 36, maxWidth: 700 }}>
+        <h3 style={{ font: '600 clamp(24px,3vw,38px)/1.1 var(--font-serif)', letterSpacing: '-0.015em', marginBottom: 16, color: 'var(--ink)' }}>{headline}</h3>
+        <p style={{ font: '400 16px/1.65 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 580 }}>{body}</p>
+      </div>
+      <div aria-hidden="true">{mock}</div>
+    </div>
+  );
+}
+
+function FeatureRow({ headline, body, mock, reverse, noBrowserChrome, mockHeight, largeHeadline }: {
+  headline: string; body: string;
   mock: ReactNode; reverse?: boolean;
+  noBrowserChrome?: boolean;
+  mockHeight?: number;
+  largeHeadline?: boolean;
 }) {
-  const [eyebrowRef, eyebrowInView] = useInViewOnce();
-  const scrambledEyebrow = useScramble(eyebrow, eyebrowInView);
   return (
     <div className={`lnd-feat-row${reverse ? ' lnd-feat-row--rev' : ''} lnd-reveal`}>
       <div className="lnd-text">
-        <div ref={eyebrowRef} style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 18 }}>{scrambledEyebrow}</div>
-        <h3 style={{ font: '600 clamp(24px,3vw,38px)/1.1 var(--font-serif)', letterSpacing: '-0.015em', marginBottom: 18, color: 'var(--ink)' }}>{headline}</h3>
-        <p style={{ font: '400 16px/1.65 var(--font-serif)', color: 'var(--ink-2)', marginBottom: 28, maxWidth: 480 }}>{body}</p>
-        <div className="lnd-bullets">
-          {bullets.map(([icn, l, s]) => (
-            <div key={l} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 0' }}>
-              <span style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-2)', flexShrink: 0 }}>
-                <Icon name={icn} size={16} />
-              </span>
-              <div>
-                <div style={{ font: '500 13.5px var(--font-ui)', color: 'var(--ink)' }}>{l}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>{s}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <h3 style={{ font: `600 ${largeHeadline ? 'clamp(28px,3.5vw,48px)' : 'clamp(24px,3vw,38px)'}/1.1 var(--font-serif)`, letterSpacing: '-0.015em', marginBottom: 18, color: 'var(--ink)' }}>{headline}</h3>
+        <p style={{ font: '400 16px/1.65 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 480 }}>{body}</p>
       </div>
       <div className="lnd-mock" aria-hidden="true">
-        <BrowserMock>{mock}</BrowserMock>
+        {noBrowserChrome
+          ? (
+            <div data-theme="dark">
+              <div className="lnd-browser-mock" style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 0 0 1px var(--border), 0 24px 72px oklch(0 0 0 / 0.55)', height: mockHeight ?? 380 }}>
+                {mock}
+              </div>
+            </div>
+          )
+          : <BrowserMock mockHeight={mockHeight}>{mock}</BrowserMock>
+        }
       </div>
     </div>
   );
 }
 
-function BrowserMock({ children }: { children: ReactNode }) {
+function BrowserMock({ children, mockHeight = 380 }: { children: ReactNode; mockHeight?: number }) {
   return (
     <div data-theme="dark">
     <div className="lnd-browser-mock" style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--bg-deep)', border: '1px solid var(--border)', boxShadow: '0 0 0 1px var(--border), 0 24px 72px oklch(0 0 0 / 0.55), 0 0 56px oklch(0.63 0.16 30 / 0.07)' }}>
@@ -459,44 +480,88 @@ function BrowserMock({ children }: { children: ReactNode }) {
         <span style={{ width: 11, height: 11, borderRadius: 999, background: 'oklch(0.66 0.14 145)' }} />
         <span style={{ flex: 1, textAlign: 'center', font: '400 11px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.06em' }}>avtorstudio.com</span>
       </div>
-      <div style={{ height: 380, position: 'relative', overflow: 'hidden' }}>{children}</div>
+      <div style={{ height: mockHeight, position: 'relative', overflow: 'hidden' }}>{children}</div>
     </div>
     </div>
   );
 }
 
-function MockEditorModes() {
+// ─── Editor modes comparison strip ────────────────────────────────────────────
+
+function MockEditorModesStrip() {
+  const textLines = (ws: number[]) => ws.map((w, i) => (
+    <div key={i} style={{ height: 3, background: 'var(--paper-ink)', opacity: 0.18, borderRadius: 1, marginBottom: 4, width: `${w * 100}%` }} />
+  ));
+
+  const Paper = ({ narrow }: { narrow?: boolean }) => (
+    <div style={{ width: narrow ? '72%' : '82%', background: 'var(--paper)', borderRadius: '2px 2px 0 0', padding: '10px 8px' }}>
+      <div style={{ height: 6, background: 'var(--paper-ink)', opacity: 0.6, borderRadius: 1, marginBottom: 6, width: '65%' }} />
+      <div style={{ height: 2, background: 'var(--paper-ink)', opacity: 0.2, borderRadius: 1, marginBottom: 8, width: '18%' }} />
+      {textLines([0.92, 0.88, 0.65, 0.82, 0.55, 0.9])}
+    </div>
+  );
+
+  const ModePane = ({ label, desc, children }: { label: string; desc: string; children: ReactNode }) => (
+    <div>
+      <div data-theme="dark" style={{ borderRadius: 10, overflow: 'hidden', background: 'var(--bg-deep)', border: '1px solid var(--border)', boxShadow: '0 0 0 1px var(--border), 0 12px 36px oklch(0 0 0 / 0.45)' }}>
+        <div style={{ height: 26, background: 'oklch(0.20 0.014 50)', display: 'flex', alignItems: 'center', padding: '0 10px', gap: 5, borderBottom: '1px solid var(--border-soft)' }}>
+          <span style={{ width: 8, height: 8, borderRadius: 999, background: 'oklch(0.62 0.16 25)' }} />
+          <span style={{ width: 8, height: 8, borderRadius: 999, background: 'oklch(0.78 0.12 80)' }} />
+          <span style={{ width: 8, height: 8, borderRadius: 999, background: 'oklch(0.66 0.14 145)' }} />
+        </div>
+        <div style={{ height: 190, overflow: 'hidden', position: 'relative' }}>{children}</div>
+      </div>
+      <div style={{ marginTop: 14, textAlign: 'center' }}>
+        <div style={{ font: '500 13.5px var(--font-ui)', color: 'var(--ink)', marginBottom: 3 }}>{label}</div>
+        <div style={{ font: '400 12px var(--font-serif)', color: 'var(--ink-3)' }}>{desc}</div>
+      </div>
+    </div>
+  );
+
   return (
-    <div style={{ height: '100%', display: 'grid', gridTemplateColumns: '1fr 1.8fr 1fr', background: 'var(--bg)' }}>
-      <div style={{ background: 'var(--bg-deep)', padding: 14, borderRight: '1px solid var(--border-soft)' }}>
-        <div style={{ font: '500 9px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>Часть I</div>
-        {MC.map((c, i) => (
-          <div key={c.num} style={{ display: 'flex', gap: 8, padding: '6px 4px', borderRadius: 4, background: i === 0 ? 'var(--surface)' : 'transparent' }}>
-            <span style={{ font: '500 10px var(--font-mono)', color: i === 0 ? 'var(--accent)' : 'var(--ink-4)' }}>{String(c.num).padStart(2, '0')}</span>
-            <span style={{ fontSize: 11.5, color: i === 0 ? 'var(--ink)' : 'var(--ink-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{c.title}</span>
+    <div data-theme="dark" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
+      <ModePane label="Студия" desc="все панели открыты">
+        <div style={{ height: '100%', display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', background: 'var(--bg)' }}>
+          <div style={{ background: 'var(--bg-deep)', padding: '8px 6px', borderRight: '1px solid var(--border-soft)' }}>
+            {MC.slice(0, 4).map((c, i) => (
+              <div key={c.num} style={{ height: 9, borderRadius: 2, background: i === 0 ? 'var(--surface)' : 'transparent', marginBottom: 4 }} />
+            ))}
           </div>
-        ))}
-      </div>
-      <div style={{ padding: '20px 24px 0', display: 'flex', justifyContent: 'center', background: 'var(--bg)' }}>
-        <div style={{ width: 260, background: 'var(--paper)', padding: '24px 28px', color: 'var(--paper-ink)', font: '400 11px/1.7 var(--font-serif)', borderRadius: '3px 3px 0 0' }}>
-          <div style={{ font: '600 16px var(--font-serif)', marginBottom: 6 }}>Город, которого нет</div>
-          <div style={{ width: 18, height: 1, background: 'var(--paper-ink)', opacity: 0.3, marginBottom: 14 }} />
-          <p style={{ margin: '0 0 0.8em' }}>Ворна исчезла за одну ночь, и никто из тех, кто жил в Тереее, не желал в это верить.</p>
-          <p style={{ margin: '0 0 0.8em', textIndent: '1em' }}>Аней Ворон узнала об этом в архиве, на третьем этаже башни.</p>
-          <p style={{ margin: 0, textIndent: '1em', color: 'var(--paper-ink-2)' }}>— Картограф Ворон, — сказал голос…</p>
+          <div style={{ padding: '10px 6px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+            <Paper />
+          </div>
+          <div style={{ background: 'var(--bg-deep)', padding: '8px 6px', borderLeft: '1px solid var(--border-soft)' }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderLeft: '2px solid var(--accent-2)', borderRadius: 3, padding: '4px 5px', marginBottom: 5 }}>
+              <div style={{ height: 2, background: 'var(--ink-3)', opacity: 0.5, borderRadius: 1, marginBottom: 3, width: '60%' }} />
+              <div style={{ height: 2, background: 'var(--ink)', opacity: 0.4, borderRadius: 1, width: '85%' }} />
+              <div style={{ height: 2, background: 'var(--ink)', opacity: 0.35, borderRadius: 1, marginTop: 2, width: '70%' }} />
+            </div>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderLeft: '2px solid var(--info)', borderRadius: 3, padding: '4px 5px' }}>
+              <div style={{ height: 2, background: 'var(--ink-3)', opacity: 0.5, borderRadius: 1, marginBottom: 3, width: '50%' }} />
+              <div style={{ height: 2, background: 'var(--ink)', opacity: 0.4, borderRadius: 1, width: '90%' }} />
+            </div>
+          </div>
         </div>
-      </div>
-      <div style={{ background: 'var(--bg-deep)', padding: 14, borderLeft: '1px solid var(--border-soft)' }}>
-        <div style={{ font: '500 9px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>На полях</div>
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderLeft: '2px solid var(--accent-2)', padding: '8px 10px', borderRadius: 6, marginBottom: 8 }}>
-          <div style={{ font: '500 9px var(--font-mono)', color: 'var(--ink-3)', marginBottom: 3, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Идея</div>
-          <div style={{ fontSize: 11, color: 'var(--ink)', lineHeight: 1.4 }}>Упомянуть мать в начале — отзеркалит финал.</div>
+      </ModePane>
+
+      <ModePane label="Рукопись" desc="оглавление + текст">
+        <div style={{ height: '100%', display: 'grid', gridTemplateColumns: '1fr 2.5fr', background: 'var(--bg)' }}>
+          <div style={{ background: 'var(--bg-deep)', padding: '8px 6px', borderRight: '1px solid var(--border-soft)' }}>
+            {MC.slice(0, 4).map((c, i) => (
+              <div key={c.num} style={{ height: 9, borderRadius: 2, background: i === 0 ? 'var(--surface)' : 'transparent', marginBottom: 4 }} />
+            ))}
+          </div>
+          <div style={{ padding: '10px 8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+            <Paper />
+          </div>
         </div>
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderLeft: '2px solid var(--info)', padding: '8px 10px', borderRadius: 6 }}>
-          <div style={{ font: '500 9px var(--font-mono)', color: 'var(--ink-3)', marginBottom: 3, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Вопрос</div>
-          <div style={{ fontSize: 11, color: 'var(--ink)', lineHeight: 1.4 }}>Откуда серебряный ключ у трактирщика?</div>
+      </ModePane>
+
+      <ModePane label="Страница" desc="только текст">
+        <div style={{ height: '100%', background: 'var(--bg)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 18 }}>
+          <Paper narrow />
         </div>
-      </div>
+      </ModePane>
     </div>
   );
 }
@@ -618,24 +683,25 @@ function MockDashboard() {
 
 function LandingProcess() {
   const steps = [
-    { n: 1, t: 'Откройте проект', s: 'Создайте книгу — название, жанр, цель по словам. Дальше всё открывается из неё: рукопись, картотека, карта.', tag: 'Старт' },
-    { n: 2, t: 'Напишите главу', s: 'Форматирование без отвлечений, автосохранение каждые несколько секунд, версии глав. Заметки на полях — прямо рядом с абзацем.', tag: 'Письмо' },
-    { n: 3, t: 'Соберите мир', s: 'Привяжите персонажа к главе — он появится в её обзоре. Поставьте пин на карте, поместите событие на хронологию. Всё связано.', tag: 'Мир' },
-    { n: 4, t: 'Отдайте книгу', s: 'Экспорт в EPUB, FB2 или DOCX. С титульной страницей, оглавлением, опционально — со списком персонажей в конце книги.', tag: 'Финал' },
+    { n: 1, t: 'Откройте проект', s: 'Создайте книгу — название, жанр, цель по словам. Дальше всё открывается из неё: рукопись, картотека, карта.' },
+    { n: 2, t: 'Напишите главу', s: 'Форматирование без отвлечений, автосохранение каждые несколько секунд, версии глав. Заметки на полях — прямо рядом с абзацем.' },
+    { n: 3, t: 'Соберите мир', s: 'Привяжите персонажа к главе — он появится в её обзоре. Поставьте пин на карте, поместите событие на хронологию. Всё связано.' },
+    { n: 4, t: 'Отдайте книгу', s: 'Экспорт в EPUB, FB2 (для электронных читалок) или DOCX. С титульной страницей, оглавлением, опционально — со списком персонажей в конце книги.' },
   ];
   return (
     <section id="process" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)' }}>
       <div className="lnd-max">
         <SectionLabel title="От пустого листа до экспорта." subtitle="Каждый шаг — на своём месте. Не нужно жонглировать четырьмя приложениями и папками с файлами." />
-        <div className="lnd-proc">
+        <div className="lnd-manifesto">
           {steps.map((s, i) => (
-            <div key={s.n} className={`lnd-reveal d${i}`} style={{ position: 'relative' }}>
-              <div style={{ width: 48, height: 48, borderRadius: 999, background: 'var(--bg-deep)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '600 18px var(--font-mono)', color: 'var(--accent)', marginBottom: 22, marginLeft: 'auto', marginRight: 'auto', position: 'relative', zIndex: 1 }}>
+            <div key={s.n} className={`lnd-manifesto-row lnd-reveal d${Math.min(i, 3)}`}>
+              <div style={{ font: '600 clamp(28px,3vw,40px)/1 var(--font-serif)', color: 'var(--ink-4)', letterSpacing: '-0.02em', paddingTop: 6 }}>
                 {String(s.n).padStart(2, '0')}
               </div>
-              <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>{s.tag}</div>
-              <div style={{ font: '600 20px var(--font-serif)', color: 'var(--ink)', marginBottom: 10, letterSpacing: '-0.005em' }}>{s.t}</div>
-              <div style={{ font: '400 14px/1.55 var(--font-serif)', color: 'var(--ink-2)' }}>{s.s}</div>
+              <div>
+                <h3 style={{ font: '600 clamp(20px,2.5vw,28px)/1.15 var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.012em', marginBottom: 10 }}>{s.t}</h3>
+                <p style={{ font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 620, margin: 0 }}>{s.s}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -653,11 +719,11 @@ const PRINCIPLES = [
   },
   {
     title: 'Всё рядом с рукописью',
-    body: 'Переключение контекста — главный враг длинного текста. Поэтому карта, персонажи и хронология открываются рядом с той главой, которую вы пишете.',
+    body: 'Постоянно прыгать между вкладками и программами — главный враг длинного текста. Поэтому карта, персонажи и хронология открываются рядом с той главой, которую вы пишете.',
   },
   {
     title: 'Серия молчит',
-    body: 'Трекер считает дни подряд. Но не пишет «вы не открывали студию 4 дня» и не гасит полосу.',
+    body: 'Счётчик отмечает дни подряд. Но не пишет «вы не открывали студию 4 дня» и не сбрасывает серию.',
   },
   {
     title: 'Ваши книги — ваши',
@@ -667,15 +733,12 @@ const PRINCIPLES = [
 
 function LandingPrinciples() {
   return (
-    <section style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
+    <section style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'oklch(0.21 0.016 55)' }}>
       <div className="lnd-max">
         <div style={{ marginBottom: 64, maxWidth: 640 }}>
-          <h2 style={{ font: '600 clamp(32px,4vw,56px)/1.05 var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 16, color: 'var(--ink)' }}>
+          <h2 style={{ font: '600 clamp(48px,5.5vw,76px)/1.02 var(--font-serif)', letterSpacing: '-0.022em', color: 'var(--ink)' }}>
             Принципы, не обещания.
           </h2>
-          <p style={{ font: '400 17px/1.6 var(--font-serif)', color: 'var(--ink-2)', margin: 0 }}>
-            Четыре решения, принятые до первой строчки кода.
-          </p>
         </div>
         <div className="lnd-manifesto">
           {PRINCIPLES.map((p, i) => (
@@ -731,7 +794,7 @@ function LandingPricing() {
         ['Безлимит хронологии', true],
         ['Экспорт EPUB, FB2, DOCX', true],
         ['История версий глав без лимита', true],
-        ['Дэшборд · heatmap · серия дней', true],
+        ['Сводка · карта активности · серия дней', true],
         ['Приоритетная поддержка', true],
         ['Доступ к закрытому чату автора', true],
       ] as [string, boolean][],
@@ -753,13 +816,12 @@ function LandingPricing() {
     },
   ];
 
-  // Скрываем Lifetime если слоты закончились (0)
   const visibleTiers = lifetimeSlots === 0 ? tiers.filter(t => t.name !== 'Lifetime') : tiers;
 
   return (
     <section id="pricing" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)' }}>
       <div className="lnd-max">
-        <SectionLabel align="center" kicker="Тарифы" title="Начните бесплатно." subtitle="Бесплатный план — не «триал на 14 дней». Одна книга навсегда. Переходите на Pro, когда проект вырастет." />
+        <SectionLabel align="center" kicker="Тарифы" title="Начните бесплатно." subtitle="Бесплатный план — не «пробный период на 14 дней». Одна книга навсегда. Переходите на Pro, когда проект вырастет." />
         <div className="lnd-prices">
           {visibleTiers.map((t) => (
             <div key={t.name} className="lnd-reveal">
@@ -859,10 +921,10 @@ function LandingFAQ() {
   const items = [
     { q: 'Это нейросеть пишет за меня?', a: 'Нет. Авторская студия — это редактор и хранилище материалов книги. Никакого автодополнения, генерации абзацев и «исправь стиль» по умолчанию. Если когда-нибудь добавим — это будет отдельный режим с явным выключателем.' },
     { q: 'Что будет, если я перестану платить?', a: 'Все ваши книги остаются. Доступ к Pro-функциям отключается, но вы продолжаете писать в Free-режиме на той книге, которую укажете главной. Никто не блокирует и не удаляет файлы.' },
-    { q: 'Можно ли импортировать рукопись из Word или Scrivener?', a: 'Прямого импорта пока нет. Вставьте текст напрямую в редактор или разбейте на главы вручную — это занимает несколько минут. Импорт из DOCX добавим в следующих версиях.' },
+    { q: 'Можно ли импортировать рукопись из Word или другой программы?', a: 'Прямого импорта пока нет — ни из Word, ни из Scrivener (программы для писателей). Вставьте текст напрямую в редактор или разбейте на главы вручную — это занимает несколько минут. Импорт из DOCX добавим в следующих версиях.' },
     { q: 'Хранятся ли мои книги в облаке?', a: 'Да, в защищённой облачной базе данных с шифрованием. Доступ только у вас — через email или Google. В любой момент можно скачать полный экспорт рукописи.' },
     { q: 'Я пишу не роман — поэзия / нон-фикшн / сценарий. Подойдёт?', a: 'Поэзия и эссеистика — да, без оговорок. Нон-фикшн — да, особенно если он структурный (главы, разделы). Сценарии — пока нет специальной разметки Fountain / Final Draft, на дорожной карте.' },
-    { q: 'Если я нашёл баг или хочу фичу?', a: 'Напишите в issues на GitHub или на почту — ответ обычно в течение суток. Pro-подписчики попадают в Telegram-чат с разработчиком напрямую.' },
+    { q: 'Если я нашёл баг или хочу фичу?', a: 'Напишите на почту или оставьте запрос на GitHub — ответ обычно в течение суток. Pro-подписчики попадают в Telegram-чат с разработчиком напрямую.' },
   ];
   return (
     <section id="faq" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
@@ -887,7 +949,9 @@ function LandingCTA() {
     const el = decoRef.current;
     if (!el) return;
     const onScroll = () => {
-      el.style.transform = `translateY(calc(-50% + ${window.scrollY * 0.25}px)) rotate(-8deg)`;
+      const rect = el.parentElement!.getBoundingClientRect();
+      const centerOffset = (window.innerHeight / 2 - rect.top - rect.height / 2) * 0.25;
+      el.style.transform = `translateY(calc(-50% + ${centerOffset}px)) rotate(-8deg)`;
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -898,7 +962,7 @@ function LandingCTA() {
     <section style={{ padding: 'clamp(100px,12vw,140px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)', position: 'relative', overflow: 'hidden' }}>
       <div ref={decoRef} style={{ position: 'absolute', right: -100, top: '50%', transform: 'translateY(-50%) rotate(-8deg)', font: '600 280px/1 var(--font-serif)', color: 'var(--surface-2)', opacity: 0.4, pointerEvents: 'none', letterSpacing: '-0.04em', userSelect: 'none' }} aria-hidden="true">книга</div>
       <div className="lnd-reveal" style={{ position: 'relative', maxWidth: 880, margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 24 }}>Открытая бета</div>
+        <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 24 }}>Ранний доступ</div>
         <h2 style={{ font: '600 clamp(44px,6vw,76px)/1.02 var(--font-serif)', letterSpacing: '-0.022em', marginBottom: 24, color: 'var(--ink)' }}>
           Начните свою <em style={{ fontWeight: 500, color: 'var(--accent-2)' }}>книгу</em><br />сегодня вечером.
         </h2>
@@ -941,7 +1005,7 @@ function LandingFooter() {
             ['Авторам', [
               { label: 'Войти', href: '/login' },
               { label: 'Создать книгу', href: '/login?mode=register' },
-              { label: 'FAQ', href: '#faq' },
+              { label: 'Вопросы', href: '#faq' },
             ]],
             ['Студия', [
               { label: 'Контакты', href: 'mailto:frfrancuz@gmail.com' },
