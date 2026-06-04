@@ -166,7 +166,7 @@ export default function Landing() {
         .lnd-feat-row--rev .lnd-mock { order: 1; }
         .lnd-bullets { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 480px; }
         .lnd-proc { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; position: relative; }
-        .lnd-proc::before { content:''; position:absolute; top:24px; left:12.5%; right:12.5%; height:1px; background:var(--border); }
+        .lnd-proc::before { content:''; position:absolute; top:24px; left:calc(12.5% - 9px); right:calc(12.5% - 9px); height:1px; background:var(--border); }
         .lnd-prices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1100px; margin: 0 auto; }
         .lnd-nav-links { display: flex; gap: 28px; font-size: 13.5px; color: var(--ink-2); }
         .lnd-manifesto { display: flex; flex-direction: column; }
@@ -344,13 +344,13 @@ function LandingHero() {
           </div>
           <div className="lnd-hero-sheet" style={{ position: 'relative', height: 540 }} aria-hidden="true">
             <FloatingSheet tiltRef={tiltRef} />
-            <div style={{ position: 'absolute', top: 54, right: -16, width: 200, transform: 'rotate(2deg)' }}>
+            <div style={{ position: 'absolute', top: 14, right: -16, width: 200, transform: 'rotate(2deg)' }}>
               <div className="lnd-note-in n1" style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', boxShadow: '0 10px 30px oklch(0 0 0 / 0.35)' }}>
                 <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5 }}>Идея · 5 мин</div>
                 <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.45 }}>Сделать упоминание матери Аней в начале — отзеркалит финал.</div>
               </div>
             </div>
-            <div style={{ position: 'absolute', bottom: 32, left: -22, width: 190, transform: 'rotate(-1.5deg)' }}>
+            <div style={{ position: 'absolute', bottom: 40, left: -22, width: 190, transform: 'rotate(-1.5deg)' }}>
               <div className="lnd-note-in n2" style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', boxShadow: '0 10px 30px oklch(0 0 0 / 0.35)' }}>
                 <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5 }}>Важно · 10 мин</div>
                 <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.45 }}>НЕ называть имя 12-го картографа до главы 8.</div>
@@ -555,35 +555,59 @@ function MockDashboard() {
   const workDays = useCounter(48, inView);
   const fmtWords = (n: number) => n < 1000 ? String(n) : `${Math.floor(n / 1000)} ${String(n % 1000).padStart(3, '0')}`;
 
-  const cells = Array.from({ length: 14 * 7 }, (_, i) => {
+  const WEEKS = 24;
+  const cells = Array.from({ length: WEEKS * 7 }, (_, i) => {
     const w = Math.floor(i / 7), d = i % 7;
     if (w < 2 && d < 4) return 0;
     const r = Math.sin((w * 7 + d) * 0.7) + Math.cos(w * 0.3 + d);
     if (r > 1.2) return 4; if (r > 0.4) return 3; if (r > -0.2) return 2; if (r > -0.9) return 1; return 0;
   });
-  const hc = (v: number) => (['var(--surface-2)', 'oklch(0.40 0.10 30)', 'oklch(0.50 0.13 30)', 'oklch(0.58 0.15 30)', 'var(--accent)'] as const)[v];
+  const weekTotals = Array.from({ length: WEEKS }, (_, w) => cells.slice(w * 7, w * 7 + 7).reduce((s: number, v) => s + v, 0));
+  const maxWeek = Math.max(...weekTotals, 1);
+  const hc = (v: number) => (['var(--surface-3)', 'oklch(0.63 0.16 30 / 0.28)', 'oklch(0.63 0.16 30 / 0.52)', 'oklch(0.63 0.16 30 / 0.76)', 'var(--accent)'] as const)[v];
+
   return (
-    <div ref={containerRef} style={{ height: '100%', padding: 24, background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+    <div ref={containerRef} style={{ height: '100%', padding: 20, background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
         {([
           [fmtWords(words), 'слов', '+348'],
           [String(days), 'дней подряд', 'серия'],
           [String(workDays), 'рабочих дней', 'из 184'],
         ] as [string, string, string][]).map(([v, l, d], i) => (
-          <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 14px' }}>
-            <div style={{ font: '500 9px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 6 }}>{l}</div>
-            <div style={{ font: '600 22px var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{v}</div>
-            <div style={{ font: '500 10px var(--font-mono)', color: i < 2 ? 'var(--ok)' : 'var(--ink-3)', marginTop: 3 }}>{d}</div>
+          <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px' }}>
+            <div style={{ font: '500 9px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5 }}>{l}</div>
+            <div style={{ font: '600 20px var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{v}</div>
+            <div style={{ font: '500 10px var(--font-mono)', color: i < 2 ? 'var(--ok)' : 'var(--ink-3)', marginTop: 2 }}>{d}</div>
           </div>
         ))}
       </div>
-      <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '14px 16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-          <div style={{ font: '500 11px var(--font-ui)', color: 'var(--ink)' }}>Активность · 14 недель</div>
+      <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={{ font: '500 11px var(--font-ui)', color: 'var(--ink)' }}>Активность · {WEEKS} недель</div>
           <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)' }}>Ø 161 сл/день</div>
         </div>
-        <div style={{ display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'repeat(7,9px)', gridAutoColumns: '9px', gap: 2 }}>
-          {cells.map((v, i) => <div key={i} style={{ background: hc(v), borderRadius: 1.5 }} />)}
+        <div style={{ display: 'flex', gap: 2 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 18, flexShrink: 0 }}>
+            {['Пн', '', 'Ср', '', 'Пт', '', 'Вс'].map((label, i) => (
+              <div key={i} style={{ height: 9, font: '400 8px var(--font-mono)', color: 'var(--ink-4)', textAlign: 'right', paddingRight: 3, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                {label}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>
+            {Array.from({ length: WEEKS }, (_, w) => (
+              <div key={w} style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
+                {cells.slice(w * 7, w * 7 + 7).map((v, d) => (
+                  <div key={d} style={{ height: 9, borderRadius: 2, background: hc(v) }} />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ paddingLeft: 20, display: 'flex', gap: 2, alignItems: 'flex-end', height: 28 }}>
+          {weekTotals.map((w, i) => (
+            <div key={i} style={{ flex: 1, minWidth: 0, height: Math.max(2, Math.round((w / maxWeek) * 28)), borderRadius: '2px 2px 0 0', background: w > 0 ? 'oklch(0.63 0.16 30 / 0.5)' : 'var(--surface-3)' }} />
+          ))}
         </div>
       </div>
     </div>
@@ -606,7 +630,7 @@ function LandingProcess() {
         <div className="lnd-proc">
           {steps.map((s, i) => (
             <div key={s.n} className={`lnd-reveal d${i}`} style={{ position: 'relative' }}>
-              <div style={{ width: 48, height: 48, borderRadius: 999, background: 'var(--bg-deep)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '600 18px var(--font-mono)', color: 'var(--accent)', marginBottom: 22, position: 'relative', zIndex: 1 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 999, background: 'var(--bg-deep)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '600 18px var(--font-mono)', color: 'var(--accent)', marginBottom: 22, marginLeft: 'auto', marginRight: 'auto', position: 'relative', zIndex: 1 }}>
                 {String(s.n).padStart(2, '0')}
               </div>
               <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>{s.tag}</div>
@@ -687,34 +711,34 @@ function LandingPricing() {
   const tiers = [
     {
       name: 'Free', price: '0 ₽', sub: 'навсегда',
-      summary: 'Чтобы попробовать инструмент на одной книге.',
+      summary: 'Одна книга навсегда — без триала и без ограничений по времени.',
       features: [
-        ['Одна книга', true],
-        ['Редактор · 4 режима', true],
-        ['Персонажи и хронология', true],
-        ['Карта мира · заметки на полях', true],
-        ['Экспорт: HTML, TXT, Markdown', true],
-        ['Дэшборд и heatmap', false],
-        ['Приоритетная поддержка', false],
+        ['Одна книга · редактор · 4 режима', true],
+        ['До 3 персонажей (со связями)', true],
+        ['Хронология · до 10 событий', true],
+        ['Карта мира · заметки', true],
+        ['Экспорт: TXT и HTML', true],
+        ['Экспорт EPUB, FB2, DOCX', false],
+        ['Безлимит персонажей и хронологии', false],
       ] as [string, boolean][],
       cta: 'Начать бесплатно', accent: false, tag: null, signup: true,
     },
     {
-      name: 'Pro', price: '290 ₽', sub: 'в месяц · или 2 900 ₽/год',
-      summary: 'Если у вас больше одной книги или нужны версии глав и полный экспорт.',
+      name: 'Pro', price: '399 ₽', sub: 'в месяц · или 3 490 ₽/год',
+      summary: 'Для тех, кто работает всерьёз — безлимит персонажей, хронологии и полный экспорт.',
       features: [
-        ['История снимков глав — rollback', true],
-        ['Экспорт EPUB и DOCX (в разработке)', true],
-        ['Безлимит книг и проектов', true],
+        ['Безлимит книг и персонажей', true],
+        ['Безлимит хронологии', true],
+        ['Экспорт EPUB, FB2, DOCX', true],
+        ['История версий глав без лимита', true],
         ['Дэшборд · heatmap · серия дней', true],
-        ['Все инструменты без ограничений', true],
         ['Приоритетная поддержка', true],
         ['Доступ к закрытому чату автора', true],
       ] as [string, boolean][],
       cta: 'Перейти на Pro', accent: true, tag: 'Чаще выбирают', signup: true,
     },
     {
-      name: 'Lifetime', price: '4 900 ₽', sub: 'один раз · навсегда',
+      name: 'Lifetime', price: '4 990 ₽', sub: 'один раз · навсегда',
       summary: `Разовая оплата. Все обновления Pro — на всю жизнь. Осталось ${slotsLabel} мест.`,
       features: [
         ['Всё из тарифа Pro', true],
@@ -735,7 +759,7 @@ function LandingPricing() {
   return (
     <section id="pricing" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)' }}>
       <div className="lnd-max">
-        <SectionLabel align="center" kicker="Тарифы" title="Начните бесплатно." subtitle="Бесплатный план — не «триал на 14 дней». Одна книга, навсегда, без ограничений по времени." />
+        <SectionLabel align="center" kicker="Тарифы" title="Начните бесплатно." subtitle="Бесплатный план — не «триал на 14 дней». Одна книга навсегда. Переходите на Pro, когда проект вырастет." />
         <div className="lnd-prices">
           {visibleTiers.map((t) => (
             <div key={t.name} className="lnd-reveal">
