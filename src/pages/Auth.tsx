@@ -125,8 +125,7 @@ export default function Auth() {
       if (error) {
         setErr(te(error));
       } else {
-        setInfo('Аккаунт создан. Проверьте почту, если включена верификация — иначе входите сразу.');
-        setTab('signin');
+        setInfo('Аккаунт создан. Входим…');
       }
     }
     setBusy(false);
