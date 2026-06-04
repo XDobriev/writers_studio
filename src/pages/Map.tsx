@@ -229,18 +229,57 @@ export default function MapScreen() {
           </div>
 
           {/* Canvas */}
-          <WorldMap
-            locations={locations}
-            connections={connections}
-            bgUrl={book.map_bg_url ?? null}
-            mode={mode}
-            onUpdate={onUpdate}
-            onCreate={(x, y) => { void onCreate(x, y); }}
-            onDelete={onDelete}
-            onCreateConnection={onCreateConnection}
-            onDeleteConnection={onDeleteConnection}
-            onUpdateConnection={onUpdateConnection}
-          />
+          <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <WorldMap
+              locations={locations}
+              connections={connections}
+              bgUrl={book.map_bg_url ?? null}
+              mode={mode}
+              onUpdate={onUpdate}
+              onCreate={(x, y) => { void onCreate(x, y); }}
+              onDelete={onDelete}
+              onCreateConnection={onCreateConnection}
+              onDeleteConnection={onDeleteConnection}
+              onUpdateConnection={onUpdateConnection}
+            />
+
+            {!book.map_bg_url && locations.length === 0 && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 5 }}>
+                <div
+                  style={{
+                    pointerEvents: 'auto',
+                    background: 'oklch(0.14 0.015 45 / 0.9)',
+                    border: '1px solid oklch(0.32 0.02 50)',
+                    borderRadius: 16,
+                    padding: isMobile ? '24px 20px' : '32px 40px',
+                    width: isMobile ? 'calc(100% - 48px)' : undefined,
+                    maxWidth: 380,
+                    textAlign: 'center',
+                    backdropFilter: 'blur(14px)',
+                    boxShadow: '0 8px 40px oklch(0 0 0 / 0.55)',
+                  }}
+                >
+                  <div style={{ fontSize: 28, marginBottom: 12, lineHeight: 1 }}>🗺</div>
+                  <div style={{ font: '500 15px var(--font-serif)', color: 'var(--ink)', marginBottom: 8 }}>
+                    Карта мира ждёт
+                  </div>
+                  <p style={{ font: '400 12px/1.7 var(--font-ui)', color: 'var(--ink-3)', margin: '0 0 20px' }}>
+                    Нарисуйте карту в <strong style={{ color: 'var(--ink-2)' }}>Inkarnate</strong> или другом редакторе, загрузите как фон — и расставьте локации пинами.
+                  </p>
+                  <button
+                    className="btn"
+                    style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: 6, marginBottom: 10 }}
+                    onClick={() => setBgModalOpen(true)}
+                  >
+                    <span>🖼</span> Загрузить фон
+                  </button>
+                  <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', lineHeight: 1.6 }}>
+                    или кликните в любую точку карты,<br />чтобы сразу добавить локацию без фона
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </main>
       </div>
 

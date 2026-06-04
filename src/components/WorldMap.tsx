@@ -356,13 +356,19 @@ export function WorldMap({
             ? <image href={bgUrl} x={0} y={0} width={CW} height={CH} preserveAspectRatio="xMidYMid slice" opacity={0.85} />
             : (
               <>
-                <rect x={0} y={0} width={CW} height={CH} fill="var(--surface)" rx={8} stroke="var(--border-soft)" strokeWidth={2} />
                 <defs>
-                  <pattern id="wm-grid" width={80} height={80} patternUnits="userSpaceOnUse">
-                    <circle cx={40} cy={40} r={1.2} fill="var(--ink-4)" opacity={0.25} />
+                  <radialGradient id="wm-parchment" cx="50%" cy="50%" r="65%" gradientUnits="objectBoundingBox">
+                    <stop offset="0%"   stopColor="oklch(0.27 0.022 52)"/>
+                    <stop offset="100%" stopColor="oklch(0.15 0.018 45)"/>
+                  </radialGradient>
+                  <pattern id="wm-dots" width={48} height={48} patternUnits="userSpaceOnUse">
+                    <circle cx={24} cy={24} r={0.9} fill="oklch(0.55 0.018 50)" opacity={0.18}/>
                   </pattern>
                 </defs>
-                <rect x={0} y={0} width={CW} height={CH} fill="url(#wm-grid)" rx={8} />
+                <rect x={0} y={0} width={CW} height={CH} fill="url(#wm-parchment)" rx={8}/>
+                <rect x={0} y={0} width={CW} height={CH} fill="url(#wm-dots)" rx={8}/>
+                <rect x={0} y={0} width={CW} height={CH} fill="none" rx={8} stroke="oklch(0.32 0.02 50)" strokeWidth={2}/>
+                <rect x={18} y={18} width={CW - 36} height={CH - 36} fill="none" rx={4} stroke="oklch(0.28 0.018 50)" strokeWidth={0.8} strokeDasharray="10 5" opacity={0.5}/>
               </>
             )
           }
