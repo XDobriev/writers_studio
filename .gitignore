@@ -22,6 +22,11 @@ docs/email-onboarding.md
 docs/design-audit-2026-05-29.md
 docs/feature-research-2026-05-29.md
 
+# QA screenshots
+qa_*.png
+qa_*.jpeg
+qa_*.jpg
+
 # Playwright
 playwright-report/
 test-results/
