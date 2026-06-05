@@ -48,8 +48,8 @@ export default function Characters() {
   const { data: book } = useBook(bookId);
   const { data: characters, error: charsQueryError } = useCharacters(bookId);
   const { data: relationships, error: relsQueryError } = useRelationships(bookId);
-  const { error: mutationError, setError } = useErrorState();
-  const error = charsQueryError?.message ?? relsQueryError?.message ?? mutationError ?? null;
+  const { error: mutationError, setError, clearError } = useErrorState();
+  const queryError = charsQueryError?.message ?? relsQueryError?.message ?? null;
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [query, setQuery] = useState('');
@@ -169,11 +169,11 @@ export default function Characters() {
 
   if (!bookId) return <Navigate to="/books" replace />;
 
-  if (error) {
+  if (queryError) {
     return (
       <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
         <span style={{ font: '500 14px var(--font-ui)', color: 'var(--danger)' }}>Ошибка загрузки</span>
-        <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{error}</span>
+        <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{queryError}</span>
       </div>
     );
   }
@@ -447,6 +447,25 @@ export default function Characters() {
         />
       )}
     </WithMode>
+
+    {mutationError && (
+      <div
+        onClick={clearError}
+        style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          background: 'oklch(0.28 0.06 25)', border: '1px solid oklch(0.45 0.12 25)',
+          borderRadius: 10, padding: '10px 18px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          font: '500 13px var(--font-ui)', color: 'oklch(0.92 0.04 25)',
+          boxShadow: '0 4px 24px oklch(0 0 0 / 0.28)',
+          zIndex: 1000, cursor: 'pointer',
+          animation: 'toast-in 0.2s cubic-bezier(0.22,0.68,0,1.2)',
+          maxWidth: 360, whiteSpace: 'pre-wrap', textAlign: 'center',
+        }}
+      >
+        {mutationError}
+      </div>
+    )}
     </motion.div>
   );
 }
