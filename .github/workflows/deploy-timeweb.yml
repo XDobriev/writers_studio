@@ -59,3 +59,13 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>&1
           rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes" dist/ "$VPS_USER@$VPS_HOST:/var/www/avtorstudio/dist/"
+          rsync -avz -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes" deploy/nginx.conf "$VPS_USER@$VPS_HOST:/var/www/avtorstudio/nginx.conf"
+
+      - name: Reload nginx
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" \
+            "sudo cp /var/www/avtorstudio/nginx.conf /etc/nginx/sites-available/avtorstudio.com && sudo nginx -t && sudo systemctl reload nginx"
