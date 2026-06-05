@@ -1,0 +1,11 @@
+# Sudoers rule for the `deploy` user (GitHub Actions CI/CD).
+# Install on VPS: sudo cp deploy/sudoers.d-deploy /etc/sudoers.d/deploy
+# Verify syntax:  sudo visudo -c -f /etc/sudoers.d/deploy
+#
+# IMPORTANT: Only these three exact commands are allowed — no wildcards.
+# - /bin/cp    : only from the staging path to the nginx config path
+# - /usr/sbin/nginx -t : syntax check only
+# - /bin/systemctl reload nginx : reload only, not restart/stop/start
+deploy ALL=(ALL) NOPASSWD: /bin/cp /var/www/avtorstudio/nginx.conf /etc/nginx/sites-available/avtorstudio.com
+deploy ALL=(ALL) NOPASSWD: /usr/sbin/nginx -t
+deploy ALL=(ALL) NOPASSWD: /bin/systemctl reload nginx

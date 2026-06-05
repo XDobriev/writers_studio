@@ -48,6 +48,26 @@ jobs:
           VITE_ADMIN_EMAIL: frfrancuz@gmail.com
           VITE_TELEGRAM_BOT_USERNAME: authorsStudioBot
 
+      - name: Validate nginx.conf (security check)
+        run: |
+          # Проверяем, что proxy_pass ведёт только на ожидаемый Supabase-хост.
+          # Любой другой хост — признак компрометации конфига.
+          UNEXPECTED=$(grep -P 'proxy_pass\s+https?://' deploy/nginx.conf \
+            | grep -v 'joaxeoavjvlqmtlepkrr\.supabase\.co' || true)
+          if [ -n "$UNEXPECTED" ]; then
+            echo "ERROR: nginx.conf содержит неожиданный proxy_pass:"
+            echo "$UNEXPECTED"
+            exit 1
+          fi
+          # Проверяем наличие обязательных security-заголовков.
+          for HEADER in "Strict-Transport-Security" "X-Frame-Options" "X-Content-Type-Options"; do
+            if ! grep -q "$HEADER" deploy/nginx.conf; then
+              echo "ERROR: nginx.conf не содержит заголовок $HEADER"
+              exit 1
+            fi
+          done
+          echo "nginx.conf: проверка безопасности пройдена"
+
       - name: Deploy via rsync
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
