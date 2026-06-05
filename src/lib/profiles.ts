@@ -1,5 +1,19 @@
 import { supabase } from './supabase';
 
+export interface PlanLimits {
+  maxBooks: number;
+  maxCharacters: number;
+  maxTimelineEvents: number;
+  canExportRich: boolean;
+}
+
+export function getPlanLimits(plan: string | undefined): PlanLimits {
+  if (!plan || plan === 'free') {
+    return { maxBooks: 1, maxCharacters: 3, maxTimelineEvents: 10, canExportRich: false };
+  }
+  return { maxBooks: Infinity, maxCharacters: Infinity, maxTimelineEvents: Infinity, canExportRich: true };
+}
+
 export interface Profile {
   user_id: string;
   plan: string;

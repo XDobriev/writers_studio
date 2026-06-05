@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useErrorState } from '../lib/useErrorState';
 import { useAuth } from '../lib/auth';
+import { getPlanLimits } from '../lib/profiles';
+import { useProfile } from '../lib/queries';
+import { UpgradePrompt } from '../components/UpgradePrompt';
 import {
   AlignmentType,
   Document,
@@ -634,6 +637,10 @@ export default function Export() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const { data: profile } = useProfile(user?.id);
+  const limits = getPlanLimits(profile?.plan);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[] | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -675,6 +682,12 @@ export default function Export() {
     })();
     return () => { cancelled = true; };
   }, [bookId, setError]);
+
+  useEffect(() => {
+    if (!limits.canExportRich && (format === 'epub' || format === 'fb2' || format === 'docx')) {
+      setFormat('html');
+    }
+  }, [limits.canExportRich, format]);
 
   // Инициализируем автора из книги или профиля пользователя (однократно)
   useEffect(() => {
@@ -774,16 +787,26 @@ export default function Export() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
             {FORMAT_MAIN.map((o) => {
               const active = o.value === format;
+              const locked = !limits.canExportRich;
               return (
                 <button
                   key={o.value}
-                  onClick={() => setFormat(o.value)}
+                  onClick={() => locked ? setShowUpgrade(true) : setFormat(o.value)}
                   style={{
                     padding: '14px 16px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
                     border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
                     background: active ? 'var(--accent-soft)' : 'var(--surface)',
+                    position: 'relative', overflow: 'hidden',
                   }}
                 >
+                  {locked && (
+                    <div style={{ position: 'absolute', inset: 0, background: 'oklch(0 0 0 / 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 10 }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.95 0 0 / 0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      </svg>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                     <span style={{ width: 14, height: 14, borderRadius: 999, border: '1.5px solid ' + (active ? 'var(--accent)' : 'var(--border-strong)'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {active && <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />}
@@ -946,6 +969,7 @@ export default function Export() {
         </div>
       </div>
 
+      {showUpgrade && <UpgradePrompt feature="export" onClose={() => setShowUpgrade(false)} />}
       {langOpen && <div onClick={() => setLangOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />}
       {langOpen && (
         <div style={{ position: 'fixed', top: langPos.top, left: langPos.left, width: langPos.width, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, zIndex: 9999, boxShadow: '0 8px 24px oklch(0 0 0 / 0.5)', overflow: 'hidden' }}>

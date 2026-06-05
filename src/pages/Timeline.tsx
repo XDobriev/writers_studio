@@ -24,7 +24,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
+import { getPlanLimits } from '../lib/profiles';
 import {
   createTimelineEvent,
   deleteTimelineEvent,
@@ -37,7 +39,7 @@ import {
   type TimelineEventType,
 } from '../lib/timeline';
 import { type ChapterMeta } from '../lib/chapters';
-import { QUERY_KEYS, useBook, useChapters, useTimelineEvents } from '../lib/queries';
+import { QUERY_KEYS, useBook, useChapters, useTimelineEvents, useProfile } from '../lib/queries';
 
 type TypeFilter = 'all' | TimelineEventType;
 type View = 'list' | 'lane';
@@ -63,6 +65,10 @@ export default function Timeline() {
   const { user } = useAuth();
 
   const queryClient = useQueryClient();
+  const { data: profile } = useProfile(user?.id);
+  const limits = getPlanLimits(profile?.plan);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
   const { data: book } = useBook(bookId);
   const { data: events, error: eventsQueryError } = useTimelineEvents(bookId);
   const { data: chapters } = useChapters(bookId);
@@ -109,12 +115,20 @@ export default function Timeline() {
     }
   }, [bookId, user, events, queryClient, setError]);
 
+  const handleCreate = useCallback(() => {
+    if ((events?.length ?? 0) >= limits.maxTimelineEvents) {
+      setShowUpgrade(true);
+    } else {
+      void onCreate();
+    }
+  }, [events?.length, limits.maxTimelineEvents, onCreate]);
+
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     if (searchParams.get('create') !== 'true') return;
     setSearchParams({}, { replace: true });
-    void onCreate();
-  }, [searchParams, setSearchParams, onCreate]);
+    handleCreate();
+  }, [searchParams, setSearchParams, handleCreate]);
 
   const onUpdate = useCallback(
     async (id: string, patch: TimelineEventPatch) => {
@@ -259,7 +273,7 @@ export default function Timeline() {
           Фиксируйте ключевые события вашего мира в хронологическом порядке
         </div>
       </div>
-      <button onClick={onCreate} className="btn btn--primary">
+      <button onClick={handleCreate} className="btn btn--primary">
         <Icon name="plus" size={13} /> Создать событие
       </button>
     </div>
@@ -352,7 +366,7 @@ export default function Timeline() {
                   </button>
                 </div>
               )}
-              <button onClick={onCreate} className="btn">
+              <button onClick={handleCreate} className="btn">
                 <Icon name="plus" size={14} /> Событие
               </button>
             </div>
@@ -406,7 +420,7 @@ export default function Timeline() {
                 dragEnabled={filter === 'all'}
                 onSelect={(id) => setActiveEventId(activeEventId === id ? null : id)}
                 onDragEnd={onDragEnd}
-                onAdd={onCreate}
+                onAdd={handleCreate}
               />
             )
           ) : (
@@ -478,6 +492,7 @@ export default function Timeline() {
           onCancel={() => setConfirmDeleteId(null)}
         />
       )}
+      {showUpgrade && <UpgradePrompt feature="timeline" onClose={() => setShowUpgrade(false)} />}
     </WithMode>
     </motion.div>
   );

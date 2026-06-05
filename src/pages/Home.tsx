@@ -11,7 +11,8 @@ import { CoverPicker, COVERS } from '../components/CoverPicker';
 import { GenrePicker } from '../components/GenrePicker';
 import { supabase, type Book } from '../lib/supabase';
 import { createBook, updateBook, deleteBook as deleteBookApi } from '../lib/books';
-import { markOnboarded } from '../lib/profiles';
+import { markOnboarded, getPlanLimits } from '../lib/profiles';
+import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useProfile, QUERY_KEYS } from '../lib/queries';
@@ -32,15 +33,13 @@ const ONBOARDING_FEATURES = [
   { icon: 'map' as const, title: 'Карта мира', desc: 'Локации и места действия' },
 ];
 
-type Plan = 'free' | 'pro' | 'lifetime';
-
 export default function Home() {
   const { user } = useAuth();
   const { displayName } = useUserDisplay();
   const queryClient = useQueryClient();
   const { data: books, error: booksError } = useBooks(user?.id);
   const { data: profile } = useProfile(user?.id);
-  const plan = ((profile?.plan ?? 'free') as Plan);
+  const limits = getPlanLimits(profile?.plan);
   const { isMobile } = useResponsive();
   const { error: err, setError: setErr } = useErrorState();
   const [showCreate, setShowCreate] = useState(false);
@@ -146,7 +145,7 @@ export default function Home() {
   };
 
   const handleNewBookClick = () => {
-    if (plan === 'free' && (books?.length ?? 0) >= 1) {
+    if ((books?.length ?? 0) >= limits.maxBooks) {
       setShowUpgrade(true);
     } else {
       setShowCreate(true);
@@ -338,61 +337,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ─── Upgrade modal ─── */}
-      {showUpgrade && (
-        <div className="modal-overlay" onClick={() => setShowUpgrade(false)}>
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Планы и подписка"
-            className="modal-panel modal-panel--lg"
-            style={{ width: 480 }}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') { setShowUpgrade(false); return; }
-              if (e.key === 'Tab') {
-                const focusable = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
-                const arr = Array.from(focusable);
-                if (!arr.length) return;
-                const first = arr[0], last = arr[arr.length - 1];
-                if (e.shiftKey ? document.activeElement === first : document.activeElement === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
-              }
-            }}
-          >
-            <div>
-              <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 10 }}>Pro</div>
-              <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 8 }}>Безлимит проектов</h2>
-              <p style={{ font: '400 14px/1.65 var(--font-ui)', color: 'var(--ink-3)' }}>
-                Бесплатный план включает одну книгу. Перейдите на Pro, чтобы создавать неограниченное количество проектов, экспортировать текст и получать доступ ко всем функциям.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[
-                'Неограниченное количество книг',
-                'Экспорт в DOCX и EPUB',
-                'Приоритетная поддержка',
-              ].map((f) => (
-                <div key={f} className="upgrade-check">
-                  <span className="upgrade-check__icon">✓</span>
-                  {f}
-                </div>
-              ))}
-            </div>
-
-            <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <div>
-                <div style={{ font: '600 28px var(--font-serif)', letterSpacing: '-0.02em' }}>290 ₽<span style={{ font: '400 14px var(--font-ui)', color: 'var(--ink-3)', letterSpacing: 0 }}>/мес</span></div>
-                <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', marginTop: 2 }}>или 2 900 ₽/год — 2 месяца в подарок</div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn--ghost" onClick={() => setShowUpgrade(false)}>Отмена</button>
-                <button className="btn btn--primary" style={{ opacity: 0.5, cursor: 'not-allowed' }} disabled>Скоро</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {showUpgrade && <UpgradePrompt feature="books" onClose={() => setShowUpgrade(false)} />}
 
       {/* ─── Welcome / onboarding modal ─── */}
       {showWelcome && (

@@ -54,6 +54,7 @@ npm run preview    # превью продакшен-сборки
 - `src/components/SettingsModal.tsx` — настройки пользователя: тема, цель по словам, план.
 - `src/components/StatusBar.tsx` — статус-бар: ambient sounds, темп письма, автосохранение.
 - `src/components/ConfirmDialog.tsx` — диалог подтверждения (заменяет `window.confirm`).
+- `src/components/UpgradePrompt.tsx` — модальный пейволл: замок + текст + кнопка «Перейти на Pro» → `/offer`. Принимает `feature` (`characters`|`timeline`|`export`|`books`) и `onClose`.
 - `src/components/GenrePicker.tsx` — мультиселект жанров (`genres text[]`).
 - `src/components/Skeleton.tsx` — скелетон-загрузка для async-состояний.
 - `src/components/VersionsPanel.tsx` + `VersionModal.tsx` — UI снапшотов/версий.

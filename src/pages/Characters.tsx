@@ -6,7 +6,10 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
+import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
+import { getPlanLimits } from '../lib/profiles';
+import { useProfile } from '../lib/queries';
 import {
   initialsFromName,
   ROLE_LABELS,
@@ -44,6 +47,10 @@ export default function Characters() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  const { data: profile } = useProfile(user?.id);
+  const limits = getPlanLimits(profile?.plan);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const { data: book } = useBook(bookId);
   const { data: characters, error: charsQueryError } = useCharacters(bookId);
@@ -159,6 +166,14 @@ export default function Characters() {
   const onCreateRef = useRef(onCreate);
   onCreateRef.current = onCreate;
 
+  const handleCreate = useCallback(() => {
+    if ((characters?.length ?? 0) >= limits.maxCharacters) {
+      setShowUpgrade(true);
+    } else {
+      void onCreateRef.current();
+    }
+  }, [characters?.length, limits.maxCharacters]);
+
   useEffect(() => {
     if (search.get('create') !== 'true') return;
     const next = new URLSearchParams(search);
@@ -256,7 +271,7 @@ export default function Characters() {
                       </button>
                     ))}
                   </div>
-                  <button onClick={onCreate} className="tb-btn" title="Новый персонаж">
+                  <button onClick={handleCreate} className="tb-btn" title="Новый персонаж">
                     <Icon name="plus" size={14} />
                   </button>
                 </>
@@ -274,7 +289,7 @@ export default function Characters() {
                       style={{ width: 90, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', fontSize: 12 }}
                     />
                   </div>
-                  <button onClick={onCreate} className="tb-btn" title="Новый персонаж">
+                  <button onClick={handleCreate} className="tb-btn" title="Новый персонаж">
                     <Icon name="plus" size={14} />
                   </button>
                 </>
@@ -432,7 +447,7 @@ export default function Characters() {
               characters={filtered}
               emptyAll={characters.length === 0}
               onSelect={selectCharacter}
-              onCreate={onCreate}
+              onCreate={handleCreate}
               onDelete={setCharToDelete}
             />
           )}
@@ -447,6 +462,7 @@ export default function Characters() {
           onCancel={() => setCharToDelete(null)}
         />
       )}
+      {showUpgrade && <UpgradePrompt feature="characters" onClose={() => setShowUpgrade(false)} />}
     </WithMode>
 
     {mutationError && (
