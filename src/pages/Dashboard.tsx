@@ -661,7 +661,7 @@ export default function Dashboard() {
         </main>
 
         {editOpen && (
-          <div className="modal-overlay" onClick={() => setEditOpen(false)}>
+          <div className="modal-overlay" onClick={() => { if (!editSaving) setEditOpen(false); }}>
             <div
               role="dialog"
               aria-modal="true"
@@ -690,6 +690,7 @@ export default function Dashboard() {
                   onChange={(e) => setEditTitle(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditOpen(false); }}
                   autoFocus
+                  maxLength={120}
                 />
               </div>
 

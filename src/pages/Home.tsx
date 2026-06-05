@@ -255,7 +255,7 @@ export default function Home() {
 
       {/* ─── Edit book modal ─── */}
       {editBook && (
-        <div className="modal-overlay" onClick={() => setEditBook(null)}>
+        <div className="modal-overlay" onClick={() => { if (!editSaving) setEditBook(null); }}>
           <div
             role="dialog"
             aria-modal="true"
@@ -284,6 +284,7 @@ export default function Home() {
                   onChange={(e) => setEditTitle(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') saveEditBook(); if (e.key === 'Escape') setEditBook(null); }}
                   autoFocus
+                  maxLength={120}
                 />
               </div>
               <GenrePicker value={editGenres} onChange={setEditGenres} />
@@ -466,7 +467,7 @@ export default function Home() {
 
       {/* ─── Create book modal ─── */}
       {showCreate && (
-        <div className="modal-overlay" style={{ zIndex: 50, background: 'oklch(0.10 0.012 50 / 0.55)' }} onClick={() => setShowCreate(false)}>
+        <div className="modal-overlay" style={{ zIndex: 50, background: 'oklch(0.10 0.012 50 / 0.55)' }} onClick={() => { if (!creating) setShowCreate(false); }}>
           <form
             onSubmit={onCreate}
             role="dialog"
@@ -490,7 +491,7 @@ export default function Home() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label className="label">Название</label>
-                <input className="input" name="title" required autoFocus />
+                <input className="input" name="title" required autoFocus maxLength={120} />
               </div>
               <GenrePicker value={createGenres} onChange={setCreateGenres} />
               <div>

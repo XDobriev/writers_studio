@@ -103,7 +103,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
             height: 22, padding: '0 8px 0 4px', borderRadius: 999,
             border: `1px solid ${getCharacterColor(povEntries[0].character_index)}`,
             background: `color-mix(in oklch, ${getCharacterColor(povEntries[0].character_index)} 14%, transparent)`,
-            cursor: 'pointer',
+            cursor: 'pointer', maxWidth: 140, minWidth: 0,
           }}
         >
           <span style={{
@@ -117,6 +117,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
           <span style={{
             font: '500 10px var(--font-mono)', letterSpacing: '0.03em',
             color: getCharacterColor(povEntries[0].character_index),
+            overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', minWidth: 0,
           }}>
             {povEntries[0].character_name}
           </span>
@@ -458,6 +459,7 @@ export default function Outline() {
   const [renameFor, setRenameFor] = useState<string | null>(null);
   const menuRef = useRef<HTMLButtonElement>(null);
   const menuDropdownStyle = useDropdownPosition(menuRef, menuFor);
+  const creatingRef = useRef(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -513,7 +515,8 @@ export default function Outline() {
   };
 
   const onCreate = useCallback(async () => {
-    if (!bookId || !user) return;
+    if (!bookId || !user || creatingRef.current) return;
+    creatingRef.current = true;
     try {
       const nums = (chapters ?? [])
         .map((c) => c.title.match(/^Глава (\d+)$/))
@@ -529,6 +532,8 @@ export default function Outline() {
       navigate(`/books/${bookId}/editor?chapter=${created.id}`);
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      creatingRef.current = false;
     }
   }, [bookId, user, chapters, queryClient, navigate, setError]);
 

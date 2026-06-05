@@ -54,6 +54,7 @@ function ChapterSheet({ chapter, content, onContentChange, onTitleChange, onEdit
         onChange={(e) => onTitleChange(e.target.value)}
         placeholder="Без названия"
         aria-label="Название главы"
+        maxLength={200}
         style={{
           width: '100%', background: 'transparent', border: 'none', outline: 'none',
           font: '600 30px var(--font-serif)', letterSpacing: '-0.012em', color: 'var(--paper-ink)',
