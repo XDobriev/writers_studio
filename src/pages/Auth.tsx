@@ -226,9 +226,10 @@ export default function Auth() {
                 type="submit"
                 disabled={busy || !supabaseConfigured}
                 className="btn btn--primary"
-                style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center' }}
+                style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
               >
-                {busy ? '…' : 'Отправить ссылку'}
+                {busy && <span className="btn-spinner" />}
+                {busy ? 'Отправляем…' : 'Отправить ссылку'}
               </button>
             </>
           )}
@@ -416,9 +417,12 @@ export default function Auth() {
                 type="submit"
                 disabled={busy || !supabaseConfigured || (tab === 'signup' && !consent)}
                 className="btn btn--primary"
-                style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center' }}
+                style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
               >
-                {busy ? '…' : tab === 'signin' ? 'Войти в студию' : 'Создать аккаунт'}
+                {busy && <span className="btn-spinner" />}
+                {busy
+                  ? (tab === 'signin' ? 'Входим…' : 'Создаём аккаунт…')
+                  : (tab === 'signin' ? 'Войти в студию' : 'Создать аккаунт')}
               </button>
             </>
           )}

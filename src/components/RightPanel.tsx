@@ -162,10 +162,13 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   >Отмена</button>
                   <button
                     className="btn btn--primary"
-                    style={{ fontSize: 12, padding: '4px 10px' }}
+                    style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}
                     onClick={handleAdd}
                     disabled={saving || !formText.trim()}
-                  >Сохранить</button>
+                  >
+                    {saving && <span className="btn-spinner" style={{ width: 10, height: 10 }} />}
+                    {saving ? 'Сохраняем…' : 'Сохранить'}
+                  </button>
                 </div>
               </div>
             )}
@@ -207,10 +210,13 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   >Отмена</button>
                   <button
                     className="btn btn--primary"
-                    style={{ fontSize: 12, padding: '4px 10px' }}
+                    style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}
                     onClick={handleUpdate}
                     disabled={saving || !editText.trim()}
-                  >Сохранить</button>
+                  >
+                    {saving && <span className="btn-spinner" style={{ width: 10, height: 10 }} />}
+                    {saving ? 'Сохраняем…' : 'Сохранить'}
+                  </button>
                 </div>
               </div>
             ) : (

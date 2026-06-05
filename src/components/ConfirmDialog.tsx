@@ -2,16 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 
 export function ConfirmDialog({ message, onConfirm, onCancel }: {
   message: string;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 }) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [clicked, setClicked] = useState(false);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (clicked) return;
     setClicked(true);
-    onConfirm();
+    try {
+      await onConfirm();
+    } catch {
+      setClicked(false);
+    }
   };
 
   useEffect(() => {
@@ -51,7 +55,13 @@ export function ConfirmDialog({ message, onConfirm, onCancel }: {
         <p style={{ font: '400 14px/1.6 var(--font-ui)', color: 'var(--ink)', margin: 0, whiteSpace: 'pre-wrap' }}>{message}</p>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button ref={cancelRef} onClick={onCancel} disabled={clicked} className="btn btn--ghost">Отмена</button>
-          <button onClick={handleConfirm} disabled={clicked} className="btn btn--ghost" style={{ color: 'var(--danger)' }}>
+          <button
+            onClick={() => { void handleConfirm(); }}
+            disabled={clicked}
+            className="btn btn--danger-ghost"
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            {clicked && <span className="btn-spinner" style={{ width: 11, height: 11, borderColor: 'color-mix(in oklch, var(--danger) 30%, transparent)', borderTopColor: 'var(--danger)' }} />}
             {clicked ? 'Удаление…' : 'Удалить'}
           </button>
         </div>

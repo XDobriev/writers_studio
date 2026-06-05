@@ -147,9 +147,10 @@ export default function ResetPassword() {
               type="submit"
               disabled={state === 'busy'}
               className="btn btn--primary"
-              style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center' }}
+              style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
             >
-              {state === 'busy' ? '…' : 'Сохранить пароль'}
+              {state === 'busy' && <span className="btn-spinner" />}
+              {state === 'busy' ? 'Сохраняем…' : 'Сохранить пароль'}
             </button>
           </form>
         )}

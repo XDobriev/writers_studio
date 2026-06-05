@@ -86,8 +86,9 @@ export default function Home() {
       queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => prev?.filter((b) => b.id !== editBook.id));
       setEditBook(null);
       setConfirmDeleteBook(false);
-    } catch {
-      // оставляем диалог открытым при ошибке
+    } catch (e) {
+      setErr((e as Error).message);
+      throw e;
     } finally {
       setDeleting(false);
     }
@@ -328,8 +329,10 @@ export default function Home() {
                   className="btn btn--primary"
                   onClick={saveEditBook}
                   disabled={editSaving || !editTitle.trim()}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
-                  {editSaving ? 'Сохранение…' : 'Сохранить'}
+                  {editSaving && <span className="btn-spinner" />}
+                  {editSaving ? 'Сохраняем…' : 'Сохранить'}
                 </button>
               </div>
             </div>
@@ -455,8 +458,9 @@ export default function Home() {
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 22 }}>
               <button type="button" className="btn btn--ghost" onClick={() => setShowCreate(false)} disabled={creating}>Отмена</button>
-              <button type="submit" className="btn btn--primary" disabled={creating}>
-                {creating ? 'Создание…' : 'Создать'}
+              <button type="submit" className="btn btn--primary" disabled={creating} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {creating && <span className="btn-spinner" />}
+                {creating ? 'Создаём…' : 'Создать'}
               </button>
             </div>
           </form>

@@ -350,8 +350,8 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   display: flex; align-items: center; justify-content: center;
   font: 500 11px var(--font-ui); color: oklch(0.98 0 0);
 }
-.sb-foot-name { font-size: 12.5px; color: var(--ink); }
-.sb-foot-meta { font-size: 11px; color: var(--ink-3); }
+.sb-foot-name { font-size: 12.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-foot-meta { font-size: 11px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-dropdown-item {
   display: flex; align-items: center; gap: 8px;
   padding: 7px 10px; width: 100%; border-radius: 5px;
@@ -694,6 +694,11 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .btn--primary:hover { background: oklch(0.68 0.16 30); }
 .btn--ghost { border-color: transparent; color: var(--ink-2); }
 .btn--lg { height: 42px; padding: 0 24px; font-size: 14px; }
+.btn-spinner {
+  display: inline-block; width: 13px; height: 13px; border-radius: 50%;
+  border: 1.5px solid oklch(1 0 0 / 0.35); border-top-color: oklch(1 0 0 / 0.9);
+  animation: spin 0.65s linear infinite; flex-shrink: 0;
+}
 .btn--danger-ghost {
   border-color: transparent; color: var(--danger);
   background: none; opacity: 0.8;

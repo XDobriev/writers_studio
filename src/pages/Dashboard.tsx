@@ -723,8 +723,10 @@ export default function Dashboard() {
                   className="btn btn--primary"
                   onClick={saveEdit}
                   disabled={editSaving || !editTitle.trim()}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
-                  {editSaving ? 'Сохранение…' : 'Сохранить'}
+                  {editSaving && <span className="btn-spinner" />}
+                  {editSaving ? 'Сохраняем…' : 'Сохранить'}
                 </button>
               </div>
             </div>

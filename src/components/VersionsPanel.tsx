@@ -144,11 +144,12 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
             </button>
             <button
               className="btn btn--primary"
-              style={{ fontSize: 12 }}
+              style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }}
               onClick={() => void handleSaveLabel()}
               disabled={saving || !labelInput.trim()}
             >
-              Сохранить
+              {saving && <span className="btn-spinner" style={{ width: 10, height: 10 }} />}
+              {saving ? 'Сохраняем…' : 'Сохранить'}
             </button>
           </div>
         </div>

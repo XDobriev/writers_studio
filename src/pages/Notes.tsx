@@ -464,10 +464,13 @@ export default function Notes() {
                   >Отмена</button>
                   <button
                     className="btn btn--primary"
-                    style={{ fontSize: 12, padding: '5px 14px' }}
+                    style={{ fontSize: 12, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
                     onClick={handleAdd}
                     disabled={saving || !formText.trim()}
-                  >Сохранить</button>
+                  >
+                    {saving && <span className="btn-spinner" style={{ width: 11, height: 11 }} />}
+                    {saving ? 'Сохраняем…' : 'Сохранить'}
+                  </button>
                 </div>
               </div>
             )}
@@ -595,10 +598,13 @@ export default function Notes() {
                     >Отмена</button>
                     <button
                       className="btn btn--primary"
-                      style={{ fontSize: 12, padding: '5px 14px' }}
+                      style={{ fontSize: 12, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
                       onClick={handleModalSave}
                       disabled={saving || !modalEditText.trim()}
-                    >Сохранить</button>
+                    >
+                      {saving && <span className="btn-spinner" style={{ width: 11, height: 11 }} />}
+                      {saving ? 'Сохраняем…' : 'Сохранить'}
+                    </button>
                   </div>
                 </>
               ) : (
