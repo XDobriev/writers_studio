@@ -1,5 +1,9 @@
 import { test as base, expect, type Page } from '@playwright/test';
 
+// ВАЖНО: аккаунт E2E_TEST_EMAIL должен быть на плане 'pro' в таблице profiles.
+// На Free-плане: DOCX заблокирован (canExportRich=false), лимит персонажей=3.
+// Если тесты начнут падать — проверить план через Supabase MCP:
+//   SELECT plan FROM profiles WHERE user_id = (SELECT id FROM auth.users WHERE email = '<E2E_TEST_EMAIL>');
 export async function loginAndGetBookHref(page: Page): Promise<string> {
   const email = process.env.E2E_TEST_EMAIL;
   const password = process.env.E2E_TEST_PASSWORD;
