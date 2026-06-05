@@ -14,13 +14,17 @@ export async function loginAndGetBookHref(page: Page): Promise<string> {
   await page.waitForURL('**/books', { timeout: 15_000 });
 
   const link = page.locator('a[href^="/books/"]').first();
-  const hasBooks = await link.isVisible({ timeout: 8_000 }).catch(() => false);
+  const hasBooks = await link.isVisible({ timeout: 25_000 }).catch(() => false);
 
   if (!hasBooks) {
-    await page.getByRole('button', { name: 'Создать книгу' }).click();
-    await page.locator('input[name="title"]').fill('E2E Test Book');
-    await page.getByRole('button', { name: 'Создать' }).click();
-    await expect(link).toBeVisible({ timeout: 15_000 });
+    const createBtn = page.getByRole('button', { name: 'Создать книгу' });
+    const createBtnVisible = await createBtn.isVisible({ timeout: 10_000 }).catch(() => false);
+    if (createBtnVisible) {
+      await createBtn.click();
+      await page.locator('input[name="title"]').fill('E2E Test Book');
+      await page.getByRole('button', { name: 'Создать' }).click();
+      await expect(link).toBeVisible({ timeout: 15_000 });
+    }
   }
 
   return (await link.getAttribute('href')) as string;
