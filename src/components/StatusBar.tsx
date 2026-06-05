@@ -221,7 +221,7 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, tod
           <span style={{ color: 'var(--ink-4)' }}>·</span>
           <span>Знаков: {chars.toLocaleString('ru')}</span>
           <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <span>~{Math.ceil(words / 220)} мин чтения</span>
+          <span>{words < 220 ? '< 1 мин чтения' : `~${Math.round(words / 220)} мин чтения`}</span>
         </>
       )}
       <span style={{ flex: 1 }} />

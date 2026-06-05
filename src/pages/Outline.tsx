@@ -591,7 +591,7 @@ export default function Outline() {
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Структура</span>
-              <span className="chip">{totals.count} {totals.count === 1 ? 'глава' : 'глав'} · {totals.words.toLocaleString('ru')} сл</span>
+              <span className="chip">{totals.count} {plural(totals.count, 'глава', 'главы', 'глав')} · {totals.words.toLocaleString('ru')} сл</span>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <button className="btn" onClick={onCreate}><Icon name="plus" size={14} /> Новая глава</button>

@@ -200,7 +200,7 @@ export default function Home() {
           <div>
             <h1 style={{ font: '600 36px var(--font-serif)', letterSpacing: '-0.012em' }}>Мои книги</h1>
             <p style={{ font: '400 14px var(--font-ui)', color: 'var(--ink-3)', marginTop: 6 }}>
-              {books == null ? '…' : `${books.length} ${plural(books.length, 'проект', 'проекта', 'проектов')} · ${totalWords.toLocaleString('ru')} слов`}
+              {books == null ? '…' : `${books.length} ${plural(books.length, 'проект', 'проекта', 'проектов')} · ${totalWords.toLocaleString('ru')} ${plural(totalWords, 'слово', 'слова', 'слов')}`}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>

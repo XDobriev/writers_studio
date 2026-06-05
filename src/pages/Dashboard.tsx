@@ -258,7 +258,7 @@ export default function Dashboard() {
         const pages = Math.round(book.words / 250);
         return {
           l: 'Время чтения',
-          v: hours > 0 ? `${hours} ч ${mins} мин` : `${totalMins} мин`,
+          v: hours > 0 ? `${hours} ч ${mins} мин` : totalMins === 0 && book.words > 0 ? '< 1 мин' : `${totalMins} мин`,
           sub: book.words > 0 ? `≈ ${pages} ${plural(pages, 'страница', 'страницы', 'страниц')} А4` : 'нет текста',
           delta: '200 слов/мин',
         };
@@ -498,7 +498,7 @@ export default function Dashboard() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ font: '500 13px var(--font-ui)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ch.title}</div>
                         <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em' }}>
-                          {STATUS_LABEL[ch.status]} · {fmtNumber(ch.words)} слов · {new Date(ch.updated_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                          {STATUS_LABEL[ch.status]} · {fmtNumber(ch.words)} {plural(ch.words, 'слово', 'слова', 'слов')} · {new Date(ch.updated_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
                         </div>
                       </div>
                     </Link>
@@ -518,10 +518,10 @@ export default function Dashboard() {
                       </span>
                     )}
                     {activityData.todayWords > 0 && (
-                      <span>{fmtNumber(activityData.todayWords)} слов сегодня</span>
+                      <span>{fmtNumber(activityData.todayWords)} {plural(activityData.todayWords, 'слово', 'слова', 'слов')} сегодня</span>
                     )}
                     {activityData.maxDelta > 0 && (
-                      <span>рекорд: {fmtNumber(activityData.maxDelta)} слов</span>
+                      <span>рекорд: {fmtNumber(activityData.maxDelta)} {plural(activityData.maxDelta, 'слово', 'слова', 'слов')}</span>
                     )}
                   </div>
                 )}
@@ -581,8 +581,8 @@ export default function Dashboard() {
                             return (
                               <div
                                 key={cell.date}
-                                title={!isMobile && !cell.future ? `${new Date(cell.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}: +${fmtNumber(cell.delta)} слов` : undefined}
-                                aria-label={isMobile && !cell.future ? `${new Date(cell.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}: +${fmtNumber(cell.delta)} слов` : undefined}
+                                title={!isMobile && !cell.future ? `${new Date(cell.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}: +${fmtNumber(cell.delta)} ${plural(cell.delta, 'слово', 'слова', 'слов')}` : undefined}
+                                aria-label={isMobile && !cell.future ? `${new Date(cell.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}: +${fmtNumber(cell.delta)} ${plural(cell.delta, 'слово', 'слова', 'слов')}` : undefined}
                                 style={{ width: '100%', aspectRatio: '1', borderRadius: 2, background: bg }}
                               />
                             );
@@ -601,7 +601,7 @@ export default function Dashboard() {
                         return (
                           <div
                             key={i}
-                            title={`${fmtNumber(w)} слов`}
+                            title={`${fmtNumber(w)} ${plural(w, 'слово', 'слова', 'слов')}`}
                             style={{ flex: 1, minWidth: 0, height: h, borderRadius: '2px 2px 0 0', background: w > 0 ? 'oklch(0.63 0.16 30 / 0.55)' : 'var(--surface-3)' }}
                           />
                         );

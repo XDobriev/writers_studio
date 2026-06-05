@@ -325,7 +325,7 @@ export default function Corkboard() {
   return (
     <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
-        <Sidebar book={book} subtitle={`${counts.all} ${counts.all === 1 ? 'глава' : 'глав'} · ${(book?.words ?? 0).toLocaleString('ru')} сл`}>
+        <Sidebar book={book} subtitle={`${counts.all} ${plural(counts.all, 'глава', 'главы', 'глав')} · ${(book?.words ?? 0).toLocaleString('ru')} сл`}>
           <div className="sb-tabs">
             <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/outline`)}>Структура</button>
             <button className="sb-tab sb-tab--on">Доска</button>

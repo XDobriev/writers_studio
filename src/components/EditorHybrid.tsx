@@ -37,6 +37,14 @@ interface ChapterSheetProps {
   onAddWord?: (word: string) => void;
 }
 
+function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10, mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 19) return many;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
+}
+
 function ChapterSheet({ chapter, content, onContentChange, onTitleChange, onEditor, width, padding, userDictionary, onAddWord }: ChapterSheetProps) {
   return (
     <div className="sheet" style={{ width, padding }}>
@@ -421,8 +429,8 @@ export function EditorHybrid({
           <span style={{ fontSize: 16 }}>{goalToast === 'exceeded' ? '💪' : '🎉'}</span>
           <span>
             {goalToast === 'exceeded'
-              ? `Превысил цель! +${writingStats.todayWords.toLocaleString('ru')} слов сегодня`
-              : `Цель дня достигнута! +${writingStats.todayWords.toLocaleString('ru')} слов`}
+              ? `Превысил цель! +${writingStats.todayWords.toLocaleString('ru')} ${plural(writingStats.todayWords, 'слово', 'слова', 'слов')} сегодня`
+              : `Цель дня достигнута! +${writingStats.todayWords.toLocaleString('ru')} ${plural(writingStats.todayWords, 'слово', 'слова', 'слов')}`}
           </span>
         </div>
       )}
