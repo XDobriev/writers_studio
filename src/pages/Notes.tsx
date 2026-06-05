@@ -292,16 +292,17 @@ export default function Notes() {
 
   if (displayError) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32 }}>
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ color: 'var(--danger)' }}>Ошибка: {displayError}</div>
+        <a href={bookId ? `/books/${bookId}` : '/books'} style={{ color: 'var(--accent)', fontSize: 13 }}>← К книге</a>
       </div>
     );
   }
 
   if (!book || notes === undefined || !chapters) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink-3)', padding: 32 }}>
-        Загрузка…
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="page-spinner" />
       </div>
     );
   }
@@ -448,6 +449,10 @@ export default function Notes() {
                   placeholder="Текст заметки…"
                   value={formText}
                   onChange={(e) => setFormText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void handleAdd(); }
+                    if (e.key === 'Escape') { setShowForm(false); setFormText(''); setFormCustomLabel(''); setFormCustomColor('idea'); setFormKind('idea'); }
+                  }}
                   style={{ fontSize: 13, resize: 'vertical' }}
                   autoFocus
                 />
@@ -575,6 +580,10 @@ export default function Notes() {
                     rows={6}
                     value={modalEditText}
                     onChange={(e) => setModalEditText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void handleModalSave(); }
+                      if (e.key === 'Escape') setModalEditing(false);
+                    }}
                     style={{ fontSize: 13, resize: 'vertical', flex: 1 }}
                     autoFocus
                   />

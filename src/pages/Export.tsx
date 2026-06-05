@@ -743,8 +743,8 @@ export default function Export() {
 
   if (!book || !chapters) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg-deep)', display: 'grid', placeItems: 'center', color: 'var(--ink-3)' }}>
-        Загрузка…
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="page-spinner" />
       </div>
     );
   }

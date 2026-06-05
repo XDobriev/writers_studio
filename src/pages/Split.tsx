@@ -111,8 +111,8 @@ export default function Split() {
 
   if (!book || !chapters) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink-3)', padding: 32 }}>
-        Загрузка…
+      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="page-spinner" />
       </div>
     );
   }

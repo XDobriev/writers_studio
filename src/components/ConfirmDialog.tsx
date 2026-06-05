@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function ConfirmDialog({ message, onConfirm, onCancel }: {
   message: string;
@@ -6,6 +6,13 @@ export function ConfirmDialog({ message, onConfirm, onCancel }: {
   onCancel: () => void;
 }) {
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const [clicked, setClicked] = useState(false);
+
+  const handleConfirm = () => {
+    if (clicked) return;
+    setClicked(true);
+    onConfirm();
+  };
 
   useEffect(() => {
     cancelRef.current?.focus();
@@ -43,8 +50,10 @@ export function ConfirmDialog({ message, onConfirm, onCancel }: {
       >
         <p style={{ font: '400 14px/1.6 var(--font-ui)', color: 'var(--ink)', margin: 0, whiteSpace: 'pre-wrap' }}>{message}</p>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button ref={cancelRef} onClick={onCancel} className="btn btn--ghost">Отмена</button>
-          <button onClick={onConfirm} className="btn btn--ghost" style={{ color: 'var(--danger)' }}>Удалить</button>
+          <button ref={cancelRef} onClick={onCancel} disabled={clicked} className="btn btn--ghost">Отмена</button>
+          <button onClick={handleConfirm} disabled={clicked} className="btn btn--ghost" style={{ color: 'var(--danger)' }}>
+            {clicked ? 'Удаление…' : 'Удалить'}
+          </button>
         </div>
       </div>
     </div>

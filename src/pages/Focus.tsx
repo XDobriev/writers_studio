@@ -88,8 +88,8 @@ export default function Focus() {
 
   if (!book || !chapters) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'oklch(0.10 0.012 50)', color: 'var(--ink-3)', padding: 32 }}>
-        Загрузка…
+      <div className="as" style={{ minHeight: '100vh', background: 'oklch(0.10 0.012 50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="page-spinner" style={{ borderColor: 'oklch(0.35 0.012 50)', borderTopColor: 'var(--accent)' }} />
       </div>
     );
   }

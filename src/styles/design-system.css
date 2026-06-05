@@ -229,6 +229,7 @@ html, body, #root {
 @media (max-width: 479px) {
   .sb-head { padding: 14px 16px 10px; }
   .tb-btn  { min-height: 48px; min-width: 48px; }
+  .btn     { min-height: 48px; }
 }
 
 /* sidebar */
@@ -393,6 +394,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .tb-spacer { flex: 1; }
 @media (max-width: 768px) {
   .tb-btn { min-height: 44px; min-width: 44px; }
+  .btn    { min-height: 44px; }
 }
 
 /* Bubble menu */
