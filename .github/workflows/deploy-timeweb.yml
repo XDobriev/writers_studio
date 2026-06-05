@@ -51,12 +51,19 @@ jobs:
       - name: Validate nginx.conf (security check)
         run: |
           # Проверяем, что proxy_pass ведёт только на ожидаемый Supabase-хост.
-          # Любой другой хост — признак компрометации конфига.
+          # nginx использует переменную $sb_host — разрешаем её, но проверяем,
+          # что сама переменная задана правильным значением.
           UNEXPECTED=$(grep -P 'proxy_pass\s+https?://' deploy/nginx.conf \
-            | grep -v 'joaxeoavjvlqmtlepkrr\.supabase\.co' || true)
+            | grep -v 'joaxeoavjvlqmtlepkrr\.supabase\.co' \
+            | grep -v '\$sb_host' || true)
           if [ -n "$UNEXPECTED" ]; then
             echo "ERROR: nginx.conf содержит неожиданный proxy_pass:"
             echo "$UNEXPECTED"
+            exit 1
+          fi
+          # Убеждаемся, что $sb_host задан именно нашим Supabase-проектом.
+          if ! grep -q 'set \$sb_host joaxeoavjvlqmtlepkrr\.supabase\.co' deploy/nginx.conf; then
+            echo "ERROR: \$sb_host не соответствует ожидаемому Supabase-хосту"
             exit 1
           fi
           # Проверяем наличие обязательных security-заголовков.

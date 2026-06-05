@@ -7,7 +7,7 @@ test('timeline: добавить событие', async ({ page }) => {
   await page.goto(bookHref + '/timeline');
 
   // Кнопка в тулбаре видна всегда — не зависит от ResizeObserver / containerWidth
-  const addBtn = page.getByRole('button', { name: 'Событие' });
+  const addBtn = page.getByRole('button', { name: 'Событие', exact: true });
   await expect(addBtn).toBeVisible({ timeout: 15_000 });
 
   // EventCard рендерит название как <input>, не как текст — считаем по placeholder
