@@ -4,4 +4,8 @@ Allow: /
 Disallow: /books/
 Disallow: /admin/
 
+# Block Common Crawl training bot (data harvesting, not search/citation)
+User-agent: CCBot
+Disallow: /
+
 Sitemap: https://avtorstudio.com/sitemap.xml
