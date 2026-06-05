@@ -29,18 +29,19 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error(tag, error.message, '\n', error.stack, '\nComponent stack:', info.componentStack);
 
     // Chunk не загрузился из-за сети — молча перезагружаем страницу.
-    // Флаг в sessionStorage предотвращает бесконечную петлю перезагрузок.
+    // Временна́я метка предотвращает петлю: повторный авторелоад не ранее чем через 15 с.
     if (isChunkError(error)) {
-      const key = 'chunk-reload-attempt';
-      if (!sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, '1');
+      const key = 'chunk-reload-at';
+      const last = Number(sessionStorage.getItem(key) ?? 0);
+      if (Date.now() - last > 15_000) {
+        sessionStorage.setItem(key, String(Date.now()));
         window.location.reload();
       }
     }
   }
 
   reset = () => {
-    sessionStorage.removeItem('chunk-reload-attempt');
+    sessionStorage.removeItem('chunk-reload-at');
     this.setState({ error: null });
   };
 

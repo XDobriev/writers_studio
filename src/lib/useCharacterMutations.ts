@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import {
   createCharacter,
@@ -22,7 +22,7 @@ interface UseCharacterMutationsOptions {
   cancelSave: () => void;
   onError: (msg: string) => void;
   onCreated: (id: string) => void;
-  onDeleted: (remaining: Character[]) => void;
+  onDeleted: (remaining: Character[], deletedId: string) => void;
 }
 
 export function useCharacterMutations({
@@ -36,8 +36,10 @@ export function useCharacterMutations({
   onCreated,
   onDeleted,
 }: UseCharacterMutationsOptions) {
+  const creatingRef = useRef(false);
   const onCreate = useCallback(async () => {
-    if (!bookId || !userId) return;
+    if (!bookId || !userId || creatingRef.current) return;
+    creatingRef.current = true;
     const position = characters?.length ?? 0;
     try {
       const created = await createCharacter(bookId, userId, {
@@ -49,24 +51,26 @@ export function useCharacterMutations({
       onCreated(created.id);
     } catch (e) {
       onError((e as Error).message);
+    } finally {
+      creatingRef.current = false;
     }
   }, [bookId, userId, characters, queryClient, onCreated, onError]);
 
-  const onDeleteConfirmed = useCallback(async () => {
-    if (!active || !characters || !bookId) return;
+  const onDeleteConfirmed = useCallback(async (characterId: string) => {
+    if (!characters || !bookId) return;
     cancelSave();
     try {
-      await deleteCharacter(active.id);
-      const remaining = characters.filter((c) => c.id !== active.id);
+      await deleteCharacter(characterId);
+      const remaining = characters.filter((c) => c.id !== characterId);
       queryClient.setQueryData<Character[]>(QUERY_KEYS.characters(bookId), remaining);
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) =>
-        prev ? prev.filter((r) => r.char_a_id !== active.id && r.char_b_id !== active.id) : prev
+        prev ? prev.filter((r) => r.char_a_id !== characterId && r.char_b_id !== characterId) : prev
       );
-      onDeleted(remaining);
+      onDeleted(remaining, characterId);
     } catch (e) {
       onError((e as Error).message);
     }
-  }, [active, characters, bookId, queryClient, cancelSave, onDeleted, onError]);
+  }, [characters, bookId, queryClient, cancelSave, onDeleted, onError]);
 
   const onCreateRelationship = useCallback(async (toId: string, labelMine: string, labelTheirs: string) => {
     if (!bookId || !userId || !active) return;

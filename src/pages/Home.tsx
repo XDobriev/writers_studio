@@ -16,6 +16,15 @@ import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useProfile, QUERY_KEYS } from '../lib/queries';
 
+function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 19) return many;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
+}
+
 const ONBOARDING_FEATURES = [
   { icon: 'feather' as const, title: 'Редактор глав', desc: 'Rich-text, фокусный режим, подсчёт слов в реальном времени' },
   { icon: 'user' as const, title: 'Персонажи', desc: 'Карточки героев, связи между персонажами, описания' },
@@ -52,6 +61,7 @@ export default function Home() {
   const [editUploading, setEditUploading] = useState(false);
   const [confirmDeleteBook, setConfirmDeleteBook] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const uploadCover = async (file: File, setter: (url: string) => void, setUploading: (v: boolean) => void) => {
     setUploading(true);
@@ -145,12 +155,13 @@ export default function Home() {
 
   const onCreate = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || creating) return;
     const fd = new FormData(e.currentTarget);
     const title = String(fd.get('title') ?? '').trim();
     const goalRaw = String(fd.get('goal') ?? '').trim();
     const goal = goalRaw ? Math.max(0, Number(goalRaw)) : 0;
     if (!title) return;
+    setCreating(true);
     try {
       const data = await createBook({ user_id: user.id, title, genre: null, genres: createGenres, goal, words: 0, cover: createCover });
       queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => [data, ...(prev ?? [])]);
@@ -159,6 +170,8 @@ export default function Home() {
       setCreateGenres([]);
     } catch (e) {
       setErr((e as Error).message);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -187,7 +200,7 @@ export default function Home() {
           <div>
             <h1 style={{ font: '600 36px var(--font-serif)', letterSpacing: '-0.012em' }}>Мои книги</h1>
             <p style={{ font: '400 14px var(--font-ui)', color: 'var(--ink-3)', marginTop: 6 }}>
-              {books == null ? '…' : `${books.length} ${books.length === 1 ? 'проект' : 'проектов'} · ${totalWords.toLocaleString('ru')} слов`}
+              {books == null ? '…' : `${books.length} ${plural(books.length, 'проект', 'проекта', 'проектов')} · ${totalWords.toLocaleString('ru')} слов`}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -198,7 +211,7 @@ export default function Home() {
         </div>
 
         {(err ?? (booksError as Error | null)?.message) && (
-          <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', color: 'var(--danger)', fontSize: 13 }}>
+          <div className="error-banner" style={{ marginBottom: 16 }}>
             {err ?? (booksError as Error).message}
           </div>
         )}
@@ -359,10 +372,8 @@ export default function Home() {
                 'Экспорт в DOCX и EPUB',
                 'Приоритетная поддержка',
               ].map((f) => (
-                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, font: '400 13.5px var(--font-ui)', color: 'var(--ink-2)' }}>
-                  <span style={{ width: 18, height: 18, borderRadius: 999, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 11, color: 'oklch(0.98 0 0)', fontWeight: 600 }}>
-                    ✓
-                  </span>
+                <div key={f} className="upgrade-check">
+                  <span className="upgrade-check__icon">✓</span>
                   {f}
                 </div>
               ))}
@@ -421,13 +432,13 @@ export default function Home() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 28 }}>
               {ONBOARDING_FEATURES.map(({ icon, title, desc }) => (
-                <div key={title} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '10px 12px', borderRadius: 10, background: 'var(--surface)' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'oklch(0.63 0.16 30 / 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--accent)' }}>
+                <div key={title} className="feature-item">
+                  <div className="feature-item__icon">
                     <Icon name={icon} size={16} />
                   </div>
                   <div>
-                    <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 2 }}>{title}</div>
-                    <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{desc}</div>
+                    <div className="feature-item__name">{title}</div>
+                    <div className="feature-item__desc">{desc}</div>
                   </div>
                 </div>
               ))}
@@ -497,8 +508,10 @@ export default function Home() {
               />
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 22 }}>
-              <button type="button" className="btn btn--ghost" onClick={() => setShowCreate(false)}>Отмена</button>
-              <button type="submit" className="btn btn--primary">Создать</button>
+              <button type="button" className="btn btn--ghost" onClick={() => setShowCreate(false)} disabled={creating}>Отмена</button>
+              <button type="submit" className="btn btn--primary" disabled={creating}>
+                {creating ? 'Создание…' : 'Создать'}
+              </button>
             </div>
           </form>
         </div>

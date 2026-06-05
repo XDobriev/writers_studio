@@ -91,8 +91,10 @@ export default function Timeline() {
     localStorage.setItem('timeline-view', v);
   };
 
+  const creatingRef = useRef(false);
   const onCreate = useCallback(async () => {
-    if (!bookId || !user) return;
+    if (!bookId || !user || creatingRef.current) return;
+    creatingRef.current = true;
     const position = events?.length ?? 0;
     try {
       const created = await createTimelineEvent(bookId, user.id, { position });
@@ -102,6 +104,8 @@ export default function Timeline() {
       );
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      creatingRef.current = false;
     }
   }, [bookId, user, events, queryClient, setError]);
 

@@ -40,10 +40,10 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, oklch(0.08 0.01 50 / 0.85) 0%, transparent 55%)' }} />
           )}
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ font: '500 10px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'oklch(0.95 0.008 80 / 0.7)', marginBottom: 6 }}>
+            <div style={{ font: '500 10px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'oklch(0.95 0.008 80 / 0.7)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {(b.genres?.length ? b.genres.join(', ') : null) ?? b.genre ?? 'Без жанра'}
             </div>
-            <div style={{ font: '600 22px var(--font-serif)', color: 'oklch(0.97 0.01 80)', letterSpacing: '-0.01em', lineHeight: 1.15 }}>{b.title}</div>
+            <div style={{ font: '600 22px var(--font-serif)', color: 'oklch(0.97 0.01 80)', letterSpacing: '-0.01em', lineHeight: 1.15, maxHeight: 'calc(1.15em * 3)', overflow: 'hidden', WebkitMaskImage: 'linear-gradient(to bottom, black 65%, transparent 100%)', maskImage: 'linear-gradient(to bottom, black 65%, transparent 100%)' }}>{b.title}</div>
             {b.author && (
               <div style={{ font: '400 11px var(--font-mono)', color: 'oklch(0.97 0.01 80 / 0.6)', marginTop: 6, letterSpacing: '0.06em' }}>{b.author}</div>
             )}

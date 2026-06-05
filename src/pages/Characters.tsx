@@ -53,7 +53,7 @@ export default function Characters() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [query, setQuery] = useState('');
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [charToDelete, setCharToDelete] = useState<Character | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>('info');
   const { isMobile } = useResponsive();
 
@@ -125,13 +125,15 @@ export default function Characters() {
 
   const handleCreated = useCallback((id: string) => {
     const next = new URLSearchParams(search);
+    next.delete('create'); // prevent stale ?create=true being reintroduced after async creation
     next.set('character', id);
     setSearch(next, { replace: false });
     setViewMode('detail');
   }, [search, setSearch, setViewMode]);
 
-  const handleDeleted = useCallback((remaining: Character[]) => {
-    setConfirmDelete(false);
+  const handleDeleted = useCallback((remaining: Character[], deletedId: string) => {
+    setCharToDelete(null);
+    if (deletedId !== activeId) return;
     const next = new URLSearchParams(search);
     if (remaining.length > 0) {
       next.set('character', remaining[0].id);
@@ -140,7 +142,7 @@ export default function Characters() {
       setViewMode('grid');
     }
     setSearch(next, { replace: true });
-  }, [search, setSearch, setViewMode, setConfirmDelete]);
+  }, [search, setSearch, setViewMode, activeId]);
 
   const { onCreate, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange } = useCharacterMutations({
     bookId,
@@ -154,13 +156,16 @@ export default function Characters() {
     onDeleted: handleDeleted,
   });
 
+  const onCreateRef = useRef(onCreate);
+  onCreateRef.current = onCreate;
+
   useEffect(() => {
     if (search.get('create') !== 'true') return;
     const next = new URLSearchParams(search);
     next.delete('create');
     setSearch(next, { replace: true });
-    void onCreate();
-  }, [search, setSearch, onCreate]);
+    void onCreateRef.current();
+  }, [search, setSearch]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
@@ -287,7 +292,6 @@ export default function Characters() {
                     onClick={() => prevChar && selectCharacter(prevChar.id)}
                     disabled={!prevChar}
                     title="Предыдущий персонаж"
-                    style={!prevChar ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
                   >
                     <Icon name="arrows" size={13} />
                   </button>
@@ -296,7 +300,6 @@ export default function Characters() {
                     onClick={() => nextChar && selectCharacter(nextChar.id)}
                     disabled={!nextChar}
                     title="Следующий персонаж"
-                    style={!nextChar ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
                   >
                     <Icon name="chev" size={13} />
                   </button>
@@ -318,7 +321,6 @@ export default function Characters() {
                     onClick={() => { if (activeId) setViewMode('detail'); }}
                     disabled={!activeId}
                     title="Детальная карточка"
-                    style={!activeId ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
                   >
                     <Icon name="char" size={14} />
                   </button>
@@ -421,7 +423,7 @@ export default function Characters() {
               )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, paddingBottom: 32 }}>
-                <button onClick={() => active && setConfirmDelete(true)} className="btn btn--ghost" style={{ color: 'var(--danger)' }}>Удалить персонажа</button>
+                <button onClick={() => active && setCharToDelete(active)} className="btn btn--danger-ghost">Удалить персонажа</button>
               </div>
             </div>
           ) : (
@@ -430,17 +432,18 @@ export default function Characters() {
               emptyAll={characters.length === 0}
               onSelect={selectCharacter}
               onCreate={onCreate}
+              onDelete={setCharToDelete}
             />
           )}
         </main>}
 
       </div>
 
-      {confirmDelete && active && (
+      {charToDelete && (
         <ConfirmDialog
-          message={`Удалить «${active.name || 'Без имени'}»? Это действие нельзя отменить.`}
-          onConfirm={onDeleteConfirmed}
-          onCancel={() => setConfirmDelete(false)}
+          message={`Удалить «${charToDelete.name || 'Без имени'}»? Это действие нельзя отменить.`}
+          onConfirm={() => { void onDeleteConfirmed(charToDelete.id); }}
+          onCancel={() => setCharToDelete(null)}
         />
       )}
     </WithMode>
@@ -455,11 +458,13 @@ function CharacterGrid({
   emptyAll,
   onSelect,
   onCreate,
+  onDelete,
 }: {
   characters: Character[];
   emptyAll: boolean;
   onSelect: (id: string) => void;
   onCreate: () => void;
+  onDelete: (c: Character) => void;
 }) {
   if (emptyAll) {
     return (
@@ -488,7 +493,7 @@ function CharacterGrid({
           gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
           gap: 14,
         }}>
-          {characters.map((c) => <CharacterCard key={c.id} character={c} onSelect={onSelect} />)}
+          {characters.map((c) => <CharacterCard key={c.id} character={c} onSelect={onSelect} onDelete={onDelete} />)}
           <AddCard onCreate={onCreate} />
         </div>
       )}
@@ -496,103 +501,48 @@ function CharacterGrid({
   );
 }
 
-function CharacterCard({ character: c, onSelect }: { character: Character; onSelect: (id: string) => void }) {
+function CharacterCard({ character: c, onSelect, onDelete }: { character: Character; onSelect: (id: string) => void; onDelete: (c: Character) => void }) {
   return (
-    <button
-      onClick={() => onSelect(c.id)}
-      data-testid="character-card"
-      style={{
-        background: 'var(--surface)',
-        border: '1px solid var(--border-soft)',
-        borderRadius: 10,
-        overflow: 'hidden',
-        cursor: 'pointer',
-        textAlign: 'left',
-        padding: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        width: '100%',
-        transition: 'border-color 0.15s, background 0.15s',
-      }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)'; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-soft)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface)'; }}
-    >
-      {/* Портретная область */}
-      <div style={{
-        height: 110,
-        background: ROLE_PORTRAIT_BG[c.role],
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        flexShrink: 0,
-      }}>
-        {c.avatar_url ? (
-          <img
-            src={c.avatar_url}
-            alt={c.name}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        ) : (
-          <span style={{
-            font: '600 34px var(--font-serif)',
-            color: 'oklch(0.95 0.01 80 / 0.72)',
-            letterSpacing: '-0.02em',
-            userSelect: 'none',
-          }}>
-            {initialsFromName(c.name || 'Без имени')}
-          </span>
-        )}
-      </div>
-      {/* Тело карточки */}
-      <div style={{ padding: '10px 12px 11px' }}>
-        <div style={{
-          font: '500 13px var(--font-ui)',
-          color: 'var(--ink)',
-          marginBottom: 4,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}>
-          {c.name || 'Без имени'}
+    <div className="char-card-wrap">
+      <button
+        onClick={() => onSelect(c.id)}
+        data-testid="character-card"
+        className="char-card"
+      >
+        <div className="char-card__portrait" style={{ background: ROLE_PORTRAIT_BG[c.role] }}>
+          {c.avatar_url ? (
+            <img
+              src={c.avatar_url}
+              alt={c.name}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <span className="char-card__initials">
+              {initialsFromName(c.name || 'Без имени')}
+            </span>
+          )}
         </div>
-        <div style={{
-          font: '500 10px var(--font-mono)',
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: ROLE_COLOR[c.role],
-        }}>
-          {ROLE_LABELS[c.role]}
+        <div className="char-card__body">
+          <div className="char-card__name">{c.name || 'Без имени'}</div>
+          <div className="char-card__role" style={{ color: ROLE_COLOR[c.role] }}>
+            {ROLE_LABELS[c.role]}
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+      <button
+        className="char-card__del"
+        onClick={(e) => { e.stopPropagation(); onDelete(c); }}
+        title="Удалить персонажа"
+      >
+        ×
+      </button>
+    </div>
   );
 }
 
 function AddCard({ onCreate }: { onCreate: () => void }) {
   return (
-    <button
-      onClick={onCreate}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--ink-3)'; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-soft)'; (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)'; }}
-      style={{
-        background: 'transparent',
-        border: '1px dashed var(--border-soft)',
-        borderRadius: 10,
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        alignSelf: 'stretch',
-        minHeight: 120,
-        color: 'var(--ink-4)',
-        font: '400 12px var(--font-ui)',
-        transition: 'border-color 0.15s, color 0.15s',
-        width: '100%',
-      }}
-    >
+    <button onClick={onCreate} className="add-card">
       <Icon name="plus" size={15} />
       Добавить
     </button>
@@ -758,7 +708,6 @@ function HeroBlock({ character, bookId, onChange, onError }: {
               key={r}
               onClick={() => onRoleChange(r)}
               className={'chip' + (character.role === r ? ' chip--accent' : '')}
-              style={{ cursor: 'pointer', border: 'none' }}
             >
               {ROLE_LABELS[r]}
             </button>
@@ -800,9 +749,7 @@ function HeroBlock({ character, bookId, onChange, onError }: {
                 <button
                   type="button"
                   onClick={() => removeAlias(alias)}
-                  style={{ display: 'flex', alignItems: 'center', background: 'transparent', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', padding: '0 2px', fontSize: 14, lineHeight: 1 }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--danger)'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)'; }}
+                  className="alias-remove-btn"
                 >
                   ×
                 </button>
@@ -968,7 +915,7 @@ function RelationsBlock({ activeId, characters, relationships, onCreate, onDelet
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <span style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Связи</span>
         {!adding && (
-          <button onClick={startAdd} disabled={candidates.length === 0} className="btn btn--ghost" style={{ fontSize: 12 }}>
+          <button onClick={startAdd} disabled={candidates.length === 0} className="btn btn--ghost btn--sm">
             <Icon name="plus" size={12} /> Добавить связь
           </button>
         )}
@@ -979,8 +926,8 @@ function RelationsBlock({ activeId, characters, relationships, onCreate, onDelet
           <select
             value={toId}
             onChange={(e) => setToId(e.target.value)}
-            className="input"
-            style={{ height: 32, alignSelf: 'flex-start', minWidth: 200 }}
+            className="input input--sm"
+            style={{ alignSelf: 'flex-start', minWidth: 200 }}
           >
             {candidates.map((c) => (
               <option key={c.id} value={c.id}>{c.name || 'Без имени'}</option>
@@ -994,7 +941,6 @@ function RelationsBlock({ activeId, characters, relationships, onCreate, onDelet
                 type="button"
                 onClick={() => applyPreset(p)}
                 className="chip"
-                style={{ cursor: 'pointer', border: 'none', fontSize: 11 }}
               >
                 {p}
               </button>
@@ -1010,8 +956,7 @@ function RelationsBlock({ activeId, characters, relationships, onCreate, onDelet
                 placeholder="наставник, спутник, сестра…"
                 onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setAdding(false); }}
                 autoFocus
-                className="input"
-                style={{ width: '100%', height: 32 }}
+                className="input input--sm"
               />
             </div>
             <div style={{ flex: 1 }}>
@@ -1021,15 +966,14 @@ function RelationsBlock({ activeId, characters, relationships, onCreate, onDelet
                 onChange={(e) => setLabelTheirs(e.target.value)}
                 placeholder="ученик, хозяин…"
                 onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setAdding(false); }}
-                className="input"
-                style={{ width: '100%', height: 32 }}
+                className="input input--sm"
               />
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={submit} className="btn btn--primary" style={{ fontSize: 12 }}>Добавить</button>
-            <button onClick={() => setAdding(false)} className="btn btn--ghost" style={{ fontSize: 12 }}>Отмена</button>
+            <button onClick={submit} className="btn btn--primary btn--sm">Добавить</button>
+            <button onClick={() => setAdding(false)} className="btn btn--ghost btn--sm">Отмена</button>
           </div>
         </div>
       )}
@@ -1128,13 +1072,7 @@ function RelationRow({ relId, partner, labelMine, labelTheirs, onDelete, onLabel
           </div>
         </div>
       </div>
-      <button
-        onClick={onDelete}
-        title="Удалить связь"
-        style={{ background: 'transparent', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'flex-start', borderRadius: 4, font: '400 16px var(--font-ui)', lineHeight: 1, flexShrink: 0 }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--danger)'; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)'; }}
-      >
+      <button onClick={onDelete} title="Удалить связь" className="rel-del-btn">
         ×
       </button>
     </div>
@@ -1166,22 +1104,14 @@ function ChaptersTab({ characterId, characterIndex, onNavigate }: {
   const presentRows = rows.filter((r) => !r.is_pov);
   const color = getCharacterColor(characterIndex);
 
-  const chipStyle = (isPov: boolean): React.CSSProperties => isPov
-    ? {
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '8px 12px',
-        background: `color-mix(in oklch, ${color} 14%, transparent)`,
-        border: `1px solid color-mix(in oklch, ${color} 28%, transparent)`,
-        borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-        font: '400 13px var(--font-ui)', color, transition: 'opacity 0.15s',
-      }
-    : {
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 14px',
-        background: 'var(--surface)', border: '1px solid var(--border-soft)',
-        borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-        font: '400 13px var(--font-ui)', color: 'var(--ink)', transition: 'border-color 0.15s, background 0.15s',
-      };
+  const povStyle: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '8px 12px',
+    background: `color-mix(in oklch, ${color} 14%, transparent)`,
+    border: `1px solid color-mix(in oklch, ${color} 28%, transparent)`,
+    borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+    font: '400 13px var(--font-ui)', color, transition: 'opacity 0.15s',
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1195,7 +1125,7 @@ function ChaptersTab({ characterId, characterIndex, onNavigate }: {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {povRows.map((cc) => (
-              <button key={cc.id} type="button" onClick={() => onNavigate(cc.chapter_id)} style={chipStyle(true)}>
+              <button key={cc.id} type="button" onClick={() => onNavigate(cc.chapter_id)} style={povStyle}>
                 <span>{cc.chapters?.title || 'Без названия'}</span>
                 {cc.auto_detected && (
                   <span style={{ font: '400 11px var(--font-ui)', color: `color-mix(in oklch, ${color} 60%, transparent)` }}>(авто)</span>
@@ -1217,9 +1147,9 @@ function ChaptersTab({ characterId, characterIndex, onNavigate }: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {presentRows.map((cc) => (
               <button
-                key={cc.id} type="button" onClick={() => onNavigate(cc.chapter_id)} style={chipStyle(false)}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-soft)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface)'; }}
+                key={cc.id} type="button"
+                onClick={() => onNavigate(cc.chapter_id)}
+                className="chapter-row"
               >
                 <span>{cc.chapters?.title || 'Без названия'}</span>
                 {cc.auto_detected && (

@@ -255,6 +255,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .sb-book-author {
   font-size: 11px; color: var(--ink-3);
   letter-spacing: 0.04em; text-transform: uppercase;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .sb-share-btn {
   font: 500 11px var(--font-ui);
@@ -940,4 +941,153 @@ select.input {
 /* ── Ultra-wide (1920px+) ── */
 @media (min-width: 1920px) {
   .sheet { font-size: 18.5px; line-height: 1.82; }
+}
+
+/* ── character card ── */
+.char-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  transition: border-color var(--dur-hover), background var(--dur-hover);
+}
+.char-card:hover { border-color: var(--border); background: var(--surface-2); }
+.char-card__portrait {
+  height: 110px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden; flex-shrink: 0;
+}
+.char-card__initials {
+  font: 600 34px var(--font-serif);
+  color: oklch(0.95 0.01 80 / 0.72);
+  letter-spacing: -0.02em;
+  user-select: none;
+}
+.char-card__body { padding: 10px 12px 11px; }
+.char-card__name {
+  font: 500 13px var(--font-ui);
+  color: var(--ink);
+  margin-bottom: 4px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.char-card__role {
+  font: 500 10px var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ── char-card delete button ── */
+.char-card-wrap { position: relative; }
+.char-card-wrap .char-card { width: 100%; }
+.char-card__del {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--danger) 12%, transparent);
+  color: var(--danger);
+  border: 1px solid color-mix(in oklch, var(--danger) 28%, transparent);
+  font: 500 15px var(--font-ui);
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: opacity var(--dur-hover), background var(--dur-hover);
+  z-index: 1;
+}
+.char-card-wrap:hover .char-card__del { opacity: 1; }
+.char-card__del:hover { background: color-mix(in oklch, var(--danger) 22%, transparent); }
+
+/* ── add character card ── */
+.add-card {
+  background: transparent;
+  border: 1px dashed var(--border-soft);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  align-self: stretch; min-height: 120px;
+  color: var(--ink-4);
+  font: 400 12px var(--font-ui);
+  transition: border-color var(--dur-hover), color var(--dur-hover);
+  width: 100%;
+}
+.add-card:hover { border-color: var(--border); color: var(--ink-3); }
+
+/* ── relation delete button ── */
+.rel-del-btn {
+  background: transparent; border: none;
+  color: var(--ink-4); cursor: pointer;
+  padding: 2px 6px;
+  display: flex; align-items: flex-start;
+  border-radius: 4px;
+  font: 400 16px var(--font-ui); line-height: 1;
+  flex-shrink: 0;
+  transition: color var(--dur-hover);
+}
+.rel-del-btn:hover { color: var(--danger); }
+
+/* ── chapter row (Characters > Chapters tab) ── */
+.chapter-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 8px; cursor: pointer; text-align: left;
+  font: 400 13px var(--font-ui); color: var(--ink);
+  transition: border-color var(--dur-hover), background var(--dur-hover);
+}
+.chapter-row:hover { border-color: var(--border); background: var(--surface-2); }
+
+/* ── alias chip remove button ── */
+.alias-remove-btn {
+  display: flex; align-items: center;
+  background: transparent; border: none;
+  color: var(--ink-4); cursor: pointer;
+  padding: 0 2px; font-size: 14px; line-height: 1;
+  transition: color var(--dur-hover);
+}
+.alias-remove-btn:hover { color: var(--danger); }
+
+/* ── input/btn size variants ── */
+.input--sm { height: 32px; }
+.btn--sm { font-size: 12px; }
+.tb-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── onboarding feature item (Home › Welcome modal) ── */
+.feature-item {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 10px 12px; border-radius: 10px;
+  background: var(--surface);
+}
+.feature-item__icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: oklch(0.63 0.16 30 / 0.15);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; color: var(--accent);
+}
+.feature-item__name { font: 500 13px var(--font-ui); color: var(--ink); margin-bottom: 2px; }
+.feature-item__desc { font: 400 12px var(--font-ui); color: var(--ink-3); }
+
+/* ── upgrade feature checkmark row (Home › Upgrade modal) ── */
+.upgrade-check {
+  display: flex; align-items: center; gap: 10px;
+  font: 400 13.5px var(--font-ui); color: var(--ink-2);
+}
+.upgrade-check__icon {
+  width: 18px; height: 18px; border-radius: 999px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 11px; color: oklch(0.98 0 0); font-weight: 600;
+}
+
+/* ── error banner ── */
+.error-banner {
+  padding: 10px 14px; border-radius: 8px;
+  background: oklch(0.65 0.18 25 / 0.10);
+  color: var(--danger); font-size: 13px;
 }
