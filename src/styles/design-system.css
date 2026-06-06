@@ -882,6 +882,9 @@ select.input {
 .focus-mode .sheet .sheet-title:focus {
   opacity: 1;
 }
+.focus-mode .sheet .tiptap {
+  caret-color: oklch(0.76 0.25 68);
+}
 
 /* book card — карточка книги на Home */
 .book-card { position: relative; }

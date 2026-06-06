@@ -112,7 +112,7 @@ export default function Focus() {
   };
 
   const focusEditorStyle =
-    'outline:none;font-family:var(--font-serif);color:oklch(0.92 0.014 85);font-size:18px;line-height:1.85;letter-spacing:0.005em;';
+    'outline:none;font-family:var(--font-serif);color:oklch(0.92 0.014 85);font-size:18px;line-height:1.85;letter-spacing:0.005em;caret-color:oklch(0.76 0.25 68);';
 
   return (
     <div className="as" style={{ height: '100dvh', background: 'oklch(0.10 0.012 50)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
