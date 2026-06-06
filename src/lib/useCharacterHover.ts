@@ -35,33 +35,39 @@ function findCharacterAtPoint(
   }
   if (!found) return null;
 
-  const lower = fullText.toLowerCase();
+  const normalize = (s: string) => s.toLowerCase().replace(/ё/g, 'е');
+  const isLetter = (i: number) => i >= 0 && i < fullText.length && /\p{L}/u.test(fullText[i]);
+
+  // Extract the word under cursor (handle end-of-word position)
+  const checkAt = isLetter(cursorOffset) ? cursorOffset : cursorOffset - 1;
+  if (!isLetter(checkAt)) return null;
+
+  let wordStart = checkAt;
+  while (wordStart > 0 && isLetter(wordStart - 1)) wordStart--;
+  let wordEnd = checkAt + 1;
+  while (wordEnd < fullText.length && isLetter(wordEnd)) wordEnd++;
+
+  const normWord = normalize(fullText.slice(wordStart, wordEnd));
 
   for (const char of characters) {
     const aliases = [char.name, ...(char.aliases ?? [])].filter(Boolean);
-    aliases.sort((a, b) => b.length - a.length); // longest first
+    aliases.sort((a, b) => b.length - a.length);
 
     for (const alias of aliases) {
       const t = alias.trim();
       if (t.length < 2) continue;
-      const al = t.toLowerCase();
-      let i = 0;
-      while (i <= lower.length - al.length) {
-        const pos = lower.indexOf(al, i);
-        if (pos === -1) break;
-        const bBefore = pos === 0 || !/[\p{L}\p{N}_]/u.test(fullText[pos - 1]);
-        const bAfter =
-          pos + t.length >= fullText.length ||
-          !/[\p{L}\p{N}_]/u.test(fullText[pos + t.length]);
-        if (
-          bBefore &&
-          bAfter &&
-          cursorOffset >= pos &&
-          cursorOffset <= pos + t.length
-        ) {
+      const normAlias = normalize(t);
+
+      // Exact match (nominative case)
+      if (normWord === normAlias) return char;
+
+      // Stem prefix match for names ≥ 5 chars — covers Russian declensions.
+      // Stem = first (length-2) chars; allow up to 4 extra chars for endings.
+      if (t.length >= 5) {
+        const stem = normalize(t.slice(0, t.length - 2));
+        if (normWord.startsWith(stem) && normWord.length - stem.length <= 4) {
           return char;
         }
-        i = pos + 1;
       }
     }
   }

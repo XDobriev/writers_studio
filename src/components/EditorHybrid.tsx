@@ -139,7 +139,10 @@ export function EditorHybrid({
 
   const { data: characters = [] } = useCharacters(book?.id);
   const editorDom = editor ? (editor.view.dom as HTMLElement) : null;
-  const { shown: hoveredChar, onCardEnter, onCardLeave } = useCharacterHover(editorDom, characters);
+  const { shown: hoveredChar, onCardEnter, onCardLeave } = useCharacterHover(
+    focusMode || isPage ? null : editorDom,
+    characters,
+  );
 
   const { user } = useAuth();
   const queryClient = useQueryClient();
