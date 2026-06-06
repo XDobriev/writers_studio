@@ -4,7 +4,7 @@
 
 **Goal:** Расширить панель администратора: история платежей, блокировка пользователей, CSV-экспорт, карточка пользователя, управление Lifetime-слотами, grace period, revenue-метрики, feature flags.
 
-**Architecture:** Все admin-операции проходят через SECURITY DEFINER PostgreSQL RPC с проверкой `app_config.admin_email` — точно как существующий `set_user_plan`. UI расширяет `Admin.tsx` новыми вкладками и inline-действиями; одна новая страница `AdminUserDetail.tsx` для drilldown по пользователю. Платежи записываются Edge Function `yukassa-webhook` через INSERT в уже существующую таблицу `admin_audit_log`.
+**Architecture:** Все admin-операции проходят через SECURITY DEFINER PostgreSQL RPC с проверкой `app_config.admin_email` — точно как существующий `set_user_plan`. UI расширяет `Admin.tsx` новыми вкладками и inline-действиями; одна новая страница `AdminUserDetail.tsx` для drilldown по пользователю. Платежи записываются Edge Function `robokassa-webhook` через INSERT в уже существующую таблицу `admin_audit_log`.
 
 **Tech Stack:** React + TypeScript, Supabase Postgres RPCs (SECURITY DEFINER), Supabase Edge Functions (Deno/TypeScript), React Router v6.
 
@@ -13,7 +13,7 @@
 ## Карта файлов
 
 **Изменяются:**
-- `supabase/functions/yukassa-webhook/index.ts` — INSERT в audit_log после успешного платежа
+- `supabase/functions/robokassa-webhook/index.ts` — INSERT в audit_log после успешного платежа
 - `src/pages/Admin.tsx` — новые вкладки (Платежи, Финансы, Флаги), suspend/unsuspend, CSV, grace period, lifetime slots
 - `src/App.tsx` — маршрут `/admin/users/:id`
 
@@ -24,12 +24,12 @@
 
 ---
 
-## Фаза 1 — Критично (§4 ЮKassa)
+## Фаза 1 — Критично (§4 Робокасса)
 
 ### Task 1: Webhook → payment_received в audit log
 
 **Files:**
-- Modify: `supabase/functions/yukassa-webhook/index.ts`
+- Modify: `supabase/functions/robokassa-webhook/index.ts`
 
 - [ ] **Step 1: Добавить вспомогательную функцию logPayment**
 
@@ -59,7 +59,7 @@ async function logPayment(
 
 - [ ] **Step 2: Вызвать logPayment в конце lifetime-ветки**
 
-В файле `supabase/functions/yukassa-webhook/index.ts` найти строку:
+В файле `supabase/functions/robokassa-webhook/index.ts` найти строку:
 ```typescript
     if (error) return json(500, { error: `profiles update failed: ${error.message}` });
 
@@ -93,12 +93,12 @@ async function logPayment(
 
 - [ ] **Step 4: Задеплоить Edge Function через Supabase MCP**
 
-Использовать `mcp__supabase__deploy_edge_function` с `function_name: "yukassa-webhook"` и содержимым обновлённого файла.
+Использовать `mcp__supabase__deploy_edge_function` с `function_name: "robokassa-webhook"` и содержимым обновлённого файла.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add supabase/functions/yukassa-webhook/index.ts
+git add supabase/functions/robokassa-webhook/index.ts
 git commit -m "feat(webhook): log payment_received events to admin_audit_log"
 ```
 
@@ -1289,7 +1289,7 @@ git commit -m "feat(admin): finances tab (MRR/churn) + feature flags tab"
 | Требование из спека | Task |
 |---|---|
 | Вкладка «Платежи» — audit_log filter | Task 5 |
-| INSERT в yukassa-webhook action='payment_received' | Task 1 |
+| INSERT в robokassa-webhook action='payment_received' | Task 1 |
 | Кнопка «Suspend» + RPC suspend_user | Task 2 + Task 4 |
 | Экспорт CSV | Task 4 |
 | Карточка пользователя /admin/users/:id | Task 6 |

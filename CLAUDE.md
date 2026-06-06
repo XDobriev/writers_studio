@@ -103,7 +103,7 @@ npm run preview    # превью продакшен-сборки
 
 - Клиент читает `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY` из `.env`.
 - Миграции: `supabase/migrations/*.sql`. Применять через Supabase MCP (`apply_migration` / `execute_sql`). CLI локально не используется.
-- Edge Functions: `supabase/functions/telegram-auth/` — авторизация через Telegram. `supabase/functions/yukassa-webhook/` — вебхук ЮKassa: Pro/Lifetime-подписки, декремент lifetime_slots, grandfathered (требует Secrets: `YUKASSA_SHOP_ID`, `YUKASSA_SECRET_KEY`, опционально `GRANDFATHERING_ENDS_AT`).
+- Edge Functions: `supabase/functions/telegram-auth/` — авторизация через Telegram. `supabase/functions/robokassa-webhook/` — вебхук Робокассы: Pro/Lifetime-подписки, декремент lifetime_slots, grandfathered (требует Secrets: `ROBOKASSA_MERCHANT_LOGIN`, `ROBOKASSA_PASSWORD2`, опционально `GRANDFATHERING_ENDS_AT`).
 - **При добавлении таблиц: обязательно RLS** `auth.uid() = user_id` (образец: `0001_init.sql`).
 - **При добавлении таблиц: обязательно GRANT** (с 30.10.2026 без него supabase-js не видит таблицу): `GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.<table> TO anon, authenticated;`
 - Auth URL: `site_url=https://avtorskaya-studiya.vercel.app`, allow-list включает прод + `avtorskaya-studiya-*.vercel.app` + `localhost:5273`.
@@ -208,7 +208,7 @@ npm run preview    # превью продакшен-сборки
 - [docs/features/export.md](docs/features/export.md) — экспорт.
 - [docs/features/notes.md](docs/features/notes.md) — заметки книги.
 - [docs/learning-plan.md](docs/learning-plan.md) — план изучения TypeScript/React (в .gitignore, личный).
-- [docs/email-onboarding.md](docs/email-onboarding.md) — blueprint email-цепочки онбординга (7 писем, тексты, стек). Реализовывать после §2 ЮKassa.
+- [docs/email-onboarding.md](docs/email-onboarding.md) — blueprint email-цепочки онбординга (7 писем, тексты, стек). Реализовывать после §2 Робокасса.
 - [docs/acquisition.md](docs/acquisition.md) — план привлечения первых пользователей: фазы, площадки, шаблоны сообщений, трекинг.
 
 ## graphify
