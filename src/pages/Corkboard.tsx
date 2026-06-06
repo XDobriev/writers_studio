@@ -157,7 +157,7 @@ function SortableCorkCard({
           <span style={{ flex: 1 }} />
           <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', marginRight: dragEnabled ? 22 : 0 }}>{c.words.toLocaleString('ru')} сл</span>
         </div>
-        <div style={{ font: '500 16px var(--font-serif)', letterSpacing: '-0.005em' }}>{c.title || 'Без названия'}</div>
+        <div style={{ font: '500 16px var(--font-serif)', letterSpacing: '-0.005em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.title || 'Без названия'}</div>
       </Link>
 
       <div style={{ padding: '8px 16px 48px', minHeight: 80 }}>

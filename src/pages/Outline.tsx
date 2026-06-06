@@ -263,7 +263,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
           {dropdownStyle && <div style={{
             ...dropdownStyle,
             background: 'var(--bg-deep)', border: '1px solid var(--border-strong)',
-            borderRadius: 8, padding: 6, minWidth: 180,
+            borderRadius: 8, padding: 6, minWidth: 180, maxWidth: 240,
             boxShadow: '0 6px 20px oklch(0.05 0.01 50 / 0.4)',
           }}>
           <div style={{
@@ -296,7 +296,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
                 }}>
                   {char.name[0]?.toUpperCase() ?? '?'}
                 </span>
-                <span style={{ font: '400 12px var(--font-ui)', color: isPov ? color : 'var(--ink-2)', flex: 1 }}>
+                <span style={{ font: '400 12px var(--font-ui)', color: isPov ? color : 'var(--ink-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                   {char.name}
                 </span>
                 {isPov && (

@@ -252,6 +252,8 @@ html, body, #root {
   font-size: 16px; font-weight: 500;
   letter-spacing: -0.005em;
   color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: block;
 }
 a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .sb-book-author {

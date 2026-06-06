@@ -963,6 +963,7 @@ export default function Export() {
             className="btn btn--primary"
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
+            {busy && <span className="btn-spinner" />}
             {!busy && <Icon name="download" size={14} />}
             {downloadLabel}
           </button>
