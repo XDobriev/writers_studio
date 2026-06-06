@@ -303,38 +303,6 @@ _Обновлён: 2026-06-07 (юридические документы обн�
 
 ---
 
-### 12. Ambient Sounds — заменить синтетические звуки на реальные записи
-
-**Что это:** сейчас `public/sounds/*.wav` — это синтетический шум (белый/розовый/коричневый), сгенерированный скриптом Node.js. Для продакшена нужны реальные атмосферные записи.
-
-**Что сделать:**
-Для твоего проекта я бы начал с 8 атмосфер:
-
-Кафе
-Дождь
-Костёр
-Лес
-Волны
-Поезд
-Библиотека
-Белый шум
-1. Зайти на [freesound.org](https://freesound.org) (бесплатный аккаунт).
-2. Найти и скачать 5 звуков с лицензией **CC0** или **CC BY** (Attribution). Искать по запросам:
-   - `cafe ambience loop` → сохранить как `cafe.wav`
-   - `rain ambience loop` → `rain.wav`
-   - `forest birds ambience` → `forest.wav`
-   - `fireplace crackling loop` → `fire.wav`
-   - `white noise` → `noise.wav`
-3. Скачать в формате **WAV или MP3**. Если MP3 — переименовать расширение в `.wav` (браузер читает оба формата по содержимому), либо обновить расширения в `src/components/StatusBar.tsx` в массиве `SOUNDS` (строки 15–21).
-4. Положить файлы в `public/sounds/`.
-5. Рекомендуемая длина: **60–120 секунд** (loop будет незаметнее швов). Размер до 3MB на файл.
-
-**Альтернативный источник (проще):** [pixabay.com/sound-effects](https://pixabay.com/sound-effects/) — скачивание без регистрации, лицензия CC0. Искать `rain loop`, `cafe background`, `forest ambience`, `fireplace`, `white noise`.
-
-**Файлы:** `src/components/StatusBar.tsx` (массив `SOUNDS`, строки 15–21), `public/sounds/`
-**Проверить:** `npm run dev` → `/books/<ID>/editor` → иконка наушников в StatusBar → выбрать звук → fade in 0.5s → переключить → crossfade → «× Стоп» → fade out
-
----
 
 ### 13. Лендинг и Auth — оставшиеся правки из аудита копирайтинга
 

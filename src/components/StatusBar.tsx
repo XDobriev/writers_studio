@@ -16,11 +16,14 @@ interface StatusBarProps {
 }
 
 const SOUNDS = [
-  { id: 'cafe' as const, label: 'Кафе', file: '/sounds/cafe.wav' },
-  { id: 'rain' as const, label: 'Дождь', file: '/sounds/rain.wav' },
-  { id: 'forest' as const, label: 'Лес', file: '/sounds/forest.wav' },
-  { id: 'fire' as const, label: 'Костёр', file: '/sounds/fire.wav' },
-  { id: 'noise' as const, label: 'Шум', file: '/sounds/noise.wav' },
+  { id: 'cafe' as const, label: 'Кафе', file: '/sounds/cafe.mp3' },
+  { id: 'rain' as const, label: 'Дождь', file: '/sounds/rain.mp3' },
+  { id: 'fire' as const, label: 'Костёр', file: '/sounds/fire.mp3' },
+  { id: 'forest' as const, label: 'Лес', file: '/sounds/forest.mp3' },
+  { id: 'waves' as const, label: 'Волны', file: '/sounds/waves.mp3' },
+  { id: 'train' as const, label: 'Поезд', file: '/sounds/train.mp3' },
+  { id: 'library' as const, label: 'Библиотека', file: '/sounds/library.mp3' },
+  { id: 'noise' as const, label: 'Белый шум', file: '/sounds/noise.mp3' },
 ];
 
 type SoundId = typeof SOUNDS[number]['id'];
