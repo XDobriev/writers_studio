@@ -97,6 +97,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/chapterMutations.ts` — helpers обновления кэша React Query после мутаций глав: `updateChapterWithCache`, `createChapterWithCache`, `deleteChapterWithCache`, `invalidateChaptersCache`.
 - `src/lib/useResponsive.ts` — `BREAKPOINTS` константы + `useResponsive()` → `{ isMobile, isTablet, isNarrow }` через matchMedia.
 - `src/lib/profiles.ts` — `getProfile(userId)`, `getLifetimeSlotsRemaining()` (читает `app_settings`), `markOnboarded`, `addWordToDictionary`.
+- `src/lib/editorFont.ts` — `EDITOR_FONTS`, `applyEditorFont`, `getStoredEditorFont`; CSS var `--font-editor`; dispatches `as-editor-font` CustomEvent для синхронизации SettingsModal ↔ StatusBar.
 
 ## Supabase
 

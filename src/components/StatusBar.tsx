@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useResponsive } from '../lib/useResponsive';
+import { EDITOR_FONTS, getStoredEditorFont, applyEditorFont, EDITOR_FONT_EVENT, type EditorFontId } from '../lib/editorFont';
 
 interface StatusBarProps {
   words?: number;
@@ -47,6 +48,9 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, tod
   const isPlayingRef = useRef(false);
   const volumeRef = useRef(volume);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const fontWrapperRef = useRef<HTMLDivElement>(null);
+  const [fontOpen, setFontOpen] = useState(false);
+  const [activeFont, setActiveFont] = useState<EditorFontId>(getStoredEditorFont);
 
   volumeRef.current = volume;
 
@@ -198,6 +202,23 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, tod
     return () => document.removeEventListener('mousedown', handleClick);
   }, [popupOpen]);
 
+  useEffect(() => {
+    if (!fontOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (fontWrapperRef.current && !fontWrapperRef.current.contains(e.target as Node)) {
+        setFontOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [fontOpen]);
+
+  useEffect(() => {
+    const handler = (e: Event) => setActiveFont((e as CustomEvent<EditorFontId>).detail);
+    window.addEventListener(EDITOR_FONT_EVENT, handler);
+    return () => window.removeEventListener(EDITOR_FONT_EVENT, handler);
+  }, []);
+
   function pluralDays(n: number): string {
     const m10 = n % 10, m100 = n % 100;
     if (m10 === 1 && m100 !== 11) return 'день';
@@ -293,6 +314,76 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, tod
             <path d="M5.6 5.6l1.4 1.4M16.9 16.9l1.4 1.4M5.6 18.4l1.4-1.4M16.9 7.1l1.4-1.4"/>
           </svg>
         </button>
+      )}
+      {!isNarrow && (
+        <div ref={fontWrapperRef} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <button
+            onClick={() => setFontOpen(o => !o)}
+            title="Шрифт редактора"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 22,
+              height: 22,
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              color: fontOpen ? 'var(--accent)' : 'var(--ink-3)',
+              borderRadius: 4,
+              marginLeft: 4,
+              font: '500 12px var(--font-ui)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Aa
+          </button>
+          {fontOpen && (
+            <div style={{
+              position: 'absolute',
+              bottom: 'calc(100% + 6px)',
+              right: 0,
+              width: 180,
+              background: 'var(--surface)',
+              border: '1px solid var(--border-soft)',
+              borderRadius: 8,
+              padding: 6,
+              zIndex: 200,
+              boxShadow: '0 4px 16px oklch(0 0 0 / 0.12)',
+              animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both',
+            }}>
+              {EDITOR_FONTS.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => { applyEditorFont(f.id); setFontOpen(false); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '7px 10px',
+                    borderRadius: 6,
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    fontFamily: f.family,
+                    fontSize: 13,
+                    color: activeFont === f.id ? 'var(--ink)' : 'var(--ink-3)',
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-2)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                >
+                  {f.label}
+                  {activeFont === f.id && (
+                    <span style={{ color: 'var(--accent)', fontSize: 11, flexShrink: 0 }}>✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
       {!isNarrow && (
         <div ref={wrapperRef} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>

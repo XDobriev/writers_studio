@@ -26,6 +26,16 @@
 
 TextStyle, Color, Highlight (multicolor), Link, TextAlign (heading+paragraph), TaskList, TaskItem, Subscript, Superscript, StarterKit, Underline, Placeholder.
 
+## Шрифт редактора
+
+5 шрифтов с поддержкой кириллицы: Source Serif 4 (default), Lora, PT Serif, Spectral, IBM Plex Mono. Все загружены через `@fontsource` npm-пакеты (не CDN).
+
+Хранится в `localStorage` под ключом `as-editor-font`. CSS-переменная `--font-editor` на `:root` управляет `.sheet` и `.tiptap h1/h2/h3`. Инициализируется в `main.tsx` до рендера (`applyEditorFont(getStoredEditorFont())`).
+
+Два места переключения: **Настройки → Интерфейс** (пиллы + живой предпросмотр на 17px/1.78) и **StatusBar** (кнопка «Aa», попап вверх). Синхронизация между ними — `window.dispatchEvent(new CustomEvent('as-editor-font', { detail: id }))`.
+
+Реализовано в `src/lib/editorFont.ts`.
+
 ## Автосохранение
 
 Debounce 700 мс через `chapters.ts`. Подсчёт слов — `countWords` требует начало слова с буквы/цифры (одиночные `-` и `'` не считаются). Очистка HTML entities: `&[a-z0-9#]+;`.

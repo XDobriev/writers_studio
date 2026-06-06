@@ -10,6 +10,12 @@ import '@fontsource/ibm-plex-mono/cyrillic-400.css';
 import '@fontsource/ibm-plex-mono/cyrillic-500.css';
 import '@fontsource/ibm-plex-mono/latin-400.css';
 import '@fontsource/ibm-plex-mono/latin-500.css';
+import '@fontsource/lora/cyrillic-400.css';
+import '@fontsource/lora/cyrillic-400-italic.css';
+import '@fontsource/pt-serif/cyrillic-400.css';
+import '@fontsource/pt-serif/cyrillic-400-italic.css';
+import '@fontsource/spectral/cyrillic-400.css';
+import '@fontsource/spectral/cyrillic-400-italic.css';
 import '@fontsource-variable/source-serif-4/wght.css';
 import * as Sentry from '@sentry/react';
 import { StrictMode } from 'react';
@@ -24,9 +30,11 @@ Sentry.init({
 import App from './App';
 import './styles/design-system.css';
 import { applyTheme, getStoredTheme } from './lib/theme';
+import { applyEditorFont, getStoredEditorFont } from './lib/editorFont';
 
-// Применяем до рендера, чтобы не было мигания темы
+// Применяем до рендера, чтобы не было мигания темы и шрифта
 applyTheme(getStoredTheme());
+applyEditorFont(getStoredEditorFont());
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

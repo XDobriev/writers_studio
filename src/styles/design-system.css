@@ -59,6 +59,7 @@
   --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
   --font-serif: 'Source Serif 4', Georgia, serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-editor: 'Source Serif 4', Georgia, serif;
 
   /* Motion: durations */
   --dur-instant: 0.1s;
@@ -493,7 +494,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   flex: 1;
   background: var(--paper);
   color: var(--paper-ink);
-  font-family: var(--font-serif);
+  font-family: var(--font-editor);
   font-size: 17px; line-height: 1.78;
   padding: 56px 72px 80px;
   border-radius: 4px 4px 0 0;
@@ -501,7 +502,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   letter-spacing: 0.005em;
 }
 .sheet h1, .sheet .ch-num, .sheet .ch-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-editor);
   color: var(--paper-ink);
 }
 .sheet .ch-num {
@@ -801,9 +802,9 @@ select.input {
 }
 .tiptap p { margin: 0 0 1em; }
 .tiptap p:last-child { margin-bottom: 0; }
-.tiptap h1 { font: 600 30px var(--font-serif); letter-spacing: -0.012em; margin: 1.2em 0 0.6em; }
-.tiptap h2 { font: 600 22px var(--font-serif); letter-spacing: -0.01em; margin: 1.4em 0 0.5em; }
-.tiptap h3 { font: 600 17px var(--font-serif); margin: 1.2em 0 0.5em; }
+.tiptap h1 { font: 600 30px var(--font-editor); letter-spacing: -0.012em; margin: 1.2em 0 0.6em; }
+.tiptap h2 { font: 600 22px var(--font-editor); letter-spacing: -0.01em; margin: 1.4em 0 0.5em; }
+.tiptap h3 { font: 600 17px var(--font-editor); margin: 1.2em 0 0.5em; }
 .tiptap blockquote {
   margin: 1em 0;
   padding-left: 1em;
