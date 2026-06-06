@@ -56,6 +56,27 @@ export async function setPovCharacter(
   if (error) throw error;
 }
 
+export async function setPovForAllChapters(
+  chapterIds: string[],
+  characterId: string,
+  bookId: string,
+  userId: string,
+): Promise<void> {
+  if (chapterIds.length === 0) return;
+  const rows = chapterIds.map((chapter_id) => ({
+    chapter_id,
+    character_id: characterId,
+    book_id: bookId,
+    user_id: userId,
+    is_pov: true,
+    auto_detected: false,
+  }));
+  const { error } = await supabase
+    .from('chapter_characters')
+    .upsert(rows, { onConflict: 'chapter_id,character_id' });
+  if (error) throw error;
+}
+
 export async function removePovCharacter(
   chapterId: string,
   characterId: string,

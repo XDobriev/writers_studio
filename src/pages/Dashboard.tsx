@@ -70,7 +70,7 @@ export default function Dashboard() {
   const openEdit = () => {
     if (!book) return;
     setEditTitle(book.title);
-    setEditGenres(book.genres ?? []);
+    setEditGenres(book.genres?.length ? book.genres : book.genre ? [book.genre] : []);
     setEditGoal(book.goal);
     clearEditError();
     setEditOpen(true);

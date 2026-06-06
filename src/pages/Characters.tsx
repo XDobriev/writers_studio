@@ -56,6 +56,11 @@ export default function Characters() {
   const { data: characters, error: charsQueryError } = useCharacters(bookId);
   const { data: relationships, error: relsQueryError } = useRelationships(bookId);
   const { error: mutationError, setError, clearError } = useErrorState();
+  useEffect(() => {
+    if (!mutationError) return;
+    const t = setTimeout(clearError, 4000);
+    return () => clearTimeout(t);
+  }, [mutationError, clearError]);
   const queryError = charsQueryError?.message ?? relsQueryError?.message ?? null;
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
@@ -468,8 +473,9 @@ export default function Characters() {
     {mutationError && (
       <div
         onClick={clearError}
+        onPointerDown={clearError}
         style={{
-          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', bottom: 24, left: 0, right: 0, margin: '0 auto',
           background: 'oklch(0.28 0.06 25)', border: '1px solid oklch(0.45 0.12 25)',
           borderRadius: 10, padding: '10px 18px',
           display: 'flex', alignItems: 'center', gap: 10,

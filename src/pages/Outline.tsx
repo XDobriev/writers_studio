@@ -24,7 +24,7 @@ import { WithMode, Sidebar } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
 import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useChapterPovMap } from '../lib/queries';
-import { getCharacterColor, setPovCharacter, removePovCharacter } from '../lib/pov';
+import { getCharacterColor, setPovCharacter, removePovCharacter, setPovForAllChapters } from '../lib/pov';
 import { plural } from '../lib/useWritingStats';
 
 const STATUS_COLOR: Record<ChapterStatus, string> = {
@@ -32,6 +32,109 @@ const STATUS_COLOR: Record<ChapterStatus, string> = {
   progress: 'var(--accent-2)',
   done: 'var(--ok)',
 };
+
+function BulkPovButton({
+  chapters,
+  characters,
+  bookId,
+  userId,
+  onDone,
+}: {
+  chapters: ChapterMeta[];
+  characters: Array<{ id: string; name: string; position: number }>;
+  bookId: string;
+  userId: string;
+  onDone: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownStyle = useDropdownPosition(triggerRef, open ? 'open' : null, 300);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open]);
+
+  const handleApplyAll = async (characterId: string) => {
+    setApplying(true);
+    try {
+      await setPovForAllChapters(chapters.map((c) => c.id), characterId, bookId, userId);
+      onDone();
+      setOpen(false);
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  if (characters.length === 0) return null;
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="btn"
+        disabled={applying || chapters.length === 0}
+        onClick={() => setOpen((v) => !v)}
+        title="Применить один POV ко всем главам"
+      >
+        {applying ? 'Применяем…' : 'POV для всех'}
+      </button>
+
+      {open && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 299 }} onMouseDown={() => setOpen(false)} />
+          {dropdownStyle && (
+            <div style={{
+              ...dropdownStyle,
+              background: 'var(--bg-deep)', border: '1px solid var(--border-strong)',
+              borderRadius: 8, padding: 6, minWidth: 200,
+              boxShadow: '0 6px 20px oklch(0.05 0.01 50 / 0.4)',
+            }}>
+              <div style={{
+                font: '500 9px var(--font-mono)', color: 'var(--ink-4)',
+                letterSpacing: '0.12em', textTransform: 'uppercase',
+                padding: '3px 6px 7px', borderBottom: '1px solid var(--border-soft)',
+                marginBottom: 4,
+              }}>
+                Применить POV ко всем главам
+              </div>
+              {characters.map((char, idx) => {
+                const color = getCharacterColor(idx);
+                return (
+                  <button
+                    key={char.id}
+                    type="button"
+                    onClick={() => void handleApplyAll(char.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 7,
+                      width: '100%', padding: '5px 6px', borderRadius: 5,
+                      background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{
+                      width: 18, height: 18, borderRadius: '50%', background: color,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 9, color: 'white', fontWeight: 600, flexShrink: 0,
+                    }}>
+                      {char.name[0]?.toUpperCase() ?? '?'}
+                    </span>
+                    <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-2)', flex: 1 }}>
+                      {char.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 interface PovBadgeProps {
   chapterId: string;
@@ -599,6 +702,15 @@ export default function Outline() {
               <span className="chip">{totals.count} {plural(totals.count, 'глава', 'главы', 'глав')} · {totals.words.toLocaleString('ru')} сл</span>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {chapters && chapters.length > 0 && characters.length > 0 && (
+                <BulkPovButton
+                  chapters={chapters}
+                  characters={characters}
+                  bookId={bookId!}
+                  userId={user?.id ?? ''}
+                  onDone={handlePovChanged}
+                />
+              )}
               <button className="btn" onClick={onCreate}><Icon name="plus" size={14} /> Новая глава</button>
             </div>
           </div>
