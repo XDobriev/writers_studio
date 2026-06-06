@@ -53,6 +53,7 @@ function SortableCorkCard({
   href,
   onStatusChange,
   onDeleteChapter,
+  onSynopsisChange,
   dragEnabled,
 }: {
   c: ChapterMeta;
@@ -60,15 +61,31 @@ function SortableCorkCard({
   href: string;
   onStatusChange: (id: string, status: ChapterStatus) => void;
   onDeleteChapter: (id: string) => void;
+  onSynopsisChange: (id: string, synopsis: string) => void;
   dragEnabled: boolean;
 }) {
-  const synopsis = c.synopsis
-    ? c.synopsis
-    : 'Синопсис пока не написан. Откройте главу — первые строки появятся здесь.';
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [editingSynopsis, setEditingSynopsis] = useState(false);
+  const [synopsisValue, setSynopsisValue] = useState('');
   const menuRef = useRef<HTMLButtonElement>(null);
   const dropdownStyle = useDropdownPosition(menuRef, menuOpen ? 'open' : null, 100);
+
+  const startSynopsisEdit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setSynopsisValue(c.synopsis ?? '');
+    setEditingSynopsis(true);
+  };
+
+  const commitSynopsis = () => {
+    setEditingSynopsis(false);
+    onSynopsisChange(c.id, synopsisValue.trim());
+  };
+
+  const handleSynopsisKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); commitSynopsis(); }
+    if (e.key === 'Escape') { setEditingSynopsis(false); }
+  };
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: c.id,
@@ -132,7 +149,7 @@ function SortableCorkCard({
 
       <Link
         to={href}
-        style={{ display: 'flex', flexDirection: 'column', padding: '14px 16px 48px', height: '100%', minHeight: 'inherit', position: 'relative' }}
+        style={{ display: 'block', padding: '14px 16px 10px', position: 'relative' }}
       >
         <div style={{ position: 'absolute', top: -6, left: 14, width: 10, height: 10, borderRadius: 999, background: 'var(--accent-2)', border: '2px solid var(--bg-deep)' }} />
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
@@ -140,9 +157,55 @@ function SortableCorkCard({
           <span style={{ flex: 1 }} />
           <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', marginRight: dragEnabled ? 22 : 0 }}>{c.words.toLocaleString('ru')} сл</span>
         </div>
-        <div style={{ font: '500 16px var(--font-serif)', letterSpacing: '-0.005em', marginBottom: 10 }}>{c.title || 'Без названия'}</div>
-        <div style={{ flex: 1, fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{synopsis}</div>
+        <div style={{ font: '500 16px var(--font-serif)', letterSpacing: '-0.005em' }}>{c.title || 'Без названия'}</div>
       </Link>
+
+      <div style={{ padding: '8px 16px 48px', minHeight: 80 }}>
+        {editingSynopsis ? (
+          <textarea
+            autoFocus
+            value={synopsisValue}
+            onChange={(e) => setSynopsisValue(e.target.value)}
+            onBlur={commitSynopsis}
+            onKeyDown={handleSynopsisKeyDown}
+            placeholder="Напишите о чём эта глава…"
+            style={{
+              width: '100%',
+              minHeight: 80,
+              resize: 'vertical',
+              background: 'var(--bg-deep)',
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              padding: '6px 8px',
+              font: '400 12.5px/1.55 var(--font-ui)',
+              color: 'var(--ink)',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+        ) : (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={startSynopsisEdit}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') startSynopsisEdit(e as unknown as React.MouseEvent); }}
+            title="Нажмите, чтобы редактировать синопсис"
+            style={{
+              fontSize: 12.5,
+              color: c.synopsis ? 'var(--ink-2)' : 'var(--ink-4)',
+              lineHeight: 1.55,
+              display: '-webkit-box',
+              WebkitLineClamp: 5,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              cursor: 'text',
+              fontStyle: c.synopsis ? 'normal' : 'italic',
+            }}
+          >
+            {c.synopsis || 'Нет синопсиса — нажмите, чтобы добавить'}
+          </div>
+        )}
+      </div>
 
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px 14px', borderTop: '1px dashed var(--border-soft)' }}>
         <span style={{ width: 6, height: 6, borderRadius: 999, background: STATUS_COLOR[c.status], flexShrink: 0 }} />
@@ -275,6 +338,18 @@ export default function Corkboard() {
     });
   };
 
+  const onSynopsisChange = async (id: string, synopsis: string) => {
+    if (bookId) {
+      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+        prev ? prev.map((c) => (c.id === id ? { ...c, synopsis } : c)) : prev
+      );
+    }
+    await updateChapter(id, { synopsis }).catch((e: Error) => {
+      setError(e.message);
+      if (bookId) invalidateChaptersCache(queryClient, bookId);
+    });
+  };
+
   const onDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || !bookId || !chapters || active.id === over.id) return;
@@ -400,6 +475,7 @@ export default function Corkboard() {
                           href={`/books/${bookId}/editor?chapter=${c.id}`}
                           onStatusChange={onStatusChange}
                           onDeleteChapter={onDeleteChapter}
+                          onSynopsisChange={onSynopsisChange}
                           dragEnabled={dragEnabled}
                         />
                       );

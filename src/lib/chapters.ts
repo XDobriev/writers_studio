@@ -18,7 +18,7 @@ export interface Chapter {
 }
 
 export type ChapterMeta = Omit<Chapter, 'content'>;
-export type ChapterPatch = Partial<Pick<Chapter, 'title' | 'content' | 'words' | 'status' | 'position'>>;
+export type ChapterPatch = Partial<Pick<Chapter, 'title' | 'content' | 'words' | 'status' | 'position' | 'synopsis'>>;
 
 export interface ChapterActions {
   onSelectChapter?: (id: string) => void;
