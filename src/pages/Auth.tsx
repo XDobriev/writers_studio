@@ -45,6 +45,7 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [consentMarketing, setConsentMarketing] = useState(false);
   const [oauthBusy, setOauthBusy] = useState<'google' | 'telegram' | null>(null);
   const [tgHover, setTgHover] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -240,7 +241,7 @@ export default function Auth() {
               <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: '1px solid var(--border-soft)' }}>
                 <button
                   type="button"
-                  onClick={() => { setTab('signin'); setConsent(false); }}
+                  onClick={() => { setTab('signin'); setConsent(false); setConsentMarketing(false); }}
                   style={{
                     padding: '10px 0', marginRight: 24,
                     font: tab === 'signin' ? '500 14px var(--font-ui)' : '400 14px var(--font-ui)',
@@ -251,7 +252,7 @@ export default function Auth() {
                 >Войти</button>
                 <button
                   type="button"
-                  onClick={() => { setTab('signup'); setConsent(false); }}
+                  onClick={() => { setTab('signup'); setConsent(false); setConsentMarketing(false); }}
                   style={{
                     padding: '10px 0',
                     font: tab === 'signup' ? '500 14px var(--font-ui)' : '400 14px var(--font-ui)',
@@ -279,7 +280,7 @@ export default function Auth() {
                 <button
                   type="button"
                   onClick={onGoogle}
-                  disabled={oauthBusy !== null || !supabaseConfigured}
+                  disabled={oauthBusy !== null || !supabaseConfigured || (tab === 'signup' && !consent)}
                   className="btn"
                   style={{ width: '100%', height: 42, justifyContent: 'center', gap: 10 }}
                 >
@@ -318,10 +319,35 @@ export default function Auth() {
               </div>
 
               {tab === 'signup' && (
-                <p style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', textAlign: 'center', margin: '-8px 0 18px', lineHeight: 1.5 }}>
-                  Войдя через Google, вы принимаете{' '}
-                  <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'var(--ink-3)', textDecoration: 'underline' }}>Политику конфиденциальности</a>.
-                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '4px 0 18px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={consent}
+                      onChange={(e) => setConsent(e.target.checked)}
+                      style={{ marginTop: 3, flexShrink: 0, accentColor: 'var(--accent)', width: 14, height: 14 }}
+                    />
+                    <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.55 }}>
+                      Я даю согласие на обработку персональных данных в соответствии с{' '}
+                      <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
+                        Политикой конфиденциальности
+                      </a>.{' '}
+                      <span style={{ color: 'var(--danger)', fontSize: 11 }}>обязательно</span>
+                    </span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={consentMarketing}
+                      onChange={(e) => setConsentMarketing(e.target.checked)}
+                      style={{ marginTop: 3, flexShrink: 0, accentColor: 'var(--accent)', width: 14, height: 14 }}
+                    />
+                    <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.55 }}>
+                      Согласен получать письма с советами по работе со студией.{' '}
+                      <span style={{ color: 'var(--ink-4)', fontSize: 11 }}>необязательно</span>
+                    </span>
+                  </label>
+                </div>
               )}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 18px', color: 'var(--ink-4)', font: '400 11px var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
@@ -384,23 +410,6 @@ export default function Auth() {
                   </div>
                 </div>
               </div>
-
-              {tab === 'signup' && (
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 14, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={consent}
-                    onChange={(e) => setConsent(e.target.checked)}
-                    style={{ marginTop: 3, flexShrink: 0, accentColor: 'var(--accent)', width: 14, height: 14 }}
-                  />
-                  <span style={{ font: '400 12.5px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.55 }}>
-                    Я даю согласие на обработку персональных данных в соответствии с{' '}
-                    <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
-                      Политикой конфиденциальности
-                    </a>.
-                  </span>
-                </label>
-              )}
 
               {err && (
                 <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 6, background: 'oklch(0.65 0.18 25 / 0.12)', color: 'var(--danger)', fontSize: 12.5 }}>

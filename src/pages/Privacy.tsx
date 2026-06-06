@@ -21,7 +21,7 @@ export default function Privacy() {
 
         <Section title="1. Оператор данных">
           <p>
-            Физическое лицо <strong>Добриев Хамзат Юсупович</strong>, контактный адрес:{' '}
+            Физическое лицо (самозанятый, налог на профессиональный доход) <strong>Добриев Хамзат Юсупович</strong>, контактный адрес:{' '}
             <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--accent)' }}>frfrancuz@gmail.com</a>.
             Сервис: <strong>Авторская студия</strong> (avtorstudio.com).
           </p>
@@ -47,8 +47,11 @@ export default function Privacy() {
 
         <Section title="4. Где хранятся данные">
           <p>
-            Данные хранятся на серверах <strong>Supabase</strong> (supabase.com) — инфраструктурного провайдера,
-            соответствующего требованиям GDPR. Регион хранения: EU (AWS eu-central-1, Франкфурт).
+            Данные обрабатываются в инфраструктуре провайдера <strong>Supabase</strong> (supabase.com).
+            Серверная инфраструктура Supabase расположена за пределами Российской Федерации.
+            Передача персональных данных осуществляется в соответствии со статьёй 12 ФЗ-152
+            о трансграничной передаче данных. Сервис ведёт работу по переносу первичного хранения
+            данных на российскую инфраструктуру.
           </p>
         </Section>
 
@@ -61,12 +64,26 @@ export default function Privacy() {
 
         <Section title="6. Передача данных третьим лицам">
           <p>
-            Данные не передаются третьим лицам, за исключением Supabase — как инфраструктурного
-            провайдера, обеспечивающего хранение и аутентификацию. Доступ Supabase к данным
-            регулируется их{' '}
-            <a href="https://supabase.com/privacy" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
-              Политикой конфиденциальности
-            </a>.
+            Данные не передаются третьим лицам в коммерческих целях. В рамках технической работы
+            сервиса данные обрабатываются следующими провайдерами:
+          </p>
+          <ul>
+            <li>
+              <strong>Supabase</strong> (supabase.com) — хранение данных и аутентификация.{' '}
+              <a href="https://supabase.com/privacy" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
+                Политика конфиденциальности Supabase
+              </a>.
+            </li>
+            <li>
+              <strong>Sentry</strong> (sentry.io) — мониторинг технических ошибок. Получает
+              технические данные (сессионные идентификаторы, стек вызовов) в объёме, необходимом
+              для диагностики сбоев.{' '}
+              <a href="https://sentry.io/privacy/" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
+                Политика конфиденциальности Sentry
+              </a>.
+            </li>
+          </ul>
+          <p>
           </p>
         </Section>
 
@@ -95,7 +112,7 @@ export default function Privacy() {
 
         <Section title="9. Изменения политики">
           <p>
-            При существенных изменениях мы уведомим пользователей по email не менее чем за 7 дней.
+            При существенных изменениях мы уведомим пользователей по email не менее чем за 14 дней.
             Актуальная версия всегда доступна по адресу{' '}
             <strong>avtorstudio.com/privacy</strong>.
           </p>

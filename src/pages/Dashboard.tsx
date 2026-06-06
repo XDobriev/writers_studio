@@ -77,7 +77,7 @@ export default function Dashboard() {
   };
 
   const saveEdit = async () => {
-    if (!editTitle.trim() || !id) return;
+    if (editSaving || !editTitle.trim() || !id) return;
     setEditSaving(true);
     clearEditError();
     try {
