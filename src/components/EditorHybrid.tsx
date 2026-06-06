@@ -231,6 +231,15 @@ export function EditorHybrid({
                 <Icon name="note" size={16} />
               </button>
             )}
+            <button
+              type="button"
+              className="tb-btn"
+              onClick={() => setMode('page')}
+              title="Страница — чистый лист"
+              style={{ flexShrink: 0 }}
+            >
+              <Icon name="focus" size={16} />
+            </button>
           </div>
         )}
         {isPage ? (
@@ -250,7 +259,15 @@ export function EditorHybrid({
                   {activeChapter.title || 'Без названия'}
                 </span>
               )}
-              <ModeSegment mode={mode} setMode={setMode} />
+              <button
+                type="button"
+                className="tb-btn tb-btn--on"
+                onClick={() => setMode('studio')}
+                title="Выйти из режима страницы"
+                style={{ flexShrink: 0 }}
+              >
+                <Icon name="focus" size={16} />
+              </button>
             </div>
           ) : (
             <div style={{ height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 16px', borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)' }}>
