@@ -241,7 +241,7 @@ function LandingNav() {
         <a href="#faq" style={{ textDecoration: 'none', color: 'inherit' }}>Вопросы</a>
       </nav>
       <span style={{ width: 1, height: 18, background: 'var(--border-soft)' }} />
-      <Link to="/login" style={{ fontSize: 13.5, color: 'var(--ink-2)', textDecoration: 'none' }}>Войти</Link>
+      <Link to="/login" style={{ fontSize: 13.5, color: 'var(--ink-2)', textDecoration: 'none', padding: '12px 6px', margin: '-12px -6px' }}>Войти</Link>
       <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 34, padding: '0 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать свою книгу</Link>
     </header>
   );
@@ -892,10 +892,10 @@ function FAQItem({ q, a, index, defaultOpen = false }: { q: string; a: string; i
   };
 
   return (
-    <div style={{ borderTop: '1px solid var(--border-soft)', padding: '24px 0' }}>
+    <div style={{ borderTop: '1px solid var(--border-soft)', padding: '13px 0' }}>
       <button
         onClick={toggle}
-        style={{ display: 'flex', width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', alignItems: 'flex-start', gap: 16 }}
+        style={{ display: 'flex', width: '100%', background: 'none', border: 'none', padding: '11px 0', cursor: 'pointer', textAlign: 'left', alignItems: 'flex-start', gap: 16 }}
       >
         <span style={{ font: '500 13px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em', marginTop: 4, flexShrink: 0 }}>
           {String(index + 1).padStart(2, '0')}
@@ -1029,15 +1029,15 @@ function LandingFooter() {
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 24, borderTop: '1px solid var(--border-soft)', font: '400 11.5px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.04em', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 24, borderTop: '1px solid var(--border-soft)', font: '400 11.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em', flexWrap: 'wrap' }}>
           <span>© 2026 Авторская студия</span>
           <span>·</span>
-          <Link to="/terms" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Соглашение</Link>
-          <Link to="/privacy" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Конфиденциальность</Link>
-          <Link to="/offer" style={{ color: 'var(--ink-4)', textDecoration: 'none' }}>Оферта</Link>
+          <Link to="/terms" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Соглашение</Link>
+          <Link to="/privacy" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Конфиденциальность</Link>
+          <Link to="/offer" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Оферта</Link>
           <span style={{ flex: 1 }} />
           <span>Самозанятый Добриев Хамзат Юсупович · ИНН 290133229106 · г. Назрань ·</span>
-          <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--ink-4)', textDecoration: 'none' }} rel="noopener noreferrer">frfrancuz@gmail.com</a>
+          <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--ink-3)', textDecoration: 'none' }} rel="noopener noreferrer">frfrancuz@gmail.com</a>
         </div>
       </div>
     </footer>

@@ -353,7 +353,7 @@ export default function Auth() {
                       <button
                         type="button"
                         onClick={() => { clearErr(); setInfo(null); setFlow('reset-request'); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--ink-3)', padding: 0, lineHeight: 1 }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--ink-3)', padding: '16px 0', margin: '-16px 0', lineHeight: 1 }}
                       >
                         Забыли пароль?
                       </button>

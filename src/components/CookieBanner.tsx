@@ -47,7 +47,7 @@ export function CookieBanner() {
       <button
         onClick={accept}
         className="btn btn--primary"
-        style={{ flexShrink: 0, fontSize: 12.5, height: 32, padding: '0 14px' }}
+        style={{ flexShrink: 0, fontSize: 12.5, height: 40, padding: '0 14px' }}
       >
         Принять
       </button>
