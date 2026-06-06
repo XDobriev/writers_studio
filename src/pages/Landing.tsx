@@ -242,7 +242,7 @@ function LandingNav() {
       </nav>
       <span style={{ width: 1, height: 18, background: 'var(--border-soft)' }} />
       <Link to="/login" style={{ fontSize: 13.5, color: 'var(--ink-2)', textDecoration: 'none' }}>Войти</Link>
-      <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 34, padding: '0 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать писать</Link>
+      <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 34, padding: '0 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать свою книгу</Link>
     </header>
   );
 }
@@ -315,13 +315,13 @@ function LandingHero() {
             <p className="lnd-hero-el h2" style={{ font: '400 clamp(16px,1.5vw,19px)/1.6 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 520, marginBottom: 36 }}>
               Рукопись, картотека персонажей, карта мира и хронология — в одном чистом редакторе. Без нейросети, которая дописывает за вас.
             </p>
-            <div className="lnd-hero-el h3" style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 36, flexWrap: 'wrap' }}>
+            <div className="lnd-hero-el h3" style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
               <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
                 Начать свою книгу
               </Link>
             </div>
-            <div className="lnd-hero-el h4" style={{ paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
-              <p style={{ font: '400 14px/1.6 var(--font-serif)', color: 'var(--ink-3)', maxWidth: 420, margin: 0 }}>
+            <div className="lnd-hero-el h4">
+              <p style={{ font: '400 13px/1.5 var(--font-ui)', color: 'var(--ink-2)', margin: 0 }}>
                 Открытая бета: все функции без ограничений, без привязки карты.
               </p>
             </div>
@@ -897,7 +897,7 @@ function FAQItem({ q, a, index, defaultOpen = false }: { q: string; a: string; i
         onClick={toggle}
         style={{ display: 'flex', width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', alignItems: 'flex-start', gap: 16 }}
       >
-        <span style={{ font: '500 13px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.06em', marginTop: 4, flexShrink: 0 }}>
+        <span style={{ font: '500 13px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em', marginTop: 4, flexShrink: 0 }}>
           {String(index + 1).padStart(2, '0')}
         </span>
         <span style={{ flex: 1, font: '500 19px var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.005em' }}>{q}</span>
@@ -973,7 +973,7 @@ function LandingCTA() {
           Бесплатно, без карты, без 14-дневного триала. Регистрация в три клика — и у вас открыт первый лист.
         </p>
         <div style={{ display: 'inline-flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 50, padding: '0 28px', fontSize: 15, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Создать книгу</Link>
+          <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 50, padding: '0 28px', fontSize: 15, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать свою книгу</Link>
           <Link to="/login" className="btn" style={{ height: 50, padding: '0 22px', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <Icon name="eye" size={15} /> Войти
           </Link>
