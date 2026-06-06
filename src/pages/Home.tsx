@@ -104,7 +104,7 @@ export default function Home() {
   };
 
   const saveEditBook = async () => {
-    if (!editBook || !editTitle.trim()) return;
+    if (editSaving || !editBook || !editTitle.trim()) return;
     setEditSaving(true);
     clearEditError();
     try {

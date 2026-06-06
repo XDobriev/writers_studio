@@ -5,6 +5,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
 import { useNotes, QUERY_KEYS } from '../lib/queries';
 import { VersionsPanel } from './VersionsPanel';
+import { useErrorState } from '../lib/useErrorState';
 
 interface RightPanelProps {
   bookId?: string;
@@ -21,6 +22,7 @@ interface RightPanelProps {
 export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, openNoteAt }: RightPanelProps) {
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно' };
   const queryClient = useQueryClient();
+  const { error: noteError, setError: setNoteError, clearError: clearNoteError } = useErrorState();
   const { data: allNotes = [] } = useNotes(bookId);
   const notes = chapterId ? allNotes.filter(n => n.chapter_id === chapterId) : allNotes;
   const [activeTab, setActiveTab] = useState<'notes' | 'versions'>('notes');
@@ -52,6 +54,8 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
       invalidate();
       setFormText('');
       setShowForm(false);
+    } catch (e) {
+      setNoteError(e instanceof Error ? e.message : 'Не удалось сохранить заметку');
     } finally {
       setSaving(false);
     }
@@ -66,7 +70,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
       await deleteNote(id);
       invalidate();
     } catch (e) {
-      console.error('Не удалось удалить заметку:', e);
+      setNoteError(e instanceof Error ? e.message : 'Не удалось удалить заметку');
     }
   };
 
@@ -83,6 +87,8 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
       await updateNote(editingId, editKind, editText.trim());
       invalidate();
       setEditingId(null);
+    } catch (e) {
+      setNoteError(e instanceof Error ? e.message : 'Не удалось обновить заметку');
     } finally {
       setSaving(false);
     }
@@ -113,6 +119,12 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
         )}
       </div>
       <div className="rp-body">
+        {noteError && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '8px 10px 0', padding: '6px 10px', borderRadius: 6, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 12 }}>
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{noteError}</span>
+            <button onClick={clearNoteError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 14, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть">×</button>
+          </div>
+        )}
         {activeTab === 'versions' && chapterId && bookId && userId && (
           <VersionsPanel
             chapterId={chapterId}

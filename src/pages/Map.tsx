@@ -38,9 +38,9 @@ export default function MapScreen() {
   const { data: locations, error: locErr } = useLocations(bookId);
   const { data: connections, error: connErr } = useConnections(bookId);
 
-  const { error: mutationError, setError } = useErrorState();
+  const { error: mutationError, setError, clearError } = useErrorState();
   const [bgModalOpen, setBgModalOpen] = useState(false);
-  const error = locErr?.message ?? connErr?.message ?? mutationError;
+  const queryError = locErr?.message ?? connErr?.message ?? null;
 
   const [mode, setMode] = useState<MapMode>('place');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -154,11 +154,11 @@ export default function MapScreen() {
 
   if (!bookId) return <Navigate to="/books" replace />;
 
-  if (error) {
+  if (queryError) {
     return (
       <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
         <span style={{ font: '500 14px var(--font-ui)', color: 'var(--danger)' }}>Ошибка загрузки</span>
-        <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{error}</span>
+        <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{queryError}</span>
         <a href={bookId ? `/books/${bookId}` : '/books'} style={{ color: 'var(--accent)', fontSize: 13, marginTop: 4 }}>← К книге</a>
       </div>
     );
@@ -229,6 +229,12 @@ export default function MapScreen() {
             </button>
           </div>
 
+          {mutationError && (
+            <div style={{ margin: '8px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 13, flexShrink: 0 }}>
+              <span>{mutationError}</span>
+              <button onClick={clearError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 16, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть">×</button>
+            </div>
+          )}
           {/* Canvas */}
           <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <WorldMap

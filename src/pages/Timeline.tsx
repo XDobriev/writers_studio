@@ -72,8 +72,8 @@ export default function Timeline() {
   const { data: book } = useBook(bookId);
   const { data: events, error: eventsQueryError } = useTimelineEvents(bookId);
   const { data: chapters } = useChapters(bookId);
-  const { error: mutationError, setError } = useErrorState();
-  const error = eventsQueryError?.message ?? mutationError;
+  const { error: mutationError, setError, clearError } = useErrorState();
+  const queryError = eventsQueryError?.message ?? null;
   const [filter, setFilter] = useState<TypeFilter>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [view, setView] = useState<View>(
@@ -200,7 +200,7 @@ export default function Timeline() {
 
   if (!bookId) return <Navigate to="/books" replace />;
 
-  if (error) {
+  if (queryError) {
     return (
       <div
         className="as"
@@ -217,7 +217,7 @@ export default function Timeline() {
         <span style={{ font: '500 14px var(--font-ui)', color: 'var(--danger)' }}>
           Ошибка загрузки
         </span>
-        <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{error}</span>
+        <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{queryError}</span>
       </div>
     );
   }
@@ -408,6 +408,12 @@ export default function Timeline() {
             </div>
           )}
 
+          {mutationError && (
+            <div style={{ margin: '8px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 13, flexShrink: 0 }}>
+              <span>{mutationError}</span>
+              <button onClick={clearError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 16, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть">×</button>
+            </div>
+          )}
           {/* Content */}
           {showLane ? (
             events.length === 0 ? (

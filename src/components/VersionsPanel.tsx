@@ -4,6 +4,7 @@ import { createVersion, deleteVersion, type ChapterVersionMeta } from '../lib/ve
 import { countWords } from '../lib/chapters';
 import { useChapterVersions, QUERY_KEYS } from '../lib/queries';
 import { VersionModal } from './VersionModal';
+import { useErrorState } from '../lib/useErrorState';
 
 interface VersionsPanelProps {
   chapterId: string;
@@ -17,6 +18,7 @@ interface VersionsPanelProps {
 
 export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, currentContent, isPro, onRestoreContent }: VersionsPanelProps) {
   const queryClient = useQueryClient();
+  const { error: versionError, setError: setVersionError, clearError: clearVersionError } = useErrorState();
   const { data: versions = [], isLoading } = useChapterVersions(chapterId);
   const [selected, setSelected] = useState<ChapterVersionMeta | null>(null);
   const [saving, setSaving] = useState(false);
@@ -35,6 +37,8 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterVersions(chapterId) });
       setLabelInput('');
       setShowLabelForm(false);
+    } catch (e) {
+      setVersionError(e instanceof Error ? e.message : 'Не удалось сохранить версию');
     } finally {
       setSaving(false);
     }
@@ -42,8 +46,12 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
 
   async function handleDelete(id: string, e: React.MouseEvent) {
     e.stopPropagation();
-    await deleteVersion(id);
-    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterVersions(chapterId) });
+    try {
+      await deleteVersion(id);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterVersions(chapterId) });
+    } catch (e) {
+      setVersionError(e instanceof Error ? e.message : 'Не удалось удалить версию');
+    }
   }
 
   if (isLoading) {
@@ -69,6 +77,12 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
         </div>
       )}
 
+      {versionError && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 8, padding: '5px 8px', borderRadius: 5, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 11 }}>
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{versionError}</span>
+          <button onClick={clearVersionError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 13, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть">×</button>
+        </div>
+      )}
       <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)', lineHeight: 1.6, marginBottom: 8 }}>
         {isPro ? 'Каждые 30 мин · смена главы · закрытие вкладки' : 'Каждые 2 ч · смена главы · закрытие вкладки'}
       </div>

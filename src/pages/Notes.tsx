@@ -86,7 +86,7 @@ function SortableNoteCard({ note, chapterTitle, color, colorSoft, label, onOpen 
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.4 : 1,
-        background: 'var(--bg-2)',
+        background: 'var(--surface)',
         border: `1px solid var(--border)`,
         borderLeft: `3px solid ${color}`,
         borderRadius: 8,
@@ -127,7 +127,7 @@ function SortableNoteCard({ note, chapterTitle, color, colorSoft, label, onOpen 
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             width: 20, height: 20,
             background: 'none', border: 'none',
-            color: 'var(--ink-5)', cursor: 'grab',
+            color: 'var(--ink-4)', cursor: 'grab',
             padding: 0, borderRadius: 4,
             flexShrink: 0,
           }}
@@ -159,7 +159,7 @@ export default function Notes() {
   const { data: book, error: bookError } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
   const { data: notes, error: notesError } = useNotes(bookId);
-  const { error, setError } = useErrorState();
+  const { error, setError, clearError } = useErrorState();
   const queryError = (bookError ?? chaptersError ?? notesError)?.message ?? null;
 
   // Форма создания
@@ -213,7 +213,7 @@ export default function Notes() {
   }, []);
 
   const handleAdd = async () => {
-    if (!bookId || !formText.trim()) return;
+    if (saving || !bookId || !formText.trim()) return;
     setSaving(true);
     try {
       const note = await createNote(
@@ -237,8 +237,9 @@ export default function Notes() {
   const handleDelete = (id: string) => {
     if (!bookId) return;
     queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), (prev) => prev?.filter((n) => n.id !== id) ?? []);
-    deleteNote(id).catch(() => {
+    deleteNote(id).catch((e: unknown) => {
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(bookId) });
+      setError(e instanceof Error ? e.message : 'Не удалось удалить заметку');
     });
   };
 
@@ -261,7 +262,7 @@ export default function Notes() {
   };
 
   const handleModalSave = async () => {
-    if (!modalNote || !modalEditText.trim() || !bookId) return;
+    if (saving || !modalNote || !modalEditText.trim() || !bookId) return;
     setSaving(true);
     try {
       const updated = await updateNote(
@@ -288,12 +289,10 @@ export default function Notes() {
 
   if (!bookId) return <Navigate to="/books" replace />;
 
-  const displayError = error ?? queryError;
-
-  if (displayError) {
+  if (queryError) {
     return (
       <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ color: 'var(--danger)' }}>Ошибка: {displayError}</div>
+        <div style={{ color: 'var(--danger)' }}>Ошибка: {queryError}</div>
         <a href={bookId ? `/books/${bookId}` : '/books'} style={{ color: 'var(--accent)', fontSize: 13 }}>← К книге</a>
       </div>
     );
@@ -421,9 +420,15 @@ export default function Notes() {
           </div>
 
           <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
+            {error && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, padding: '8px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 13 }}>
+                <span>{error}</span>
+                <button onClick={clearError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 16, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть">×</button>
+              </div>
+            )}
             {showForm && (
               <div style={{
-                background: 'var(--bg-2)', border: '1px solid var(--border)',
+                background: 'var(--surface)', border: '1px solid var(--border)',
                 borderRadius: 10, padding: '16px', marginBottom: 16,
                 display: 'flex', flexDirection: 'column', gap: 12,
               }}>
