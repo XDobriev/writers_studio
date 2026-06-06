@@ -88,19 +88,30 @@ _Обновлён: 2026-06-07 (юридические документы обн�
 
 **Что это:** с 01.07.2025 первичный сбор и хранение ПД граждан РФ обязан происходить на серверах в России (ФЗ-152, ст. 18.1). Supabase Cloud на AWS eu-central-1 (Франкфурт) — нарушение. Штраф для физлица до 50 000 ₽ + РКН вправе заблокировать сайт независимо от суммы штрафа.
 
-**Решение:** self-hosted Supabase на Timeweb VPS (Ubuntu 24.04, уже оплачен). Данные физически в РФ — нарушения нет. После переноса обновить `VITE_SUPABASE_URL` в `.env` и Vercel env vars.
+**Решение:** self-hosted Supabase на Timeweb VPS (Ubuntu 24.04, уже оплачен). Данные физически в РФ — нарушения нет.
 
-**Примерный план:**
-1. `docker compose` с официальным Supabase self-hosted на VPS
-2. Экспорт данных из Supabase Cloud → импорт
-3. Обновить `site_url` / OAuth redirect URLs (Google, Telegram)
-4. Перенести Edge Functions → Supabase self-hosted или дублировать на отдельный сервис
-5. Обновить `Privacy.tsx` раздел 4: убрать «ведём работу по переносу», написать «данные хранятся на серверах в РФ»
+**Когда делать:** при ~50 платящих пользователях или когда Supabase Cloud free tier начнёт кончаться (500 МБ база или 50k MAU) — что наступит раньше. До этого риск РКН для стартапа с малым числом пользователей практически нулевой; апгрейд VPS + время на настройку не окупаются раньше.
 
-**Когда делать:** до первого платного пользователя. Риск блокировки выше, чем штраф.
+**Требования к VPS перед началом:** минимум 4 ГБ RAM (рекомендуется 8 ГБ) и 20 ГБ свободного диска. Проверить: `free -h` и `df -h /`. Если меньше — апгрейдить тариф на Timeweb.
 
-**Файлы:** `docker-compose.yml` (создать), `.env` (обновить), `src/pages/Privacy.tsx` (раздел 4)
-**Проверить:** `SELECT version()` на self-hosted instance → авторизация через email/Google работает → Edge Functions отвечают
+**План нулевого даунтайма:**
+1. Установить Docker на VPS: `curl -fsSL https://get.docker.com | sh`
+2. Скачать Supabase Docker: `git clone --depth 1 --filter=blob:none --sparse https://github.com/supabase/supabase && cd supabase && git sparse-checkout set docker`
+3. Сгенерировать секреты: `sh utils/generate-keys.sh` — **использовать тот же `JWT_SECRET` что в Supabase Cloud** (Dashboard → Settings → API) — иначе все активные сессии пользователей инвалидируются
+4. Настроить `.env`: `SUPABASE_PUBLIC_URL=https://avtorstudio.com/sb`, поднять контейнеры на `127.0.0.1:8000` (не на публичный интерфейс)
+5. Экспортировать только схему `public` из Cloud: `pg_dump --schema=public --no-privileges --no-owner`
+6. Импортировать в self-hosted через `docker exec`
+7. Запустить оба варианта параллельно (Cloud продолжает работать)
+8. Переключить nginx `proxy_pass /sb/` с Cloud URL на `http://127.0.0.1:8000` → `nginx -s reload` (~0.5 сек переключения, пользователи не почувствуют)
+9. Мониторить 24–48 часов → отключить Cloud через неделю
+10. Обновить `VITE_SUPABASE_ANON_KEY` в Vercel и `.env` на новый сгенерированный ключ
+11. Обновить `site_url` / OAuth redirect URLs (Google, Telegram) в self-hosted дашборде
+12. Обновить `Privacy.tsx` раздел 4: убрать «ведём работу по переносу», написать «данные хранятся на серверах в РФ»
+
+**Инструмент управления:** использовать Portainer (GUI для Docker, есть в маркетплейсе Timeweb) вместо CLI — проще для первого раза.
+
+**Файлы:** `~/supabase-project/docker-compose.yml` (создать на VPS), `~/supabase-project/.env` (создать на VPS), `/etc/nginx/sites-available/avtorstudio.com` (обновить proxy_pass), `src/pages/Privacy.tsx` (раздел 4), Vercel env vars (`VITE_SUPABASE_ANON_KEY`)
+**Проверить:** `docker compose ps` → все `healthy` → зайти в приложение → авторизация через email работает → Edge Functions отвечают → `SELECT version()` на self-hosted instance
 
 ---
 
