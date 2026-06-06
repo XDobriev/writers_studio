@@ -213,7 +213,7 @@ export function VersionModal({
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '40px 0', color: 'var(--ink-4)' }}>
                     <span style={{ fontSize: 24 }}>≡</span>
-                    <span style={{ font: '400 13px var(--font-ui)' }}>Текст совпадает с текущей версией</span>
+                    <span style={{ font: '400 13px var(--font-ui)' }}>С момента этого снимка текст не менялся</span>
                   </div>
                 );
               }

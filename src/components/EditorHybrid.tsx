@@ -103,6 +103,8 @@ interface EditorHybridProps {
   savedAt?: Date | null;
   /** Вызывается по Ctrl+S — принудительный flush debounce */
   onSave?: () => void;
+  versionToast?: boolean;
+  versionToastLeaving?: boolean;
 }
 
 export function EditorHybrid({
@@ -118,6 +120,8 @@ export function EditorHybrid({
   saveState = 'idle',
   savedAt = null,
   onSave,
+  versionToast = false,
+  versionToastLeaving = false,
 }: EditorHybridProps) {
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [focusMode, setFocusMode] = useState(false);
@@ -433,6 +437,34 @@ export function EditorHybrid({
               ? `Превысил цель! +${writingStats.todayWords.toLocaleString('ru')} ${plural(writingStats.todayWords, 'слово', 'слова', 'слов')} сегодня`
               : `Цель дня достигнута! +${writingStats.todayWords.toLocaleString('ru')} ${plural(writingStats.todayWords, 'слово', 'слова', 'слов')}`}
           </span>
+        </div>
+      )}
+
+      {versionToast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: goalToast ? 100 : 52,
+            right: 20,
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 14px',
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            boxShadow: '0 8px 24px oklch(0 0 0 / 0.35)',
+            font: '400 12px var(--font-ui)',
+            color: 'var(--ink-3)',
+            pointerEvents: 'none',
+            animation: versionToastLeaving
+              ? 'toast-out 0.15s ease-in both'
+              : 'toast-in 0.2s cubic-bezier(0.22,0.68,0,1.2)',
+          }}
+        >
+          <span style={{ fontSize: 13, opacity: 0.7 }}>◷</span>
+          <span>Снимок сохранён</span>
         </div>
       )}
     </div>

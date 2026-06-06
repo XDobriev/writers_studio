@@ -7,10 +7,12 @@ export function useChapterVersioning({
   chapterId,
   userId,
   isPro,
+  onVersionCreated,
 }: {
   chapterId: string | null | undefined;
   userId: string | undefined;
   isPro: boolean;
+  onVersionCreated?: () => void;
 }) {
   // Latest-value refs — sync-updated each render, safe to read inside callbacks/intervals
   const chapterIdRef = useRef(chapterId);
@@ -19,6 +21,9 @@ export function useChapterVersioning({
   userIdRef.current = userId;
   const isProRef = useRef(isPro);
   isProRef.current = isPro;
+
+  const onVersionCreatedRef = useRef(onVersionCreated);
+  onVersionCreatedRef.current = onVersionCreated;
 
   const sessionTokenRef = useRef<string | null>(null);
   const currentContentRef = useRef<string>('');
@@ -44,7 +49,8 @@ export function useChapterVersioning({
       if (!cId || !uId || !content) return;
       if (lastVersionContentRef.current.get(cId) === content) return;
       lastVersionContentRef.current.set(cId, content);
-      void createVersion(cId, uId, content, countWords(content), 'timer', isProRef.current);
+      void createVersion(cId, uId, content, countWords(content), 'timer', isProRef.current)
+        .then(() => onVersionCreatedRef.current?.());
     }, intervalMs);
     return () => clearInterval(id);
   }, [chapterId, userId, isPro]);
@@ -65,7 +71,8 @@ export function useChapterVersioning({
     if (!uId || !content) return;
     if (lastVersionContentRef.current.get(prevChapterId) !== content) {
       lastVersionContentRef.current.set(prevChapterId, content);
-      void createVersion(prevChapterId, uId, content, countWords(content), 'chapter_switch', isProRef.current);
+      void createVersion(prevChapterId, uId, content, countWords(content), 'chapter_switch', isProRef.current)
+        .then(() => onVersionCreatedRef.current?.());
     }
   }, []);
 

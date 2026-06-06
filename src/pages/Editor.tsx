@@ -92,10 +92,25 @@ export default function Editor() {
   const { plan } = useUserDisplay();
   const isPro = plan === 'pro' || plan === 'lifetime';
 
+  const [versionToast, setVersionToast] = useState(false);
+  const [versionToastLeaving, setVersionToastLeaving] = useState(false);
+  const versionToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleVersionCreated = useCallback(() => {
+    if (versionToastTimerRef.current) clearTimeout(versionToastTimerRef.current);
+    setVersionToastLeaving(false);
+    setVersionToast(true);
+    versionToastTimerRef.current = setTimeout(() => {
+      setVersionToastLeaving(true);
+      setTimeout(() => { setVersionToast(false); setVersionToastLeaving(false); }, 150);
+    }, 2500);
+  }, []);
+
   const { currentContentRef, onContentTracked, onChapterSwitch, onBeforeUnload } = useChapterVersioning({
     chapterId: activeId,
     userId: user?.id,
     isPro,
+    onVersionCreated: handleVersionCreated,
   });
 
   useEffect(() => {
@@ -293,6 +308,8 @@ export default function Editor() {
         onSave={flush}
         saveState={saveState}
         savedAt={savedAt}
+        versionToast={versionToast}
+        versionToastLeaving={versionToastLeaving}
       />
     </div>
   );

@@ -69,6 +69,10 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
         </div>
       )}
 
+      <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)', lineHeight: 1.6, marginBottom: 8 }}>
+        {isPro ? 'Каждые 30 мин · смена главы · закрытие вкладки' : 'Каждые 2 ч · смена главы · закрытие вкладки'}
+      </div>
+
       {isPro && named.length > 0 && (
         <>
           <SectionLabel>Именованные вехи</SectionLabel>
@@ -193,7 +197,7 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
 }) {
   const isNamed = version.label !== null;
   const title = version.label ?? formatTime(version.created_at);
-  const chip = isNamed ? null : triggerChip(version.trigger);
+  const chip = isNamed ? null : triggerChip(version.trigger, isPro);
 
   return (
     <div
@@ -277,11 +281,11 @@ function formatDateShort(iso: string): string {
   return new Date(iso).toLocaleDateString('ru', { day: 'numeric', month: 'short' });
 }
 
-function triggerChip(t: string): string {
+function triggerChip(t: string, isPro: boolean): string {
   const map: Record<string, string> = {
-    beforeunload: 'авто',
-    chapter_switch: 'авто',
-    timer: 'авто',
+    beforeunload: 'закрытие',
+    chapter_switch: 'смена главы',
+    timer: isPro ? 'каждые 30 мин' : 'каждые 2 ч',
     manual: 'вручную',
   };
   return map[t] ?? 'авто';
