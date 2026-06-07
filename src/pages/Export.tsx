@@ -9,6 +9,7 @@ import {
   AlignmentType,
   Document,
   HeadingLevel,
+  ImageRun,
   Packer,
   PageBreak,
   Paragraph,
@@ -16,6 +17,7 @@ import {
 } from 'docx';
 import JSZip from 'jszip';
 import { Icon } from '../components/Icon';
+import { isImageUrl } from '../components/CoverPicker';
 import { type Book } from '../lib/supabase';
 import { getBook } from '../lib/books';
 import { listChapters, type Chapter } from '../lib/chapters';
@@ -72,6 +74,20 @@ function slugify(s: string): string {
       .replace(/-+/g, '-')
       .replace(/^-+|-+$/g, '') || 'manuscript'
   );
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 8192;
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i += chunkSize)
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  return btoa(binary);
+}
+
+function scaleToFit(w: number, h: number, maxW: number, maxH: number) {
+  const r = Math.min(maxW / w, maxH / h);
+  return { width: Math.round(w * r), height: Math.round(h * r) };
 }
 
 function triggerDownload(blob: Blob, filename: string) {
@@ -163,6 +179,7 @@ function getHtmlStyle(paragraphStyle: 'indent' | 'spacing'): string {
   .chapter-notes{margin:2em 0 0;padding:1em 1.2em;background:#f5f0e8;border-left:3px solid #c8b89a;border-radius:4px}
   .chapter-notes-title{margin:0 0 0.6em;font:600 11px system-ui,sans-serif;color:#8a7d70;text-transform:uppercase;letter-spacing:0.08em}
   .note-item{margin:0 0 0.4em;font-size:14px;color:#4a443f;text-indent:0}
+  .cover-img{display:block;max-width:400px;margin:0 auto 2.5em;border-radius:6px}
 `;
 }
 
@@ -173,6 +190,7 @@ interface BuildOpts {
   includeNotes: boolean;
   notes: Note[];
   paragraphStyle: 'indent' | 'spacing';
+  cover?: { data: ArrayBuffer; mime: string; ext: string };
 }
 
 function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): string {
@@ -192,6 +210,7 @@ function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): string 
 <body>
 <h1 class="book-title">${escapeHtml(book.title)}</h1>
 ${meta ? `<div class="book-meta">${meta}</div>` : ''}
+${book.cover && isImageUrl(book.cover) ? `<img class="cover-img" src="${escapeHtml(book.cover)}" alt="${escapeHtml(book.title)}">` : ''}
 ${body}
 ${bookNotesHtml}
 </body>
@@ -342,6 +361,25 @@ function notesParagraphs(notes: Note[]): Paragraph[] {
 async function buildDocxBlob(book: Book, chapters: Chapter[], opts: BuildOpts): Promise<Blob> {
   const children: Paragraph[] = [];
 
+  if (opts.cover && opts.cover.ext !== 'webp') {
+    let coverW = 400, coverH = 600;
+    try {
+      const coverBlob = new Blob([opts.cover.data], { type: opts.cover.mime });
+      const bmp = await createImageBitmap(coverBlob);
+      ({ width: coverW, height: coverH } = scaleToFit(bmp.width, bmp.height, 500, 750));
+      bmp.close();
+    } catch { /* fallback 400×600 */ }
+    const docxImgType = opts.cover.ext === 'png' ? 'png' : 'jpg';
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new ImageRun({ data: opts.cover.data, transformation: { width: coverW, height: coverH }, type: docxImgType })],
+        spacing: { before: 720, after: 720 },
+      }),
+      new Paragraph({ children: [new PageBreak()] }),
+    );
+  }
+
   if (opts.includeTitlePage) {
     children.push(new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(book.title)], alignment: AlignmentType.CENTER, spacing: { after: 480 } }));
     if (book.author) children.push(new Paragraph({ children: [new TextRun({ text: book.author, size: 28 })], alignment: AlignmentType.CENTER, spacing: { after: 120 } }));
@@ -445,6 +483,7 @@ function buildFb2Doc(book: Book, chapters: Chapter[], opts: BuildOpts): string {
     <book-title>${escapeXml(book.title)}</book-title>
     <lang>${opts.language.split('-')[0]}</lang>
     <date value="${today}">${today}</date>
+    ${opts.cover ? `<coverpage><image l:href="#cover-img"/></coverpage>` : ''}
   </title-info>
   <document-info>
     <program-used>Авторская студия</program-used>
@@ -454,6 +493,9 @@ function buildFb2Doc(book: Book, chapters: Chapter[], opts: BuildOpts): string {
 <body>
 ${opts.includeTitlePage ? `<title><p>${escapeXml(book.title)}</p>${book.author ? `<p>${escapeXml(book.author)}</p>` : ''}</title>\n` : ''}${sections}${bookNotesBlock}
 </body>
+${opts.cover ? `<binary id="cover-img" content-type="${opts.cover.mime}">
+${arrayBufferToBase64(opts.cover.data)}
+</binary>` : ''}
 </FictionBook>`;
 }
 
@@ -513,6 +555,9 @@ function titleXhtml(book: Book, lang: string): string {
 
 async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): Promise<Blob> {
   const uuid = crypto.randomUUID?.() ?? `book-${Date.now()}`;
+  const hasCover = !!opts.cover;
+  const coverMime = opts.cover?.mime ?? 'image/jpeg';
+  const coverExt = opts.cover?.ext ?? 'jpg';
   const today = new Date().toISOString().slice(0, 10);
   const lang = opts.language;
 
@@ -527,6 +572,10 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
   const hasBookNotes = opts.includeNotes && bookNotes(opts.notes).length > 0;
 
   const manifestParts = [
+    ...(hasCover ? [
+      `<item id="cover-image" href="images/cover.${coverExt}" media-type="${coverMime}" properties="cover-image"/>`,
+      `<item id="cover-xhtml" href="cover.xhtml" media-type="application/xhtml+xml"/>`,
+    ] : []),
     `<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>`,
     `<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>`,
     `<item id="css" href="styles.css" media-type="text/css"/>`,
@@ -535,6 +584,7 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
     ...(hasBookNotes ? [`<item id="booknotes" href="notes.xhtml" media-type="application/xhtml+xml"/>`] : []),
   ];
   const spineParts = [
+    ...(hasCover ? [`<itemref idref="cover-xhtml"/>`] : []),
     ...(opts.includeTitlePage ? [`<itemref idref="title"/>`] : []),
     ...chs.map((c) => `<itemref idref="${c.id}"/>`),
     ...(hasBookNotes ? [`<itemref idref="booknotes"/>`] : []),
@@ -544,6 +594,10 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
   const navLi: string[] = [];
   const ncxPts: string[] = [];
 
+  if (hasCover) {
+    navLi.push(`<li><a href="cover.xhtml">Обложка</a></li>`);
+    ncxPts.push(`<navPoint id="cover-xhtml" playOrder="${po++}"><navLabel><text>Обложка</text></navLabel><content src="cover.xhtml"/></navPoint>`);
+  }
   if (opts.includeTitlePage) {
     navLi.push(`<li><a href="title.xhtml">${escapeHtml(book.title)}</a></li>`);
     ncxPts.push(`<navPoint id="title" playOrder="${po++}"><navLabel><text>${escapeXml(book.title)}</text></navLabel><content src="title.xhtml"/></navPoint>`);
@@ -566,6 +620,7 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
   <dc:language>${lang}</dc:language>
   <dc:date>${today}</dc:date>
   <meta property="dcterms:modified">${today}T00:00:00Z</meta>
+  ${hasCover ? `<meta name="cover" content="cover-image"/>` : ''}
 </metadata>
 <manifest>\n  ${manifestParts.join('\n  ')}\n</manifest>
 <spine toc="ncx">\n  ${spineParts.join('\n  ')}\n</spine>
@@ -596,6 +651,17 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
   zip.file('OEBPS/nav.xhtml', nav);
   zip.file('OEBPS/toc.ncx', ncx);
   zip.file('OEBPS/styles.css', getEpubCss(opts.paragraphStyle));
+  if (hasCover && opts.cover) {
+    zip.file(`OEBPS/images/cover.${coverExt}`, opts.cover.data);
+    zip.file('OEBPS/cover.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><meta charset="utf-8"/><title>Обложка</title>
+<style>body{margin:0;padding:0}img{display:block;width:100%;height:100vh;object-fit:contain}</style>
+</head>
+<body><img src="images/cover.${coverExt}" alt="Обложка"/></body>
+</html>`);
+  }
   if (opts.includeTitlePage) zip.file('OEBPS/title.xhtml', titleXhtml(book, lang));
   for (const c of chs) {
     const nHtml = opts.includeNotes ? notesBlockEpub(chapterNotes(opts.notes, c.chapterId)) : '';
@@ -721,7 +787,18 @@ export default function Export() {
     setBusy(true);
     clearError();
     const bookWithAuthor = { ...book, author: authorName.trim() || book.author };
-    const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle };
+    let coverData: BuildOpts['cover'];
+    if (bookWithAuthor.cover && isImageUrl(bookWithAuthor.cover)) {
+      try {
+        const resp = await fetch(bookWithAuthor.cover);
+        if (resp.ok) {
+          const mime = resp.headers.get('content-type') ?? 'image/jpeg';
+          const ext = mime.split('/')[1]?.split(';')[0] ?? 'jpg';
+          coverData = { data: await resp.arrayBuffer(), mime, ext };
+        }
+      } catch { /* no cover */ }
+    }
+    const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle, cover: coverData };
     try {
       if (format === 'docx') {
         triggerDownload(await buildDocxBlob(bookWithAuthor, selectedChapters, opts), filename);
