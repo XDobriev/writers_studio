@@ -6,6 +6,7 @@ import { useAuth, type TelegramAuthData } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
 import { Icon } from '../components/Icon';
 import { supabaseConfigured } from '../lib/supabase';
+import { useRegistrationOpen } from '../lib/queries';
 
 type Tab = 'signin' | 'signup';
 type Flow = 'auth' | 'reset-request' | 'reset-sent';
@@ -52,6 +53,7 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const { error: err, setError: setErr, clearError: clearErr } = useErrorState();
   const [info, setInfo] = useState<string | null>(null);
+  const { data: registrationOpen = true } = useRegistrationOpen();
   const tgSlotRef = useRef<HTMLDivElement | null>(null);
   const { isMobile } = useResponsive();
 
@@ -267,6 +269,26 @@ export default function Auth() {
                 >Регистрация</button>
               </div>
 
+              {tab === 'signup' && !registrationOpen ? (
+                <div style={{ paddingTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <div>
+                      <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 2 }}>Регистрация временно закрыта</div>
+                      <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.5 }}>Новые аккаунты сейчас не принимаются. Если вы уже зарегистрированы — войдите ниже.</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn--primary"
+                    style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center' }}
+                    onClick={() => setTab('signin')}
+                  >
+                    Войти в студию
+                  </button>
+                </div>
+              ) : (
+                <>
               <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6 }}>
                 {tab === 'signin' ? 'С возвращением.' : 'Откройте студию.'}
               </h2>
@@ -437,6 +459,8 @@ export default function Auth() {
                   ? (tab === 'signin' ? 'Входим…' : 'Создаём аккаунт…')
                   : (tab === 'signin' ? 'Войти в студию' : 'Создать аккаунт')}
               </button>
+              </>
+            )}
             </>
           )}
 

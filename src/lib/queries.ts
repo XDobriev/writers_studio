@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getBook, listBooks, listWritingSnapshots } from './books';
-import { getProfile, type Profile } from './profiles';
+import { getProfile, getRegistrationOpen, type Profile } from './profiles';
 import type { Book } from './supabase';
 import { listChaptersMeta, getChapterContent, type ChapterMeta } from './chapters';
 import { listCharacters, type Character } from './characters';
@@ -30,6 +30,7 @@ export const QUERY_KEYS = {
   chapterVersions: (chapterId: string) => ['chapter-versions', chapterId] as const,
   chapterCharacters: (characterId: string) => ['chapter-characters', characterId] as const,
   chapterPovMap: (bookId: string) => ['chapter-pov-map', bookId] as const,
+  registrationOpen: () => ['registration-open'] as const,
 };
 
 function makeQuery<T>(key: readonly unknown[], fn: () => Promise<T>, staleTime: number) {
@@ -165,6 +166,14 @@ export function useProfile(userId: string | undefined) {
     () => getProfile(userId!),
     10 * 60_000,
   ));
+}
+
+export function useRegistrationOpen() {
+  return useQuery({
+    queryKey: QUERY_KEYS.registrationOpen(),
+    queryFn: getRegistrationOpen,
+    staleTime: 5 * 60_000,
+  });
 }
 
 export function useChapterPovMap(bookId: string | undefined) {

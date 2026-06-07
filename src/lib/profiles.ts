@@ -54,6 +54,19 @@ export async function addWordToDictionary(userId: string, word: string): Promise
   if (error) console.error('[profiles] addWordToDictionary failed:', error.message);
 }
 
+export async function getRegistrationOpen(): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('value')
+    .eq('key', 'registration_open')
+    .maybeSingle();
+  if (error) {
+    console.error('[profiles] getRegistrationOpen failed:', error.message);
+    return true;
+  }
+  return data?.value !== 'false';
+}
+
 export async function markOnboarded(userId: string): Promise<void> {
   const { error } = await supabase
     .from('profiles')
