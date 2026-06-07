@@ -16,6 +16,8 @@ interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  // true пока getSession() не завершился — AuthGuard не должен редиректить до этого момента.
+  initializing: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
@@ -51,25 +53,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const localSession = readLocalSession();
   const [session, setSession] = useState<Session | null>(localSession);
   const [loading, setLoading] = useState(localSession === null);
+  const [initializing, setInitializing] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
 
   // Различаем намеренный logout от истечения токена
   const hadSession = useRef(localSession !== null);
   const deliberateSignOut = useRef(false);
+  // true пока getSession() не вернул окончательный результат.
+  // onAuthStateChange может выстрелить INITIAL_SESSION(null) во время рефреша токена
+  // раньше чем getSession завершится — без этого флага session обнуляется при loading=false,
+  // что вызывает редирект на /login и визуальный "флэш" страницы авторизации.
+  const getSessionPending = useRef(true);
 
   useEffect(() => {
     // 5-секундный таймаут: если Supabase медленно отвечает (throttled ISP),
     // разблокируем UI — но getSession() всё равно обновит сессию когда придёт.
-    const fallback = setTimeout(() => setLoading(false), 5_000);
+    const fallback = setTimeout(() => {
+      getSessionPending.current = false;
+      setInitializing(false);
+      setLoading(false);
+    }, 5_000);
 
     supabase.auth.getSession().then(({ data }) => {
+      getSessionPending.current = false;
       clearTimeout(fallback);
       if (data.session) hadSession.current = true;
       setSession(data.session);
+      setInitializing(false);
       setLoading(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      // INITIAL_SESSION(null) может прийти раньше getSession() во время рефреша токена.
+      // Игнорируем null-события до тех пор пока getSession() не дал окончательный ответ.
+      if (getSessionPending.current && s === null) return;
+
       if (event === 'SIGNED_OUT' && hadSession.current && !deliberateSignOut.current) {
         setSessionExpired(true);
       }
@@ -137,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         user: session?.user ?? null,
         loading,
+        initializing,
         signIn,
         signUp,
         signInWithGoogle,
