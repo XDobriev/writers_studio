@@ -96,7 +96,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/useCharacterHover.ts` — mousemove 500ms debounce + Unicode-поиск alias персонажа под курсором в TipTap DOM; возвращает `{ shown, onCardEnter, onCardLeave }`.
 - `src/lib/useErrorState.ts` — хук error-состояния: `{ error, setError(Error|string), clearError() }`.
 - `src/lib/chapterMutations.ts` — helpers обновления кэша React Query после мутаций глав: `updateChapterWithCache`, `createChapterWithCache`, `deleteChapterWithCache`, `invalidateChaptersCache`.
-- `src/lib/useResponsive.ts` — `BREAKPOINTS` константы + `useResponsive()` → `{ isMobile, isTablet, isNarrow }` через matchMedia.
+- `src/lib/useResponsive.ts` — `BREAKPOINTS` константы + `useResponsive()` → `{ isMobile, isTablet, isNarrow, isWide }` через matchMedia.
 - `src/lib/profiles.ts` — `getProfile(userId)`, `getLifetimeSlotsRemaining()`, `getRegistrationOpen()` (читают `app_settings`), `markOnboarded`, `addWordToDictionary`.
 - `src/lib/editorFont.ts` — `EDITOR_FONTS`, `applyEditorFont`, `getStoredEditorFont`; CSS var `--font-editor`; dispatches `as-editor-font` CustomEvent для синхронизации SettingsModal ↔ StatusBar.
 - `src/lib/i18n.ts` — `plural(n, one, few, many)` и `pluralDays(n)`: канонические функции русской числовой морфологии.
@@ -125,6 +125,41 @@ npm run preview    # превью продакшен-сборки
 - Inline-стили допустимы, но при 3+ повторениях — выносить в CSS-класс.
 - Импорты относительные (`../components/Icon`). Алиас `@/*` объявлён в `tsconfig.app.json`, пока не используется.
 - **Reset-правила в `.as` обёрнуты в `:where()`** — критично для специфичности. Не разворачивать в `.as button`.
+
+### Ownership состояния
+
+- **Серверные данные → React Query.** Не копировать данные из `useQuery` в `useState` для редактирования. Работать с локальным `draft`-состоянием (форма, textarea) отдельно от кэша.
+- **UI-состояние → `useState`/`useReducer` локально.** Open/closed, hover, selected index — не поднимать наверх, если не нужно двум несвязанным компонентам.
+- **Хранить состояние как можно ниже** по дереву. Поднимать только когда это реально нужно двум несвязанным компонентам.
+- **Context** — только для зависимостей, которые пробрасывались бы через 3+ уровня пропов (auth, theme). Не для данных, которые уже есть в React Query.
+
+### Именование
+
+- **Props-обработчики**: `onXxx` (публичный контракт). **Реализации**: `handleXxx` (внутри компонента). Не мешать.
+- **Булевые пропы**: префикс `is`/`has`/`can` (`isOpen`, `hasError`, `canEdit`). Исключение: устоявшиеся конвенции React Query (`isLoading`, `isPending`).
+- **Хуки**: всегда `use`-префикс. Возвращают объект `{}` если полей > 1. Кортеж `[]` только когда позиция семантически важна (как `useState`).
+- **Файлы**: `PascalCase` для компонентов (`CharacterFieldCard.tsx`), `camelCase` для хуков и lib (`useCharacterHover.ts`, `crossrefs.ts`).
+
+### TypeScript — строгость
+
+- **`as` запрещён на внешних данных.** Данные из Supabase типизируются через `Repository<T>`. `as T` допустим только внутри `repository.ts` — единственная точка приведения.
+- **`unknown` вместо `any`.** Если тип неизвестен — `unknown` + type guard, не `any`.
+- **Discriminated union вместо набора boolean-флагов.** Вместо `isLoading + isError + isEmpty` → `type ViewState = 'loading' | 'error' | 'empty' | 'ready'`.
+- **Не экспортировать типы, используемые только в одном файле.** Локальные типы — рядом с использованием, без `export`.
+
+### Производительность
+
+- **`React.memo`** — только когда компонент перерендеривается заметно часто с теми же пропами (item в списке 100+ элементов). Не добавлять превентивно.
+- **`useMemo`/`useCallback`** — только для: (1) дорогих вычислений (N > 500 элементов); (2) referential stability при передаче в `React.memo`-дочерний компонент.
+- **Не создавать объекты/массивы прямо в JSX** при передаче в мемоизированные компоненты: `style={{ gap: 8 }}` на каждый рендер — новый объект.
+- **`React.lazy()`** для тяжёлых страниц (Characters, Timeline, Export, Map) — добавлять при ощутимом росте bundle.
+
+### Доступность (минимум)
+
+- **Кнопки без текста** (иконочные) — обязательно `aria-label`.
+- **Модальные окна** — `role="dialog"` + `aria-modal="true"` + `aria-labelledby`. Focus trap при открытии: `useEffect` + `focus()` на первый интерактивный элемент.
+- **Закрытие по `Escape`** — обязательно для всех модалок и дропдаунов.
+- **Цветовой контраст** — WCAG AA (4.5:1 для текста). Соблюдать при добавлении новых цветовых сочетаний.
 
 ### Правила UI-стилизации
 
@@ -158,6 +193,19 @@ npm run preview    # превью продакшен-сборки
 - **Никогда `Promise.all(array.map(id => supabase.update(id)))`** для мутаций. Вместо этого — `upsert([...rows])` или `.delete().in('id', ids)`. Один upsert/delete — нормально. Цикл — нет.
 - **Ошибки из `createRepository` — это `DbError`** (`src/lib/repository.ts`). При проверке кода ошибки использовать `instanceof DbError` и `err.code`, не `as { code?: string }`.
 
+### Паттерн мутаций React Query
+
+- **`setQueryData` (cache update)** — для мутаций с немедленным эффектом: создание/переименование/удаление. Данные уже известны из ответа сервера. Использовать хелперы из `chapterMutations.ts` как образец для других сущностей.
+- **`invalidateQueries`** — когда изменение влияет на вычисляемые поля или смежные данные, которые нужно перезапросить (bulk-операция, ответ без полного объекта).
+- **Никогда оба сразу.** `setQueryData` + `invalidateQueries` на одном ключе — двойной рендер и race condition.
+- **`onError` в `useMutation`** → всегда вызывать `setError` из `useErrorState`. Не `console.error`, не `alert`.
+
+### Масштабирование — известные ограничения
+
+- **`limit: 500` в listCharacters** — хардкод для текущего масштаба. При росте переходить на cursor-based pagination (Supabase `.range(from, to)` + `useInfiniteQuery`).
+- **Индексы** — при создании новой таблицы сразу добавлять индекс на `book_id` и `user_id`. Без индекса RLS-фильтр по `user_id` работает как full-table scan.
+- **Новые таблицы с `book_id`** — только через `createRepository`. Прямые `.from(table).select('*')` в компонентах запрещены.
+
 ### Паттерны локальности
 
 - **Константы живут рядом с типом.** `ROLE_LABELS`, `ROLE_COLOR`, `TYPE_LABELS`, `TYPE_GLYPHS` — в том файле, где объявлен тип (`characters.ts`, `locations.ts`, `timeline.ts`). Не определять их в компоненте, который первым их использует.
@@ -184,6 +232,7 @@ npm run preview    # превью продакшен-сборки
 
 ## Workflow Rules
 
+- **Компонент > ~200 строк** — сигнал к аудиту: либо разбить на дочерние компоненты, либо извлечь логику в `useXxx` хук. Хук извлекается, когда: (1) набор `useState`/`useEffect`/`useRef` образует связанный lifecycle; (2) та же логика нужна в двух местах; (3) компонент-хозяин стало трудно читать из-за imperative-кода.
 - **Новые фичи не должны ломать существующий функционал.** Перед завершением правки — проверить смежные компоненты и хуки, которые она затрагивает. Например: смена `position: absolute` → `position: fixed` требует аудита предков на `transform`/`filter`/`will-change`, которые создают containing block; перенос `ref` с контейнера на кнопку может сломать хук, читающий геометрию.
 - Одна задача за раз, только в рамках текущей feature.
 - **При создании или изменении любого UI-компонента читать `docs/design.md`** — цвета, типографику, скроллбары, анимации, компонентные правила. Не изобретать новые токены или паттерны не сверившись с документом.
