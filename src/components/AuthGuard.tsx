@@ -43,15 +43,13 @@ function SessionExpiredOverlay({ onDismiss }: { onDismiss: () => void }) {
 }
 
 export function AuthGuard({ children }: { children: ReactNode }) {
-  const { session, loading, initializing, sessionExpired, clearSessionExpired } = useAuth();
+  const { session, initializing, sessionExpired, clearSessionExpired } = useAuth();
   const location = useLocation();
 
-  // Показываем спиннер пока auth-состояние не определено окончательно:
-  // — loading=true: нет сессии в localStorage, ждём getSession()
-  // — initializing=true: getSession() ещё не завершился; session может быть null
-  //   из-за INITIAL_SESSION(null) от onAuthStateChange во время рефреша токена —
-  //   редиректить нельзя до получения окончательного ответа.
-  if ((loading && !session) || (initializing && !session)) {
+  // Показываем спиннер пока getSession() не завершился: session может быть null
+  // из-за INITIAL_SESSION(null) от onAuthStateChange во время рефреша токена —
+  // редиректить нельзя до получения окончательного ответа.
+  if (initializing && !session) {
     return (
       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', fontSize: 13 }}>
         Загрузка…

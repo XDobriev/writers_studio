@@ -132,7 +132,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     deliberateSignOut.current = true;
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      // Сбрасываем флаг здесь на случай если onAuthStateChange пропустил SIGNED_OUT
+      // через ранний return (getSessionPending.current === true во время логаута).
+      deliberateSignOut.current = false;
+    }
   };
 
   const clearSessionExpired = () => setSessionExpired(false);
