@@ -46,7 +46,10 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   const { session, loading, sessionExpired, clearSessionExpired } = useAuth();
   const location = useLocation();
 
-  if (loading) {
+  // Показываем спиннер только если сессия ещё не известна.
+  // Если session уже есть (onAuthStateChange сработал раньше getSession),
+  // пропускаем loading-фазу — иначе виден лишний экран при логине.
+  if (loading && !session) {
     return (
       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', fontSize: 13 }}>
         Загрузка…

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useResponsive } from '../lib/useResponsive';
 import { useErrorState } from '../lib/useErrorState';
-import { Link, Navigate, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, type TelegramAuthData } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
 import { Icon } from '../components/Icon';
@@ -37,6 +37,7 @@ declare global {
 export default function Auth() {
   const { session, signIn, signUp, signInWithGoogle, signInWithTelegram, resetPasswordForEmail } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>(() =>
     new URLSearchParams(location.search).get('tab') === 'signup' ? 'signup' : 'signin'
   );
@@ -90,10 +91,13 @@ export default function Auth() {
     };
   }, [signInWithTelegram, clearErr, setErr]);
 
-  if (session) {
+  // Редирект в эффекте — не в render — чтобы форма не мигала пустым кадром
+  useEffect(() => {
+    if (!session) return;
     const from = (location.state as { from?: string } | null)?.from ?? '/books';
-    return <Navigate to={from} replace />;
-  }
+    navigate(from, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
