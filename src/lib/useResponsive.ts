@@ -22,5 +22,6 @@ export function useResponsive() {
   const isMobile = useMediaQuery(`(max-width: ${BREAKPOINTS.MOBILE - 1}px)`);
   const isTablet = useMediaQuery(`(max-width: ${BREAKPOINTS.TABLET - 1}px)`);
   const isNarrow = useMediaQuery(`(max-width: ${BREAKPOINTS.NARROW - 1}px)`);
-  return { isMobile, isTablet, isNarrow };
+  const isWide = useMediaQuery(`(min-width: ${BREAKPOINTS.WIDE}px)`);
+  return { isMobile, isTablet, isNarrow, isWide };
 }
