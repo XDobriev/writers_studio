@@ -22,7 +22,7 @@ export default function Privacy() {
         <Section title="1. Оператор данных">
           <p>
             Физическое лицо (самозанятый, налог на профессиональный доход) <strong>Добриев Хамзат Юсупович</strong>, контактный адрес:{' '}
-            <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--accent)' }}>frfrancuz@gmail.com</a>.
+            <a href="mailto:hello@avtorstudio.com" style={{ color: 'var(--accent)' }}>hello@avtorstudio.com</a>.
             Сервис: <strong>Авторская студия</strong> (avtorstudio.com).
           </p>
         </Section>
@@ -96,8 +96,8 @@ export default function Privacy() {
           </ul>
           <p>
             Для удаления аккаунта и всех данных напишите на{' '}
-            <a href="mailto:frfrancuz@gmail.com?subject=Удаление аккаунта" style={{ color: 'var(--accent)' }}>
-              frfrancuz@gmail.com
+            <a href="mailto:support@avtorstudio.com?subject=Удаление аккаунта" style={{ color: 'var(--accent)' }}>
+              support@avtorstudio.com
             </a>{' '}
             с темой «Удаление аккаунта» — данные будут удалены в течение 3 рабочих дней.
           </p>

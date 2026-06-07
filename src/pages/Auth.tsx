@@ -166,7 +166,7 @@ export default function Auth() {
         {!isMobile && (
           <div style={{ paddingTop: 24, borderTop: '1px solid var(--border-soft)' }}>
             <p style={{ font: '400 14px/1.6 var(--font-serif)', color: 'var(--ink-3)', fontStyle: 'italic', margin: 0 }}>
-              «Писать надо только тогда, когда не можешь не писать.»
+              «Краткость — сестра таланта.» — Чехов, письмо брату, 1889
             </p>
           </div>
         )}

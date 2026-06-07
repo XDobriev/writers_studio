@@ -35,7 +35,7 @@ export default function Offer() {
         <Section title="1. Стороны и предмет оферты">
           <p>
             Оферент: самозанятый <strong>Добриев Хамзат Юсупович</strong>, ИНН 290133229106,{' '}
-            <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--accent)' }}>frfrancuz@gmail.com</a>.
+            <a href="mailto:hello@avtorstudio.com" style={{ color: 'var(--accent)' }}>hello@avtorstudio.com</a>.
           </p>
           <p>
             Акцептант: любое физическое лицо, совершившее оплату на сайте{' '}
@@ -97,7 +97,7 @@ export default function Offer() {
           </p>
           <p>
             <strong>Возврат средств:</strong> в течение 14 дней с момента оплаты — по письму на{' '}
-            <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--accent)' }}>frfrancuz@gmail.com</a>{' '}
+            <a href="mailto:support@avtorstudio.com" style={{ color: 'var(--accent)' }}>support@avtorstudio.com</a>{' '}
             с указанием номера транзакции. Возврат производится на карту, с которой совершалась оплата,
             в течение 10 рабочих дней.
           </p>

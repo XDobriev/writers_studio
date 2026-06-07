@@ -53,20 +53,21 @@ _Обновлён: 2026-06-07 (юридические документы обн�
 
 ---
 
-### 1a. Transactional email — Resend SMTP + брендированные шаблоны
+### 1a. Transactional email — UniSender Go SMTP + брендированные шаблоны
 
 **Симптом:** при регистрации пользователь получает некрасивое дефолтное письмо от Supabase.
 
 **Что готово:** 4 HTML-шаблона в стиле студии → `docs/email-templates/`. Подробная инструкция → `docs/email-templates/SETUP.md`.
 
-**Что осталось (ручные шаги, ~15 мин):**
-1. Зарегистрироваться на resend.com
-2. Domains → Add Domain: `avtorstudio.com` → добавить DNS-записи в Timeweb → дождаться Verified ✓
-3. API Keys → Create API Key → скопировать (`re_...`)
+**Что осталось (ручные шаги, ~20 мин):**
+1. Зарегистрироваться на go.unisender.ru
+2. Добавить домен `avtorstudio.com` → добавить DNS-записи (SPF + DKIM) в Timeweb → дождаться Подтверждён ✓
+3. Создать API-ключ → скопировать
 4. Supabase Dashboard → **Project Settings → Authentication → SMTP Settings** → Enable Custom SMTP:
-   - Host: `smtp.resend.com` · Port: `465` · Username: `resend` · Password: `<API-ключ>`
-   - Sender Name: `Авторская студия` · Sender Email: `hello@avtorstudio.com`
+   - Host: `smtp.unisender.ru` · Port: `465` · Username: `<email в UniSender Go>` · Password: `<API-ключ>`
+   - Sender Name: `Авторская студия` · Sender Email: `noreply@avtorstudio.com`
 5. Supabase Dashboard → **Authentication → Email Templates** → вставить HTML из 4 файлов
+6. Supabase Dashboard → **Edge Functions → Secrets** → добавить `UNISENDER_API_KEY`
 
 **Файлы:** `docs/email-templates/confirm-signup.html`, `reset-password.html`, `magic-link.html`, `email-change.html`
 **Проверить:** зарегистрировать тестового пользователя → inbox → брендированное письмо с тёмным фоном студии
@@ -221,7 +222,7 @@ _Обновлён: 2026-06-07 (юридические документы обн�
 **Что продумать до реализации:**
 - Нужен ли exit-опрос при отмене (1 вопрос: причина) → сохранять в `profiles.cancel_reason text`
 - Нужен ли экран удержания (discount offer) перед подтверждением отмены
-- Email-уведомление при отмене (transactional через Resend)
+- Email-уведомление при отмене (transactional через UniSender Go)
 
 **Файлы:** `supabase/migrations/` (колонка `cancel_at_period_end`), `src/components/SettingsModal.tsx` (таб «Подписка»), `supabase/functions/robokassa-webhook/` (планировщик рекуррентных)
 **Проверить:** Pro-пользователь → «Отменить» → подтверждение → баннер «доступ до [дата]»; после `plan_expires_at` → `plan = 'free'`; кнопка «Возобновить» сбрасывает флаг
@@ -463,7 +464,7 @@ _2026-06-03:_ fix(shortcuts) §10 аудит горячих клавиш — д�
 
 _2026-06-03:_ feat(monetization) §6 Lifetime deal + §7 Грандфазеринг — `app_settings.lifetime_slots_remaining = 50`, RPC `decrement_lifetime_slot` (миграция 0025); `profiles.grandfathered boolean` (миграция 0026); вебхук декрементирует счётчик и ставит `grandfathered` если `GRANDFATHERING_ENDS_AT` не истекло; лендинг и UpgradeModal показывают живой счётчик, скрывают Lifetime при 0; настройки показывают «✦ Ранняя цена» ✅
 
-_2026-06-03:_ feat(legal) §5 оферта, акцепт, email-подтверждение — `/offer` страница, акцепт у кнопок Pro/Lifetime, Edge Function `payment-confirmation` (Resend) ✅
+_2026-06-03:_ feat(legal) §5 оферта, акцепт, email-подтверждение — `/offer` страница, акцепт у кнопок Pro/Lifetime, Edge Function `payment-confirmation` ✅
 
 _2026-06-03:_ seo(prerender) §3 — `scripts/prerender.mjs` (Playwright + vite preview): рендер `/`, `/privacy`, `/terms` → HTML в `dist/` при сборке; nginx `X-Robots-Tag: noindex` для `/books/*`, `/login`, `/admin`; ключевые слова в subtitle лендинга; `index.html` placeholders для Метрики + Вебмастера ✅
 

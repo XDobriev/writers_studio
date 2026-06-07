@@ -24,7 +24,7 @@ export default function Terms() {
             Настоящее соглашение заключается между физическим лицом{' '}
             <strong>Добриев Хамзат Юсупович</strong> (далее — «Сервис», «мы», «нас»),
             контактный адрес:{' '}
-            <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--accent)' }}>frfrancuz@gmail.com</a>,
+            <a href="mailto:hello@avtorstudio.com" style={{ color: 'var(--accent)' }}>hello@avtorstudio.com</a>,
             и пользователем сервиса <strong>Авторская студия</strong>{' '}
             (avtorstudio.com).
           </p>
@@ -79,7 +79,7 @@ export default function Terms() {
             Оплата осуществляется через сервис Robokassa. При отмене подписки доступ к
             платным функциям сохраняется до конца оплаченного периода. Возврат средств —
             в течение 14 дней с момента оплаты по письменному запросу на{' '}
-            <a href="mailto:frfrancuz@gmail.com?subject=Возврат средств" style={{ color: 'var(--accent)' }}>frfrancuz@gmail.com</a>.
+            <a href="mailto:support@avtorstudio.com?subject=Возврат средств" style={{ color: 'var(--accent)' }}>support@avtorstudio.com</a>.
           </p>
           <p>
             В период открытой беты пользователи бесплатного тарифа имеют расширенный доступ
@@ -109,7 +109,7 @@ export default function Terms() {
         <Section title="7. Прекращение использования">
           <p>
             Вы можете удалить аккаунт в любой момент, написав на{' '}
-            <a href="mailto:frfrancuz@gmail.com?subject=Удаление аккаунта" style={{ color: 'var(--accent)' }}>frfrancuz@gmail.com</a>{' '}
+            <a href="mailto:support@avtorstudio.com?subject=Удаление аккаунта" style={{ color: 'var(--accent)' }}>support@avtorstudio.com</a>{' '}
             с темой «Удаление аккаунта». Все данные будут удалены в течение 3 рабочих дней.
           </p>
           <p>

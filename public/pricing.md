@@ -55,4 +55,4 @@
 ---
 
 Страница оферты: https://avtorstudio.com/offer
-Поддержка: frfrancuz@gmail.com
+Поддержка: hello@avtorstudio.com

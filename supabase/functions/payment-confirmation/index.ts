@@ -1,9 +1,9 @@
-// Отправляет email-подтверждение после успешной оплаты через ЮKassa.
-// Вызывается из yukassa-webhook (§4) при event.type === 'payment.succeeded'.
+// Отправляет email-подтверждение после успешной оплаты через Robokassa.
+// Вызывается из robokassa-webhook (§4) при успешном платеже.
 //
 // Требуемые секреты Supabase:
-//   RESEND_API_KEY — ключ Resend (resend.com)
-//   EMAIL_FROM     — отправитель, например "Авторская студия <noreply@avtorstudio.com>"
+//   UNISENDER_API_KEY — ключ UniSender Go (go.unisender.ru)
+//   EMAIL_FROM        — отправитель, например "Авторская студия <noreply@avtorstudio.com>"
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -59,9 +59,9 @@ function buildEmailHtml(payload: PaymentConfirmationPayload): string {
           <p style="margin:0 0 24px;font-size:13px;color:#8a7f76;font-family:'IBM Plex Mono',monospace;">Транзакция: ${transaction_id}</p>
           <hr style="border:none;border-top:1px solid #e8e3dc;margin:0 0 24px">
           <p style="margin:0 0 16px;font-size:14px;color:#5a5249;line-height:1.65;">
-            Если у вас есть вопросы — напишите на{' '}
-            <a href="mailto:frfrancuz@gmail.com" style="color:#a0522d;">frfrancuz@gmail.com</a>.
-            Возврат в течение 14 дней по условиям{' '}
+            Если у вас есть вопросы — напишите на
+            <a href="mailto:support@avtorstudio.com" style="color:#a0522d;">support@avtorstudio.com</a>.
+            Возврат в течение 14 дней по условиям
             <a href="https://avtorstudio.com/offer" style="color:#a0522d;">оферты</a>.
           </p>
           <p style="margin:0;font-size:13px;color:#8a7f76;">
@@ -87,7 +87,7 @@ function buildEmailText(payload: PaymentConfirmationPayload): string {
 Сумма: ${amount} ₽
 ${expiresLine}Транзакция: ${transaction_id}
 
-По вопросам: frfrancuz@gmail.com
+По вопросам: support@avtorstudio.com
 Условия возврата: avtorstudio.com/offer
 `;
 }
@@ -96,10 +96,15 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
 
-  const resendKey = Deno.env.get('RESEND_API_KEY');
-  const emailFrom = Deno.env.get('EMAIL_FROM') ?? 'Авторская студия <noreply@avtorstudio.com>';
+  const apiKey = Deno.env.get('UNISENDER_API_KEY');
+  const emailFromRaw = Deno.env.get('EMAIL_FROM') ?? 'Авторская студия <noreply@avtorstudio.com>';
 
-  if (!resendKey) return json(500, { error: 'RESEND_API_KEY secret is not set' });
+  if (!apiKey) return json(500, { error: 'UNISENDER_API_KEY secret is not set' });
+
+  // Разбираем "Имя <email>" → отдельные поля для UniSender Go
+  const fromMatch = emailFromRaw.match(/^(.+?)\s*<(.+?)>$/) ?? [null, 'Авторская студия', 'noreply@avtorstudio.com'];
+  const fromName = fromMatch[1]?.trim() ?? 'Авторская студия';
+  const fromEmail = fromMatch[2]?.trim() ?? 'noreply@avtorstudio.com';
 
   let payload: PaymentConfirmationPayload;
   try {
@@ -113,26 +118,31 @@ Deno.serve(async (req) => {
     return json(400, { error: 'missing required fields: user_email, transaction_id, amount, plan' });
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
+  const res = await fetch('https://go.unisender.ru/ru/transactional/api/v1/email/send.json', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${resendKey}`,
+      'X-API-KEY': apiKey,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: emailFrom,
-      to: [user_email],
-      subject: `Оплата подтверждена — ${planLabel(plan)}`,
-      html: buildEmailHtml(payload),
-      text: buildEmailText(payload),
+      message: {
+        from_email: fromEmail,
+        from_name: fromName,
+        subject: `Оплата подтверждена — ${planLabel(plan)}`,
+        body: {
+          html: buildEmailHtml(payload),
+          plaintext: buildEmailText(payload),
+        },
+        recipients: [{ email: user_email }],
+      },
     }),
   });
 
   if (!res.ok) {
     const err = await res.text();
-    return json(502, { error: `resend error: ${err}` });
+    return json(502, { error: `unisender error: ${err}` });
   }
 
   const data = await res.json();
-  return json(200, { ok: true, email_id: data.id });
+  return json(200, { ok: true, job_id: data.job_id });
 });

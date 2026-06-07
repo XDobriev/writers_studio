@@ -782,7 +782,7 @@ function LandingPricing() {
         ['Хронология · до 10 событий', true],
         ['Карта мира · заметки', true],
         ['Экспорт: TXT и HTML', true],
-        ['Экспорт EPUB, FB2, DOCX', false],
+        ['Экспорт EPUB, FB2 (для читалок), DOCX', false],
         ['Безлимит персонажей и хронологии', false],
       ] as [string, boolean][],
       cta: 'Начать бесплатно', accent: false, tag: null, signup: true,
@@ -793,7 +793,7 @@ function LandingPricing() {
       features: [
         ['Безлимит книг и персонажей', true],
         ['Безлимит хронологии', true],
-        ['Экспорт EPUB, FB2, DOCX', true],
+        ['Экспорт EPUB, FB2 (для читалок), DOCX', true],
         ['История версий глав без лимита', true],
         ['Сводка · карта активности · серия дней', true],
         ['Приоритетная поддержка', true],
@@ -1012,7 +1012,7 @@ function LandingFooter() {
               { label: 'Вопросы', href: '#faq' },
             ]],
             ['Студия', [
-              { label: 'Контакты', href: 'mailto:frfrancuz@gmail.com' },
+              { label: 'Контакты', href: 'mailto:hello@avtorstudio.com' },
               { label: 'GitHub', href: 'https://github.com/XDobriev/writers_studio' },
             ]],
           ] as [string, { label: string; href: string }[]][]).map(([title, links]) => (
@@ -1038,7 +1038,7 @@ function LandingFooter() {
           <Link to="/offer" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Оферта</Link>
           <span style={{ flex: 1 }} />
           <span>Самозанятый Добриев Хамзат Юсупович · ИНН 290133229106 · г. Назрань ·</span>
-          <a href="mailto:frfrancuz@gmail.com" style={{ color: 'var(--ink-3)', textDecoration: 'none' }} rel="noopener noreferrer">frfrancuz@gmail.com</a>
+          <a href="mailto:hello@avtorstudio.com" style={{ color: 'var(--ink-3)', textDecoration: 'none' }} rel="noopener noreferrer">hello@avtorstudio.com</a>
         </div>
       </div>
     </footer>

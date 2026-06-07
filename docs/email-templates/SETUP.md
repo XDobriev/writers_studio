@@ -1,51 +1,46 @@
-# Настройка Resend + Supabase SMTP
+# Настройка UniSender Go + Supabase SMTP
 
 Всё что нужно сделать вручную — здесь. Остальное сделает Claude.
 
 ---
 
-## Шаг 1 — Создать аккаунт Resend
+## Шаг 1 — Создать аккаунт UniSender Go
 
-1. Открыть **resend.com** → нажать **Get Started**
-2. Зарегистрироваться через GitHub или почту
-3. Подтвердить email если попросят
+1. Открыть **go.unisender.ru** → нажать **Регистрация**
+2. Зарегистрироваться через email
+3. Подтвердить email
+
+> UniSender Go — отдельный продукт от UniSender (unisender.com). Нужен именно **go.unisender.ru** — это транзакционная платформа (API-отправка). UniSender.com — для маркетинговых рассылок.
 
 ---
 
-## Шаг 2 — Добавить домен avtorstudio.com
+## Шаг 2 — Добавить и верифицировать домен avtorstudio.com
 
-> Resend будет отправлять письма с адреса `@avtorstudio.com`,
-> поэтому нужно подтвердить владение доменом через DNS.
+UniSender Go требует подтверждения домена через DNS (SPF + DKIM).
 
-1. В sidebar Resend нажать **Domains** → **Add Domain**
+1. В личном кабинете → **Домены** → **Добавить домен**
 2. Ввести: `avtorstudio.com`
-3. Resend покажет несколько DNS-записей — обычно это:
-   - TXT-запись для SPF (`v=spf1 include:amazonses.com ~all`)
-   - DKIM (две CNAME-записи)
-   - DMARC (одна TXT-запись)
-4. Зайти в **панель Timeweb** → раздел **Домены** → `avtorstudio.com` → **DNS**
-5. Добавить все записи которые показал Resend (тип / имя / значение)
-6. Вернуться в Resend → нажать **Verify** (или подождать 5–30 минут, иногда дольше)
-7. Статус должен стать **Verified** ✓
+3. UniSender Go покажет DNS-записи:
+   - TXT-запись SPF (`v=spf1 include:... ~all`)
+   - CNAME-записи DKIM
+4. Зайти в **панель Timeweb** → **Домены** → `avtorstudio.com` → **DNS**
+5. Добавить все записи (тип / имя / значение)
+6. Вернуться в UniSender Go → нажать **Проверить** (может занять 5–30 минут)
+7. Статус должен стать **Подтверждён** ✓
 
 ---
 
 ## Шаг 3 — Создать API-ключ
 
-1. В sidebar Resend нажать **API Keys** → **Create API Key**
+1. В личном кабинете → **Настройки** → **API-ключи** → **Создать ключ**
 2. Имя: `avtorstudio-supabase`
-3. Permission: **Sending access** (Full access тоже подойдёт)
-4. Domain: выбрать `avtorstudio.com` (если опция есть)
-5. Нажать **Add** → **скопировать ключ** (он показывается только один раз!)
-
-Ключ выглядит примерно так: `re_xxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+3. Скопировать ключ — он показывается один раз
 
 ---
 
 ## Шаг 4 — Настроить Supabase SMTP (5 минут)
 
-Supabase MCP не поддерживает конфигурацию SMTP — это делается в Dashboard вручную,
-но это буквально 5 полей. Claude даст точные значения, ты только вставишь.
+UniSender Go поддерживает SMTP-отправку. Supabase использует SMTP для auth-писем (подтверждение, сброс пароля).
 
 ### 4а — SMTP
 
@@ -55,12 +50,12 @@ Supabase MCP не поддерживает конфигурацию SMTP — э�
 
 | Поле | Значение |
 |---|---|
-| Host | `smtp.resend.com` |
+| Host | `smtp.unisender.ru` |
 | Port | `465` |
-| Username | `resend` |
-| Password | *(твой API-ключ из шага 3)* |
+| Username | твой email в UniSender Go |
+| Password | твой API-ключ из шага 3 |
 | Sender Name | `Авторская студия` |
-| Sender Email | `hello@avtorstudio.com` |
+| Sender Email | `noreply@avtorstudio.com` |
 
 4. Нажать **Save**
 
@@ -78,28 +73,34 @@ Supabase MCP не поддерживает конфигурацию SMTP — э�
 
 3. Нажать **Save** после каждого
 
-> Всё. На каждый шаблон уходит 30 секунд — открыть файл, выделить всё (Ctrl+A), скопировать, вставить в поле Supabase.
+---
+
+## Шаг 5 — Обновить секрет Edge Function
+
+Секрет `RESEND_API_KEY` больше не нужен. Добавить новый:
+
+1. Supabase Dashboard → **Edge Functions** → **Secrets**
+2. Добавить: `UNISENDER_API_KEY` = твой API-ключ из шага 3
+3. Удалить старый `RESEND_API_KEY` (если был добавлен)
 
 ---
 
-## Справочник: SMTP-параметры Resend
-
-Если понадобится ввести вручную:
+## Справочник: SMTP-параметры UniSender Go
 
 | Параметр | Значение |
 |---|---|
-| SMTP Host | `smtp.resend.com` |
+| SMTP Host | `smtp.unisender.ru` |
 | SMTP Port | `465` (SSL) |
-| Username | `resend` |
-| Password | твой API-ключ |
+| Username | email в UniSender Go |
+| Password | API-ключ |
 | From Name | `Авторская студия` |
-| From Email | `hello@avtorstudio.com` |
+| From Email | `noreply@avtorstudio.com` |
 
 ---
 
 ## Что изменится после настройки
 
-Supabase будет отправлять письма через Resend вместо дефолтного провайдера.
+Supabase будет отправлять письма через UniSender Go вместо дефолтного провайдера.
 Все 4 типа писем получат новый дизайн:
 
 - `confirm-signup.html` — подтверждение регистрации
