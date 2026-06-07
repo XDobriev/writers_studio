@@ -66,7 +66,9 @@ export default function AdminUserDetail() {
 
   useEffect(() => {
     if (!user || !userId) return;
+    let cancelled = false;
     supabase.rpc('get_admin_user_detail', { target_user_id: userId }).then(({ data, error: err }) => {
+      if (cancelled) return;
       if (err?.code === '42501') { setIsAdmin(false); return; }
       setIsAdmin(true);
       if (err) { setError(err.message); return; }
@@ -74,6 +76,7 @@ export default function AdminUserDetail() {
       setDetail(d);
       if (d.email) setUserEmail(d.email);
     });
+    return () => { cancelled = true; };
   }, [user, userId, setError]);
 
   const handleResetPassword = async () => {

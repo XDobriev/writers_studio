@@ -136,10 +136,12 @@ export default function Admin() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     Promise.all([
       supabase.rpc('get_admin_stats'),
       supabase.rpc('get_admin_users'),
     ]).then(([statsRes, usersRes]) => {
+      if (cancelled) return;
       if (statsRes.error?.code === '42501' || usersRes.error?.code === '42501') {
         setIsAdmin(false);
         return;
@@ -150,9 +152,11 @@ export default function Admin() {
       if (!statsRes.error) setStats(statsRes.data as AdminStats);
       if (!usersRes.error) setUsers(usersRes.data as AdminUser[]);
     }).catch((e: Error) => {
+      if (cancelled) return;
       setIsAdmin(false);
       setErr(e.message);
     });
+    return () => { cancelled = true; };
   }, [user, setErr]);
 
   const loadAuditLog = async () => {
