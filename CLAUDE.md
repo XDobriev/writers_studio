@@ -99,6 +99,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/useResponsive.ts` — `BREAKPOINTS` константы + `useResponsive()` → `{ isMobile, isTablet, isNarrow }` через matchMedia.
 - `src/lib/profiles.ts` — `getProfile(userId)`, `getLifetimeSlotsRemaining()`, `getRegistrationOpen()` (читают `app_settings`), `markOnboarded`, `addWordToDictionary`.
 - `src/lib/editorFont.ts` — `EDITOR_FONTS`, `applyEditorFont`, `getStoredEditorFont`; CSS var `--font-editor`; dispatches `as-editor-font` CustomEvent для синхронизации SettingsModal ↔ StatusBar.
+- `src/lib/i18n.ts` — `plural(n, one, few, many)` и `pluralDays(n)`: канонические функции русской числовой морфологии.
 
 ## Supabase
 

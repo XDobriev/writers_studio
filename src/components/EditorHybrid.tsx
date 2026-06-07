@@ -37,13 +37,7 @@ interface ChapterSheetProps {
   onAddWord?: (word: string) => void;
 }
 
-function plural(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10, mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 19) return many;
-  if (mod10 === 1) return one;
-  if (mod10 >= 2 && mod10 <= 4) return few;
-  return many;
-}
+import { plural } from '../lib/i18n';
 
 function ChapterSheet({ chapter, content, onContentChange, onTitleChange, onEditor, width, padding, userDictionary, onAddWord }: ChapterSheetProps) {
   return (

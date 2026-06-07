@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { pluralDays } from '../lib/i18n';
 import { useResponsive } from '../lib/useResponsive';
 import { EDITOR_FONTS, getStoredEditorFont, applyEditorFont, EDITOR_FONT_EVENT, type EditorFontId } from '../lib/editorFont';
 
@@ -221,13 +222,6 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, tod
     window.addEventListener(EDITOR_FONT_EVENT, handler);
     return () => window.removeEventListener(EDITOR_FONT_EVENT, handler);
   }, []);
-
-  function pluralDays(n: number): string {
-    const m10 = n % 10, m100 = n % 100;
-    if (m10 === 1 && m100 !== 11) return 'день';
-    if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return 'дня';
-    return 'дней';
-  }
 
   function commitGoal() {
     const n = parseInt(goalInput, 10);
