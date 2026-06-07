@@ -66,6 +66,15 @@ export async function uploadCharacterAvatar(characterId: string, userId: string,
   return data.publicUrl;
 }
 
+export async function deleteCharacterAvatar(characterId: string, avatarUrl: string): Promise<void> {
+  const marker = '/character-avatars/';
+  const idx = avatarUrl.indexOf(marker);
+  if (idx !== -1) {
+    void supabase.storage.from('character-avatars').remove([avatarUrl.slice(idx + marker.length)]);
+  }
+  await updateCharacter(characterId, { avatar_url: null });
+}
+
 export function initialsFromName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '··';

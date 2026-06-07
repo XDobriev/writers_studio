@@ -17,6 +17,7 @@ import {
   ROLE_PORTRAIT_BG,
   updateCharacter,
   uploadCharacterAvatar,
+  deleteCharacterAvatar,
   type Character,
   type CharacterPatch,
   type CharacterRole,
@@ -607,6 +608,7 @@ function HeroBlock({ character, bookId, onChange, onError }: {
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [editingQuote, setEditingQuote] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarDeleting, setAvatarDeleting] = useState(false);
   const [avatarHovered, setAvatarHovered] = useState(false);
   const quoteRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -696,6 +698,19 @@ function HeroBlock({ character, bookId, onChange, onError }: {
     }
   };
 
+  const onAvatarDelete = async () => {
+    if (!character.avatar_url) return;
+    setAvatarDeleting(true);
+    try {
+      await deleteCharacterAvatar(character.id, character.avatar_url);
+      onChange({ avatar_url: null });
+    } catch (err) {
+      onError((err as Error).message);
+    } finally {
+      setAvatarDeleting(false);
+    }
+  };
+
   const onFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -732,13 +747,22 @@ function HeroBlock({ character, bookId, onChange, onError }: {
             {initialsFromName(name)}
           </div>
         )}
-        {(avatarHovered || avatarUploading) && (
+        {(avatarHovered || avatarUploading || avatarDeleting) && (
           <div style={{ position: 'absolute', inset: 0, background: 'oklch(0 0 0 / 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 6, color: 'white' }}>
-            {avatarUploading
-              ? <span style={{ font: '400 11px var(--font-ui)' }}>Загрузка…</span>
+            {(avatarUploading || avatarDeleting)
+              ? <span style={{ font: '400 11px var(--font-ui)' }}>{avatarDeleting ? 'Удаление…' : 'Загрузка…'}</span>
               : <><Icon name="camera" size={20} /><span style={{ font: '400 10px var(--font-ui)', letterSpacing: '0.04em' }}>{character.avatar_url ? 'Сменить' : 'Загрузить'}</span></>
             }
           </div>
+        )}
+        {avatarHovered && character.avatar_url && !avatarUploading && !avatarDeleting && (
+          <button
+            onClick={(e) => { e.stopPropagation(); void onAvatarDelete(); }}
+            title="Удалить портрет"
+            style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 4, background: 'oklch(0.35 0.18 20 / 0.85)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', zIndex: 2, padding: 0 }}
+          >
+            <Icon name="trash" size={11} />
+          </button>
         )}
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={(e) => { void onFileChange(e); }} />
       </div>
