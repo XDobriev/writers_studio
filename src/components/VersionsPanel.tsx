@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { createVersion, deleteVersion, type ChapterVersionMeta } from '../lib/versions';
-import { countWords } from '../lib/chapters';
-import { useChapterVersions, QUERY_KEYS } from '../lib/queries';
+import { useVersionMutations } from '../lib/useVersionMutations';
+import { type ChapterVersionMeta } from '../lib/versions';
+import { useChapterVersions } from '../lib/queries';
 import { VersionModal } from './VersionModal';
 import { useErrorState } from '../lib/useErrorState';
 
@@ -17,9 +16,9 @@ interface VersionsPanelProps {
 }
 
 export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, currentContent, isPro, onRestoreContent }: VersionsPanelProps) {
-  const queryClient = useQueryClient();
   const { error: versionError, setError: setVersionError, clearError: clearVersionError } = useErrorState();
   const { data: versions = [], isLoading } = useChapterVersions(chapterId);
+  const { createNamed, remove } = useVersionMutations(chapterId, userId, isPro);
   const [selected, setSelected] = useState<ChapterVersionMeta | null>(null);
   const [saving, setSaving] = useState(false);
   const [labelInput, setLabelInput] = useState('');
@@ -33,8 +32,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
     if (!labelInput.trim()) return;
     setSaving(true);
     try {
-      await createVersion(chapterId, userId, currentContent, countWords(currentContent), 'manual', isPro, labelInput.trim());
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterVersions(chapterId) });
+      await createNamed(currentContent, labelInput.trim());
       setLabelInput('');
       setShowLabelForm(false);
     } catch (e) {
@@ -47,8 +45,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
   async function handleDelete(id: string, e: React.MouseEvent) {
     e.stopPropagation();
     try {
-      await deleteVersion(id);
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterVersions(chapterId) });
+      await remove(id);
     } catch (e) {
       setVersionError(e instanceof Error ? e.message : 'Не удалось удалить версию');
     }

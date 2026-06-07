@@ -100,6 +100,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/profiles.ts` — `getProfile(userId)`, `getLifetimeSlotsRemaining()`, `getRegistrationOpen()` (читают `app_settings`), `markOnboarded`, `addWordToDictionary`.
 - `src/lib/editorFont.ts` — `EDITOR_FONTS`, `applyEditorFont`, `getStoredEditorFont`; CSS var `--font-editor`; dispatches `as-editor-font` CustomEvent для синхронизации SettingsModal ↔ StatusBar.
 - `src/lib/i18n.ts` — `plural(n, one, few, many)` и `pluralDays(n)`: канонические функции русской числовой морфологии.
+- `src/lib/useVersionMutations.ts` — `createNamed(content, label)` и `remove(id)`: мутации версий с инвалидацией кеша; скрывает `QUERY_KEYS` и `queryClient` от `VersionsPanel`.
 
 ## Supabase
 
