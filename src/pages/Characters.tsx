@@ -163,7 +163,6 @@ export default function Characters() {
     userId: user?.id,
     characters,
     active,
-    queryClient,
     cancelSave,
     onError: setError,
     onCreated: handleCreated,

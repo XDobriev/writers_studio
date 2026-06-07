@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import type { QueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   createCharacter,
   deleteCharacter,
@@ -18,7 +18,6 @@ interface UseCharacterMutationsOptions {
   userId: string | undefined;
   characters: Character[] | undefined;
   active: Character | null;
-  queryClient: QueryClient;
   cancelSave: () => void;
   onError: (msg: string) => void;
   onCreated: (id: string) => void;
@@ -30,12 +29,12 @@ export function useCharacterMutations({
   userId,
   characters,
   active,
-  queryClient,
   cancelSave,
   onError,
   onCreated,
   onDeleted,
 }: UseCharacterMutationsOptions) {
+  const queryClient = useQueryClient();
   const creatingRef = useRef(false);
   const onCreate = useCallback(async () => {
     if (!bookId || !userId || creatingRef.current) return;
