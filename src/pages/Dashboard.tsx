@@ -752,16 +752,7 @@ export default function Dashboard() {
     </WithMode>
 
     {weeklyToast && (
-      <div style={{
-        position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-        background: 'var(--surface-2)', border: '1px solid var(--border)',
-        borderRadius: 10, padding: '10px 18px',
-        display: 'flex', alignItems: 'center', gap: 10,
-        font: '500 13px var(--font-ui)', color: 'var(--ink)',
-        boxShadow: '0 4px 24px oklch(0 0 0 / 0.18)',
-        zIndex: 1000, pointerEvents: 'none',
-        animation: weeklyToastLeaving ? 'toast-out 0.1s ease-in both' : 'toast-in 0.2s cubic-bezier(0.22,0.68,0,1.2)',
-      }}>
+      <div className={`toast toast--info${weeklyToastLeaving ? ' toast--leaving' : ''}`}>
         <span style={{ fontSize: 16 }}>📅</span>
         {weeklyToast}
       </div>

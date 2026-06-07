@@ -6,6 +6,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
+import { CharacterFieldCard } from '../components/CharacterFieldCard';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
 import { getPlanLimits } from '../lib/profiles';
@@ -257,13 +258,13 @@ export default function Characters() {
               {/* Grid: поиск + фильтры по роли */}
               {!isMobile && showGrid && (
                 <>
-                  <div style={{ height: 28, padding: '0 9px', border: '1px solid var(--border-soft)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ink-3)' }}>
+                  <div className="tb-search">
                     <Icon name="search" size={12} />
                     <input
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="Поиск"
-                      style={{ width: 120, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', fontSize: 12 }}
+                      className="tb-search__input"
                     />
                   </div>
                   <div className="tb-grp">
@@ -286,13 +287,13 @@ export default function Characters() {
               {/* Mobile: поиск + кнопка создания (список персонажей) */}
               {isMobile && showGrid && (
                 <>
-                  <div style={{ height: 28, padding: '0 9px', border: '1px solid var(--border-soft)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ink-3)' }}>
+                  <div className="tb-search">
                     <Icon name="search" size={12} />
                     <input
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="Поиск"
-                      style={{ width: 90, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', fontSize: 12 }}
+                      className="tb-search__input"
                     />
                   </div>
                   <button onClick={handleCreate} className="tb-btn" title="Новый персонаж">
@@ -357,21 +358,12 @@ export default function Characters() {
               <HeroBlock character={active} bookId={bookId!} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} />
 
               {/* Вкладки */}
-              <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border-soft)', marginBottom: 28 }}>
+              <div className="char-tabs">
                 {(['info', 'chapters'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setDetailTab(tab)}
-                    style={{
-                      padding: '8px 16px',
-                      font: '500 12px var(--font-ui)',
-                      color: detailTab === tab ? 'var(--ink)' : 'var(--ink-3)',
-                      background: 'transparent',
-                      border: 'none',
-                      borderBottom: detailTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
-                      cursor: 'pointer',
-                      marginBottom: -1,
-                    }}
+                    className={`char-tab${detailTab === tab ? ' char-tab--on' : ''}`}
                   >
                     {tab === 'info' ? 'Сведения' : 'Главы'}
                   </button>
@@ -381,45 +373,45 @@ export default function Characters() {
               {detailTab === 'info' ? (
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
-                    <FieldCard
+                    <CharacterFieldCard
                       label="Внешность"
                       hint="Внешний вид, манера держаться, первое впечатление"
                       value={active.appearance}
                       onChange={(v) => scheduleSave(active.id, { appearance: v })}
                     />
-                    <FieldCard
+                    <CharacterFieldCard
                       label="Характер"
                       hint="Черты личности, привычки, реакции на стресс"
                       value={active.personality}
                       onChange={(v) => scheduleSave(active.id, { personality: v })}
                     />
-                    <FieldCard
+                    <CharacterFieldCard
                       label="Внутренний мир"
                       hint="Что думает и чувствует внутри — страхи, желания, скрытое"
                       value={active.interior_life}
                       onChange={(v) => scheduleSave(active.id, { interior_life: v })}
                     />
-                    <FieldCard
+                    <CharacterFieldCard
                       label="Внешнее поведение"
                       hint="Как выглядит в глазах других — слова, поступки, маска"
                       value={active.exterior_life}
                       onChange={(v) => scheduleSave(active.id, { exterior_life: v })}
                     />
                     <div style={{ gridColumn: '1 / -1' }}>
-                      <FieldCard
+                      <CharacterFieldCard
                         label="Разрыв"
                         hint="Где внутреннее расходится с внешним — источник конфликта"
                         value={active.gap}
                         onChange={(v) => scheduleSave(active.id, { gap: v })}
                       />
                     </div>
-                    <FieldCard
+                    <CharacterFieldCard
                       label="Предыстория"
                       hint="События прошлого, сформировавшие персонажа"
                       value={active.backstory}
                       onChange={(v) => scheduleSave(active.id, { backstory: v })}
                     />
-                    <FieldCard
+                    <CharacterFieldCard
                       label="Авторские заметки"
                       value={active.notes}
                       onChange={(v) => scheduleSave(active.id, { notes: v })}
@@ -472,21 +464,7 @@ export default function Characters() {
     </WithMode>
 
     {mutationError && (
-      <div
-        onClick={clearError}
-        onPointerDown={clearError}
-        style={{
-          position: 'fixed', bottom: 24, left: 0, right: 0, margin: '0 auto',
-          background: 'oklch(0.28 0.06 25)', border: '1px solid oklch(0.45 0.12 25)',
-          borderRadius: 10, padding: '10px 18px',
-          display: 'flex', alignItems: 'center', gap: 10,
-          font: '500 13px var(--font-ui)', color: 'oklch(0.92 0.04 25)',
-          boxShadow: '0 4px 24px oklch(0 0 0 / 0.28)',
-          zIndex: 1000, cursor: 'pointer',
-          animation: 'toast-in 0.2s cubic-bezier(0.22,0.68,0,1.2)',
-          maxWidth: 360, whiteSpace: 'pre-wrap', textAlign: 'center',
-        }}
-      >
+      <div className="toast toast--error" onClick={clearError} onPointerDown={clearError}>
         {mutationError}
       </div>
     )}
@@ -878,44 +856,6 @@ function HeroBlock({ character, bookId, onChange, onError }: {
         )}
 
       </div>
-    </div>
-  );
-}
-
-// ─── Карточка поля ────────────────────────────────────────────────────────
-
-function FieldCard({ label, value, onChange, warn, hint }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  warn?: boolean;
-  hint?: string;
-}) {
-  const [local, setLocal] = useState(value);
-  const initialRef = useRef(value);
-  useEffect(() => {
-    if (value !== initialRef.current) {
-      setLocal(value);
-      initialRef.current = value;
-    }
-  }, [value]);
-
-  return (
-    <div style={{ background: warn ? 'color-mix(in oklch, var(--accent) 8%, transparent)' : 'var(--surface)', border: `1px solid ${warn ? 'color-mix(in oklch, var(--accent) 40%, transparent)' : 'var(--border-soft)'}`, borderRadius: 12, padding: '16px 18px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: hint && !local ? 4 : 10 }}>
-        {warn && <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />}
-        <span style={{ font: '500 10.5px var(--font-mono)', color: warn ? 'var(--accent)' : 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{label}</span>
-      </div>
-      {hint && !local && (
-        <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginBottom: 8, lineHeight: 1.45 }}>{hint}</div>
-      )}
-      <textarea
-        value={local}
-        onChange={(e) => { setLocal(e.target.value); onChange(e.target.value); }}
-        rows={5}
-        placeholder="—"
-        style={{ width: '100%', font: '400 13.5px/1.65 var(--font-serif)', color: 'var(--ink)', background: 'transparent', border: 'none', outline: 'none', resize: 'vertical', padding: 0, minHeight: 80 }}
-      />
     </div>
   );
 }

@@ -17,14 +17,7 @@ import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useProfile, QUERY_KEYS } from '../lib/queries';
 
-function plural(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 19) return many;
-  if (mod10 === 1) return one;
-  if (mod10 >= 2 && mod10 <= 4) return few;
-  return many;
-}
+import { plural } from '../lib/i18n';
 
 const ONBOARDING_FEATURES = [
   { icon: 'feather' as const, title: 'Редактор глав', desc: 'Rich-text, фокусный режим, подсчёт слов в реальном времени' },
@@ -305,7 +298,7 @@ export default function Home() {
                   onChange={(e) => setEditGoal(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
                   onKeyDown={(e) => { if (e.key === 'Escape') setEditBook(null); }}
                 />
-                <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                <div className="input-hint">
                   Рассказ 1–10 тыс. · Новелла 10–20 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпос / сага 120–300 тыс. слов
                 </div>
               </div>
@@ -402,7 +395,7 @@ export default function Home() {
               <button className="btn btn--primary btn--lg" style={{ flex: 1 }} onClick={handleWelcomeCreate}>
                 <Icon name="plus" size={15} /> Создать первую книгу
               </button>
-              <button className="btn btn--ghost btn--lg" style={{ borderColor: 'var(--border)' }} onClick={dismissWelcome}>
+              <button className="btn btn--lg" onClick={dismissWelcome}>
                 Посмотрю позже
               </button>
             </div>
@@ -450,7 +443,7 @@ export default function Home() {
               <div>
                 <label className="label">Цель по словам</label>
                 <input className="input" name="goal" type="number" min={0} step={1000} placeholder="необязательно" />
-                <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                <div className="input-hint">
                   Рассказ 1–10 тыс. · Новелла 10–20 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпос / сага 120–300 тыс. слов
                 </div>
               </div>
