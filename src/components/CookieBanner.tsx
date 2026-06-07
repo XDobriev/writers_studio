@@ -3,13 +3,18 @@ import { useState } from 'react';
 const KEY = 'cookie_consent_v1';
 
 export function CookieBanner() {
-  const [accepted, setAccepted] = useState(() => !!localStorage.getItem(KEY));
+  const [decided, setDecided] = useState(() => !!localStorage.getItem(KEY));
 
-  if (accepted) return null;
+  if (decided) return null;
 
   function accept() {
-    localStorage.setItem(KEY, '1');
-    setAccepted(true);
+    localStorage.setItem(KEY, 'accepted');
+    setDecided(true);
+  }
+
+  function reject() {
+    localStorage.setItem(KEY, 'rejected');
+    setDecided(true);
   }
 
   return (
@@ -30,7 +35,7 @@ export function CookieBanner() {
         padding: '10px 12px 10px 16px',
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        gap: 10,
         maxWidth: 520,
         width: 'calc(100vw - 32px)',
         boxShadow: '0 4px 24px oklch(0 0 0 / 0.5)',
@@ -44,6 +49,13 @@ export function CookieBanner() {
           Политика&nbsp;конфиденциальности
         </a>
       </span>
+      <button
+        onClick={reject}
+        className="btn btn--ghost"
+        style={{ flexShrink: 0, fontSize: 12.5, height: 40, padding: '0 12px' }}
+      >
+        Отклонить
+      </button>
       <button
         onClick={accept}
         className="btn btn--primary"
