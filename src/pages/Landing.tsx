@@ -79,7 +79,7 @@ const MS = [
 ];
 
 export default function Landing() {
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
 
   useEffect(() => {
     const els = document.querySelectorAll<Element>('.lnd-reveal');
@@ -99,6 +99,7 @@ export default function Landing() {
     return () => { io.disconnect(); clearTimeout(fallback); };
   }, []);
 
+  if (loading) return null;
   if (session) return <Navigate to="/books" replace />;
 
   return (

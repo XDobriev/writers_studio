@@ -62,7 +62,12 @@ export default function Home() {
   const [deleting, setDeleting] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  const uploadCover = async (file: File, setter: (url: string) => void, setUploading: (v: boolean) => void) => {
+  const uploadCover = async (
+    file: File,
+    setter: (url: string) => void,
+    setUploading: (v: boolean) => void,
+    setError: (msg: string) => void,
+  ) => {
     setUploading(true);
     try {
       const ext = file.name.split('.').pop() ?? 'jpg';
@@ -71,8 +76,8 @@ export default function Home() {
       if (error) throw error;
       const { data } = supabase.storage.from('book-covers').getPublicUrl(path);
       setter(data.publicUrl);
-    } catch {
-      // оставляем текущее значение при ошибке
+    } catch (e) {
+      setError((e as Error).message ?? 'Ошибка загрузки обложки');
     } finally {
       setUploading(false);
     }
@@ -308,7 +313,7 @@ export default function Home() {
                 value={editCover}
                 onChange={setEditCover}
                 uploading={editUploading}
-                onFileSelect={(f) => uploadCover(f, setEditCover, setEditUploading)}
+                onFileSelect={(f) => uploadCover(f, setEditCover, setEditUploading, setEditError)}
               />
             </div>
             {editError && (
@@ -453,7 +458,7 @@ export default function Home() {
                 value={createCover}
                 onChange={setCreateCover}
                 uploading={createUploading}
-                onFileSelect={(f) => uploadCover(f, setCreateCover, setCreateUploading)}
+                onFileSelect={(f) => uploadCover(f, setCreateCover, setCreateUploading, setErr)}
               />
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 22 }}>
