@@ -12,6 +12,7 @@ import {
   createChapter,
   deleteChapter,
   updateChapter,
+  getChapterContent,
   type ChapterMeta,
   type ChapterPatch,
   type ChapterStatus,
@@ -29,12 +30,30 @@ import { useChapterVersioning } from '../lib/useChapterVersioning';
 import { syncBacklinks } from '../lib/crossrefs';
 import type { Character } from '../lib/characters';
 
+const LAST_CHAPTER_KEY = (bookId: string) => `lastChapter_${bookId}`;
+
 export default function Editor() {
   const { id: bookId } = useParams<{ id: string }>();
   const [search, setSearch] = useSearchParams();
   const { user } = useAuth();
 
   const queryClient = useQueryClient();
+
+  // Prefetch контента последней главы при холодном старте (нет chapter в URL).
+  // Запускается один раз при монтировании, до того как chapters meta вернётся,
+  // чтобы устранить waterfall: chapters → redirect → content.
+  useEffect(() => {
+    if (!bookId || search.get('chapter')) return;
+    const storedId = localStorage.getItem(LAST_CHAPTER_KEY(bookId));
+    if (!storedId) return;
+    void queryClient.prefetchQuery({
+      queryKey: QUERY_KEYS.chapterContent(storedId),
+      queryFn: () => getChapterContent(storedId),
+      staleTime: 30_000,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const { data: book, error: bookError } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
   const { error: mutationError, setError } = useErrorState();
@@ -52,11 +71,13 @@ export default function Editor() {
     if (!chapters || chapters.length === 0) return;
     const exists = activeId && chapters.some((c) => c.id === activeId);
     if (!exists) {
+      const firstId = chapters[0].id;
+      if (bookId) localStorage.setItem(LAST_CHAPTER_KEY(bookId), firstId);
       const next = new URLSearchParams(search);
-      next.set('chapter', chapters[0].id);
+      next.set('chapter', firstId);
       setSearch(next, { replace: true });
     }
-  }, [chapters, activeId, search, setSearch]);
+  }, [chapters, activeId, search, setSearch, bookId]);
 
   const activeChapter = useMemo(
     () => (chapters && activeId ? chapters.find((c) => c.id === activeId) ?? null : null),
@@ -64,10 +85,11 @@ export default function Editor() {
   );
 
   const selectChapter = useCallback((id: string) => {
+    if (bookId) localStorage.setItem(LAST_CHAPTER_KEY(bookId), id);
     const next = new URLSearchParams(search);
     next.set('chapter', id);
     setSearch(next, { replace: false });
-  }, [search, setSearch]);
+  }, [search, setSearch, bookId]);
 
   const onCreateChapter = useCallback(async () => {
     if (!bookId || !user) return;
@@ -243,6 +265,14 @@ export default function Editor() {
     await updateBook(bookId, { daily_goal: goal });
   }, [bookId, queryClient]);
 
+  const onChapterHover = useCallback((id: string) => {
+    void queryClient.prefetchQuery({
+      queryKey: QUERY_KEYS.chapterContent(id),
+      queryFn: () => getChapterContent(id),
+      staleTime: 30_000,
+    });
+  }, [queryClient]);
+
   const onDeleteChapter = useCallback(async (id: string) => {
     try {
       await deleteChapter(id);
@@ -306,7 +336,7 @@ export default function Editor() {
         chapters={chapters}
         activeChapter={activeChapter}
         activeContent={activeContent}
-        chapterActions={{ onSelectChapter: selectChapter, onCreateChapter, onStatusChange, onDeleteChapter }}
+        chapterActions={{ onSelectChapter: selectChapter, onCreateChapter, onStatusChange, onDeleteChapter, onChapterHover }}
         onContentChange={onContentChange}
         onTitleChange={onTitleChange}
         onGoalChange={onGoalChange}

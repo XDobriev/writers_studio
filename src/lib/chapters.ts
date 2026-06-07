@@ -25,6 +25,7 @@ export interface ChapterActions {
   onCreateChapter?: () => void;
   onStatusChange?: (id: string, status: ChapterStatus) => void;
   onDeleteChapter?: (id: string) => void;
+  onChapterHover?: (id: string) => void;
 }
 
 export function countWords(html: string): number {

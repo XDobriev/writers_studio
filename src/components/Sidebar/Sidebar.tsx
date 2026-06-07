@@ -40,7 +40,7 @@ export function Sidebar({
   subtitle,
   children,
 }: SidebarProps) {
-  const { onSelectChapter, onCreateChapter, onStatusChange, onDeleteChapter } = chapterActions ?? {};
+  const { onSelectChapter, onCreateChapter, onStatusChange, onDeleteChapter, onChapterHover } = chapterActions ?? {};
   const isReal = Boolean(chapters);
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
@@ -175,6 +175,7 @@ export function Sidebar({
                 <button
                   type="button"
                   onClick={() => onSelectChapter?.(c.id)}
+                  onMouseEnter={() => onChapterHover?.(c.id)}
                   className={'sb-item' + (activeChapterId === c.id ? ' sb-item--on' : '')}
                   style={{ flex: 1, width: '100%', textAlign: 'left', cursor: 'pointer' }}
                 >
