@@ -24,6 +24,7 @@ import { listChapters, type Chapter } from '../lib/chapters';
 import { fetchNotes, type Note } from '../lib/notes';
 
 type Format = 'epub' | 'fb2' | 'docx' | 'html' | 'txt' | 'md';
+type ParagraphStyle = 'indent' | 'spacing' | 'both';
 
 const LANGUAGES = [
   { value: 'ru-RU', label: 'Русский' },
@@ -165,9 +166,19 @@ function notesBlockFb2(notes: Note[]): string {
 
 // ─── Plain builders ───────────────────────────────────────────────────────────
 
-function getHtmlStyle(paragraphStyle: 'indent' | 'spacing'): string {
+function addNoIndentToFirst(html: string): string {
+  return html.replace(/<p(\s[^>]*)?>/, (match, attrs) => {
+    const a = attrs ?? '';
+    if (a.includes('class=')) return match.replace(/class="([^"]*)"/, 'class="$1 no-indent"');
+    return `<p${a} class="no-indent">`;
+  });
+}
+
+function getHtmlStyle(paragraphStyle: ParagraphStyle): string {
   const pRule = paragraphStyle === 'indent'
-    ? 'p{margin:0 0 0.2em;text-indent:1.4em}p.no-indent,p:first-of-type{text-indent:0}'
+    ? 'p{margin:0 0 0.2em;text-indent:1.4em}p.no-indent{text-indent:0}'
+    : paragraphStyle === 'both'
+    ? 'p{margin:0 0 0.9em;text-indent:1.4em}p.no-indent{text-indent:0}'
     : 'p{margin:0 0 1.1em;text-indent:0}';
   return `
   body{font:16px/1.7 Georgia,'Times New Roman',serif;max-width:720px;margin:48px auto;padding:0 24px;color:#1a1715;background:#faf8f4}
@@ -180,6 +191,7 @@ function getHtmlStyle(paragraphStyle: 'indent' | 'spacing'): string {
   .chapter-notes-title{margin:0 0 0.6em;font:600 11px system-ui,sans-serif;color:#8a7d70;text-transform:uppercase;letter-spacing:0.08em}
   .note-item{margin:0 0 0.4em;font-size:14px;color:#4a443f;text-indent:0}
   .cover-img{display:block;max-width:400px;margin:0 auto 2.5em;border-radius:6px}
+  @media print{h2.chapter-title{page-break-before:always}}
 `;
 }
 
@@ -189,7 +201,7 @@ interface BuildOpts {
   language: string;
   includeNotes: boolean;
   notes: Note[];
-  paragraphStyle: 'indent' | 'spacing';
+  paragraphStyle: ParagraphStyle;
   cover?: { data: ArrayBuffer; mime: string; ext: string };
 }
 
@@ -201,7 +213,8 @@ function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): string 
   const body = chapters.map((ch) => {
     const title = opts.includeChapterTitles ? `<h2 class="chapter-title">${escapeHtml(ch.title)}</h2>` : '';
     const notesHtml = opts.includeNotes ? notesBlockHtml(chapterNotes(opts.notes, ch.id)) : '';
-    return title + (ch.content || '') + notesHtml;
+    const content = opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(ch.content || '') : (ch.content || '');
+    return title + content + notesHtml;
   }).join('\n');
   const bookNotesHtml = opts.includeNotes ? notesBlockHtml(bookNotes(opts.notes)) : '';
   return `<!doctype html>
@@ -278,19 +291,22 @@ const H_LEVELS = [
   HeadingLevel.HEADING_4, HeadingLevel.HEADING_5, HeadingLevel.HEADING_6,
 ];
 
-function parseBlockEl(el: Element, paragraphStyle: 'indent' | 'spacing', indentLeft?: number): Paragraph[] {
+function parseBlockEl(el: Element, paragraphStyle: ParagraphStyle, indentLeft?: number): Paragraph[] {
   const tag = el.tagName.toLowerCase();
 
   if (tag === 'p') {
     const runs = collectRuns(el, {});
-    const useFirstLine = paragraphStyle === 'indent' && !indentLeft;
+    const hasIndent = paragraphStyle === 'indent' || paragraphStyle === 'both';
+    const isNoIndent = el.getAttribute('data-no-indent') === 'true';
+    const useFirstLine = hasIndent && !indentLeft && !isNoIndent;
+    const spacingAfter = paragraphStyle === 'spacing' ? 200 : paragraphStyle === 'both' ? 160 : 40;
     return [new Paragraph({
       children: runs.length ? runs : [new TextRun('')],
       indent: {
         ...(indentLeft ? { left: indentLeft } : {}),
         ...(useFirstLine ? { firstLine: 720 } : {}),
       },
-      spacing: paragraphStyle === 'indent' ? { after: 40 } : { after: 200 },
+      spacing: { after: spacingAfter },
     })];
   }
 
@@ -327,10 +343,12 @@ function parseBlockEl(el: Element, paragraphStyle: 'indent' | 'spacing', indentL
   return result;
 }
 
-function parseHtmlToParagraphs(html: string, paragraphStyle: 'indent' | 'spacing'): Paragraph[] {
+function parseHtmlToParagraphs(html: string, paragraphStyle: ParagraphStyle): Paragraph[] {
   if (!html.trim()) return [];
   const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
   const root = doc.querySelector('div')!;
+  const firstP = root.querySelector('p');
+  if (firstP) firstP.setAttribute('data-no-indent', 'true');
   const result: Paragraph[] = [];
   for (const child of Array.from(root.children)) result.push(...parseBlockEl(child, paragraphStyle));
   return result;
@@ -501,9 +519,11 @@ ${arrayBufferToBase64(opts.cover.data)}
 
 // ─── EPUB builder ─────────────────────────────────────────────────────────────
 
-function getEpubCss(paragraphStyle: 'indent' | 'spacing'): string {
+function getEpubCss(paragraphStyle: ParagraphStyle): string {
   const pRule = paragraphStyle === 'indent'
-    ? 'p{margin:0 0 0.15em;text-indent:1.4em}\np.no-indent,p:first-of-type{text-indent:0}'
+    ? 'p{margin:0 0 0.15em;text-indent:1.4em}\np.no-indent{text-indent:0}'
+    : paragraphStyle === 'both'
+    ? 'p{margin:0 0 0.9em;text-indent:1.4em}\np.no-indent{text-indent:0}'
     : 'p{margin:0 0 1.1em;text-indent:0}\np.no-indent{text-indent:0}';
   return `body{font:1em/1.75 Georgia,'Times New Roman',serif;margin:1.5em 2em}
 h1,h2,h3{font-weight:600;margin:1.5em 0 0.5em;line-height:1.3}
@@ -665,7 +685,8 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
   if (opts.includeTitlePage) zip.file('OEBPS/title.xhtml', titleXhtml(book, lang));
   for (const c of chs) {
     const nHtml = opts.includeNotes ? notesBlockEpub(chapterNotes(opts.notes, c.chapterId)) : '';
-    zip.file(`OEBPS/${c.href}`, chapterXhtml(c.title, c.content, lang, opts.includeChapterTitles, nHtml));
+    const content = opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(c.content) : c.content;
+    zip.file(`OEBPS/${c.href}`, chapterXhtml(c.title, content, lang, opts.includeChapterTitles, nHtml));
   }
 
   if (opts.includeNotes) {
@@ -723,9 +744,10 @@ export default function Export() {
   const [langOpen, setLangOpen] = useState(false);
   const [langPos, setLangPos] = useState({ top: 0, left: 0, width: 0 });
   const langBtnRef = useRef<HTMLButtonElement>(null);
-  const [paragraphStyle, setParagraphStyle] = useState<'indent' | 'spacing'>(() =>
-    (localStorage.getItem('export-paragraph-style') as 'indent' | 'spacing') ?? 'indent'
-  );
+  const [paragraphStyle, setParagraphStyle] = useState<ParagraphStyle>(() => {
+    const s = localStorage.getItem('export-paragraph-style');
+    return (s === 'indent' || s === 'spacing' || s === 'both') ? s : 'indent';
+  });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -997,12 +1019,13 @@ export default function Export() {
           {/* Paragraph style — rich formats only */}
           {(['epub', 'fb2', 'docx', 'html'] as Format[]).includes(format) && (
             <div style={{ paddingTop: 16, marginBottom: 4 }}>
-              <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Стиль абзацев</div>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Абзацы</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {([
-                  { value: 'indent', label: '⊢ Красная строка', hint: 'отступ первой строки' },
-                  { value: 'spacing', label: '¶ Интервал', hint: 'отступ между абзацами' },
-                ] as { value: 'indent' | 'spacing'; label: string; hint: string }[]).map((s) => {
+                  { value: 'indent' as ParagraphStyle, label: 'Книжный', hint: 'красная строка, без интервала' },
+                  { value: 'spacing' as ParagraphStyle, label: 'Цифровой', hint: 'интервал между абзацами' },
+                  { value: 'both' as ParagraphStyle, label: 'Смешанный', hint: 'красная строка + интервал' },
+                ]).map((s) => {
                   const active = paragraphStyle === s.value;
                   return (
                     <button
@@ -1014,12 +1037,17 @@ export default function Export() {
                         background: active ? 'var(--accent-soft)' : 'var(--surface)',
                       }}
                     >
-                      <div style={{ font: `500 12.5px var(--font-sans)`, color: active ? 'var(--ink)' : 'var(--ink-2)' }}>{s.label}</div>
+                      <div style={{ font: '500 12.5px var(--font-sans)', color: active ? 'var(--ink)' : 'var(--ink-2)' }}>{s.label}</div>
                       <div style={{ fontSize: 10.5, color: 'var(--ink-4)', marginTop: 1 }}>{s.hint}</div>
                     </button>
                   );
                 })}
               </div>
+              {format === 'fb2' && (
+                <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 8 }}>
+                  Для FB2 стиль абзацев задаётся настройками читалки, не документом
+                </div>
+              )}
             </div>
           )}
 
