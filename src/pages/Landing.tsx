@@ -151,7 +151,10 @@ export default function Landing() {
           .lnd-note-in { animation: lnd-note-in 0.5s cubic-bezier(0.16,1,0.3,1) backwards; }
           .lnd-note-in.n1 { animation-delay: 0.55s; }
           .lnd-note-in.n2 { animation-delay: 0.75s; }
-          .faq-chevron { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }
+          .lnd-nav-links a { transition: color 0.15s ease; }
+          .lnd-nav-login { transition: color 0.15s ease; }
+          .lnd-foot-link, .lnd-foot-link--sub { transition: color 0.15s ease; }
+          .faq-chevron { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1), color 0.15s ease; }
           .faq-body { transition: height 0.3s cubic-bezier(0.16,1,0.3,1); }
           .lnd-browser-mock { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }
           .lnd-browser-mock:hover { transform: translateY(-4px); }
@@ -167,6 +170,15 @@ export default function Landing() {
         .lnd-feat-row-full { padding: 72px 0; border-top: 1px solid var(--border-soft); }
         .lnd-prices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1100px; margin: 0 auto; }
         .lnd-nav-links { display: flex; gap: 28px; font-size: 13.5px; color: var(--ink-2); }
+        .lnd-nav-links a:hover { color: var(--ink); }
+        .lnd-nav-login { color: var(--ink-2); }
+        .lnd-nav-login:hover { color: var(--ink); }
+        .lnd-foot-link { color: var(--ink-2); }
+        .lnd-foot-link:hover { color: var(--ink); }
+        .lnd-foot-link--sub { color: var(--ink-3); }
+        .lnd-foot-link--sub:hover { color: var(--ink-2); }
+        .faq-chevron { color: var(--ink-3); }
+        .faq-trigger:hover .faq-chevron { color: var(--ink-2); }
         .lnd-manifesto { display: flex; flex-direction: column; }
         .lnd-manifesto-row { display: grid; grid-template-columns: 52px 1fr; gap: 40px; padding: 36px 0; align-items: start; position: relative; }
         .lnd-manifesto-row::before { content: ''; position: absolute; top: 0; left: 0; height: 1px; background: var(--border-soft); width: 100%; }
@@ -243,7 +255,7 @@ function LandingNav() {
         <a href="#faq" style={{ textDecoration: 'none', color: 'inherit' }}>Вопросы</a>
       </nav>
       <span style={{ width: 1, height: 18, background: 'var(--border-soft)' }} />
-      <Link to="/login" style={{ fontSize: 13.5, color: 'var(--ink-2)', textDecoration: 'none', padding: '12px 6px', margin: '-12px -6px' }}>Войти</Link>
+      <Link to="/login" className="lnd-nav-login" style={{ fontSize: 13.5, textDecoration: 'none', padding: '12px 6px', margin: '-12px -6px' }}>Войти</Link>
       <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 34, padding: '0 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать свою книгу</Link>
     </header>
   );
@@ -897,13 +909,14 @@ function FAQItem({ q, a, index, defaultOpen = false }: { q: string; a: string; i
     <div style={{ borderTop: '1px solid var(--border-soft)', padding: '13px 0' }}>
       <button
         onClick={toggle}
+        className="faq-trigger"
         style={{ display: 'flex', width: '100%', background: 'none', border: 'none', padding: '11px 0', cursor: 'pointer', textAlign: 'left', alignItems: 'flex-start', gap: 16 }}
       >
         <span style={{ font: '500 13px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em', marginTop: 4, flexShrink: 0 }}>
           {String(index + 1).padStart(2, '0')}
         </span>
         <span style={{ flex: 1, font: '500 19px var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.005em' }}>{q}</span>
-        <span className={`faq-chevron${open ? ' open' : ''}`} style={{ color: 'var(--ink-3)', marginTop: 6, flexShrink: 0 }}>
+        <span className={`faq-chevron${open ? ' open' : ''}`} style={{ marginTop: 6, flexShrink: 0 }}>
           <Icon name="chevd" size={16} />
         </span>
       </button>
@@ -1022,9 +1035,9 @@ function LandingFooter() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                 {links.map(({ label, href }) => (
                   href.startsWith('/') ? (
-                    <Link key={label} to={href} style={{ fontSize: 13.5, color: 'var(--ink-2)', textDecoration: 'none' }}>{label}</Link>
+                    <Link key={label} to={href} className="lnd-foot-link" style={{ fontSize: 13.5, textDecoration: 'none' }}>{label}</Link>
                   ) : (
-                    <a key={label} href={href} style={{ fontSize: 13.5, color: 'var(--ink-2)', textDecoration: 'none' }} rel="noopener noreferrer">{label}</a>
+                    <a key={label} href={href} className="lnd-foot-link" style={{ fontSize: 13.5, textDecoration: 'none' }} rel="noopener noreferrer">{label}</a>
                   )
                 ))}
               </div>
@@ -1034,12 +1047,12 @@ function LandingFooter() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 24, borderTop: '1px solid var(--border-soft)', font: '400 11.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em', flexWrap: 'wrap' }}>
           <span>© 2026 Авторская студия</span>
           <span>·</span>
-          <Link to="/terms" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Соглашение</Link>
-          <Link to="/privacy" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Конфиденциальность</Link>
-          <Link to="/offer" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Оферта</Link>
+          <Link to="/terms" className="lnd-foot-link--sub" style={{ textDecoration: 'none' }}>Соглашение</Link>
+          <Link to="/privacy" className="lnd-foot-link--sub" style={{ textDecoration: 'none' }}>Конфиденциальность</Link>
+          <Link to="/offer" className="lnd-foot-link--sub" style={{ textDecoration: 'none' }}>Оферта</Link>
           <span style={{ flex: 1 }} />
           <span>Самозанятый Добриев Хамзат Юсупович · ИНН 290133229106 · г. Назрань ·</span>
-          <a href="mailto:hello@avtorstudio.com" style={{ color: 'var(--ink-3)', textDecoration: 'none' }} rel="noopener noreferrer">hello@avtorstudio.com</a>
+          <a href="mailto:hello@avtorstudio.com" className="lnd-foot-link--sub" style={{ textDecoration: 'none' }} rel="noopener noreferrer">hello@avtorstudio.com</a>
         </div>
       </div>
     </footer>
