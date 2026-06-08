@@ -4,6 +4,7 @@ import { useErrorState } from '../lib/useErrorState';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
+import { PasswordInput } from '../components/PasswordInput';
 
 const SUPABASE_ERRORS: Record<string, string> = {
   'Password should be at least 6 characters.': 'Пароль должен содержать не менее 6 символов.',
@@ -110,29 +111,25 @@ export default function ResetPassword() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
               <div>
                 <label className="label" htmlFor="rp-password">Новый пароль</label>
-                <input
+                <PasswordInput
                   id="rp-password"
-                  className="input"
-                  type="password"
-                  required
-                  minLength={6}
+                  value={password}
+                  onChange={setPassword}
                   autoComplete="new-password"
                   autoFocus
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
                 />
               </div>
               <div>
                 <label className="label" htmlFor="rp-confirm">Повторите пароль</label>
-                <input
+                <PasswordInput
                   id="rp-confirm"
-                  className="input"
-                  type="password"
+                  value={confirm}
+                  onChange={setConfirm}
+                  autoComplete="new-password"
                   required
                   minLength={6}
-                  autoComplete="new-password"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
                 />
               </div>
             </div>

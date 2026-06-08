@@ -4,7 +4,7 @@ import { useErrorState } from '../lib/useErrorState';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, type TelegramAuthData } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
-import { Icon } from '../components/Icon';
+import { PasswordInput } from '../components/PasswordInput';
 import { supabaseConfigured } from '../lib/supabase';
 import { useRegistrationOpen } from '../lib/queries';
 
@@ -50,7 +50,6 @@ export default function Auth() {
   const [consentMarketing, setConsentMarketing] = useState(false);
   const [oauthBusy, setOauthBusy] = useState<'google' | 'telegram' | null>(null);
   const [tgHover, setTgHover] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const { error: err, setError: setErr, clearError: clearErr } = useErrorState();
   const [info, setInfo] = useState<string | null>(null);
   const { data: registrationOpen = true } = useRegistrationOpen();
@@ -411,29 +410,16 @@ export default function Auth() {
                       </button>
                     )}
                   </div>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      id="auth-password"
-                      name="password"
-                      className={`input${err ? ' input--err' : ''}`}
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      minLength={6}
-                      autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
-                      value={password}
-                      onChange={(e) => { setPassword(e.target.value); clearErr(); }}
-                      style={{ paddingRight: 36, width: '100%' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(v => !v)}
-                      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: 0 }}
-                      tabIndex={-1}
-                      aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                    >
-                      <Icon name={showPassword ? 'eye-off' : 'eye'} size={15} />
-                    </button>
-                  </div>
+                  <PasswordInput
+                    id="auth-password"
+                    name="password"
+                    value={password}
+                    onChange={(v) => { setPassword(v); clearErr(); }}
+                    autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
+                    hasError={!!err}
+                    required
+                    minLength={6}
+                  />
                 </div>
               </div>
 

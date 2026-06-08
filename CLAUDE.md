@@ -59,6 +59,7 @@ npm run preview    # превью продакшен-сборки
 - `src/components/Skeleton.tsx` — скелетон-загрузка для async-состояний.
 - `src/components/VersionsPanel.tsx` + `VersionModal.tsx` — UI снапшотов/версий.
 - `src/components/CharacterFieldCard.tsx` — именованная карточка-поле (label + textarea + warn-состояние); используется в детальном виде персонажа.
+- `src/components/PasswordInput.tsx` — поле пароля с toggle-глазом; управляет своим show-состоянием сам.
 - `src/components/AccountMenu.tsx` — переиспользуемый дропдаун аккаунта (Настройки + Выйти); render-prop `children` для кастомного триггера; `placement="above"|"below"`.
 - `src/components/AuthGuard.tsx` — защита роутов.
 - `src/components/ErrorBoundary.tsx` — перехват краша компонентов, fallback UI.
