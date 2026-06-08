@@ -127,9 +127,11 @@ export default function App() {
         <AuthQuerySync />
         <OfflineBanner />
         <CookieBanner />
-        <Suspense fallback={<PageFallback />}>
-          <AnimatedRoutes />
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<PageFallback />}>
+            <AnimatedRoutes />
+          </Suspense>
+        </ErrorBoundary>
       </BrowserRouter>
     </AuthProvider>
     </PersistQueryClientProvider>
