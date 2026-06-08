@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-08 (закрыты §9a флаг registration_open, §13 правки лендинга/Auth)_
+_Обновлён: 2026-06-08 (закрыты §9a флаг registration_open, §13 правки лендинга/Auth, §3 SEO полностью — Яндекс.Вебмастер + Метрика + GSC + sitemap)_
 
 
 
@@ -129,22 +129,17 @@ _Обновлён: 2026-06-08 (закрыты §9a флаг registration_open, �
 - ✅ `og:url`, `og:image`, `twitter:image` — исправлены на `avtorstudio.com` в `index.html`
 - ✅ Schema.org JSON-LD — `SoftwareApplication` + `FAQPage` с 6 вопросами добавлены в `index.html`
 - ✅ `X-Robots-Tag: noindex` на `/books/*`, `/login`, `/admin` и т.д. — nginx `deploy/nginx.conf`. Применить на VPS: скопировать конфиг → `nginx -t && systemctl reload nginx`
-- ⬜ `<meta name="yandex-verification" content="...">` — получить код на webmaster.yandex.ru, раскомментировать placeholder в `index.html`
+- ✅ `<meta name="yandex-verification" content="9df4874f3a7e6b28">` — добавлен в `index.html`
 
-**Шаг 3 — ✅ Выполнено:** `public/robots.txt` исправлен. `public/sitemap.xml` создан.
+**Шаг 3 — ✅ Выполнено:** `public/robots.txt` исправлен. `public/sitemap.xml` создан и расширен (`/`, `/offer`, `/auth`). `<link rel="sitemap">` добавлен в `index.html`.
 
 **Шаг 3.1 — ✅ Выполнено:** Ключевые слова «онлайн-редактор для писателей на русском языке» добавлены в subtitle секции «Возможности» (`src/pages/Landing.tsx:408`).
 
-**Шаг 4 — Яндекс.Вебмастер (ручной шаг):**
-1. Зарегистрировать `avtorstudio.com` на webmaster.yandex.ru
-2. Получить код верификации → раскомментировать `<meta name="yandex-verification">` в `index.html` → задеплоить
-3. Добавить sitemap `https://avtorstudio.com/sitemap.xml`
+**Шаг 4 — ✅ Выполнено:** Яндекс.Вебмастер — права подтверждены, sitemap добавлен. Регион не указываем — SaaS без геопривязки, региональное ранжирование неактуально.
 
-**Шаг 5 — Яндекс.Метрика (ручной шаг):**
-Создать счётчик на metrika.yandex.ru → заменить `XXXXXXXX` на ID → раскомментировать блок в `index.html` → задеплоить.
+**Шаг 5 — ✅ Выполнено:** Яндекс.Метрика — счётчик `109723861` подключён в `index.html` с параметрами SPA (`ssr:true`, webvisor, clickmap, ecommerce).
 
-**Шаг 6 — Google Search Console (ручной шаг):**
-Верификация через `public/google41b7face4a88ca87.html` уже есть. ⬜ Загрузить `https://avtorstudio.com/sitemap.xml` в GSC → Sitemaps. После подтверждения удалить `avtorskaya-studiya.vercel.app` из GSC.
+**Шаг 6 — ✅ Выполнено:** Google Search Console — sitemap `https://avtorstudio.com/sitemap.xml` добавлен. После обработки noindex удалить `avtorskaya-studiya.vercel.app` из GSC (1–2 недели).
 
 **Файлы:** `scripts/prerender.mjs`, `deploy/nginx.conf`, `src/pages/Landing.tsx`, `index.html`, `.github/workflows/deploy-timeweb.yml`
 **Проверить:** `npm run build` → view-source на `dist/index.html` → полный HTML лендинга (не пустой `<div id="root">`)
@@ -427,6 +422,8 @@ dev → Vercel preview (авто) → e2e тесты → merge в main → Timew
 ---
 
 ## Закрыто
+
+_2026-06-08:_ seo §3 полностью закрыт — pre-rendering, canonical/og/schema, sitemap, robots.txt, Яндекс.Вебмастер (верификация + sitemap), Яндекс.Метрика (счётчик 109723861, SPA-режим), Google Search Console (sitemap загружен) ✅
 
 _2026-06-08:_ feat(auth) §9a флаг registration_open — заглушка при `value='false'`, fail-open; `useRegistrationOpen` хук в `queries.ts`, `getRegistrationOpen` в `profiles.ts` ✅
 
