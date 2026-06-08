@@ -1,4 +1,5 @@
 {
+  "buildCommand": "npx playwright install chromium --with-deps && npm run build",
   "headers": [
     {
       "source": "/(.*)",

@@ -45,7 +45,14 @@ const urls = server.resolvedUrls;
 const base = (urls?.local?.[0] ?? 'http://localhost:4174').replace(/\/$/, '');
 console.log(`Preview server: ${base}`);
 
-const browser = await chromium.launch();
+let browser;
+try {
+  browser = await chromium.launch();
+} catch (err) {
+  console.warn('Playwright Chromium unavailable, skipping pre-render:', err.message);
+  await server.close();
+  process.exit(0);
+}
 const page = await browser.newPage();
 
 for (const { path, out } of ROUTES) {
