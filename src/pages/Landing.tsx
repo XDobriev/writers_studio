@@ -82,6 +82,7 @@ export default function Landing() {
   const { session, loading } = useAuth();
 
   useEffect(() => {
+    if (loading) return;
     const els = document.querySelectorAll<Element>('.lnd-reveal');
     if (!els.length) return;
     const reveal = (el: Element) => {
@@ -97,7 +98,7 @@ export default function Landing() {
       document.querySelectorAll<Element>('.lnd-reveal:not(.lnd-visible)').forEach(reveal);
     }, 4000);
     return () => { io.disconnect(); clearTimeout(fallback); };
-  }, []);
+  }, [loading]);
 
   if (loading) return null;
   if (session) return <Navigate to="/books" replace />;
