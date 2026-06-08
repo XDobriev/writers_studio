@@ -32,6 +32,7 @@ export interface Book {
   cover: string | null;
   share_token: string | null;
   map_bg_url: string | null;
+  map_template: string | null;
   created_at: string;
   updated_at: string;
 }

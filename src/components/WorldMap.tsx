@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useResponsive } from '../lib/useResponsive';
 import { TYPE_GLYPHS, TYPE_LABELS, type Location, type LocationPatch, type LocationType } from '../lib/locations';
 import { CONNECTION_STYLES, type LocationConnection, type ConnectionPatch } from '../lib/connections';
+import { getMapTemplate, type MapTemplateId } from '../lib/mapTemplates';
 import type { MapMode } from '../pages/Map';
 
 const CW = 1600;
@@ -14,6 +15,7 @@ interface WorldMapProps {
   locations: Location[];
   connections: LocationConnection[];
   bgUrl: string | null;
+  template?: string | null;
   mode: MapMode;
   onUpdate: (id: string, patch: LocationPatch) => void;
   onCreate: (x: number, y: number) => void;
@@ -23,8 +25,98 @@ interface WorldMapProps {
   onUpdateConnection: (id: string, patch: ConnectionPatch) => void;
 }
 
+function TemplateBg({ id }: { id: MapTemplateId }) {
+  if (id === 'sea') {
+    return (
+      <>
+        <defs>
+          <linearGradient id="wm-g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#060e1c"/>
+            <stop offset="100%" stopColor="#091526"/>
+          </linearGradient>
+          <pattern id="wm-w" width={80} height={40} patternUnits="userSpaceOnUse">
+            <path d="M0 20 Q20 10 40 20 Q60 30 80 20" fill="none" stroke="#1a3a5c" strokeWidth={0.7} opacity={0.4}/>
+          </pattern>
+          <pattern id="wm-l" width={160} height={80} patternUnits="userSpaceOnUse">
+            <line x1={80} y1={0} x2={80} y2={80} stroke="#1e4570" strokeWidth={0.3} opacity={0.3}/>
+            <line x1={0} y1={40} x2={160} y2={40} stroke="#1e4570" strokeWidth={0.3} opacity={0.3}/>
+          </pattern>
+        </defs>
+        <rect width={CW} height={CH} fill="url(#wm-g)"/>
+        <rect width={CW} height={CH} fill="url(#wm-w)"/>
+        <rect width={CW} height={CH} fill="url(#wm-l)"/>
+        <rect width={CW} height={CH} fill="none" stroke="#1e4570" strokeWidth={1.5} opacity={0.5}/>
+        <rect x={12} y={12} width={CW - 24} height={CH - 24} fill="none" stroke="#1e4570" strokeWidth={0.6} strokeDasharray="8 4" opacity={0.35}/>
+      </>
+    );
+  }
+  if (id === 'paper') {
+    return (
+      <>
+        <defs>
+          <pattern id="wm-g" width={40} height={40} patternUnits="userSpaceOnUse">
+            <line x1={40} y1={0} x2={40} y2={40} stroke="#c8b89a" strokeWidth={0.4} opacity={0.5}/>
+            <line x1={0} y1={40} x2={40} y2={40} stroke="#c8b89a" strokeWidth={0.4} opacity={0.5}/>
+          </pattern>
+          <pattern id="wm-c" width={200} height={200} patternUnits="userSpaceOnUse">
+            <line x1={100} y1={0} x2={100} y2={200} stroke="#b8a080" strokeWidth={0.8} opacity={0.3}/>
+            <line x1={0} y1={100} x2={200} y2={100} stroke="#b8a080" strokeWidth={0.8} opacity={0.3}/>
+          </pattern>
+        </defs>
+        <rect width={CW} height={CH} fill="#f7f2e8" rx={6}/>
+        <rect width={CW} height={CH} fill="url(#wm-g)" rx={6}/>
+        <rect width={CW} height={CH} fill="url(#wm-c)" rx={6}/>
+        <rect width={CW} height={CH} fill="none" rx={6} stroke="#c8b89a" strokeWidth={1.5}/>
+        <rect x={16} y={16} width={CW - 32} height={CH - 32} fill="none" rx={3} stroke="#c8b89a" strokeWidth={0.6} strokeDasharray="6 4" opacity={0.6}/>
+      </>
+    );
+  }
+  if (id === 'dark') {
+    return (
+      <>
+        <defs>
+          <radialGradient id="wm-g" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" stopColor="#1a1a22"/>
+            <stop offset="100%" stopColor="#0e0e14"/>
+          </radialGradient>
+          <pattern id="wm-d" width={32} height={32} patternUnits="userSpaceOnUse">
+            <circle cx={16} cy={16} r={0.7} fill="#5050a0" opacity={0.12}/>
+          </pattern>
+          <pattern id="wm-x" width={160} height={160} patternUnits="userSpaceOnUse">
+            <line x1={79} y1={76} x2={81} y2={84} stroke="#6060b0" strokeWidth={0.4} opacity={0.2}/>
+            <line x1={76} y1={80} x2={84} y2={80} stroke="#6060b0" strokeWidth={0.4} opacity={0.2}/>
+          </pattern>
+        </defs>
+        <rect width={CW} height={CH} fill="url(#wm-g)"/>
+        <rect width={CW} height={CH} fill="url(#wm-d)"/>
+        <rect width={CW} height={CH} fill="url(#wm-x)"/>
+        <rect width={CW} height={CH} fill="none" stroke="#303060" strokeWidth={1} opacity={0.4}/>
+        <rect x={14} y={14} width={CW - 28} height={CH - 28} fill="none" stroke="#404080" strokeWidth={0.5} strokeDasharray="5 5" opacity={0.25}/>
+      </>
+    );
+  }
+  // parchment (default)
+  return (
+    <>
+      <defs>
+        <radialGradient id="wm-g" cx="50%" cy="50%" r="65%">
+          <stop offset="0%"   stopColor="#3d2e1e"/>
+          <stop offset="100%" stopColor="#1e150d"/>
+        </radialGradient>
+        <pattern id="wm-d" width={48} height={48} patternUnits="userSpaceOnUse">
+          <circle cx={24} cy={24} r={0.9} fill="#9a7a52" opacity={0.18}/>
+        </pattern>
+      </defs>
+      <rect x={0} y={0} width={CW} height={CH} fill="url(#wm-g)" rx={8}/>
+      <rect x={0} y={0} width={CW} height={CH} fill="url(#wm-d)" rx={8}/>
+      <rect x={0} y={0} width={CW} height={CH} fill="none" rx={8} stroke="#5a3f28" strokeWidth={2}/>
+      <rect x={18} y={18} width={CW - 36} height={CH - 36} fill="none" rx={4} stroke="#4a3420" strokeWidth={0.8} strokeDasharray="10 5" opacity={0.5}/>
+    </>
+  );
+}
+
 export function WorldMap({
-  locations, connections, bgUrl, mode,
+  locations, connections, bgUrl, template, mode,
   onUpdate, onCreate, onDelete,
   onCreateConnection, onDeleteConnection, onUpdateConnection,
 }: WorldMapProps) {
@@ -354,23 +446,7 @@ export function WorldMap({
           {/* Background */}
           {bgUrl
             ? <image href={bgUrl} x={0} y={0} width={CW} height={CH} preserveAspectRatio="xMidYMid slice" opacity={0.85} />
-            : (
-              <>
-                <defs>
-                  <radialGradient id="wm-parchment" cx="50%" cy="50%" r="65%" gradientUnits="objectBoundingBox">
-                    <stop offset="0%"   stopColor="oklch(0.27 0.022 52)"/>
-                    <stop offset="100%" stopColor="oklch(0.15 0.018 45)"/>
-                  </radialGradient>
-                  <pattern id="wm-dots" width={48} height={48} patternUnits="userSpaceOnUse">
-                    <circle cx={24} cy={24} r={0.9} fill="oklch(0.55 0.018 50)" opacity={0.18}/>
-                  </pattern>
-                </defs>
-                <rect x={0} y={0} width={CW} height={CH} fill="url(#wm-parchment)" rx={8}/>
-                <rect x={0} y={0} width={CW} height={CH} fill="url(#wm-dots)" rx={8}/>
-                <rect x={0} y={0} width={CW} height={CH} fill="none" rx={8} stroke="oklch(0.32 0.02 50)" strokeWidth={2}/>
-                <rect x={18} y={18} width={CW - 36} height={CH - 36} fill="none" rx={4} stroke="oklch(0.28 0.018 50)" strokeWidth={0.8} strokeDasharray="10 5" opacity={0.5}/>
-              </>
-            )
+            : <TemplateBg id={getMapTemplate(template)} />
           }
 
           {/* Connection lines — render before pins */}

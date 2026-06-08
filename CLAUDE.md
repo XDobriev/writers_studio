@@ -103,6 +103,8 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/editorFont.ts` — `EDITOR_FONTS`, `applyEditorFont`, `getStoredEditorFont`; CSS var `--font-editor`; dispatches `as-editor-font` CustomEvent для синхронизации SettingsModal ↔ StatusBar.
 - `src/lib/i18n.ts` — `plural(n, one, few, many)` и `pluralDays(n)`: канонические функции русской числовой морфологии.
 - `src/lib/useVersionMutations.ts` — `createNamed(content, label)` и `remove(id)`: мутации версий с инвалидацией кеша; скрывает `QUERY_KEYS` и `queryClient` от `VersionsPanel`.
+- `src/lib/mapTemplates.ts` — 4 шаблона карты (`parchment`, `sea`, `paper`, `dark`): метаданные для пикера + `renderTemplateBgSvg` для off-screen экспорта.
+- `src/lib/mapExport.ts` — `generateMapPngBuffer` (SVG→canvas→PNG) и `triggerMapDownload`; используется из Map.tsx и Export.tsx.
 
 ## Supabase
 
@@ -211,6 +213,14 @@ npm run preview    # превью продакшен-сборки
 ### Паттерны локальности
 
 - **Константы живут рядом с типом.** `ROLE_LABELS`, `ROLE_COLOR`, `TYPE_LABELS`, `TYPE_GLYPHS` — в том файле, где объявлен тип (`characters.ts`, `locations.ts`, `timeline.ts`). Не определять их в компоненте, который первым их использует.
+
+### Антирегрессия UI-компонентов
+
+- **Grep before implement.** Перед написанием любого form-элемента проверить `src/components/` на существующий компонент. Актуальные form-компоненты: `PasswordInput`, `GenrePicker`, `ConfirmDialog`.
+- **`type="password"` в JSX страниц запрещён** — только `<PasswordInput />`.
+- **Правило двух.** Один и тот же JSX+state-паттерн встречается в двух файлах → немедленно вынести в компонент, не откладывать.
+- **Sibling audit.** При добавлении фичи к одной странице домена проверить все сестринские: `Auth.tsx ↔ ResetPassword.tsx`; `Editor.tsx / Focus.tsx / Split.tsx` — всегда вместе; `Characters.tsx ↔` детальный вид персонажа.
+- **Реестр компонентов — это `## Архитектура` в CLAUDE.md.** Компонент «не существует» для следующего разработчика/агента, пока не вписан туда. При добавлении нового компонента строка в реестре обязательна.
 
 ## Что не трогать
 

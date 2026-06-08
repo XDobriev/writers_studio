@@ -1,7 +1,7 @@
 import { supabase, type Book } from './supabase';
 
 export type BookPatch = Partial<
-  Pick<Book, 'title' | 'author' | 'genre' | 'genres' | 'words' | 'goal' | 'daily_goal' | 'cover' | 'share_token' | 'map_bg_url'>
+  Pick<Book, 'title' | 'author' | 'genre' | 'genres' | 'words' | 'goal' | 'daily_goal' | 'cover' | 'share_token' | 'map_bg_url' | 'map_template'>
 >;
 
 export interface BookCreateInput {

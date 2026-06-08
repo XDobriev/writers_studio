@@ -22,6 +22,9 @@ import { type Book } from '../lib/supabase';
 import { getBook } from '../lib/books';
 import { listChapters, type Chapter } from '../lib/chapters';
 import { fetchNotes, type Note } from '../lib/notes';
+import { listLocations, type Location } from '../lib/locations';
+import { listConnections, type LocationConnection } from '../lib/connections';
+import { generateMapPngBuffer } from '../lib/mapExport';
 
 type Format = 'epub' | 'fb2' | 'docx' | 'html' | 'txt' | 'md';
 type ParagraphStyle = 'indent' | 'spacing' | 'both';
@@ -203,6 +206,7 @@ interface BuildOpts {
   notes: Note[];
   paragraphStyle: ParagraphStyle;
   cover?: { data: ArrayBuffer; mime: string; ext: string };
+  mapImage?: ArrayBuffer;
 }
 
 function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): string {
@@ -210,6 +214,9 @@ function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): string 
     book.author && `Автор: ${escapeHtml(book.author)}`,
     book.genre && `Жанр: ${escapeHtml(book.genre)}`,
   ].filter(Boolean).join(' · ');
+  const mapHtml = opts.mapImage
+    ? `<div style="margin:2em 0;text-align:center"><img src="data:image/png;base64,${arrayBufferToBase64(opts.mapImage)}" alt="Карта мира" style="max-width:100%;border-radius:6px"/></div>`
+    : '';
   const body = chapters.map((ch) => {
     const title = opts.includeChapterTitles ? `<h2 class="chapter-title">${escapeHtml(ch.title)}</h2>` : '';
     const notesHtml = opts.includeNotes ? notesBlockHtml(chapterNotes(opts.notes, ch.id)) : '';
@@ -224,7 +231,7 @@ function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): string 
 <h1 class="book-title">${escapeHtml(book.title)}</h1>
 ${meta ? `<div class="book-meta">${meta}</div>` : ''}
 ${book.cover && isImageUrl(book.cover) ? `<img class="cover-img" src="${escapeHtml(book.cover)}" alt="${escapeHtml(book.title)}">` : ''}
-${body}
+${mapHtml}${body}
 ${bookNotesHtml}
 </body>
 </html>`;
@@ -398,6 +405,17 @@ async function buildDocxBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
     );
   }
 
+  if (opts.mapImage) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new ImageRun({ data: opts.mapImage, transformation: { width: 594, height: 334 }, type: 'png' })],
+        spacing: { before: 360, after: 360 },
+      }),
+      new Paragraph({ children: [new PageBreak()] }),
+    );
+  }
+
   if (opts.includeTitlePage) {
     children.push(new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(book.title)], alignment: AlignmentType.CENTER, spacing: { after: 480 } }));
     if (book.author) children.push(new Paragraph({ children: [new TextRun({ text: book.author, size: 28 })], alignment: AlignmentType.CENTER, spacing: { after: 120 } }));
@@ -476,6 +494,12 @@ function htmlToFb2Content(html: string): string {
 }
 
 function buildFb2Doc(book: Book, chapters: Chapter[], opts: BuildOpts): string {
+  const mapSection = opts.mapImage
+    ? `\n<section>\n<title><p>Карта мира</p></title>\n<image l:href="#map-img"/>\n</section>`
+    : '';
+  const mapBinary = opts.mapImage
+    ? `\n<binary id="map-img" content-type="image/png">\n${arrayBufferToBase64(opts.mapImage)}\n</binary>`
+    : '';
   const today = new Date().toISOString().slice(0, 10);
   const [firstName, ...rest] = (book.author ?? '').split(' ');
   const lastName = rest.join(' ');
@@ -509,11 +533,11 @@ function buildFb2Doc(book: Book, chapters: Chapter[], opts: BuildOpts): string {
   </document-info>
 </description>
 <body>
-${opts.includeTitlePage ? `<title><p>${escapeXml(book.title)}</p>${book.author ? `<p>${escapeXml(book.author)}</p>` : ''}</title>\n` : ''}${sections}${bookNotesBlock}
+${opts.includeTitlePage ? `<title><p>${escapeXml(book.title)}</p>${book.author ? `<p>${escapeXml(book.author)}</p>` : ''}</title>\n` : ''}${mapSection}${sections}${bookNotesBlock}
 </body>
 ${opts.cover ? `<binary id="cover-img" content-type="${opts.cover.mime}">
 ${arrayBufferToBase64(opts.cover.data)}
-</binary>` : ''}
+</binary>` : ''}${mapBinary}
 </FictionBook>`;
 }
 
@@ -591,6 +615,8 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
 
   const hasBookNotes = opts.includeNotes && bookNotes(opts.notes).length > 0;
 
+  const hasMap = !!opts.mapImage;
+
   const manifestParts = [
     ...(hasCover ? [
       `<item id="cover-image" href="images/cover.${coverExt}" media-type="${coverMime}" properties="cover-image"/>`,
@@ -600,12 +626,17 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
     `<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>`,
     `<item id="css" href="styles.css" media-type="text/css"/>`,
     ...(opts.includeTitlePage ? [`<item id="title" href="title.xhtml" media-type="application/xhtml+xml"/>`] : []),
+    ...(hasMap ? [
+      `<item id="map-image" href="images/map.png" media-type="image/png"/>`,
+      `<item id="map-xhtml" href="map.xhtml" media-type="application/xhtml+xml"/>`,
+    ] : []),
     ...chs.map((c) => `<item id="${c.id}" href="${c.href}" media-type="application/xhtml+xml"/>`),
     ...(hasBookNotes ? [`<item id="booknotes" href="notes.xhtml" media-type="application/xhtml+xml"/>`] : []),
   ];
   const spineParts = [
     ...(hasCover ? [`<itemref idref="cover-xhtml"/>`] : []),
     ...(opts.includeTitlePage ? [`<itemref idref="title"/>`] : []),
+    ...(hasMap ? [`<itemref idref="map-xhtml"/>`] : []),
     ...chs.map((c) => `<itemref idref="${c.id}"/>`),
     ...(hasBookNotes ? [`<itemref idref="booknotes"/>`] : []),
   ];
@@ -621,6 +652,10 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
   if (opts.includeTitlePage) {
     navLi.push(`<li><a href="title.xhtml">${escapeHtml(book.title)}</a></li>`);
     ncxPts.push(`<navPoint id="title" playOrder="${po++}"><navLabel><text>${escapeXml(book.title)}</text></navLabel><content src="title.xhtml"/></navPoint>`);
+  }
+  if (hasMap) {
+    navLi.push(`<li><a href="map.xhtml">Карта мира</a></li>`);
+    ncxPts.push(`<navPoint id="map-xhtml" playOrder="${po++}"><navLabel><text>Карта мира</text></navLabel><content src="map.xhtml"/></navPoint>`);
   }
   for (const c of chs) {
     navLi.push(`<li><a href="${c.href}">${escapeHtml(c.title)}</a></li>`);
@@ -683,6 +718,17 @@ async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): 
 </html>`);
   }
   if (opts.includeTitlePage) zip.file('OEBPS/title.xhtml', titleXhtml(book, lang));
+  if (hasMap && opts.mapImage) {
+    zip.file('OEBPS/images/map.png', opts.mapImage);
+    zip.file('OEBPS/map.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="${lang}" xml:lang="${lang}">
+<head><meta charset="utf-8"/><title>Карта мира</title>
+<style>body{margin:0;padding:1em}img{display:block;max-width:100%;border-radius:4px}</style>
+</head>
+<body><section><h2>Карта мира</h2><img src="images/map.png" alt="Карта мира"/></section></body>
+</html>`);
+  }
   for (const c of chs) {
     const nHtml = opts.includeNotes ? notesBlockEpub(chapterNotes(opts.notes, c.chapterId)) : '';
     const content = opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(c.content) : c.content;
@@ -731,6 +777,9 @@ export default function Export() {
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[] | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [mapLocations, setMapLocations] = useState<Location[]>([]);
+  const [mapConnections, setMapConnections] = useState<LocationConnection[]>([]);
+  const [includeMap, setIncludeMap] = useState(false);
   const { error, setError, clearError } = useErrorState();
   const [authorName, setAuthorName] = useState('');
   const authorInitialized = useRef(false);
@@ -755,15 +804,19 @@ export default function Export() {
     let cancelled = false;
     (async () => {
       try {
-        const [book, list, notesList] = await Promise.all([
+        const [book, list, notesList, locs, conns] = await Promise.all([
           getBook(bookId),
           listChapters(bookId),
           fetchNotes(bookId),
+          listLocations(bookId),
+          listConnections(bookId),
         ]);
         if (cancelled) return;
         setBook(book);
         setChapters(list);
         setNotes(notesList);
+        setMapLocations(locs);
+        setMapConnections(conns);
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
       }
@@ -820,7 +873,14 @@ export default function Export() {
         }
       } catch { /* no cover */ }
     }
-    const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle, cover: coverData };
+    let mapImageData: ArrayBuffer | undefined;
+    const hasMapContent = book.map_bg_url || mapLocations.some(l => l.x != null);
+    if (includeMap && hasMapContent && (['epub', 'fb2', 'docx', 'html'] as Format[]).includes(format)) {
+      try {
+        mapImageData = await generateMapPngBuffer(book, mapLocations, mapConnections);
+      } catch { /* skip map on error */ }
+    }
+    const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle, cover: coverData, mapImage: mapImageData };
     try {
       if (format === 'docx') {
         triggerDownload(await buildDocxBlob(bookWithAuthor, selectedChapters, opts), filename);
@@ -840,7 +900,7 @@ export default function Export() {
     } finally {
       setBusy(false);
     }
-  }, [book, authorName, selectedChapters, format, includeChapterTitles, includeTitlePage, includeNotes, notes, language, paragraphStyle, filename, setError, clearError]);
+  }, [book, authorName, selectedChapters, format, includeChapterTitles, includeTitlePage, includeNotes, notes, language, paragraphStyle, filename, includeMap, mapLocations, mapConnections, setError, clearError]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
@@ -1012,8 +1072,21 @@ export default function Export() {
               on={includeNotes && notes.length > 0}
               onChange={(v) => notes.length > 0 && setIncludeNotes(v)}
               disabled={notes.length === 0}
-              last
             />
+            {(() => {
+              const hasMapContent = !!(book?.map_bg_url || mapLocations.some(l => l.x != null));
+              const supportsMap = (['epub', 'fb2', 'docx', 'html'] as Format[]).includes(format);
+              return (
+                <ToggleRow
+                  label="Карта мира отдельной страницей"
+                  hint={!supportsMap ? '— недоступно для текстовых форматов' : !hasMapContent ? '— карта не заполнена' : undefined}
+                  on={includeMap && hasMapContent && supportsMap}
+                  onChange={(v) => hasMapContent && supportsMap && setIncludeMap(v)}
+                  disabled={!hasMapContent || !supportsMap}
+                  last
+                />
+              );
+            })()}
           </div>
 
           {/* Paragraph style — rich formats only */}

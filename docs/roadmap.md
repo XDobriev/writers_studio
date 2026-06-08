@@ -47,32 +47,12 @@ _Обновлён: 2026-06-08_
 
 **Результат:** таблица `событие → письмо → задержка → CTA` в `docs/email-onboarding.md` или отдельный `docs/email-map.md`.
 
-**Связано:** §1a (SMTP-подключение) ниже, `docs/email-onboarding.md` (онбординг-цепочка уже расписана).
+**Связано:** `docs/email-onboarding.md` (онбординг-цепочка уже расписана).
 
 > ⚠️ **При реализации онбординга:** в `Auth.tsx` уже есть state `consentMarketing` (необязательный чекбокс «Согласен получать письма»). Перед отправкой писем 2–7 — сохранить значение в `profiles` (новая колонка `marketing_consent boolean default false`), читать при формировании очереди рассылки. Без флага — отправлять только письмо 1 (приветствие, транзакционное).
 
 ---
 
-### 1a. Transactional email — UniSender Go SMTP + брендированные шаблоны
-
-**Симптом:** при регистрации пользователь получает письмо с дефолтным именем отправителя Supabase, без кастомного домена `@avtorstudio.com`.
-
-**Что готово:** 4 HTML-шаблона в стиле студии → `docs/email-templates/`. Логотип хостится на `https://avtorstudio.com/logo-email.svg`. Подробная инструкция → `docs/email-templates/SETUP.md`.
-
-**Что осталось (ручные шаги, ~20 мин):**
-1. Зарегистрироваться на go.unisender.ru
-2. Добавить домен `avtorstudio.com` → добавить DNS-записи (SPF + DKIM) в Timeweb → дождаться Подтверждён ✓
-3. Создать API-ключ → скопировать
-4. Supabase Dashboard → **Project Settings → Authentication → SMTP Settings** → Enable Custom SMTP:
-   - Host: `smtp.unisender.ru` · Port: `465` · Username: `<email в UniSender Go>` · Password: `<API-ключ>`
-   - Sender Name: `Авторская студия` · Sender Email: `noreply@avtorstudio.com`
-5. Supabase Dashboard → **Authentication → Email Templates** → вставить HTML из 4 файлов
-6. Supabase Dashboard → **Edge Functions → Secrets** → добавить `UNISENDER_API_KEY`
-
-**Файлы:** `docs/email-templates/confirm-signup.html`, `reset-password.html`, `magic-link.html`, `email-change.html`
-**Проверить:** зарегистрировать тестового пользователя → inbox → брендированное письмо с логотипом студии
-
----
 
 
 ### 2. Уведомление Роскомнадзора перед публичным запуском ⚠️

@@ -24,6 +24,8 @@ import {
   type ConnectionPatch,
 } from '../lib/connections';
 import { updateBook } from '../lib/books';
+import { MAP_TEMPLATES, getMapTemplate } from '../lib/mapTemplates';
+import { generateMapPngBuffer, triggerMapDownload } from '../lib/mapExport';
 import { QUERY_KEYS, useBook, useLocations, useConnections } from '../lib/queries';
 
 export type MapMode = 'place' | 'connect' | 'pan';
@@ -150,6 +152,34 @@ export default function MapScreen() {
     } catch (e) { setError((e as Error).message); }
   }, [bookId, user, queryClient, setError]);
 
+  // ── Template change ──────────────────────────────────────────────────────
+
+  const onTemplateChange = useCallback(async (templateId: string) => {
+    if (!bookId) return;
+    try {
+      await updateBook(bookId, { map_template: templateId });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
+    } catch (e) { setError((e as Error).message); }
+  }, [bookId, queryClient, setError]);
+
+  // ── Export PNG ───────────────────────────────────────────────────────────
+
+  const [exportBusy, setExportBusy] = useState(false);
+
+  const onExportPng = useCallback(async () => {
+    if (!book || !locations || !connections) return;
+    setExportBusy(true);
+    clearError();
+    try {
+      const buffer = await generateMapPngBuffer(book, locations, connections);
+      triggerMapDownload(buffer, book.title);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setExportBusy(false);
+    }
+  }, [book, locations, connections, setError, clearError]);
+
   // ── Guards ───────────────────────────────────────────────────────────────
 
   if (!bookId) return <Navigate to="/books" replace />;
@@ -219,14 +249,25 @@ export default function MapScreen() {
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Карта мира</span>
             )}
 
-            <button
-              className="btn btn--ghost"
-              onClick={() => setBgModalOpen(true)}
-              style={{ fontSize: 12, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}
-            >
-              <span>🖼</span>
-              {!isMobile && <span>Загрузить фон</span>}
-            </button>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <button
+                className="btn btn--ghost"
+                onClick={() => setBgModalOpen(true)}
+                style={{ fontSize: 12, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}
+              >
+                <span>🖼</span>
+                {!isMobile && <span>Фон</span>}
+              </button>
+              <button
+                className="btn btn--ghost"
+                onClick={() => { void onExportPng(); }}
+                disabled={exportBusy}
+                style={{ fontSize: 12, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}
+              >
+                {exportBusy ? <span className="btn-spinner" /> : <span>↓</span>}
+                {!isMobile && <span>{exportBusy ? 'Генерация…' : 'PNG'}</span>}
+              </button>
+            </div>
           </div>
 
           {mutationError && (
@@ -241,6 +282,7 @@ export default function MapScreen() {
               locations={locations}
               connections={connections}
               bgUrl={book.map_bg_url ?? null}
+              template={book.map_template}
               mode={mode}
               onUpdate={onUpdate}
               onCreate={(x, y) => { void onCreate(x, y); }}
@@ -271,17 +313,17 @@ export default function MapScreen() {
                     Карта мира ждёт
                   </div>
                   <p style={{ font: '400 12px/1.7 var(--font-ui)', color: 'var(--ink-3)', margin: '0 0 20px' }}>
-                    Нарисуйте карту в <strong style={{ color: 'var(--ink-2)' }}>Inkarnate</strong> или другом редакторе, загрузите как фон — и расставьте локации пинами.
+                    Выберите стиль карты и расставьте локации пинами. Или загрузите свой фон из <strong style={{ color: 'var(--ink-2)' }}>Inkarnate</strong>.
                   </p>
                   <button
                     className="btn"
                     style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: 6, marginBottom: 10 }}
                     onClick={() => setBgModalOpen(true)}
                   >
-                    <span>🖼</span> Загрузить фон
+                    <span>🖼</span> Выбрать стиль карты
                   </button>
                   <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', lineHeight: 1.6 }}>
-                    или кликните в любую точку карты,<br />чтобы сразу добавить локацию без фона
+                    или кликните в любую точку, чтобы сразу добавить локацию
                   </div>
                 </div>
               </div>
@@ -290,37 +332,110 @@ export default function MapScreen() {
         </main>
       </div>
 
-      {/* Background upload modal */}
+      {/* Background / Template modal */}
       {bgModalOpen && (
         <div
           style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setBgModalOpen(false)}
         >
           <div
-            style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '24px 28px', width: 340, boxShadow: '0 8px 40px oklch(0 0 0 / 0.6)' }}
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '22px 24px', width: 360, boxShadow: '0 8px 40px oklch(0 0 0 / 0.6)' }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ font: '500 14px var(--font-ui)', color: 'var(--ink)' }}>Фон карты</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <span style={{ font: '500 14px var(--font-ui)', color: 'var(--ink)' }}>Стиль карты</span>
               <button onClick={() => setBgModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '20px var(--font-ui)', lineHeight: 1, padding: '0 2px' }}>×</button>
             </div>
 
-            <p style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.65, margin: '0 0 14px' }}>
-              Нарисуйте карту в <strong style={{ color: 'var(--ink-2)' }}>Inkarnate</strong>, Dungeon Fog или любом другом редакторе и загрузите как фон. Затем расставьте локации пинами.
-            </p>
-
-            <div style={{ background: 'var(--surface-2)', borderRadius: 8, padding: '10px 14px', marginBottom: 20, font: '400 11px var(--font-mono)', color: 'var(--ink-3)', lineHeight: 1.8 }}>
-              JPG / PNG / WebP · до 5 МБ<br />
-              рекомендуется <strong>1600 × 900 px</strong> (16:9)
+            {/* Template picker */}
+            <div style={{ font: '500 9.5px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Шаблон</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
+              {MAP_TEMPLATES.map(t => {
+                const active = getMapTemplate(book.map_template) === t.id && !book.map_bg_url;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      void onTemplateChange(t.id);
+                      setBgModalOpen(false);
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px',
+                      borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                      border: active ? '1.5px solid var(--accent)' : '1px solid var(--border-soft)',
+                      background: active ? 'var(--accent-soft)' : 'var(--surface-2)',
+                    }}
+                  >
+                    <span style={{
+                      width: 32, height: 20, borderRadius: 4, flexShrink: 0,
+                      background: t.swatchBg,
+                      border: `1px solid ${t.swatchBorder}`,
+                      display: 'inline-block',
+                    }} />
+                    <div>
+                      <div style={{ font: '500 12px var(--font-ui)', color: active ? 'var(--ink)' : 'var(--ink-2)' }}>{t.label}</div>
+                      <div style={{ font: '400 10px var(--font-ui)', color: 'var(--ink-4)', marginTop: 1 }}>{t.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
-            <button
-              className="btn"
-              style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: 6 }}
-              onClick={() => { setBgModalOpen(false); fileInputRef.current?.click(); }}
-            >
-              <span>🖼</span> Выбрать файл
-            </button>
+            {/* Custom background */}
+            <div style={{ font: '500 9.5px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Свой фон</div>
+            {book.map_bg_url ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <img
+                  src={book.map_bg_url}
+                  alt="Фон карты"
+                  style={{ width: 64, height: 36, objectFit: 'cover', borderRadius: 5, border: '1px solid var(--border-soft)', flexShrink: 0 }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    Загружено
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      className="btn btn--ghost"
+                      style={{ fontSize: 11, padding: '2px 8px' }}
+                      onClick={() => { setBgModalOpen(false); fileInputRef.current?.click(); }}
+                    >
+                      Заменить
+                    </button>
+                    <button
+                      className="btn btn--ghost"
+                      style={{ fontSize: 11, padding: '2px 8px', color: 'var(--danger)' }}
+                      onClick={async () => {
+                        if (!bookId) return;
+                        try {
+                          await updateBook(bookId, { map_bg_url: null });
+                          void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
+                          setBgModalOpen(false);
+                        } catch (e) { setError((e as Error).message); }
+                      }}
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.6, margin: '0 0 10px' }}>
+                  Нарисуйте карту в <strong style={{ color: 'var(--ink-2)' }}>Inkarnate</strong> или другом редакторе и загрузите как фон поверх шаблона.
+                </p>
+                <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)', marginBottom: 12 }}>
+                  JPG / PNG / WebP · до 5 МБ · рекомендуется 1600×900 px
+                </div>
+                <button
+                  className="btn"
+                  style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: 6 }}
+                  onClick={() => { setBgModalOpen(false); fileInputRef.current?.click(); }}
+                >
+                  <span>🖼</span> Выбрать файл
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
