@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-08 (закрыты §9a флаг registration_open, §13 правки лендинга/Auth, §3 SEO полностью — Яндекс.Вебмастер + Метрика + GSC + sitemap)_
+_Обновлён: 2026-06-08_
 
 
 
@@ -55,9 +55,9 @@ _Обновлён: 2026-06-08 (закрыты §9a флаг registration_open, �
 
 ### 1a. Transactional email — UniSender Go SMTP + брендированные шаблоны
 
-**Симптом:** при регистрации пользователь получает некрасивое дефолтное письмо от Supabase.
+**Симптом:** при регистрации пользователь получает письмо с дефолтным именем отправителя Supabase, без кастомного домена `@avtorstudio.com`.
 
-**Что готово:** 4 HTML-шаблона в стиле студии → `docs/email-templates/`. Подробная инструкция → `docs/email-templates/SETUP.md`.
+**Что готово:** 4 HTML-шаблона в стиле студии → `docs/email-templates/`. Логотип хостится на `https://avtorstudio.com/logo-email.svg`. Подробная инструкция → `docs/email-templates/SETUP.md`.
 
 **Что осталось (ручные шаги, ~20 мин):**
 1. Зарегистрироваться на go.unisender.ru
@@ -70,9 +70,10 @@ _Обновлён: 2026-06-08 (закрыты §9a флаг registration_open, �
 6. Supabase Dashboard → **Edge Functions → Secrets** → добавить `UNISENDER_API_KEY`
 
 **Файлы:** `docs/email-templates/confirm-signup.html`, `reset-password.html`, `magic-link.html`, `email-change.html`
-**Проверить:** зарегистрировать тестового пользователя → inbox → брендированное письмо с тёмным фоном студии
+**Проверить:** зарегистрировать тестового пользователя → inbox → брендированное письмо с логотипом студии
 
 ---
+
 
 ### 2. Уведомление Роскомнадзора перед публичным запуском ⚠️
 
@@ -113,39 +114,6 @@ _Обновлён: 2026-06-08 (закрыты §9a флаг registration_open, �
 
 **Файлы:** `~/supabase-project/docker-compose.yml` (создать на VPS), `~/supabase-project/.env` (создать на VPS), `/etc/nginx/sites-available/avtorstudio.com` (обновить proxy_pass), `src/pages/Privacy.tsx` (раздел 4), Vercel env vars (`VITE_SUPABASE_ANON_KEY`)
 **Проверить:** `docker compose ps` → все `healthy` → зайти в приложение → авторизация через email работает → Edge Functions отвечают → `SELECT version()` на self-hosted instance
-
----
-
-### 3. SEO-индексация перед публичным запуском
-
-**Контекст:** приложение — Vite + React SPA. Яндексбот практически не рендерит JS, поэтому без pre-rendering лендинг не проиндексируется. Все шаги ниже — обязательные, выполнять последовательно.
-
-**Шаг 0 — ✅ Выполнено:** `X-Robots-Tag: noindex, nofollow` добавлен в `vercel.json`. После деплоя удалить `avtorskaya-studiya.vercel.app` из Google Search Console (Google обработает noindex за 1–2 недели).
-
-**Шаг 1 — ✅ Выполнено:** Pre-rendering через `scripts/prerender.mjs` (Playwright + vite preview). Рендерит `/`, `/privacy`, `/terms` → HTML в `dist/`. `npm run build` запускает пострендер автоматически. В CI (`deploy-timeweb.yml`) добавлен шаг `npx playwright install chromium --with-deps`.
-
-**Шаг 2 — Meta-теги:**
-- ✅ `<link rel="canonical" href="https://avtorstudio.com/">` — добавлен в `index.html`
-- ✅ `og:url`, `og:image`, `twitter:image` — исправлены на `avtorstudio.com` в `index.html`
-- ✅ Schema.org JSON-LD — `SoftwareApplication` + `FAQPage` с 6 вопросами добавлены в `index.html`
-- ✅ `X-Robots-Tag: noindex` на `/books/*`, `/login`, `/admin` и т.д. — nginx `deploy/nginx.conf`. Применить на VPS: скопировать конфиг → `nginx -t && systemctl reload nginx`
-- ✅ `<meta name="yandex-verification" content="9df4874f3a7e6b28">` — добавлен в `index.html`
-
-**Шаг 3 — ✅ Выполнено:** `public/robots.txt` исправлен. `public/sitemap.xml` создан и расширен (`/`, `/offer`, `/auth`). `<link rel="sitemap">` добавлен в `index.html`.
-
-**Шаг 3.1 — ✅ Выполнено:** Ключевые слова «онлайн-редактор для писателей на русском языке» добавлены в subtitle секции «Возможности» (`src/pages/Landing.tsx:408`).
-
-**Шаг 4 — ✅ Выполнено:** Яндекс.Вебмастер — права подтверждены, sitemap добавлен. Регион не указываем — SaaS без геопривязки, региональное ранжирование неактуально.
-
-**Шаг 5 — ✅ Выполнено:** Яндекс.Метрика — счётчик `109723861` подключён в `index.html` с параметрами SPA (`ssr:true`, webvisor, clickmap, ecommerce).
-
-**Шаг 6 — ✅ Выполнено:** Google Search Console — sitemap `https://avtorstudio.com/sitemap.xml` добавлен. После обработки noindex удалить `avtorskaya-studiya.vercel.app` из GSC (1–2 недели).
-
-**Файлы:** `scripts/prerender.mjs`, `deploy/nginx.conf`, `src/pages/Landing.tsx`, `index.html`, `.github/workflows/deploy-timeweb.yml`
-**Проверить:** `npm run build` → view-source на `dist/index.html` → полный HTML лендинга (не пустой `<div id="root">`)
-**Deps:** §2 желательно сделать раньше
-
-> 🛠 **Скиллы:** `/ai-seo` и `/seo-audit` из `marketingskills` — для аудита после индексации; `/site-architecture` — если понадобится расширить структуру публичных страниц.
 
 ---
 
@@ -236,18 +204,6 @@ _Обновлён: 2026-06-08 (закрыты §9a флаг registration_open, �
 
 ---
 
-### 9. Сделать репозиторий приватным
-
-**Что это:** репозиторий https://github.com/XDobriev/writers_studio сейчас публичный — `VITE_SUPABASE_ANON_KEY` виден в истории коммитов. Для коммерческого SaaS с реальными пользователями это стандарт — сделать до публичного запуска.
-
-**Что сделать:** GitHub → Settings → Danger Zone → Change visibility → Private.
-
-**На что не влияет:** GitHub Actions, Vercel авто-деплой, Supabase — всё работает без изменений.
-
-**Файлы:** нет (GitHub Settings)
-**Проверить:** `git clone https://github.com/XDobriev/writers_studio` без авторизации → `Repository not found`
-
----
 
 
 ### 10. Ручное тестирование перед публичным запуском
@@ -419,64 +375,4 @@ dev → Vercel preview (авто) → e2e тесты → merge в main → Timew
 **Что даст:** Claude сможет отвечать на архитектурные вопросы без сканирования файлов; особенно полезно для `docs/features/`, `supabase/migrations/` и связей типа «какие компоненты используют этот хук».  
 **Обновление графа после изменений:** `graphify update .` (бесплатно, AST-only).
 
----
 
-## Закрыто
-
-_2026-06-08:_ seo §3 полностью закрыт — pre-rendering, canonical/og/schema, sitemap, robots.txt, Яндекс.Вебмастер (верификация + sitemap), Яндекс.Метрика (счётчик 109723861, SPA-режим), Google Search Console (sitemap загружен) ✅
-
-_2026-06-08:_ feat(auth) §9a флаг registration_open — заглушка при `value='false'`, fail-open; `useRegistrationOpen` хук в `queries.ts`, `getRegistrationOpen` в `profiles.ts` ✅
-
-_2026-06-07:_ fix(landing/auth) §13 копирайтинг — метки режимов редактора переработаны (Студия/Рукопись/Страница), FB2 поясняется как «для читалок» в тарифных буллетах, цитата в Auth.tsx заменена на верифицированную ✅
-
-_2026-06-04:_ fix(mobile) §11 Мобильный QA — все 4 бага подтверждены исправленными кодом: Split редирект на Editor при isMobile, Map canvas заполняет высоту, Notes сайдбар скрыт, Characters грид виден без сайдбара; typecheck чистый ✅
-
-_2026-06-04:_ refactor(arch) Архитектурная чистка — 5 задач: batch crossrefs N+1→2 (`crossrefs.ts`), `relationships.ts`→`createRepository`, `ROLE_COLOR`/`ROLE_PORTRAIT_BG`→`characters.ts`, typed `DbError` класс, safety limit `repository.list()` ✅
-
-_2026-06-03:_ feat(admin) Расширение панели — все 8 задач завершены: история платежей (вкладка «Платежи»), Suspend/Unsuspend, CSV-экспорт, карточка `/admin/users/:id` (книги + история плана + сброс пароля), ручная правка Lifetime-слотов, grace period +7д Pro, revenue-метрики MRR/churn (вкладка «Финансы»), feature flags (вкладка «Флаги»); миграции 0028_admin_actions + 0029_revenue_flags ✅
-
-_2026-06-03:_ fix(shortcuts) §10 аудит горячих клавиш — два бага исправлены: `Ctrl+Enter` вставлял `<br>` в текущую главу параллельно с созданием новой (добавлен `!e.defaultPrevented` в `useKeyboardShortcuts`); `Ctrl+Shift+N` конфликтовал с инкогнито Chrome (переименован в `Ctrl+Shift+M`); остальные шорткаты корректны во всех 4 режимах, Mac Cmd-замена работает ✅
-
-_2026-06-03:_ feat(monetization) §6 Lifetime deal + §7 Грандфазеринг — `app_settings.lifetime_slots_remaining = 50`, RPC `decrement_lifetime_slot` (миграция 0025); `profiles.grandfathered boolean` (миграция 0026); вебхук декрементирует счётчик и ставит `grandfathered` если `GRANDFATHERING_ENDS_AT` не истекло; лендинг и UpgradeModal показывают живой счётчик, скрывают Lifetime при 0; настройки показывают «✦ Ранняя цена» ✅
-
-_2026-06-03:_ feat(legal) §5 оферта, акцепт, email-подтверждение — `/offer` страница, акцепт у кнопок Pro/Lifetime, Edge Function `payment-confirmation` ✅
-
-_2026-06-03:_ seo(prerender) §3 — `scripts/prerender.mjs` (Playwright + vite preview): рендер `/`, `/privacy`, `/terms` → HTML в `dist/` при сборке; nginx `X-Robots-Tag: noindex` для `/books/*`, `/login`, `/admin`; ключевые слова в subtitle лендинга; `index.html` placeholders для Метрики + Вебмастера ✅
-
-_2026-06-03:_ fix(a11y) три contrast failure в светлой теме — цвета приведены к WCAG AA ✅; fix(characters) не запускать auto-select в промежуточном состоянии `activeId=null` ✅; ci: hardening — pre-push hook, tiptap patch-pin, E2E robust wait, HTML report ✅; fix(e2e) заменить `page.goto` на in-app переход в `characters-create` ✅; seo: canonical, og-теги, sitemap, Schema.org + UI-правки лендинга ✅
-
-_2026-06-02:_ feat(editor) §R4 Hover card — карточка персонажа при наведении: `useCharacterHover` (mousemove 500ms debounce, Unicode alias matching) + `CharacterHoverCard` (портал, аватар, роль, snippet, навигация) ✅
-
-_2026-06-02:_ fix(export) EPUB indent-режим — первый абзац главы не получает красную строку (`p:first-of-type{text-indent:0}` добавлен в EPUB CSS, аналогично HTML) ✅
-
-_2026-06-02:_ feat(editor) §R6 Focus Mode — затемнение абзацев при письме: `@tiptap/extension-focus` + `.focus-mode` CSS + тоггл-кнопка в StatusBar ✅
-
-_2026-06-02:_ fix(versions) §R2 Named Snapshots — именованные вехи всегда сохраняются при ручном создании, даже если контент не изменился с последнего авто-снимка ✅
-
-_2026-06-02:_ feat(dashboard) §R1 Completion ETA + weekly summary toast — avg7 слов/день → прогноз завершения в блоке «Цель по словам»; тост в понедельник с итогом прошлой недели ✅
-
-_2026-06-02:_ fix(export) описание «для публикации на сайте» при выборе HTML-формата в экспорте ✅
-
-_2026-06-02:_ chore(seo) `X-Robots-Tag: noindex, nofollow` в `vercel.json` — Vercel-деплой скрыт от поисковиков ✅; fix(a11y) `aria-label="Выйти из аккаунта"` на кнопке в `Home.tsx:178` ✅
-
-_2026-06-02:_ fix(ux) модалка «Редактировать книгу» — Dashboard приведён к `modal-overlay/modal-panel`, `editGenre` (string) → `editGenres` (string[]) + `GenrePicker`; жанры корректно читаются из `book.genres`; Home.tsx — заголовок `font-serif` → `font-ui` ✅
-
-_2026-06-06:_ feat(corkboard) ручной синопсис главы — inline-редактирование на карточке (click-to-edit textarea), оптимистичное обновление кэша; Postgres-триггер обновлён — не перезаписывает ручной синопсис при сохранении контента ✅
-
-_2026-06-01 (сессия 2):_ fix(css) `text-align: justify` в `.sheet p` — проза отображается по ширине ✅; fix(a11y) `aria-label` на логотипе и кнопке Настройки в RailNav ✅; fix(ux) подсказки форматов — «Новелла 10–20 тыс.» + «Эпос / сага» вместо «Эпическое фэнтези» ✅; fix(a11y) Dashboard модалка «Редактировать книгу» — `role="dialog"`, `aria-modal`, Tab-trap ✅
-
-_2026-06-01:_ fix(chapters) умная нумерация в Corkboard + Editor — `max(Глава N)+1` как в Outline ✅; fix(roadmap) модалка «Редактировать книгу» — `padding: 28px` симметричен, баг не воспроизводится ✅; fix(auth) `.input--err` на полях email/password при ошибке входа + сброс при наборе ✅; fix(design) `#fff`→`oklch(0.98 0 0)` в bubble-menu ✅; fix(design) убран `box-shadow` с `.note-card:hover` ✅; fix(a11y) `aria-label="Тип заметки"` на select в RightPanel ✅; fix(css) `.sb-share-btn` — убраны дублирующиеся inline-стили ✅; fix(design) spell-popup переведён на дизайн-токены ✅; fix(roadmap) убран баг «Белая рамка экспорта» (уже исправлен кастомным дропдауном) ✅; fix(statusbar) кнопка «Повторить» при ошибке сохранения ✅; fix(rp-tab) `type="button"` на вкладках — уже присутствовало ✅
-
-_2026-05-31:_ feat(sentry) `@sentry/react` подключён в `main.tsx` — мониторинг ошибок в проде ✅; §16 жанры книги — `genres text[]`, `GenrePicker`, multi-select с «Другое» ✅; feat(pov) `is_pov` column in `chapter_characters`, `useChapterPovMap`, утилиты управления POV-записями ✅; feat(design) палитра цветов персонажей ✅; fix(backlinks) не удалять POV-записи при обновлении ✅
-
-_2026-05-30:_ §28а рефакторинг — useDebouncedSave, useCharacterNavigation, useCharacterMutations ✅; §13 двухсторонние связи персонажей ✅; planRef null-init ✅; debounce removeAlias ✅; feat(landing) hero stagger/float/FAQ chevron анимации ✅; §33 адаптив breakpoints ✅; §26 вкладки настроек ✅; §28 тема-в-настройках ✅; §3 UpgradeModal ✅; §28а рефакторинг хуков ✅
-
-_2026-05-29:_ fix(snapshots) words=0 при создании книги ✅; feat(map) режимы в сайдбар карты ✅; §8 онбординг в `profiles.onboarded_at` ✅; fix(state) гонки состояний useEffect+Supabase ✅; feat(motion) §39-45 — page transitions, анимации входов/выходов, skeleton ✅; feat(outline) pacing visualization — бар длины глав ✅; feat(characters) психология + алиасы + бэклинки (авто-поиск упоминаний персонажей по главам) ✅; feat(characters) подсказки псевдонимов из текста ✅; fix(dashboard) heatmap audit — streak bug, best-day badge, intensity legend ✅; §34 SidebarFoot div→button ✅; §35 автофокус дропдауна ✅; §21 BrowserMock URL ✅; §19 убрана ЮKassa из pricing ✅; §20 footer живые ссылки ✅; §24 единый размер карточек ✅; §15 время чтения на дашборде ✅
-
-_2026-05-28:_ §2 персонажи сайдбар — решено: поиск+фильтры в тулбар, сайдбар навигационный ✅; feat(characters) grid-вид картотеки, убрана правая панель, RelationsBlock inline ✅; feat(nav) единая навигация по разделам книги во всех сайдбарах ✅; §25 feat(sidebar) user block dropdown — Настройки/Выйти ✅; feat(landing) split CTA signup/signin через `?tab=` ✅; fix(settings) гонка состояний — скелетон до загрузки плана ✅
-
-_2026-05-24:_ §36 UX `EventCard` (хронология) — переупорядочивание полей: тип+delete → название → описание → (разделитель) → метаданные (когда+глава); `borderLeft` карточек заменён на `borderTop`. §35: `.tb { padding: 0 8px }` → `0 14px` — единый отступ в тулбарах всех разделов (Dashboard, Characters, Map, Timeline, Corkboard, Outline). §30: inline-баннер при первом входе в режим «Страница» (localStorage `editor-page-hinted`), auto-dismiss 8с. §32: toast при достижении дневной цели по словам — 🎉/💪, 4с, once-per-day через localStorage, анимация `toast-in`. Заметки как примечания автора в DOCX/EPUB/FB2/HTML (§10 подпункт). Fix восстановления версии — применяет контент в TipTap `editor.commands.setContent()`, улучшен diff. Мерцание подчёркиваний при исправлении слова — точечное удаление декорации. Умная автонумерация глав в Outline — `max(Глава N)+1`. Fix RLS drag-drop revert в reorderChapters — upsert→update.
-
-_2026-05-20:_ экспорт DOCX (docx.js + DOMParser), FB2 (pure XML), EPUB (JSZip + OPF + NCX); точки входа в Dashboard и Sidebar; оценка размера файла; язык как выпадающий список.
-
-_2026-05-19:_ мобильный layout Персонажей / Хронологии / Карты; `window.confirm` → `ConfirmDialog`; admin-поиск, сортировка, смена плана; контраст светлой темы (WCAG AA); touch target кнопок статуса глав; мобильная навигация в редакторе (drawer + hamburger); нейминг планов Free/Pro/Lifetime; согласие на обработку ПД (чекбокс + `/privacy`); реквизиты в footer лендинга; `/terms`; OG-картинка; склонение «черновик»; меню главы — пункт «Переименовать»; inline-редактирование названия главы; цель по словам — UX улучшения; цвета заметок — единая палитра; редактор 1024px — порог `showRight` поднят до 1200px.
