@@ -28,7 +28,7 @@ import {
   deleteChapterWithCache,
   invalidateChaptersCache,
 } from '../lib/chapterMutations';
-import { plural } from '../lib/useWritingStats';
+import { plural } from '../lib/i18n';
 
 type Filter = 'all' | ChapterStatus;
 

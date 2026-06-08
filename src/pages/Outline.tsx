@@ -25,7 +25,7 @@ import { useAuth } from '../lib/auth';
 import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useChapterPovMap } from '../lib/queries';
 import { getCharacterColor, setPovCharacter, removePovCharacter, setPovForAllChapters } from '../lib/pov';
-import { plural } from '../lib/useWritingStats';
+import { plural } from '../lib/i18n';
 
 const STATUS_COLOR: Record<ChapterStatus, string> = {
   draft: 'var(--ink-4)',

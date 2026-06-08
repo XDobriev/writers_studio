@@ -10,7 +10,7 @@ import { GenrePicker } from '../components/GenrePicker';
 import { updateBook } from '../lib/books';
 import { DbError } from '../lib/repository';
 import { type Chapter } from '../lib/chapters';
-import { pluralDays, plural } from '../lib/useWritingStats';
+import { pluralDays, plural } from '../lib/i18n';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useWritingSnapshots } from '../lib/queries';
 import { useResponsive } from '../lib/useResponsive';
 
