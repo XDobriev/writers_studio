@@ -44,11 +44,16 @@ function useScramble(text: string, trigger: boolean): string {
 }
 
 function useCounter(target: number, active: boolean, duration = 1200): number {
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const [value, setValue] = useState(prefersReduced ? target : 0);
+  const [value, setValue] = useState(() =>
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ? target : 0
+  );
   const rafRef = useRef<number>(0);
   useEffect(() => {
-    if (!active || prefersReduced) return;
+    if (!active) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setValue(target);
+      return;
+    }
     const start = performance.now();
     const tick = (now: number) => {
       const p = Math.min((now - start) / duration, 1);
@@ -57,7 +62,7 @@ function useCounter(target: number, active: boolean, duration = 1200): number {
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [active, target, duration, prefersReduced]);
+  }, [active, target, duration]);
   return value;
 }
 
