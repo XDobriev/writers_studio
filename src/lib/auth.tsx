@@ -33,31 +33,36 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 // Читаем сессию из localStorage синхронно — чтобы не блокировать первый рендер
 // на медленных соединениях (Россия, VPN). getSession() всё равно валидирует async.
-function readLocalSession(): Session | null {
+// session — валидная (не истёкшая) сессия, иначе null.
+// hadToken — был ли вообще сохранённый токен (даже истёкший). Значит юзер был залогинен
+// и getSession() сейчас делает рефреш — нельзя по таймауту открывать роуты в разлогиненное
+// состояние, иначе AuthGuard на мгновение редиректит на лендинг.
+function readLocalSession(): { session: Session | null; hadToken: boolean } {
   try {
     const url = (import.meta.env.VITE_SUPABASE_URL ?? '') as string;
-    if (!url) return null;
+    if (!url) return { session: null, hadToken: false };
     const ref = new URL(url).hostname.split('.')[0];
     const raw = localStorage.getItem(`sb-${ref}-auth-token`);
-    if (!raw) return null;
+    if (!raw) return { session: null, hadToken: false };
     const data = JSON.parse(raw) as Record<string, unknown> | null;
-    if (!data?.access_token) return null;
-    // expires_at — unix секунды; отбрасываем уже истёкшие токены
+    if (!data?.access_token) return { session: null, hadToken: false };
+    // expires_at — unix секунды; истёкший токен есть, но как сессию его не отдаём
     const exp = data.expires_at as number | undefined;
-    if (exp && exp < Math.floor(Date.now() / 1000)) return null;
-    return data as unknown as Session;
-  } catch { return null; }
+    if (exp && exp < Math.floor(Date.now() / 1000)) return { session: null, hadToken: true };
+    return { session: data as unknown as Session, hadToken: true };
+  } catch { return { session: null, hadToken: false }; }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const localSession = readLocalSession();
+  const { session: localSession, hadToken } = readLocalSession();
   const [session, setSession] = useState<Session | null>(localSession);
   const [loading, setLoading] = useState(localSession === null);
   const [initializing, setInitializing] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
 
-  // Различаем намеренный logout от истечения токена
-  const hadSession = useRef(localSession !== null);
+  // Различаем намеренный logout от истечения токена.
+  // hadToken === true и для истёкшего токена — юзер был залогинен, рефреш в процессе.
+  const hadSession = useRef(hadToken);
   const deliberateSignOut = useRef(false);
   // true пока getSession() не вернул окончательный результат.
   // onAuthStateChange может выстрелить INITIAL_SESSION(null) во время рефреша токена
@@ -66,13 +71,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const getSessionPending = useRef(true);
 
   useEffect(() => {
-    // 5-секундный таймаут: если Supabase медленно отвечает (throttled ISP),
-    // разблокируем UI — но getSession() всё равно обновит сессию когда придёт.
+    // Fallback-таймаут на случай медленного Supabase (throttled ISP, VPS /sb прокси).
+    // Нет сохранённого токена → 5 с: юзер скорее всего реально разлогинен, открываем Landing/login.
+    // Токен был (идёт рефреш истёкшего) → 15 с: НЕ открываем роуты раньше времени, иначе AuthGuard
+    // мигнёт лендингом и отскочит назад. 15 с — лишь страховка от вечного спиннера на мёртвом канале;
+    // на живом-но-медленном getSession() резолвится раньше.
     const fallback = setTimeout(() => {
       getSessionPending.current = false;
       setInitializing(false);
       setLoading(false);
-    }, 5_000);
+    }, hadToken ? 15_000 : 5_000);
 
     supabase.auth.getSession().then(({ data }) => {
       getSessionPending.current = false;
@@ -99,6 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
     });
     return () => sub.subscription.unsubscribe();
+    // hadToken читается из localStorage один раз при монтировании — эффект mount-once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signIn: AuthContextValue['signIn'] = async (email, password) => {
