@@ -51,8 +51,6 @@ function Guard({ children }: { children: ReactNode }) {
 // Это предотвращает краткий флэш лендинга при обновлении страниц авторизованных разделов.
 function AppContent() {
   const { initializing, session } = useAuth();
-  // TEMP DIAG
-  console.log('[AppContent] initializing=%s session=%s url=%s', initializing, !!session, window.location.pathname);
   if (initializing && !session) return <PageFallback />;
   return (
     <ErrorBoundary>
@@ -65,8 +63,6 @@ function AppContent() {
 
 function AnimatedRoutes() {
   const location = useLocation();
-  // TEMP DIAG
-  console.log('[AnimatedRoutes] pathname=%s', location.pathname);
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>

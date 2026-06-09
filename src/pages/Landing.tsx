@@ -81,9 +81,6 @@ const MS = [
 export default function Landing() {
   const { session, initializing } = useAuth();
 
-  // TEMP DIAG — удалить после диагностики
-  console.log('[Landing] render url=%s initializing=%s session=%s', window.location.pathname, initializing, !!session);
-
   useEffect(() => {
     if (initializing) return;
     const els = document.querySelectorAll<Element>('.lnd-reveal');
