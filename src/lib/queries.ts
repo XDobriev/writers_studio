@@ -4,7 +4,7 @@ import { getProfile, getRegistrationOpen, type Profile } from './profiles';
 import type { Book } from './supabase';
 import { listChaptersMeta, getChapterContent, type ChapterMeta } from './chapters';
 import { listCharacters, type Character } from './characters';
-import { listRelations, type CharacterRelation, listRelationships, type CharacterRelationship } from './relationships';
+import { listRelationships, type CharacterRelationship } from './relationships';
 import { fetchNotes, type Note } from './notes';
 import { listLocations, type Location } from './locations';
 import { listTimelineEvents, type TimelineEvent } from './timeline';
@@ -21,7 +21,6 @@ export const QUERY_KEYS = {
   chapterContent: (id: string) => ['chapter-content', id] as const,
   characters: (bookId: string) => ['characters', bookId] as const,
   notes: (bookId: string) => ['notes', bookId] as const,
-  relations: (bookId: string) => ['relations', bookId] as const,
   relationships: (bookId: string) => ['relationships', bookId] as const,
   writingSnapshots: (bookId: string) => ['writing-snapshots', bookId] as const,
   locations: (bookId: string) => ['locations', bookId] as const,
@@ -78,14 +77,6 @@ export function useNotes(bookId: string | undefined) {
   return useQuery<Note[]>(makeQuery(
     bookId ? QUERY_KEYS.notes(bookId) : ['notes', null],
     () => fetchNotes(bookId!),
-    2 * 60_000,
-  ));
-}
-
-export function useRelations(bookId: string | undefined) {
-  return useQuery<CharacterRelation[]>(makeQuery(
-    bookId ? QUERY_KEYS.relations(bookId) : ['relations', null],
-    () => listRelations(bookId!),
     2 * 60_000,
   ));
 }

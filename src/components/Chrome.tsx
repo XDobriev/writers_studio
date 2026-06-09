@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export { Sidebar, SidebarFoot, SidebarNav } from './Sidebar';
+export { Sidebar } from './Sidebar';
 export { RailNav } from './RailNav';
 
 interface WithModeProps {

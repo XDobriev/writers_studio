@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export const BREAKPOINTS = {
+const BREAKPOINTS = {
   NARROW: 480,
   MOBILE: 768,
   TABLET: 1024,

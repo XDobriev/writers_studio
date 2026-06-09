@@ -1,50 +1,5 @@
 import { createRepository } from './repository';
 
-// --- Directed relations (character_relations: from → to) ---
-
-export interface CharacterRelation {
-  id: string;
-  book_id: string;
-  user_id: string;
-  from_character_id: string;
-  to_character_id: string;
-  label: string;
-  created_at: string;
-  updated_at: string;
-}
-
-const relationsRepo = createRepository<CharacterRelation>(
-  'character_relations',
-  {},
-  [{ column: 'created_at', ascending: true }],
-);
-
-export function listRelations(bookId: string): Promise<CharacterRelation[]> {
-  return relationsRepo.list(bookId);
-}
-
-export function createRelation(
-  bookId: string,
-  userId: string,
-  fromId: string,
-  toId: string,
-  label: string,
-): Promise<CharacterRelation> {
-  return relationsRepo.create(bookId, userId, {
-    from_character_id: fromId,
-    to_character_id: toId,
-    label,
-  });
-}
-
-export function updateRelationLabel(id: string, label: string): Promise<CharacterRelation> {
-  return relationsRepo.update(id, { label });
-}
-
-export function deleteRelation(id: string): Promise<void> {
-  return relationsRepo.delete(id);
-}
-
 // --- Bilateral relationships (character_relationships: charIdA < charIdB canonical) ---
 
 export interface CharacterRelationship {

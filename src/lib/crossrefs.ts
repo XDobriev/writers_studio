@@ -12,7 +12,7 @@ function htmlToText(html: string): string {
     .trim();
 }
 
-export function extractCharacterMentions(content: string, aliases: string[]): boolean {
+function extractCharacterMentions(content: string, aliases: string[]): boolean {
   const text = htmlToText(content);
   for (const alias of aliases) {
     const trimmed = alias.trim();

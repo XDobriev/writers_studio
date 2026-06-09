@@ -7,8 +7,6 @@ export interface WritingStats {
   streak: number;
 }
 
-export { plural, pluralDays } from './i18n';
-
 function computeStats(data: Array<{ date: string; words: number }>): WritingStats {
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
