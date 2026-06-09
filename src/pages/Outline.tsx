@@ -678,6 +678,8 @@ export default function Outline() {
     }
   };
 
+  if (!user) return null;
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%' }}>
     <WithMode>
@@ -707,7 +709,7 @@ export default function Outline() {
                   chapters={chapters}
                   characters={characters}
                   bookId={bookId!}
-                  userId={user?.id ?? ''}
+                  userId={user.id}
                   onDone={handlePovChanged}
                 />
               )}
@@ -765,7 +767,7 @@ export default function Outline() {
                         maxWords={maxWords}
                         povEntries={povEntries.filter((e) => e.chapter_id === c.id)}
                         allCharacters={characters}
-                        userId={user?.id ?? ''}
+                        userId={user.id}
                         onPovChanged={handlePovChanged}
                       />
                     ))}
