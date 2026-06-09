@@ -105,6 +105,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/useVersionMutations.ts` — `createNamed(content, label)` и `remove(id)`: мутации версий с инвалидацией кеша; скрывает `QUERY_KEYS` и `queryClient` от `VersionsPanel`.
 - `src/lib/mapTemplates.ts` — 4 шаблона карты (`parchment`, `sea`, `paper`, `dark`): метаданные для пикера + `renderTemplateBgSvg` для off-screen экспорта.
 - `src/lib/mapExport.ts` — `generateMapPngBuffer` (SVG→canvas→PNG) и `triggerMapDownload`; используется из Map.tsx и Export.tsx.
+- `src/lib/export.ts` — вся логика экспорта: типы (`Format`, `ParagraphStyle`, `BuildOpts`), константы форматов/языков, утилиты (`slugify`, `triggerDownload`, `downloadText`, `estimateSize`) и сборщики (`buildDocxBlob`, `buildEpubBlob`, `buildFb2Doc`, `buildHtmlDoc`, `buildMarkdownDoc`, `buildTextDoc`).
 
 ## Supabase
 
