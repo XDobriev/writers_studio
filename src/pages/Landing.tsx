@@ -79,10 +79,10 @@ const MS = [
 ];
 
 export default function Landing() {
-  const { session, loading } = useAuth();
+  const { session, initializing } = useAuth();
 
   useEffect(() => {
-    if (loading) return;
+    if (initializing) return;
     const els = document.querySelectorAll<Element>('.lnd-reveal');
     if (!els.length) return;
     const reveal = (el: Element) => {
@@ -98,9 +98,9 @@ export default function Landing() {
       document.querySelectorAll<Element>('.lnd-reveal:not(.lnd-visible)').forEach(reveal);
     }, 4000);
     return () => { io.disconnect(); clearTimeout(fallback); };
-  }, [loading]);
+  }, [initializing]);
 
-  if (loading) return null;
+  if (initializing) return null;
   if (session) return <Navigate to="/books" replace />;
 
   return (

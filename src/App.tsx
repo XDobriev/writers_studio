@@ -47,6 +47,20 @@ function Guard({ children }: { children: ReactNode }) {
   return <AuthGuard><ErrorBoundary key={pathname}>{children}</ErrorBoundary></AuthGuard>;
 }
 
+// Не рендерим маршруты пока auth не определён (нет session из localStorage И getSession ещё не вернул ответ).
+// Это предотвращает краткий флэш лендинга при обновлении страниц авторизованных разделов.
+function AppContent() {
+  const { initializing, session } = useAuth();
+  if (initializing && !session) return <PageFallback />;
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<PageFallback />}>
+        <AnimatedRoutes />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
   return (
@@ -127,11 +141,7 @@ export default function App() {
         <AuthQuerySync />
         <OfflineBanner />
         <CookieBanner />
-        <ErrorBoundary>
-          <Suspense fallback={<PageFallback />}>
-            <AnimatedRoutes />
-          </Suspense>
-        </ErrorBoundary>
+        <AppContent />
       </BrowserRouter>
     </AuthProvider>
     </PersistQueryClientProvider>
