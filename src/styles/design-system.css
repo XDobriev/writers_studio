@@ -902,6 +902,16 @@ select.input {
 .book-card { position: relative; }
 .book-card__edit { display: none; }
 .book-card:hover .book-card__edit { display: flex; }
+.book-card__link {
+  background: var(--surface); border-radius: 12px;
+  border: 1px solid var(--border-soft); overflow: hidden;
+  display: flex; flex-direction: column; text-decoration: none;
+  transition: border-color var(--dur-hover), box-shadow var(--dur-hover);
+}
+.book-card__link:hover {
+  border-color: var(--border);
+  box-shadow: 0 4px 16px oklch(0.05 0.01 50 / 0.12);
+}
 
 @media (max-width: 639px) {
   .hide-sm { display: none !important; }
