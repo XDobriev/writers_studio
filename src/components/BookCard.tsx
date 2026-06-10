@@ -1,5 +1,7 @@
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Icon } from './Icon';
+import { cardHoverTransition } from '../lib/motion';
 import type { Book } from '../lib/supabase';
 
 const isImageUrl = (v: string) => v.startsWith('http') || v.startsWith('blob:');
@@ -17,7 +19,11 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
   const hasImage = b.cover ? isImageUrl(b.cover) : false;
 
   return (
-    <div className="book-card">
+    <motion.div
+      className="book-card"
+      whileHover={{ y: -3, boxShadow: '0 16px 40px oklch(0 0 0 / 0.55)' }}
+      transition={cardHoverTransition}
+    >
       <Link
         to={`/books/${b.id}`}
         className="book-card__link"
@@ -85,6 +91,6 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
       >
         <Icon name="pencil" size={13} />
       </button>
-    </div>
+    </motion.div>
   );
 }

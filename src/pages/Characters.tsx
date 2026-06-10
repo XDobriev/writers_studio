@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { useCharacterFilter, type RoleFilter } from '../lib/useCharacterFilter';
 import { motion } from 'framer-motion';
+import { cardContainerVariants, cardItemVariants } from '../lib/motion';
 import { useErrorState } from '../lib/useErrorState';
 import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
@@ -503,14 +504,23 @@ function CharacterGrid({
           Ничего не найдено
         </div>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-          gap: 14,
-        }}>
-          {characters.map((c) => <CharacterCard key={c.id} character={c} onSelect={onSelect} onDelete={onDelete} />)}
+        <motion.div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+            gap: 14,
+          }}
+          variants={cardContainerVariants}
+          initial="initial"
+          animate="animate"
+        >
+          {characters.map((c) => (
+            <motion.div key={c.id} variants={cardItemVariants}>
+              <CharacterCard character={c} onSelect={onSelect} onDelete={onDelete} />
+            </motion.div>
+          ))}
           <AddCard onCreate={onCreate} />
-        </div>
+        </motion.div>
       )}
     </div>
   );
