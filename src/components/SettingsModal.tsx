@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, type CSSProperties } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { Icon } from './Icon';
 import { supabase } from '../lib/supabase';
 import { getProfile, getLifetimeSlotsRemaining } from '../lib/profiles';
@@ -157,7 +159,7 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function SettingsModal({ onClose }: { onClose: () => void }) {
+export function SettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user, signOut, updatePassword } = useAuth();
   const isTelegram = user?.user_metadata?.provider === 'telegram';
   const accountLabel = isTelegram ? 'Telegram' : 'Email';
@@ -257,20 +259,27 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      <div
-        ref={overlayRef}
-        onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
-        style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(3px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-        }}
-      >
-        <div
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            ref={overlayRef}
+            variants={overlayVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1000,
+              background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(3px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+            }}
+          >
+        <motion.div
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label="Настройки"
+          variants={modalPanelVariants}
           style={{
             background: 'var(--bg)', border: '1px solid var(--border)',
             borderRadius: 14, width: 440, maxWidth: '100%', maxHeight: '90vh',
@@ -578,8 +587,10 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
               </div>
             )}
           </div>
-        </div>
-      </div>
+        </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {upgradeOpen && <UpgradeModal onClose={() => setUpgradeOpen(false)} />}
     </>
   );

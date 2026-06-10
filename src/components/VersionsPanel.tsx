@@ -170,18 +170,17 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
         </div>
       )}
 
-      {selected && (
-        <VersionModal
-          version={selected}
-          chapterId={chapterId}
-          bookId={bookId}
-          userId={userId}
-          currentContent={currentContent}
-          isPro={isPro}
-          onClose={() => setSelected(null)}
-          onRestored={(restoredContent) => { onRestoreContent?.(restoredContent); setSelected(null); }}
-        />
-      )}
+      <VersionModal
+        open={selected !== null}
+        version={selected}
+        chapterId={chapterId}
+        bookId={bookId}
+        userId={userId}
+        currentContent={currentContent}
+        isPro={isPro}
+        onClose={() => setSelected(null)}
+        onRestored={(restoredContent) => { onRestoreContent?.(restoredContent); setSelected(null); }}
+      />
     </>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { Icon } from './Icon';
 import { SettingsModal } from './SettingsModal';
@@ -103,7 +104,9 @@ export function AccountMenu({ placement = 'above', children }: AccountMenuProps)
           </div>
         )}
       </div>
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      <AnimatePresence>
+        {settingsOpen && <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />}
+      </AnimatePresence>
     </>
   );
 }

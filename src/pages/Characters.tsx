@@ -454,7 +454,7 @@ export default function Characters() {
         onConfirm={() => { void onDeleteConfirmed(charToDelete!.id); }}
         onCancel={() => setCharToDelete(null)}
       />
-      {showUpgrade && <UpgradePrompt feature="characters" onClose={() => setShowUpgrade(false)} />}
+      <UpgradePrompt open={showUpgrade} feature="characters" onClose={() => setShowUpgrade(false)} />
     </WithMode>
 
     {mutationError && (

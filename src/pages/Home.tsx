@@ -338,7 +338,7 @@ export default function Home() {
         </div>
       )}
 
-      {showUpgrade && <UpgradePrompt feature="books" onClose={() => setShowUpgrade(false)} />}
+      <UpgradePrompt open={showUpgrade} feature="books" onClose={() => setShowUpgrade(false)} />
 
       {/* ─── Welcome / onboarding modal ─── */}
       {showWelcome && (

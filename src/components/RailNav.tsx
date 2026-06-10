@@ -55,7 +55,7 @@ export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
       <div style={{ flex: 1 }} />
       <button className="tb-btn" title="Настройки" aria-label="Настройки" style={{ width: 36, height: 36, borderRadius: 8 }} onClick={() => setSettingsOpen(true)}><Icon name="settings" size={17} /></button>
       <div className="sb-avatar" style={{ width: 32, height: 32, fontSize: 11 }}>{initials}</div>
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </aside>
   );
 }

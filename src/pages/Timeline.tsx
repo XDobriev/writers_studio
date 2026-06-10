@@ -497,7 +497,7 @@ export default function Timeline() {
         onConfirm={onDeleteConfirmed}
         onCancel={() => setConfirmDeleteId(null)}
       />
-      {showUpgrade && <UpgradePrompt feature="timeline" onClose={() => setShowUpgrade(false)} />}
+      <UpgradePrompt open={showUpgrade} feature="timeline" onClose={() => setShowUpgrade(false)} />
     </WithMode>
     </motion.div>
   );

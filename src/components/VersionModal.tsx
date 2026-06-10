@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
+import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { getVersionContent, createVersion, type ChapterVersionMeta } from '../lib/versions';
 import { updateChapter, countWords } from '../lib/chapters';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -69,7 +71,8 @@ function computeDiff(snapHtml: string, curHtml: string): ParaDiff[] {
 }
 
 interface VersionModalProps {
-  version: ChapterVersionMeta;
+  open: boolean;
+  version: ChapterVersionMeta | null;
   chapterId: string;
   bookId: string;
   userId: string;
@@ -80,6 +83,7 @@ interface VersionModalProps {
 }
 
 export function VersionModal({
+  open,
   version,
   chapterId,
   bookId,
@@ -108,10 +112,14 @@ export function VersionModal({
   );
 
   useEffect(() => {
+    if (!version) return;
+    setLoading(true);
+    setContent(null);
     getVersionContent(version.id)
       .then(setContent)
       .finally(() => setLoading(false));
-  }, [version.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [version?.id]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -139,37 +147,44 @@ export function VersionModal({
     }
   }
 
-  const label = version.label ?? formatDate(version.created_at);
-  const meta = version.label
-    ? `${formatDateFull(version.created_at)} · ${version.word_count ?? 0} сл.`
-    : `${triggerLabel(version.trigger)} · ${version.word_count ?? 0} сл.`;
+  const label = version ? (version.label ?? formatDate(version.created_at)) : '';
+  const meta = version
+    ? (version.label
+      ? `${formatDateFull(version.created_at)} · ${version.word_count ?? 0} сл.`
+      : `${triggerLabel(version.trigger)} · ${version.word_count ?? 0} сл.`)
+    : '';
   const currentWords = countWords(currentContent);
-  const delta = (version.word_count ?? 0) - currentWords;
+  const delta = (version?.word_count ?? 0) - currentWords;
 
   return (
     <>
-      <div
-        ref={overlayRef}
-        role="presentation"
-        style={{
-          position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200,
-          animation: 'fade-in 0.15s ease-out both',
-        }}
-        onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
-      >
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Версия главы"
+      <AnimatePresence>
+        {open && (
+        <motion.div
+          ref={overlayRef}
+          role="presentation"
+          variants={overlayVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
           style={{
-            background: 'var(--bg)', border: '1px solid var(--border)',
-            borderRadius: 'var(--r-3)', width: 560, maxHeight: '72vh',
-            display: 'flex', flexDirection: 'column',
-            boxShadow: '0 20px 60px oklch(0 0 0 / 0.5)',
-            animation: 'modal-in 0.15s cubic-bezier(.22,.68,0,1.2) both',
+            position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200,
           }}
+          onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
         >
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Версия главы"
+            variants={modalPanelVariants}
+            style={{
+              background: 'var(--bg)', border: '1px solid var(--border)',
+              borderRadius: 'var(--r-3)', width: 560, maxHeight: '72vh',
+              display: 'flex', flexDirection: 'column',
+              boxShadow: '0 20px 60px oklch(0 0 0 / 0.5)',
+            }}
+          >
           <div style={{
             padding: '16px 18px', borderBottom: '1px solid var(--border-soft)',
             display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
@@ -284,8 +299,10 @@ export function VersionModal({
               </button>
             </div>
           </div>
-        </div>
-      </div>
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
 
       <ConfirmDialog
         open={confirm}

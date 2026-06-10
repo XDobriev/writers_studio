@@ -415,7 +415,7 @@ export default function Export() {
         </div>
       </div>
 
-      {showUpgrade && <UpgradePrompt feature="export" onClose={() => setShowUpgrade(false)} />}
+      <UpgradePrompt open={showUpgrade} feature="export" onClose={() => setShowUpgrade(false)} />
       {langOpen && <div onClick={() => setLangOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />}
       {langOpen && (
         <div style={{ position: 'fixed', top: langPos.top, left: langPos.left, width: langPos.width, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, zIndex: 9999, boxShadow: '0 8px 24px oklch(0 0 0 / 0.5)', overflow: 'hidden' }}>
