@@ -554,9 +554,10 @@ export function WorldMap({
               <button onClick={() => { onUpdate(selected.id, { x: null, y: null }); setSelectedId(null); }} style={{ font: '400 10px var(--font-ui)', color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                 Снять с карты
               </button>
-              <button onClick={() => { setSelectedId(null); onDelete(selected.id); }} style={{ font: '400 10px var(--font-ui)', color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--danger)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)'; }}
+              <button
+                className="map-popup-del"
+                style={{ font: '400 10px var(--font-ui)' }}
+                onClick={() => { setSelectedId(null); onDelete(selected.id); }}
               >
                 Удалить
               </button>
@@ -603,10 +604,9 @@ export function WorldMap({
                 ))}
               </select>
               <button
+                className="map-popup-del"
+                style={{ font: '16px var(--font-ui)' }}
                 onClick={() => { setSelectedConnId(null); onDeleteConnection(conn.id); }}
-                style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '16px var(--font-ui)', lineHeight: 1, padding: '0 2px' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--danger)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)'; }}
               >×</button>
             </div>
           );

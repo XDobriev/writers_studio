@@ -354,24 +354,13 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
               {EDITOR_FONTS.map(f => (
                 <button
                   key={f.id}
+                  className="status-font-item"
                   onClick={() => { applyEditorFont(f.id); setFontOpen(false); }}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    width: '100%',
-                    padding: '7px 10px',
-                    borderRadius: 6,
-                    border: 'none',
-                    background: 'transparent',
-                    cursor: 'pointer',
                     fontFamily: f.family,
                     fontSize: 13,
                     color: activeFont === f.id ? 'var(--ink)' : 'var(--ink-3)',
-                    transition: 'background 0.1s',
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-2)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
                 >
                   {f.label}
                   {activeFont === f.id && (

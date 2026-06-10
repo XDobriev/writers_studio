@@ -397,10 +397,8 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                 )}
 
                 <button
+                  className="settings-signout-btn"
                   onClick={() => signOut()}
-                  style={{ width: '100%', fontSize: 13, padding: '9px 0', marginTop: 4, color: 'var(--danger)', background: 'transparent', border: '1px solid color-mix(in oklch, var(--danger) 45%, transparent)', borderRadius: 8, cursor: 'pointer', letterSpacing: '-0.01em', transition: 'background 0.15s, border-color 0.15s' }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in oklch, var(--danger) 10%, transparent)'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
                 >
                   Выйти из аккаунта
                 </button>

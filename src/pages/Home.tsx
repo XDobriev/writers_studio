@@ -350,6 +350,7 @@ export default function Home() {
           <div
             role="dialog"
             aria-modal="true"
+            aria-label="Добро пожаловать в Авторскую студию"
             className="modal-panel modal-panel--xl"
             style={{ width: 520 }}
             onClick={(e) => e.stopPropagation()}

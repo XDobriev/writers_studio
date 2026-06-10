@@ -213,17 +213,7 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
   return (
     <div
       onClick={() => onOpen(version)}
-      style={{
-        background: 'var(--surface)', border: '1px solid var(--border-soft)',
-        borderRadius: 'var(--r-2)', padding: '10px 14px',
-        display: 'flex', flexDirection: 'column', gap: 6,
-        cursor: 'pointer', marginBottom: 6,
-        borderLeft: isNamed ? '2px solid var(--accent)' : undefined,
-        paddingLeft: isNamed ? '13px' : '14px',
-        transition: 'background 0.12s',
-      }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-2)'; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'var(--surface)'; }}
+      className={`version-card${isNamed ? ' version-card--named' : ''}`}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <span style={{
