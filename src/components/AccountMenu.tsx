@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { dropdownVariants } from '../lib/motion';
 import { useAuth } from '../lib/auth';
 import { Icon } from './Icon';
 import { SettingsModal } from './SettingsModal';
@@ -66,43 +67,48 @@ export function AccountMenu({ placement = 'above', children }: AccountMenuProps)
     <>
       <div ref={containerRef} style={{ position: 'relative' }}>
         {children({ onClick: () => setOpen(v => !v), open, signingOut })}
-        {open && (
-          <div
-            role="menu"
-            style={{
-              ...dropdownStyle,
-              background: 'var(--surface)',
-              border: '1px solid var(--border-soft)',
-              borderRadius: 8,
-              padding: 4,
-              boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)',
-              zIndex: 100,
-              animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both',
-            }}
-          >
-            <button
-              type="button"
-              role="menuitem"
-              className="sb-dropdown-item"
-              onClick={() => { setOpen(false); setSettingsOpen(true); }}
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              role="menu"
+              variants={dropdownVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              style={{
+                ...dropdownStyle,
+                background: 'var(--surface)',
+                border: '1px solid var(--border-soft)',
+                borderRadius: 8,
+                padding: 4,
+                boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)',
+                zIndex: 100,
+              }}
             >
-              <Icon name="settings" size={14} />
-              Настройки
-            </button>
-            <div style={{ height: 1, background: 'var(--border-soft)', margin: '2px 0' }} />
-            <button
-              type="button"
-              role="menuitem"
-              className="sb-dropdown-item sb-dropdown-item--danger"
-              onClick={() => void handleSignOut()}
-              disabled={signingOut}
-              style={signingOut ? { opacity: 0.5, pointerEvents: 'none' } : undefined}
-            >
-              <Icon name="log-out" size={14} />
-              {signingOut ? 'Выход…' : 'Выйти'}
-            </button>
-          </div>
-        )}
+              <button
+                type="button"
+                role="menuitem"
+                className="sb-dropdown-item"
+                onClick={() => { setOpen(false); setSettingsOpen(true); }}
+              >
+                <Icon name="settings" size={14} />
+                Настройки
+              </button>
+              <div style={{ height: 1, background: 'var(--border-soft)', margin: '2px 0' }} />
+              <button
+                type="button"
+                role="menuitem"
+                className="sb-dropdown-item sb-dropdown-item--danger"
+                onClick={() => void handleSignOut()}
+                disabled={signingOut}
+                style={signingOut ? { opacity: 0.5, pointerEvents: 'none' } : undefined}
+              >
+                <Icon name="log-out" size={14} />
+                {signingOut ? 'Выход…' : 'Выйти'}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       <AnimatePresence>
         {settingsOpen && <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />}
