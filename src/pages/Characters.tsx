@@ -226,7 +226,7 @@ export default function Characters() {
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {isMobile && activeId && (
-                <button className="tb-btn" onClick={clearCharacter} title="К списку персонажей">
+                <button className="tb-btn" onClick={clearCharacter} title="К списку персонажей" aria-label="К списку персонажей">
                   <Icon name="arrows" size={16} />
                 </button>
               )}
@@ -269,7 +269,7 @@ export default function Characters() {
                       </button>
                     ))}
                   </div>
-                  <button onClick={handleCreate} className="tb-btn" title="Новый персонаж">
+                  <button onClick={handleCreate} className="tb-btn" title="Новый персонаж" aria-label="Новый персонаж">
                     <Icon name="plus" size={14} />
                   </button>
                 </>
@@ -287,7 +287,7 @@ export default function Characters() {
                       className="tb-search__input"
                     />
                   </div>
-                  <button onClick={handleCreate} className="tb-btn" title="Новый персонаж">
+                  <button onClick={handleCreate} className="tb-btn" title="Новый персонаж" aria-label="Новый персонаж">
                     <Icon name="plus" size={14} />
                   </button>
                 </>
@@ -306,6 +306,7 @@ export default function Characters() {
                     onClick={() => prevChar && selectCharacter(prevChar.id)}
                     disabled={!prevChar}
                     title="Предыдущий персонаж"
+                    aria-label="Предыдущий персонаж"
                   >
                     <Icon name="arrows" size={13} />
                   </button>
@@ -314,6 +315,7 @@ export default function Characters() {
                     onClick={() => nextChar && selectCharacter(nextChar.id)}
                     disabled={!nextChar}
                     title="Следующий персонаж"
+                    aria-label="Следующий персонаж"
                   >
                     <Icon name="chev" size={13} />
                   </button>
@@ -327,6 +329,7 @@ export default function Characters() {
                     className={'tb-btn' + (viewMode === 'grid' ? ' tb-btn--on' : '')}
                     onClick={goToGrid}
                     title="Картотека (сетка)"
+                    aria-label="Картотека (сетка)"
                   >
                     <Icon name="grid" size={14} />
                   </button>
@@ -335,6 +338,7 @@ export default function Characters() {
                     onClick={() => { if (activeId) setViewMode('detail'); }}
                     disabled={!activeId}
                     title="Детальная карточка"
+                    aria-label="Детальная карточка"
                   >
                     <Icon name="char" size={14} />
                   </button>
@@ -545,6 +549,7 @@ function CharacterCard({ character: c, onSelect, onDelete }: { character: Charac
         className="char-card__del"
         onClick={(e) => { e.stopPropagation(); onDelete(c); }}
         title="Удалить персонажа"
+        aria-label="Удалить персонажа"
       >
         ×
       </button>
@@ -728,6 +733,7 @@ function HeroBlock({ character, bookId, onChange, onError }: {
           <button
             onClick={(e) => { e.stopPropagation(); void onAvatarDelete(); }}
             title="Удалить портрет"
+            aria-label="Удалить портрет"
             style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 4, background: 'oklch(0.35 0.18 20 / 0.85)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', zIndex: 2, padding: 0 }}
           >
             <Icon name="trash" size={11} />
@@ -1069,7 +1075,7 @@ function RelationRow({ relId, partner, labelMine, labelTheirs, onDelete, onLabel
           </div>
         </div>
       </div>
-      <button onClick={onDelete} title="Удалить связь" className="rel-del-btn">
+      <button onClick={onDelete} title="Удалить связь" aria-label="Удалить связь" className="rel-del-btn">
         ×
       </button>
     </div>
