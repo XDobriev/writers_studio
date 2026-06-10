@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { useErrorState } from '../lib/useErrorState';
@@ -183,6 +183,8 @@ export default function Notes() {
   const [modalEditText, setModalEditText] = useState('');
   const [modalEditCustomLabel, setModalEditCustomLabel] = useState('');
   const [modalEditCustomColor, setModalEditCustomColor] = useState<BaseKind>('idea');
+  const modalPanelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (modalNote) modalPanelRef.current?.focus(); }, [modalNote]);
 
   const [filterKind, setFilterKind] = useState<NoteKind | 'all'>('all');
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
@@ -542,9 +544,31 @@ export default function Notes() {
             onClick={closeModal}
           >
             <div
+              ref={modalPanelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Заметка: ${noteLabel(modalNote)}`}
+              tabIndex={-1}
               className="note-modal-panel"
               onClick={(e) => e.stopPropagation()}
-              style={{ borderLeft: `4px solid ${noteColor(modalNote)}` }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') { closeModal(); return; }
+                if (e.key === 'Tab') {
+                  const focusable = e.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]),input:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])');
+                  const arr = Array.from(focusable);
+                  if (!arr.length) return;
+                  const first = arr[0], last = arr[arr.length - 1];
+                  if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
+                    e.preventDefault();
+                    (e.shiftKey ? last : first).focus();
+                  }
+                }
+              }}
+              style={{
+                borderColor: `color-mix(in oklch, ${noteColor(modalNote)} 35%, var(--border-soft))`,
+                background: `color-mix(in oklch, ${noteColor(modalNote)} 5%, var(--bg))`,
+                outline: 'none',
+              }}
             >
               {/* Шапка */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
