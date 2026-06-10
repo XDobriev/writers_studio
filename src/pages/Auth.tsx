@@ -157,9 +157,11 @@ export default function Auth() {
 
         <div>
           <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.2em', color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 18 }}>Редактор для писателей · 2026</div>
-          <h1 style={{ font: `600 ${isMobile ? '36px' : '56px'}/1.05 var(--font-serif)`, letterSpacing: '-0.02em', marginBottom: 24 }}>Здесь{isMobile ? ' ' : <br />}пишутся книги.</h1>
+          <h1 style={{ font: `600 ${isMobile ? '36px' : '56px'}/1.05 var(--font-serif)`, letterSpacing: '-0.02em', marginBottom: 24 }}>
+            Здесь пишете{isMobile ? ' ' : <br />}<em style={{ fontStyle: 'italic', fontWeight: 500, color: 'var(--accent-2)' }}>только вы</em>.
+          </h1>
           <p style={{ font: '400 16px/1.65 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 480 }}>
-            Один строит миры: карта локаций, живые персонажи, хронология событий. Другому нужна только тишина и чистый лист. Авторская студия не навязывает стиль — берите столько инструментов, сколько нужно. Всё в одном месте, всё связано, ничего лишнего.
+            Рукопись, картотека персонажей, карта мира и хронология — в одном чистом редакторе. Без нейросети, которая дописывает за вас.
           </p>
         </div>
 
@@ -310,12 +312,12 @@ export default function Auth() {
                   style={{ width: '100%', height: 42, justifyContent: 'center', gap: 10 }}
                 >
                   <GoogleGlyph />
-                  <span>{oauthBusy === 'google' ? 'Переход к Google…' : 'Войти через Google'}</span>
+                  <span>{oauthBusy === 'google' ? 'Переход к Google…' : (tab === 'signin' ? 'Войти через Google' : 'Зарегистрироваться через Google')}</span>
                 </button>
 
                 {TG_BOT_USERNAME && (
                   <div
-                    style={{ position: 'relative', height: 42 }}
+                    style={{ position: 'relative', height: 42, opacity: (tab === 'signup' && !consent) ? 0.4 : 1, pointerEvents: (tab === 'signup' && !consent) ? 'none' : 'auto' }}
                   >
                     <button
                       type="button"
@@ -325,7 +327,7 @@ export default function Auth() {
                       style={{ pointerEvents: 'none' }}
                     >
                       <TelegramGlyph />
-                      <span>Войти через Telegram</span>
+                      <span>{tab === 'signin' ? 'Войти через Telegram' : 'Зарегистрироваться через Telegram'}</span>
                     </button>
                     <div ref={tgSlotRef} style={{ position: 'absolute', inset: 0, opacity: 0, overflow: 'hidden' }} />
                   </div>
