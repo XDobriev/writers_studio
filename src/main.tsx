@@ -36,7 +36,16 @@ import { applyEditorFont, getStoredEditorFont } from './lib/editorFont';
 applyTheme(getStoredTheme());
 applyEditorFont(getStoredEditorFont());
 
-createRoot(document.getElementById('root')!).render(
+const rootEl = document.getElementById('root')!;
+// Анти-флэш: index.html помечает <html class="prerender-stale">, когда предотрисованный
+// лендинг из SPA-fallback не относится к текущему роуту (см. комментарий в index.html).
+// Чистим устаревшую разметку и снимаем класс — #root становится виден уже под React.
+if (document.documentElement.classList.contains('prerender-stale')) {
+  rootEl.textContent = '';
+  document.documentElement.classList.remove('prerender-stale');
+}
+
+createRoot(rootEl).render(
   <StrictMode>
     <App />
   </StrictMode>,

@@ -146,17 +146,15 @@
       .lnd-feat-row .lnd-text,
       .lnd-feat-row .lnd-mock { opacity: 1 !important; transform: none !important; }
     </style></noscript>
-  </head>
-  <body>
-    <noscript><div><img src="https://mc.yandex.ru/watch/109723861" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-    <div id="root"></div>
+
+    <!-- Анти-флэш предотрисованного лендинга.
+         scripts/prerender.mjs пишет полностью отрендеренный лендинг в dist/index.html (SEO
+         для Яндексбота). nginx и Vercel отдают ЭТОТ index.html как SPA-fallback для ВСЕХ
+         роутов, поэтому на /books и др. лендинг красится до загрузки React. Прячем #root
+         ДО парса body (CSS в head), когда предотрисованное содержимое не относится к роуту;
+         main.tsx очистит #root и снимет класс. Краулеры JS не исполняют — SEO не страдает. -->
+    <style>html.prerender-stale #root{display:none!important}</style>
     <script>
-      /* Анти-флэш предотрисованного лендинга.
-         scripts/prerender.mjs пишет полностью отрендеренный лендинг в dist/index.html
-         (для Яндексбота и краулеров без JS). nginx и Vercel отдают ЭТОТ index.html как
-         SPA-fallback для ВСЕХ роутов, поэтому на /books и др. лендинг мелькает до загрузки
-         React. Чистим #root, когда предотрисованное содержимое не совпадёт с тем, что
-         отрендерит React. Краулеры JS не исполняют — статический HTML и SEO не страдают. */
       (function () {
         try {
           var p = location.pathname.replace(/\/+$/, '') || '/';
@@ -169,15 +167,18 @@
               if (v && v.access_token) { loggedIn = true; break; }
             }
           }
-          // Чистим, если: (а) роут не предотрисован (отдан лендинг-fallback), либо
-          // (б) корень, но юзер залогинен — Landing всё равно редиректнет на /books.
+          // Прячем, если роут не предотрисован (отдан лендинг-fallback) либо это корень,
+          // но юзер залогинен — Landing всё равно редиректнет на /books.
           if (!prerendered || (p === '/' && loggedIn)) {
-            var r = document.getElementById('root');
-            if (r) r.textContent = '';
+            document.documentElement.classList.add('prerender-stale');
           }
         } catch (e) {}
       })();
     </script>
+  </head>
+  <body>
+    <noscript><div><img src="https://mc.yandex.ru/watch/109723861" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
