@@ -1,16 +1,6 @@
 import { supabase } from './supabase';
 import type { Character } from './characters';
-
-function htmlToText(html: string): string {
-  if (!html) return '';
-  return html
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&[a-z0-9#]+;/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+import { htmlToText } from './htmlUtils';
 
 function extractCharacterMentions(content: string, aliases: string[]): boolean {
   const text = htmlToText(content);

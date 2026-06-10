@@ -94,6 +94,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/characters.ts` — CRUD персонажей.
 - `src/lib/relationships.ts` — единый модуль связей: направленные (`CharacterRelation`, `character_relations`) и двусторонние (`CharacterRelationship`, `character_relationships`, канонический порядок charIdA < charIdB).
 - `src/lib/crossrefs.ts` — бэклинки: поиск упоминаний персонажей по главам.
+- `src/lib/htmlUtils.ts` — `htmlToText`: конвертация HTML в plain text (единственный канонический экземпляр).
 - `src/lib/useChapterVersioning.ts` — хук версионирования главы: session token, interval-снапшоты, chapter_switch, beforeunload-keepalive.
 - `src/lib/useCharacterHover.ts` — mousemove 500ms debounce + Unicode-поиск alias персонажа под курсором в TipTap DOM; возвращает `{ shown, onCardEnter, onCardLeave }`.
 - `src/lib/useErrorState.ts` — хук error-состояния: `{ error, setError(Error|string), clearError() }`.
