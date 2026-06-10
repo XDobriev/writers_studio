@@ -20,6 +20,7 @@ import '@fontsource-variable/source-serif-4/wght.css';
 import * as Sentry from '@sentry/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { MotionConfig } from 'framer-motion';
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
@@ -47,6 +48,8 @@ if (document.documentElement.classList.contains('prerender-stale')) {
 
 createRoot(rootEl).render(
   <StrictMode>
-    <App />
+    <MotionConfig reducedMotion="user">
+      <App />
+    </MotionConfig>
   </StrictMode>,
 );

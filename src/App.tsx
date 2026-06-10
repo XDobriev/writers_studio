@@ -6,6 +6,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { AuthProvider, useAuth } from './lib/auth';
 import { AuthGuard } from './components/AuthGuard';
+import { PageMotion } from './components/PageMotion';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineBanner } from './components/OfflineBanner';
 import { CookieBanner } from './components/CookieBanner';
@@ -64,32 +65,32 @@ function AppContent() {
 function AnimatedRoutes() {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="sync">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Auth />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/" element={<PageMotion><Landing /></PageMotion>} />
+        <Route path="/login" element={<PageMotion><Auth /></PageMotion>} />
+        <Route path="/reset-password" element={<PageMotion><ResetPassword /></PageMotion>} />
 
-        <Route path="/books" element={<Guard><Home /></Guard>} />
-        <Route path="/books/:id" element={<Guard><Dashboard /></Guard>} />
-        <Route path="/books/:id/editor" element={<Guard><Editor /></Guard>} />
-        <Route path="/books/:id/outline" element={<Guard><Outline /></Guard>} />
-        <Route path="/books/:id/corkboard" element={<Guard><Corkboard /></Guard>} />
-        <Route path="/books/:id/map" element={<Guard><MapScreen /></Guard>} />
-        <Route path="/books/:id/timeline" element={<Guard><Timeline /></Guard>} />
-        <Route path="/books/:id/characters" element={<Guard><Characters /></Guard>} />
-        <Route path="/books/:id/focus" element={<Guard><Focus /></Guard>} />
-        <Route path="/books/:id/split" element={<Guard><Split /></Guard>} />
-        <Route path="/books/:id/notes" element={<Guard><Notes /></Guard>} />
-        <Route path="/books/:id/export" element={<Guard><Export /></Guard>} />
+        <Route path="/books" element={<PageMotion><Guard><Home /></Guard></PageMotion>} />
+        <Route path="/books/:id" element={<PageMotion><Guard><Dashboard /></Guard></PageMotion>} />
+        <Route path="/books/:id/editor" element={<PageMotion><Guard><Editor /></Guard></PageMotion>} />
+        <Route path="/books/:id/outline" element={<PageMotion><Guard><Outline /></Guard></PageMotion>} />
+        <Route path="/books/:id/corkboard" element={<PageMotion><Guard><Corkboard /></Guard></PageMotion>} />
+        <Route path="/books/:id/map" element={<PageMotion><Guard><MapScreen /></Guard></PageMotion>} />
+        <Route path="/books/:id/timeline" element={<PageMotion><Guard><Timeline /></Guard></PageMotion>} />
+        <Route path="/books/:id/characters" element={<PageMotion><Guard><Characters /></Guard></PageMotion>} />
+        <Route path="/books/:id/focus" element={<PageMotion><Guard><Focus /></Guard></PageMotion>} />
+        <Route path="/books/:id/split" element={<PageMotion><Guard><Split /></Guard></PageMotion>} />
+        <Route path="/books/:id/notes" element={<PageMotion><Guard><Notes /></Guard></PageMotion>} />
+        <Route path="/books/:id/export" element={<PageMotion><Guard><Export /></Guard></PageMotion>} />
 
-        <Route path="/share/:token" element={<ShareBook />} />
-        <Route path="/admin" element={<Guard><Admin /></Guard>} />
-        <Route path="/admin/users/:userId" element={<Guard><AdminUserDetail /></Guard>} />
-        <Route path="/privacy" element={<Privacy />} />
-        <Route path="/terms" element={<Terms />} />
-        <Route path="/offer" element={<Offer />} />
-        <Route path="*" element={<NotFound />} />
+        <Route path="/share/:token" element={<PageMotion><ShareBook /></PageMotion>} />
+        <Route path="/admin" element={<PageMotion><Guard><Admin /></Guard></PageMotion>} />
+        <Route path="/admin/users/:userId" element={<PageMotion><Guard><AdminUserDetail /></Guard></PageMotion>} />
+        <Route path="/privacy" element={<PageMotion><Privacy /></PageMotion>} />
+        <Route path="/terms" element={<PageMotion><Terms /></PageMotion>} />
+        <Route path="/offer" element={<PageMotion><Offer /></PageMotion>} />
+        <Route path="*" element={<PageMotion><NotFound /></PageMotion>} />
       </Routes>
     </AnimatePresence>
   );
