@@ -8,6 +8,7 @@ interface StatusBarProps {
   chars?: number;
   savedAt?: string;
   statusLabel?: string;
+  saveState?: 'idle' | 'saving' | 'saved' | 'error';
   todayWords?: number;
   goalWords?: number;
   streak?: number;
@@ -32,7 +33,7 @@ type SoundId = typeof SOUNDS[number]['id'];
 const FADE_STEPS = 20;
 const FADE_MS = 500;
 
-export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, todayWords, goalWords = 1000, streak, onGoalChange, focusMode, onToggleFocusMode }: StatusBarProps) {
+export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, saveState, todayWords, goalWords = 1000, streak, onGoalChange, focusMode, onToggleFocusMode }: StatusBarProps) {
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
   const { isNarrow } = useResponsive();
@@ -231,7 +232,7 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, tod
 
   return (
     <div className="status">
-      <span><span className="status-dot" style={{ display: 'inline-block', marginRight: 6, verticalAlign: 'middle' }} />{statusLabel ?? (savedAt ? `Сохранено · ${savedAt}` : 'Сохранение…')}</span>
+      <span><span className="status-dot" style={{ display: 'inline-block', marginRight: 6, verticalAlign: 'middle', background: saveState === 'error' ? 'var(--danger)' : saveState === 'saving' ? 'var(--accent-2)' : 'var(--ok)' }} />{statusLabel ?? (savedAt ? `Сохранено · ${savedAt}` : 'Сохранение…')}</span>
       <span style={{ color: 'var(--ink-4)' }}>·</span>
       <span>Слов: {words.toLocaleString('ru')}</span>
       {!isNarrow && (

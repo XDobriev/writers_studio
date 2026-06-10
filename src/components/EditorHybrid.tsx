@@ -342,6 +342,7 @@ export function EditorHybrid({
               words={activeChapter?.words ?? 0}
               chars={activeContent.replace(/<[^>]+>/g, '').length}
               statusLabel={saveLabel(saveState, savedAt)}
+              saveState={saveState}
               todayWords={writingStats.todayWords}
               goalWords={book?.daily_goal ?? 1000}
               streak={writingStats.streak}
