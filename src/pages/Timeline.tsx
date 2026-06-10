@@ -1122,22 +1122,9 @@ function EventCard({
           <button
             onClick={onDelete}
             title="Удалить событие"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--ink-4)',
-              cursor: 'pointer',
-              padding: '4px 6px',
-              font: '400 16px var(--font-ui)',
-              lineHeight: 1,
-              borderRadius: 4,
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.color = 'var(--danger)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.color = 'var(--ink-4)';
-            }}
+            aria-label="Удалить событие"
+            className="btn-danger-hover"
+            style={{ padding: '4px 6px', font: '400 16px var(--font-ui)', lineHeight: 1, borderRadius: 4 }}
           >
             ×
           </button>
