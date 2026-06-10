@@ -293,7 +293,7 @@ export default function MapScreen() {
             />
 
             {!book.map_bg_url && locations.length === 0 && (
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 5 }}>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto', zIndex: 5 }} onClick={() => { void onCreate(800, 450); }}>
                 <div
                   style={{
                     pointerEvents: 'auto',
@@ -307,6 +307,7 @@ export default function MapScreen() {
                     backdropFilter: 'blur(14px)',
                     boxShadow: '0 8px 40px oklch(0 0 0 / 0.55)',
                   }}
+                  onClick={e => e.stopPropagation()}
                 >
                   <div style={{ fontSize: 28, marginBottom: 12, lineHeight: 1 }}>🗺</div>
                   <div style={{ font: '500 15px var(--font-serif)', color: 'var(--ink)', marginBottom: 8 }}>
