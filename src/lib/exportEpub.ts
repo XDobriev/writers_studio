@@ -1,7 +1,6 @@
 import JSZip from 'jszip';
 import type { Book } from './supabase';
 import type { Chapter } from './chapters';
-import type { Note } from './notes';
 import {
   type BuildOpts,
   type ParagraphStyle,
@@ -10,7 +9,7 @@ import {
   addNoIndentToFirst,
   chapterNotes,
   bookNotes,
-  noteLabel,
+  notesBlockHtml,
 } from './export';
 
 function getEpubCss(paragraphStyle: ParagraphStyle): string {
@@ -30,14 +29,6 @@ strong{font-weight:bold}em{font-style:italic}
 .chapter-notes-title{margin:0 0 0.5em;font-size:0.75em;color:#8a7d70;text-transform:uppercase;letter-spacing:0.08em;font-weight:600}
 .note-item{margin:0 0 0.35em;font-size:0.88em;color:#4a443f;text-indent:0}
 `;
-}
-
-function notesBlockEpub(notes: Note[]): string {
-  if (!notes.length) return '';
-  const items = notes.map((n) =>
-    `<p class="note-item"><em>${escapeHtml(noteLabel(n))}:</em> ${escapeHtml(n.text)}</p>`
-  ).join('');
-  return `<div class="chapter-notes"><p class="chapter-notes-title">Примечания автора</p>${items}</div>`;
 }
 
 function chapterXhtml(title: string, html: string, lang: string, includeTitle: boolean, notesHtml = ''): string {
@@ -199,7 +190,7 @@ export async function buildEpubBlob(book: Book, chapters: Chapter[], opts: Build
 </html>`);
   }
   for (const c of chs) {
-    const nHtml = opts.includeNotes ? notesBlockEpub(chapterNotes(opts.notes, c.chapterId)) : '';
+    const nHtml = opts.includeNotes ? notesBlockHtml(chapterNotes(opts.notes, c.chapterId)) : '';
     const content = opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(c.content) : c.content;
     zip.file(`OEBPS/${c.href}`, chapterXhtml(c.title, content, lang, opts.includeChapterTitles, nHtml));
   }
@@ -207,7 +198,7 @@ export async function buildEpubBlob(book: Book, chapters: Chapter[], opts: Build
   if (opts.includeNotes) {
     const bn = bookNotes(opts.notes);
     if (bn.length) {
-      const bnHtml = notesBlockEpub(bn);
+      const bnHtml = notesBlockHtml(bn);
       const bnXhtml = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="${lang}" xml:lang="${lang}">
