@@ -51,3 +51,29 @@ export function updateRelationshipLabels(
 export function deleteRelationship(id: string): Promise<void> {
   return relationshipsRepo.delete(id);
 }
+
+/** Метка, которую видит персонаж `myId` как описание его отношения к другому. */
+export function getMyLabel(rel: CharacterRelationship, myId: string): string {
+  return rel.char_a_id === myId ? rel.label_a : rel.label_b;
+}
+
+/** Метка, которую видит персонаж `myId` как описание другого персонажа к нему. */
+export function getTheirLabel(rel: CharacterRelationship, myId: string): string {
+  return rel.char_a_id === myId ? rel.label_b : rel.label_a;
+}
+
+/**
+ * Собирает patch-объект для updateRelationshipLabels с точки зрения персонажа myId.
+ * Скрывает инвариант canonical order char_a_id < char_b_id от вызывающего кода.
+ */
+export function makeLabelPatch(
+  rel: CharacterRelationship,
+  myId: string,
+  labelMine: string,
+  labelTheirs: string,
+): { label_a?: string; label_b?: string } {
+  const iAmA = rel.char_a_id === myId;
+  return iAmA
+    ? { label_a: labelMine, label_b: labelTheirs }
+    : { label_b: labelMine, label_a: labelTheirs };
+}

@@ -9,6 +9,7 @@ import {
   createRelationship,
   deleteRelationship,
   updateRelationshipLabels,
+  makeLabelPatch,
   type CharacterRelationship,
 } from './relationships';
 import { QUERY_KEYS } from './queries';
@@ -98,10 +99,7 @@ export function useCharacterMutations({
     const rels = queryClient.getQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId));
     const rel = rels?.find((r) => r.id === id);
     if (!rel) return;
-    const iAmA = rel.char_a_id === active.id;
-    const patch = iAmA
-      ? { label_a: labelMine, label_b: labelTheirs }
-      : { label_b: labelMine, label_a: labelTheirs };
+    const patch = makeLabelPatch(rel, active.id, labelMine, labelTheirs);
     try {
       const updated = await updateRelationshipLabels(id, patch);
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) =>
