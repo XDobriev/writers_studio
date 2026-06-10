@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { EditorHybrid } from '../components/EditorHybrid';
 import { useAuth } from '../lib/auth';
 import { supabase, type Book } from '../lib/supabase';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/config';
 import { updateBook } from '../lib/books';
 import {
   countWords,
@@ -162,7 +163,7 @@ export default function Editor() {
         const characters = queryClient.getQueryData<Character[]>(QUERY_KEYS.characters(bookId)) ?? [];
         if (characters.length > 0) {
           void syncBacklinks(id, bookId, currentContentRef.current, characters)
-            .then(() => { void queryClient.invalidateQueries({ queryKey: ['chapter-characters'] }); })
+            .then(() => { void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterCharactersAll() }); })
             .catch(() => { /* non-critical */ });
         }
       } catch (e) {
@@ -178,8 +179,8 @@ export default function Editor() {
       const patch = pendingPatchRef.current;
       const id = targetIdRef.current;
       const token = sessionTokenRef.current;
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+      const supabaseUrl = SUPABASE_URL;
+      const anonKey = SUPABASE_ANON_KEY;
       if (patch && id && token) {
         void fetch(`${supabaseUrl}/rest/v1/chapters?id=eq.${id}`, {
           method: 'PATCH',

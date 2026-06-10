@@ -110,6 +110,8 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/exportDocx.ts` — DOCX builder: `collectRuns`, `parseBlockEl`, `parseHtmlToParagraphs`, `buildDocxBlob`.
 - `src/lib/exportFb2.ts` — FB2 builder: `inlineToFb2`, `blockToFb2`, `htmlToFb2Content`, `buildFb2Doc`.
 - `src/lib/exportEpub.ts` — EPUB builder: `buildEpubBlob`, ZIP-сборка через JSZip.
+- `src/lib/config.ts` — централизованные env-константы: `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
+- `src/lib/useCharacterFilter.ts` — хук фильтрации персонажей по роли и поисковому запросу; экспортирует тип `RoleFilter`.
 
 ## Supabase
 
