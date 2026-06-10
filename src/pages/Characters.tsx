@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import { useCharacterFilter, type RoleFilter } from '../lib/useCharacterFilter';
 import { motion } from 'framer-motion';
 import { useErrorState } from '../lib/useErrorState';
 import { useResponsive } from '../lib/useResponsive';
@@ -33,7 +34,6 @@ import { useCharacterNavigation } from '../lib/useCharacterNavigation';
 import { useCharacterMutations } from '../lib/useCharacterMutations';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
-type RoleFilter = 'all' | CharacterRole;
 type DetailTab = 'info' | 'chapters';
 
 const ROLE_FILTERS: { value: RoleFilter; label: string }[] = [
@@ -71,15 +71,7 @@ export default function Characters() {
   const [detailTab, setDetailTab] = useState<DetailTab>('info');
   const { isMobile } = useResponsive();
 
-  const filtered = useMemo(() => {
-    if (!characters) return [];
-    const q = query.trim().toLowerCase();
-    return characters.filter((c) => {
-      if (roleFilter !== 'all' && c.role !== roleFilter) return false;
-      if (q && !c.name.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [characters, roleFilter, query]);
+  const filtered = useCharacterFilter(characters, roleFilter, query);
 
   const { activeId, search, setSearch, viewMode, setViewMode, selectCharacter, goToGrid, clearCharacter } = useCharacterNavigation({
     isMobile,
@@ -104,7 +96,7 @@ export default function Characters() {
         setSaveState('saved');
         if (patch.name !== undefined || patch.aliases !== undefined) {
           void syncCharacterAcrossAllChapters(updated, bookId)
-            .then(() => { void queryClient.invalidateQueries({ queryKey: ['chapter-characters'] }); })
+            .then(() => { void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterCharactersAll() }); })
             .catch(() => { /* non-critical */ });
         }
       } catch (e) {

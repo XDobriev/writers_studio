@@ -28,6 +28,7 @@ export const QUERY_KEYS = {
   connections: (bookId: string) => ['connections', bookId] as const,
   chapterVersions: (chapterId: string) => ['chapter-versions', chapterId] as const,
   chapterCharacters: (characterId: string) => ['chapter-characters', characterId] as const,
+  chapterCharactersAll: () => ['chapter-characters'] as const,
   chapterPovMap: (bookId: string) => ['chapter-pov-map', bookId] as const,
   registrationOpen: () => ['registration-open'] as const,
 };
