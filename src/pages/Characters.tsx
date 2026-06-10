@@ -743,7 +743,7 @@ function HeroBlock({ character, bookId, onChange, onError }: {
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
           {(['protagonist', 'secondary', 'minor'] as const).map((r) => (
             <button
               key={r}

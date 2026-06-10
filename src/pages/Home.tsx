@@ -193,7 +193,7 @@ export default function Home() {
       </header>
 
       {/* ─── Content ─── */}
-      <div style={{ flex: 1, padding: isMobile ? '24px 16px' : '40px 48px' }}>
+      <main style={{ flex: 1, padding: isMobile ? '24px 16px' : '40px 48px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28 }}>
           <div>
             <h1 style={{ font: '600 36px var(--font-serif)', letterSpacing: '-0.012em' }}>Мои книги</h1>
@@ -249,7 +249,7 @@ export default function Home() {
             ))}
           </div>
         )}
-      </div>
+      </main>
 
       {/* ─── Edit book modal ─── */}
       {editBook && (

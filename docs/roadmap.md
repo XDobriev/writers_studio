@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-10_ — Vercel-деплой починен по корню: Production Branch стоял `vercel-preview`, поэтому пуши в `main` уходили в Preview, а прод застрял на сборке от 31 мая. Ветка → `main`, актуальная сборка запромоучена. `vercel.json`: SPA-rewrite + `noindex` вместо redirect на VPS. Роль Vercel требует решения — см. секцию «CI/CD — роль Vercel-деплоя»
+_Обновлён: 2026-06-11_ — Три бага из E2E-аудита закрыты: `<main>` landmark на Home.tsx, контраст `.btn--primary` (0.54 L), flex-wrap на чипах роли персонажа.
 
 **Сейчас:** _(не задана — заполнить в начале сессии)_
 
@@ -18,8 +18,6 @@ _Обновлён: 2026-06-10_ — Vercel-деплой починен по ко�
 > **Файлы:** src/components/...
 > **Проверить:** [минимальный шаг верификации фикса]
 > ```
-
-_Активных багов нет._
 
 ---
 
@@ -110,39 +108,43 @@ _Активных багов нет._
 **Что это:** без платёжной системы нет монетизации. Robokassa: поддерживает самозанятых, рекуррентные платежи и **автоматически формирует чеки** через РобоЧеки СМЗ (интеграция с «Мой налог»). Комиссия 3,9% (от 100к/мес — 3,4%).
 
 **Как работает интеграция:**
-- Первый платёж: редирект пользователя на Robokassa → он вводит карту → Robokassa шлёт POST на **Result URL** → ты проверяешь MD5-подпись → возвращаешь `OK{InvId}` → активируешь план
-- Рекуррентные: твой планировщик раз в месяц дёргает Robokassa API с параметром `PreviousInvoiceID` — списание без участия пользователя
-- Подпись: `MD5(MerchantLogin:OutSum:InvId:Password1)` — для создания; `MD5(OutSum:InvId:Password2)` — для проверки вебхука
-- Чеки: автоматически через РобоЧеки СМЗ (подключается один раз в ЛК → «Фискализация» → «Самозанятые ФНС» → подтвердить в «Мой налог»)
+- Первый платёж: редирект пользователя на Robokassa → он вводит карту → Robokassa шлёт POST на **Result URL** → проверяем MD5-подпись → возвращаем `OK{InvId}` → активируем план
+- Рекуррентные: планировщик раз в месяц дёргает Robokassa API с `PreviousInvoiceID` — списание без участия пользователя
+- Подпись создания: `MD5(MerchantLogin:OutSum:InvId:Password1:Shp_plan=v:Shp_user_id=v)`
+- Подпись вебхука: `MD5(OutSum:InvId:Password2:Shp_plan=v:Shp_user_id=v)` (shp по алфавиту, без MerchantLogin)
+- Чеки: автоматически через РобоЧеки СМЗ — подключены
 
 **Что уже сделано:**
-- ✅ `supabase/functions/robokassa-webhook/index.ts` — вебхук Robokassa
+- ✅ Магазин `AvtorStudio` зарегистрирован и активен, алгоритм MD5
+- ✅ РобоЧеки СМЗ подключены (зелёная точка) — чеки в ФНС автоматически
+- ✅ Боевые Пароль #1 и #2 сгенерированы; тестовые #1 и #2 сгенерированы (2026-06-10)
+- ✅ Result URL → `https://joaxeoavjvlqmtlepkrr.supabase.co/functions/v1/robokassa-webhook`, метод POST
+- ✅ `supabase/functions/robokassa-webhook/index.ts` — реализован и задеплоен (2026-06-10): MD5 timing-safe, pro/pro_annual/lifetime, грандфазеринг, audit_log, fire-and-forget email
+- ✅ `supabase/functions/payment-confirmation/index.ts` — письмо покупателю через UniSender Go (готов)
 - ✅ `app_settings.lifetime_slots_remaining = 50` + атомарный RPC `decrement_lifetime_slot()` (миграция 0025)
 - ✅ `profiles.grandfathered boolean` (миграция 0026)
-- ✅ Лендинг и UpgradeModal показывают живой счётчик Lifetime-слотов; при 0 вариант скрывается
-- ✅ В настройках у грандфазированных пользователей: «✦ Ранняя цена · 290 ₽/мес навсегда»
+- ✅ Лендинг и UpgradeModal показывают живой счётчик Lifetime-слотов
+- ✅ В настройках у грандфазированных: «✦ Ранняя цена · 290 ₽/мес навсегда»
 
-**Что осталось сделать:**
-1. ✅ Зарегистрироваться на robokassa.ru → выбрать «Самозанятый» → заполнить анкету (ИНН, паспорт, справка из «Мой налог»)
-2. ✅ Создать магазин → подать заявку → **одобрение получено 2026-06-09**
-3. ✅ Пароль #1 и Пароль #2 сгенерированы (2026-06-09). Идентификатор магазина: `AvtorStudio`, алгоритм: MD5. → Добавить в Supabase Secrets и **сразу регенерировать** в ЛК (пароли попали в историю чата)
-4. ✅ РобоЧеки СМЗ подключены (статус «Текущее», зелёная точка) — чеки передаются в ФНС автоматически
-5. Переписать Edge Function под Robokassa (`supabase/functions/robokassa-webhook/index.ts`):
-   - Принимать POST с `OutSum`, `InvId`, `SignatureValue`, `shp_user_id`, `shp_plan`
-   - Проверять подпись: `MD5(OutSum:InvId:Password2:Shp_*)` (параметры `shp_*` в подписи — по алфавиту)
-   - При успехе — обновить `profiles.plan`, задекрементировать `lifetime_slots_remaining` если Lifetime
-   - Вернуть строку `OK{InvId}` — иначе Robokassa будет повторять запрос
-6. Установить Secrets в Supabase → Edge Functions:
-   - `ROBOKASSA_MERCHANT_LOGIN`, `ROBOKASSA_PASSWORD2`
-   - `GRANDFATHERING_ENDS_AT` (ISO-дата, например `2026-09-01`)
-7. Построить flow создания платежа: при клике «Оформить» — твой сервер формирует ссылку `https://auth.robokassa.ru/Merchant/Index.aspx?MerchantLogin=...&OutSum=...&InvId=...&shp_user_id=...&shp_plan=...&SignatureValue=...` → редиректишь пользователя
-8. Для рекуррентных: после первого платежа сохранить `InvId` → при продлении POST на `https://auth.robokassa.ru/Merchant/Recurring/...` с `PreviousInvoiceID`
-9. Добавить акцепт оферты у кнопки оплаты (требование §5 — уже есть)
+**Что осталось до первого платежа:**
+1. Установить Secrets в Supabase Dashboard → Edge Functions → Manage secrets:
+   - `ROBOKASSA_PASSWORD2` (боевой Пароль #2)
+   - `ROBOKASSA_TEST_PASSWORD2` (тестовый Пароль #2)
+   - `GRANDFATHERING_ENDS_AT` (напр. `2026-09-01`)
+   - `UNISENDER_API_KEY` и `EMAIL_FROM` (для email-подтверждений)
+2. Обновить вебхук: при `IsTest=1` использовать `ROBOKASSA_TEST_PASSWORD2`
+3. Создать Edge Function `create-payment-url` — формирует подписанную ссылку Robokassa, редиректит пользователя
+4. Подключить кнопки «Оформить» / «Купить Lifetime» в `SettingsModal.tsx` к `create-payment-url` (сейчас — заглушка `#pricing`)
+5. Провести тестовый платёж (IsTest=1) → убедиться что `profiles.plan` обновился
 
-**Ограничение:** sandbox для рекуррентных платежей недоступен — тестировать первые подписки на реальных небольших суммах (например, тариф за 1 ₽).
+**Рекуррентные — отдельная фаза после первых платежей:**
+- Сохранять `InvId` первого платежа → продление через Robokassa Recurring API с `PreviousInvoiceID`
+- Sandbox для рекуррентных недоступен — тестировать на реальных суммах (1 ₽)
 
-**Файлы:** `supabase/functions/robokassa-webhook/index.ts`, `src/components/SettingsModal.tsx` (кнопки → реальный чекаут), `src/pages/Landing.tsx` (то же)
-**Проверить:** оплатить тестовую подписку → `profiles.plan = 'pro'` обновился → `SettingsModal` показывает Pro; Lifetime → `lifetime_slots_remaining` убывает; чек пришёл на email покупателя автоматически
+**При переносе на self-hosted:** обновить Result URL в Robokassa ЛК; переложить Secrets в docker-compose `.env`; задеплоить функции через Supabase CLI.
+
+**Файлы:** `supabase/functions/robokassa-webhook/index.ts`, `supabase/functions/create-payment-url/index.ts` (создать), `src/components/SettingsModal.tsx`
+**Проверить:** тестовый платёж → `profiles.plan = 'pro'` → SettingsModal показывает Pro; Lifetime → `lifetime_slots_remaining` убывает; чек на email
 **Deps:** Оферта (`src/pages/Offer.tsx`) — ✅ готово
 
 ---
@@ -215,6 +217,24 @@ _Активных багов нет._
 ---
 
 
+
+### 9. VK OAuth — авторизация через ВКонтакте
+
+**Что это:** альтернативный способ входа для российских пользователей, которые не используют Google. ВКонтакте — основная площадка писательских сообществ в РФ.
+
+**Контекст:** иностранные OAuth-провайдеры (Google) регулятивно нестабильны в РФ и периодически throttled РКН. Email + Telegram уже покрывают ~90% аудитории; VK добавит покрытие именно писательской ниши. Supabase поддерживает VK нативно — реализация минимальна.
+
+**Что сделать:**
+1. В Supabase Dashboard → Auth → Providers → VK: включить, вставить `App ID` и `App Secret`
+2. В ВК: создать приложение (тип «Веб-сайт»), прописать Redirect URI → `https://joaxeoavjvlqmtlepkrr.supabase.co/auth/v1/callback`
+3. В `src/lib/auth.tsx`: добавить `signInWithVK` (аналог `signInWithGoogle`, `provider: 'vk'`)
+4. В `src/pages/Auth.tsx` (или где лендит форма входа): добавить кнопку «Войти через ВК» рядом с Google
+5. Убрать Google с первого плана: переместить оба OAuth-провайдера под разворачиваемый «другие способы» или сделать VK основной, Google — дополнительным
+
+**Файлы:** `src/lib/auth.tsx`, `src/pages/Auth.tsx`  
+**Проверить:** авторизация через VK → `session.user` установлен → редирект в Home → повторный вход без ввода данных
+
+---
 
 ## Фичи на исследование
 
