@@ -287,6 +287,16 @@
       "sourceType": "github",
       "skillPath": "skills/video/SKILL.md",
       "computedHash": "3b222617f41c03a3eb870747977d07159bf92861c905ea6b5af2de15d51bcabb"
+    },
+    "audit": {
+      "source": ".agents/skills/audit",
+      "sourceType": "local",
+      "skillPath": "SKILL.md"
+    },
+    "ship": {
+      "source": ".agents/skills/ship",
+      "sourceType": "local",
+      "skillPath": "SKILL.md"
     }
   }
 }
