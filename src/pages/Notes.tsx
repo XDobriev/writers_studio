@@ -684,21 +684,20 @@ export default function Notes() {
         )}
       </div>
 
-      {confirmDelete && (
-        <ConfirmDialog
-          message={
-            confirmDelete.text.length > 200
-              ? `Удалить заметку?\n\n«${confirmDelete.text.slice(0, 120)}…»\n\nЭто действие нельзя отменить.`
-              : 'Удалить заметку?\nЭто действие нельзя отменить.'
-          }
-          onConfirm={() => {
-            handleDelete(confirmDelete.id);
-            setConfirmDelete(null);
-            closeModal();
-          }}
-          onCancel={() => setConfirmDelete(null)}
-        />
-      )}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        message={
+          confirmDelete && confirmDelete.text.length > 200
+            ? `Удалить заметку?\n\n«${confirmDelete.text.slice(0, 120)}…»\n\nЭто действие нельзя отменить.`
+            : 'Удалить заметку?\nЭто действие нельзя отменить.'
+        }
+        onConfirm={() => {
+          handleDelete(confirmDelete!.id);
+          setConfirmDelete(null);
+          closeModal();
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </WithMode>
   );
 }

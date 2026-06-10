@@ -287,13 +287,12 @@ export function VersionModal({
         </div>
       </div>
 
-      {confirm && (
-        <ConfirmDialog
-          message={`Текущий текст главы будет заменён версией «${label}». Это действие нельзя отменить.`}
-          onConfirm={() => { setConfirm(false); void handleRestore(); }}
-          onCancel={() => setConfirm(false)}
-        />
-      )}
+      <ConfirmDialog
+        open={confirm}
+        message={`Текущий текст главы будет заменён версией «${label}». Это действие нельзя отменить.`}
+        onConfirm={() => { setConfirm(false); void handleRestore(); }}
+        onCancel={() => setConfirm(false)}
+      />
     </>
   );
 }

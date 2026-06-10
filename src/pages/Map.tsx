@@ -441,13 +441,12 @@ export default function MapScreen() {
         </div>
       )}
 
-      {confirmDeleteId && (
-        <ConfirmDialog
-          message="Удалить локацию? Действие нельзя отменить."
-          onConfirm={onDeleteConfirmed}
-          onCancel={() => setConfirmDeleteId(null)}
-        />
-      )}
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        message="Удалить локацию? Действие нельзя отменить."
+        onConfirm={onDeleteConfirmed}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </WithMode>
     </motion.div>
   );

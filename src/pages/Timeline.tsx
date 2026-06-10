@@ -491,13 +491,12 @@ export default function Timeline() {
         />
       )}
 
-      {confirmDeleteId && (
-        <ConfirmDialog
-          message="Удалить это событие? Действие нельзя отменить."
-          onConfirm={onDeleteConfirmed}
-          onCancel={() => setConfirmDeleteId(null)}
-        />
-      )}
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        message="Удалить это событие? Действие нельзя отменить."
+        onConfirm={onDeleteConfirmed}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
       {showUpgrade && <UpgradePrompt feature="timeline" onClose={() => setShowUpgrade(false)} />}
     </WithMode>
     </motion.div>

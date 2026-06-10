@@ -404,13 +404,12 @@ export default function Home() {
         </div>
       )}
 
-      {confirmDeleteBook && editBook && (
-        <ConfirmDialog
-          message={`Удалить книгу «${editBook.title}»? Это действие необратимо — все главы, персонажи и данные будут удалены навсегда.`}
-          onConfirm={deleteBook}
-          onCancel={() => { if (!deleting) setConfirmDeleteBook(false); }}
-        />
-      )}
+      <ConfirmDialog
+        open={confirmDeleteBook && !!editBook}
+        message={editBook ? `Удалить книгу «${editBook.title}»? Это действие необратимо — все главы, персонажи и данные будут удалены навсегда.` : ''}
+        onConfirm={deleteBook}
+        onCancel={() => { if (!deleting) setConfirmDeleteBook(false); }}
+      />
 
       {/* ─── Create book modal ─── */}
       {showCreate && (

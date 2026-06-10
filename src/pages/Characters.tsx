@@ -448,13 +448,12 @@ export default function Characters() {
 
       </div>
 
-      {charToDelete && (
-        <ConfirmDialog
-          message={`Удалить «${charToDelete.name || 'Без имени'}»? Это действие нельзя отменить.`}
-          onConfirm={() => { void onDeleteConfirmed(charToDelete.id); }}
-          onCancel={() => setCharToDelete(null)}
-        />
-      )}
+      <ConfirmDialog
+        open={!!charToDelete}
+        message={charToDelete ? `Удалить «${charToDelete.name || 'Без имени'}»? Это действие нельзя отменить.` : ''}
+        onConfirm={() => { void onDeleteConfirmed(charToDelete!.id); }}
+        onCancel={() => setCharToDelete(null)}
+      />
       {showUpgrade && <UpgradePrompt feature="characters" onClose={() => setShowUpgrade(false)} />}
     </WithMode>
 
