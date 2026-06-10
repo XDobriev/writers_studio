@@ -39,10 +39,10 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 // состояние, иначе AuthGuard на мгновение редиректит на лендинг.
 function readLocalSession(): { session: Session | null; hadToken: boolean } {
   try {
-    const url = (import.meta.env.VITE_SUPABASE_URL ?? '') as string;
-    if (!url) return { session: null, hadToken: false };
-    const ref = new URL(url).hostname.split('.')[0];
-    const raw = localStorage.getItem(`sb-${ref}-auth-token`);
+    // Supabase JS v2 хардкодит ключ 'supabase.auth.token' в GoTrueClient
+    // (см. @supabase/auth-js/dist/main/lib/constants.js STORAGE_KEY).
+    // Прежний вариант с hostname.split('.')[0] давал неверный ключ → всегда null.
+    const raw = localStorage.getItem('supabase.auth.token');
     if (!raw) return { session: null, hadToken: false };
     const data = JSON.parse(raw) as Record<string, unknown> | null;
     if (!data?.access_token) return { session: null, hadToken: false };
