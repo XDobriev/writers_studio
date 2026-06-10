@@ -317,7 +317,7 @@ export default function Editor() {
       {saveState === 'error' && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
-          background: 'var(--danger, #c0392b)', color: '#fff',
+          background: 'var(--danger)', color: 'oklch(0.98 0 0)',
           padding: '8px 16px', fontSize: 13, display: 'flex',
           alignItems: 'center', justifyContent: 'space-between', gap: 12,
         }}>

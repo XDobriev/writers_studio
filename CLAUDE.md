@@ -168,7 +168,7 @@ npm run preview    # превью продакшен-сборки
 ### Доступность (минимум)
 
 - **Кнопки без текста** (иконочные) — обязательно `aria-label`.
-- **Модальные окна** — `role="dialog"` + `aria-modal="true"` + `aria-labelledby`. Focus trap при открытии: `useEffect` + `focus()` на первый интерактивный элемент.
+- **Модальные окна** — обязателен полный комплект: `role="dialog"` + `aria-modal="true"` + `aria-label="…"` (или `aria-labelledby`) + `tabIndex={-1}` + `useRef` + `useEffect(() => { ref.current?.focus() }, [open])` + `onKeyDown` с Escape-хэндлером + Tab-трап. Шаблон: `ConfirmDialog.tsx` (лучший образец) и `src/pages/Home.tsx` onboarding-модал.
 - **Закрытие по `Escape`** — обязательно для всех модалок и дропдаунов.
 - **Цветовой контраст** — WCAG AA (4.5:1 для текста). Соблюдать при добавлении новых цветовых сочетаний.
 
@@ -195,8 +195,18 @@ npm run preview    # превью продакшен-сборки
 - `.modal-overlay`, `.modal-panel`, `.modal-panel--lg`, `.modal-panel--xl` — модальные окна
 - `.label`, `.input`, `.input--sm`, `.input--err` — форм-элементы
 - `.error-banner` — баннер ошибки
+- `.status-font-item` — кнопка в шрифт-пикере StatusBar
+- `.settings-signout-btn` — кнопка «Выйти» в SettingsModal
+- `.version-card` / `.version-card--named` — карточка версии в VersionsPanel
+- `.map-popup-del` — кнопка удаления в попапе карты
 
 Перед созданием нового inline-стиля — проверить, нет ли подходящего класса в `design-system.css`.
+
+**Hover через CSS, не JS.** Запрещено: `onMouseEnter={(e) => { e.currentTarget.style.X = '...' }}`. Hover-состояние всегда через CSS-класс + `:hover { ... }` в `design-system.css`. Inline `background: 'transparent'` блокирует CSS `:hover` — выносить в класс.
+
+**Без side-stripe.** `border-left` / `border-right` > 1px как цветной акцент на карточках — запрещён. Замена: `background: color-mix(in oklch, VAR 7%, var(--surface))` + `border-color: color-mix(in oklch, VAR 22%, var(--border-soft))`. Образцы: `.mn`, `.version-card--named`, `SortableNoteCard`.
+
+**Near-white — только OKLCH-токен.** Вместо `#fff` или `#ffffff` — всегда `oklch(0.98 0 0)`. Касается цвета текста на `var(--accent)` и `var(--danger)` фонах.
 
 ### Паттерны работы с Supabase
 
