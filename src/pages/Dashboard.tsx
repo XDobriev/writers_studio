@@ -345,7 +345,7 @@ export default function Dashboard() {
         <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden', minWidth: 0 }}>
           <div className="tb" style={{ justifyContent: 'space-between', gap: 8 }}>
             {isMobile && (
-              <button type="button" className="tb-btn" onClick={() => setShowMobileSb(true)} title="Навигация" style={{ flexShrink: 0 }}>
+              <button type="button" className="tb-btn" onClick={() => setShowMobileSb(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
                 <Icon name="panel" size={16} />
               </button>
             )}
@@ -354,7 +354,7 @@ export default function Dashboard() {
             </span>
             <div style={{ display: 'flex', gap: isMobile ? 4 : 8, alignItems: 'center', flexShrink: 0 }}>
               {isMobile ? (
-                <button className="tb-btn" onClick={openEdit} title="Изменить книгу">
+                <button className="tb-btn" onClick={openEdit} title="Изменить книгу" aria-label="Изменить книгу">
                   <Icon name="pencil" size={15} />
                 </button>
               ) : (

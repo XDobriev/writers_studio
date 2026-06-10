@@ -206,7 +206,7 @@ export default function Export() {
               {book.title} · {totalWords.toLocaleString('ru-RU')} слов
             </h2>
           </div>
-          <button onClick={close} style={{ width: 30, height: 30, borderRadius: 999, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 18, lineHeight: 1 }}>×</button>
+          <button type="button" onClick={close} aria-label="Закрыть" title="Закрыть" style={{ width: 30, height: 30, borderRadius: 999, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 18, lineHeight: 1 }}>×</button>
         </div>
 
         <div style={{ padding: '20px 28px 8px' }}>

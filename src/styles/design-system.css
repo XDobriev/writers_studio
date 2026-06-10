@@ -1210,6 +1210,17 @@ select.input {
 }
 .settings-signout-btn:hover { background: color-mix(in oklch, var(--danger) 10%, transparent); }
 
+/* ── Auth Telegram button overlay ── */
+.auth-tg-btn {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  border-radius: var(--r-2); border: 1px solid var(--border);
+  background: transparent; color: var(--ink);
+  cursor: pointer; font-family: inherit; font-size: 12.5px;
+  transition: background var(--dur-fast);
+}
+.auth-tg-btn:hover { background: var(--surface); }
+
 /* ── Version card (VersionsPanel) ── */
 .version-card {
   background: var(--surface); border: 1px solid var(--border-soft);

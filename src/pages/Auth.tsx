@@ -49,7 +49,6 @@ export default function Auth() {
   const [consent, setConsent] = useState(false);
   const [consentMarketing, setConsentMarketing] = useState(false);
   const [oauthBusy, setOauthBusy] = useState<'google' | 'telegram' | null>(null);
-  const [tgHover, setTgHover] = useState(false);
   const { error: err, setError: setErr, clearError: clearErr } = useErrorState();
   const [info, setInfo] = useState<string | null>(null);
   const { data: registrationOpen = true } = useRegistrationOpen();
@@ -217,6 +216,7 @@ export default function Auth() {
                   type="email"
                   required
                   autoFocus
+                  autoComplete="email"
                   inputMode="email"
                   spellCheck={false}
                   value={email}
@@ -316,21 +316,13 @@ export default function Auth() {
                 {TG_BOT_USERNAME && (
                   <div
                     style={{ position: 'relative', height: 42 }}
-                    onMouseEnter={() => setTgHover(true)}
-                    onMouseLeave={() => setTgHover(false)}
                   >
                     <button
                       type="button"
                       tabIndex={-1}
                       aria-hidden="true"
-                      style={{
-                        position: 'absolute', inset: 0, width: '100%', height: '100%',
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                        borderRadius: 'var(--r-2)', border: '1px solid var(--border)',
-                        background: tgHover ? 'var(--surface)' : 'transparent',
-                        color: 'var(--ink)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5,
-                        pointerEvents: 'none',
-                      }}
+                      className="auth-tg-btn"
+                      style={{ pointerEvents: 'none' }}
                     >
                       <TelegramGlyph />
                       <span>Войти через Telegram</span>
