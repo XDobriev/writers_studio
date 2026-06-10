@@ -239,6 +239,7 @@ function ColorPopover({ editor, kind }: ColorPopoverProps) {
         type="button"
         className="tb-btn"
         title={title}
+        aria-label={title}
         disabled={!editor}
         onMouseDown={(ev) => { ev.preventDefault(); setOpen((v) => !v); }}
       >
@@ -355,6 +356,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
         ref={btnRef}
         type="button"
         title="Ссылка"
+        aria-label="Ссылка"
         className={btnCls(active)}
         disabled={!editor}
         onMouseDown={toggleOpen}
@@ -401,6 +403,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
               <button
                 type="button"
                 title="Открыть ссылку"
+                aria-label="Открыть ссылку"
                 onMouseDown={openHref}
                 style={{
                   width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-soft)',
@@ -413,6 +416,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
               <button
                 type="button"
                 title="Убрать ссылку"
+                aria-label="Убрать ссылку"
                 onMouseDown={remove}
                 style={{
                   width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-soft)',
@@ -445,6 +449,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
       <button
         type="button"
         title="Отменить (Ctrl+Z)"
+        aria-label="Отменить (Ctrl+Z)"
         className="tb-btn"
         disabled={!can || !editor?.can().undo()}
         onMouseDown={run((e) => e.chain().focus().undo().run())}
@@ -452,6 +457,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
       <button
         type="button"
         title="Повторить (Ctrl+Shift+Z)"
+        aria-label="Повторить (Ctrl+Shift+Z)"
         className="tb-btn"
         disabled={!can || !editor?.can().redo()}
         onMouseDown={run((e) => e.chain().focus().redo().run())}
@@ -464,6 +470,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
       <button
         type="button"
         title="Жирный (Ctrl+B)"
+        aria-label="Жирный (Ctrl+B)"
         className={btnCls(!!editor?.isActive('bold'))}
         disabled={!can}
         onMouseDown={run((e) => e.chain().focus().toggleBold().run())}
@@ -471,6 +478,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
       <button
         type="button"
         title="Курсив (Ctrl+I)"
+        aria-label="Курсив (Ctrl+I)"
         className={btnCls(!!editor?.isActive('italic'))}
         disabled={!can}
         onMouseDown={run((e) => e.chain().focus().toggleItalic().run())}
@@ -478,6 +486,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
       <button
         type="button"
         title="Подчёркнутый (Ctrl+U)"
+        aria-label="Подчёркнутый (Ctrl+U)"
         className={btnCls(!!editor?.isActive('underline'))}
         disabled={!can}
         onMouseDown={run((e) => e.chain().focus().toggleUnderline().run())}
@@ -487,6 +496,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           <button
             type="button"
             title="Зачёркнутый"
+            aria-label="Зачёркнутый"
             className={btnCls(!!editor?.isActive('strike'))}
             disabled={!can}
             onMouseDown={run((e) => e.chain().focus().toggleStrike().run())}
@@ -494,6 +504,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           <button
             type="button"
             title="Очистить форматирование"
+            aria-label="Очистить форматирование"
             className="tb-btn"
             disabled={!can}
             onMouseDown={run((e) => e.chain().focus().unsetAllMarks().clearNodes().run())}
@@ -511,6 +522,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           <button
             type="button"
             title="По левому краю"
+            aria-label="По левому краю"
             className={btnCls(!!editor?.isActive({ textAlign: 'left' }))}
             disabled={!can}
             onMouseDown={run((e) => e.chain().focus().setTextAlign('left').run())}
@@ -518,6 +530,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           <button
             type="button"
             title="По центру"
+            aria-label="По центру"
             className={btnCls(!!editor?.isActive({ textAlign: 'center' }))}
             disabled={!can}
             onMouseDown={run((e) => e.chain().focus().setTextAlign('center').run())}
@@ -525,6 +538,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           <button
             type="button"
             title="По правому краю"
+            aria-label="По правому краю"
             className={btnCls(!!editor?.isActive({ textAlign: 'right' }))}
             disabled={!can}
             onMouseDown={run((e) => e.chain().focus().setTextAlign('right').run())}
@@ -532,6 +546,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           <button
             type="button"
             title="По ширине"
+            aria-label="По ширине"
             className={btnCls(!!editor?.isActive({ textAlign: 'justify' }))}
             disabled={!can}
             onMouseDown={run((e) => e.chain().focus().setTextAlign('justify').run())}
@@ -543,6 +558,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
       <button
         type="button"
         title="Маркированный список"
+        aria-label="Маркированный список"
         className={btnCls(!!editor?.isActive('bulletList'))}
         disabled={!can}
         onMouseDown={run((e) => e.chain().focus().toggleBulletList().run())}
@@ -550,6 +566,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
       <button
         type="button"
         title="Нумерованный список"
+        aria-label="Нумерованный список"
         className={btnCls(!!editor?.isActive('orderedList'))}
         disabled={!can}
         onMouseDown={run((e) => e.chain().focus().toggleOrderedList().run())}
@@ -561,6 +578,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           <button
             type="button"
             title="Цитата"
+            aria-label="Цитата"
             className={btnCls(!!editor?.isActive('blockquote'))}
             disabled={!can}
             onMouseDown={run((e) => e.chain().focus().toggleBlockquote().run())}
@@ -568,6 +586,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           <button
             type="button"
             title="Горизонтальная линия"
+            aria-label="Горизонтальная линия"
             className="tb-btn"
             disabled={!can}
             onMouseDown={run((e) => e.chain().focus().setHorizontalRule().run())}
