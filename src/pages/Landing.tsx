@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth';
 import { getLifetimeSlotsRemaining } from '../lib/profiles';
 import { Icon } from '../components/Icon';
 import { LogoMark } from '../components/LogoMark';
+import { supabase } from '../lib/supabase';
 
 // ─── Animation hooks ──────────────────────────────────────────────────────────
 
@@ -221,6 +222,7 @@ export default function Landing() {
         <LandingFeatures />
         <LandingProcess />
         <LandingPrinciples />
+        <LandingEmailCapture />
         <LandingPricing />
         <LandingFAQ />
         <LandingCTA />
@@ -417,7 +419,7 @@ function LandingFeatures() {
   return (
     <section id="features" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
       <div className="lnd-max">
-        <SectionLabel title="Студия, а не текстовое поле." subtitle="Каждая часть книги живёт рядом с рукописью в этом онлайн-редакторе для писателей на русском языке — не в отдельном приложении, не на отдельной вкладке. Открыли главу — видите её мир." />
+        <SectionLabel title="Студия, а не текстовое поле." subtitle="Каждая часть книги живёт рядом с рукописью — не в отдельном приложении, не на отдельной вкладке. Открыли главу — видите её мир." />
         <FeatureRowFull
           headline="Четыре режима. Один редактор."
           body="Полная студия с заметками и оглавлением — для редактуры. Только страница — для черновика. Промежуточные режимы — для всего, что между. Состояние помнит, на каком вы остановились."
@@ -440,7 +442,7 @@ function LandingFeatures() {
         <FeatureRow
           reverse
           headline="Серия дней без упрёков."
-          body="Цель по словам — мягкая. Карта активности — для тех, кто любит данные. Серия дней — для тех, кому нужна привычка. Никаких уведомлений «вы не писали 3 дня»."
+          body="Серия показывает, сколько дней вы писали подряд. Но не пишет «вы пропустили 4 дня» и не сбрасывает прогресс. Потому что жизнь случается, и чувство вины не помогает закончить книгу."
           mock={<MockDashboard />}
         />
       </div>
@@ -772,6 +774,70 @@ function LandingPrinciples() {
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Email capture ────────────────────────────────────────────────────────────
+
+function LandingEmailCapture() {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = email.trim().toLowerCase();
+    if (!val) return;
+    setStatus('loading');
+    const { error } = await supabase.from('waitlist').insert({ email: val });
+    if (error && error.code !== '23505') {
+      setStatus('error');
+    } else {
+      setStatus('done');
+    }
+  };
+
+  return (
+    <section style={{ padding: 'clamp(64px,8vw,80px) clamp(20px,4vw,56px)', background: 'var(--bg)', borderTop: '1px solid var(--border-soft)' }}>
+      <div className="lnd-max lnd-reveal" style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
+        <h2 style={{ font: '600 clamp(26px,3vw,40px)/1.08 var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 12, color: 'var(--ink)' }}>
+          Следите за развитием студии.
+        </h2>
+        <p style={{ font: '400 15px/1.6 var(--font-serif)', color: 'var(--ink-2)', marginBottom: 28 }}>
+          Обновления, новые фичи, закрытые приглашения. Не чаще раза в месяц.
+        </p>
+        {status === 'done' ? (
+          <p style={{ font: '500 15px var(--font-serif)', color: 'var(--ok)', padding: '12px 0' }}>
+            Готово — будем писать.
+          </p>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 10, maxWidth: 400, margin: '0 auto', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="ваш@email.ru"
+              className="input"
+              style={{ flex: 1, minWidth: 200, height: 42 }}
+              disabled={status === 'loading'}
+            />
+            <button
+              type="submit"
+              className="btn btn--primary"
+              style={{ height: 42, padding: '0 20px', fontSize: 14 }}
+              disabled={status === 'loading'}
+            >
+              {status === 'loading' ? '…' : 'Подписаться'}
+            </button>
+          </form>
+        )}
+        {status === 'error' && (
+          <p style={{ font: '400 13px var(--font-ui)', color: 'var(--danger)', marginTop: 10 }}>
+            Что-то пошло не так. Попробуйте ещё раз.
+          </p>
+        )}
       </div>
     </section>
   );
