@@ -112,6 +112,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/exportEpub.ts` — EPUB builder: `buildEpubBlob`, ZIP-сборка через JSZip.
 - `src/lib/config.ts` — централизованные env-константы: `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
 - `src/lib/useCharacterFilter.ts` — хук фильтрации персонажей по роли и поисковому запросу; экспортирует тип `RoleFilter`.
+- `src/lib/motion.ts` — реестр Framer Motion вариантов и переходов: overlay, modalPanel, page, toast, dropdown, card, hero, feat, reveal.
 
 ## Supabase
 
