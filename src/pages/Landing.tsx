@@ -550,12 +550,12 @@ function MockEditorModesStrip() {
             <Paper />
           </div>
           <div style={{ background: 'var(--bg-deep)', padding: '8px 6px', borderLeft: '1px solid var(--border-soft)' }}>
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderLeft: '2px solid var(--accent-2)', borderRadius: 3, padding: '4px 5px', marginBottom: 5 }}>
+            <div style={{ background: 'color-mix(in oklch, var(--accent-2) 8%, var(--surface))', border: '1px solid color-mix(in oklch, var(--accent-2) 22%, var(--border-soft))', borderRadius: 3, padding: '4px 5px', marginBottom: 5 }}>
               <div style={{ height: 2, background: 'var(--ink-3)', opacity: 0.5, borderRadius: 1, marginBottom: 3, width: '60%' }} />
               <div style={{ height: 2, background: 'var(--ink)', opacity: 0.4, borderRadius: 1, width: '85%' }} />
               <div style={{ height: 2, background: 'var(--ink)', opacity: 0.35, borderRadius: 1, marginTop: 2, width: '70%' }} />
             </div>
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderLeft: '2px solid var(--info)', borderRadius: 3, padding: '4px 5px' }}>
+            <div style={{ background: 'color-mix(in oklch, var(--info) 8%, var(--surface))', border: '1px solid color-mix(in oklch, var(--info) 22%, var(--border-soft))', borderRadius: 3, padding: '4px 5px' }}>
               <div style={{ height: 2, background: 'var(--ink-3)', opacity: 0.5, borderRadius: 1, marginBottom: 3, width: '50%' }} />
               <div style={{ height: 2, background: 'var(--ink)', opacity: 0.4, borderRadius: 1, width: '90%' }} />
             </div>

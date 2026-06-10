@@ -1165,6 +1165,15 @@ select.input {
 }
 .toast--leaving { animation: toast-out 0.1s ease-in both; }
 
+/* ── Dashboard: recent chapter link ── */
+.db-recent-link {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 12px; border-radius: 8px;
+  text-decoration: none; color: var(--ink);
+  border: 1px solid transparent;
+}
+.db-recent-link:hover { background: var(--surface-2); }
+
 /* ── Input hint text (below form fields) ── */
 .input-hint {
   margin-top: 5px; font-size: 11.5px;
@@ -1214,6 +1223,24 @@ select.input {
   transition: color var(--dur-hover);
 }
 .map-popup-del:hover { color: var(--danger); }
+
+/* ── Dashboard quick-action card ── */
+.dash-quick-action {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 12px; padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+  text-decoration: none; color: var(--ink);
+  transition: background var(--dur-hover), border-color var(--dur-hover);
+}
+.dash-quick-action:hover { background: var(--surface-2); border-color: var(--border); }
+
+/* ── Inline danger-hover button (Timeline, etc.) ── */
+.btn-danger-hover {
+  background: none; border: none; cursor: pointer;
+  color: var(--ink-4);
+  transition: color var(--dur-hover);
+}
+.btn-danger-hover:hover { color: var(--danger); }
 
 /* ── Character field card (labeled textarea) ── */
 .char-field-card {

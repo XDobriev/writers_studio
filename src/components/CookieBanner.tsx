@@ -20,6 +20,7 @@ export function CookieBanner() {
   return (
     <div
       role="dialog"
+      aria-modal="true"
       aria-label="Уведомление об использовании куки"
       style={{
         position: 'fixed',

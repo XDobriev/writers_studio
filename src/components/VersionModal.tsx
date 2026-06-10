@@ -161,6 +161,7 @@ export function VersionModal({
         <div
           role="dialog"
           aria-modal="true"
+          aria-label="Версия главы"
           style={{
             background: 'var(--bg)', border: '1px solid var(--border)',
             borderRadius: 'var(--r-3)', width: 560, maxHeight: '72vh',

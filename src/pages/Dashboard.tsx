@@ -407,26 +407,7 @@ export default function Dashboard() {
                 <Link
                   key={title}
                   to={navTo(path)}
-                  style={{
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border-soft)',
-                    borderRadius: 12,
-                    padding: 16,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 10,
-                    textDecoration: 'none',
-                    color: 'var(--ink)',
-                    transition: 'background 0.12s, border-color 0.12s',
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)';
-                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = 'var(--surface)';
-                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-soft)';
-                  }}
+                  className="dash-quick-action"
                 >
                   <div style={{
                     width: 32,
@@ -490,9 +471,7 @@ export default function Dashboard() {
                     <Link
                       key={ch.id}
                       to={navTo(`/editor?chapter=${ch.id}`)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 12px', borderRadius: 8, textDecoration: 'none', color: 'var(--ink)', border: '1px solid transparent' }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                      className="db-recent-link"
                     >
                       <span style={{ width: 6, height: 6, borderRadius: 999, background: STATUS_DOT[ch.status], flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
