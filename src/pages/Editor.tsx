@@ -116,21 +116,13 @@ export default function Editor() {
   const isPro = plan === 'pro' || plan === 'lifetime';
 
   const [versionToast, setVersionToast] = useState(false);
-  const [versionToastLeaving, setVersionToastLeaving] = useState(false);
   const versionToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const versionToastLeaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleVersionCreated = useCallback(() => {
     if (versionToastTimerRef.current) clearTimeout(versionToastTimerRef.current);
-    if (versionToastLeaveTimerRef.current) clearTimeout(versionToastLeaveTimerRef.current);
-    setVersionToastLeaving(false);
     setVersionToast(true);
     versionToastTimerRef.current = setTimeout(() => {
-      setVersionToastLeaving(true);
-      versionToastLeaveTimerRef.current = setTimeout(() => {
-        setVersionToast(false);
-        setVersionToastLeaving(false);
-      }, 150);
+      setVersionToast(false);
     }, 2500);
   }, []);
 
@@ -345,7 +337,6 @@ export default function Editor() {
         saveState={saveState}
         savedAt={savedAt}
         versionToast={versionToast}
-        versionToastLeaving={versionToastLeaving}
       />
     </div>
   );

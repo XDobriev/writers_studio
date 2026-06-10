@@ -7,12 +7,10 @@ interface Params {
 
 interface Result {
   toast: 'reached' | 'exceeded' | null;
-  toastLeaving: boolean;
 }
 
 export function useGoalToast({ todayWords, dailyGoal }: Params): Result {
   const [toast, setToast] = useState<'reached' | 'exceeded' | null>(null);
-  const [toastLeaving, setToastLeaving] = useState(false);
   const prevTodayWords = useRef<number>(0);
 
   useEffect(() => {
@@ -30,12 +28,9 @@ export function useGoalToast({ todayWords, dailyGoal }: Params): Result {
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => {
-      setToastLeaving(true);
-      setTimeout(() => { setToast(null); setToastLeaving(false); }, 100);
-    }, 3900);
+    const t = setTimeout(() => { setToast(null); }, 4000);
     return () => clearTimeout(t);
   }, [toast]);
 
-  return { toast, toastLeaving };
+  return { toast };
 }

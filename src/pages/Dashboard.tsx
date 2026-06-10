@@ -1,5 +1,6 @@
 import { Link, Navigate, useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { toastVariants } from '../lib/motion';
 import { useMemo, useState, useEffect } from 'react';
 import { useErrorState } from '../lib/useErrorState';
 import { useQueryClient } from '@tanstack/react-query';
@@ -59,7 +60,6 @@ export default function Dashboard() {
   const [editSaving, setEditSaving] = useState(false);
   const { error: editError, setError: setEditError, clearError: clearEditError } = useErrorState();
   const [weeklyToast, setWeeklyToast] = useState<string | null>(null);
-  const [weeklyToastLeaving, setWeeklyToastLeaving] = useState(false);
 
   const navigate = useNavigate();
 
@@ -203,10 +203,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!weeklyToast) return;
-    const t = setTimeout(() => {
-      setWeeklyToastLeaving(true);
-      setTimeout(() => { setWeeklyToast(null); setWeeklyToastLeaving(false); }, 100);
-    }, 5000);
+    const t = setTimeout(() => { setWeeklyToast(null); }, 5100);
     return () => clearTimeout(t);
   }, [weeklyToast]);
 
@@ -730,12 +727,20 @@ export default function Dashboard() {
       )}
     </WithMode>
 
-    {weeklyToast && (
-      <div className={`toast toast--info${weeklyToastLeaving ? ' toast--leaving' : ''}`}>
-        <span style={{ fontSize: 16 }}>📅</span>
-        {weeklyToast}
-      </div>
-    )}
+    <AnimatePresence>
+      {weeklyToast && (
+        <motion.div
+          className="toast toast--info"
+          variants={toastVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
+          <span style={{ fontSize: 16 }}>📅</span>
+          {weeklyToast}
+        </motion.div>
+      )}
+    </AnimatePresence>
     </motion.div>
   );
 }

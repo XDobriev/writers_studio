@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { toastVariants } from '../lib/motion';
 import { useGoalToast } from '../lib/useGoalToast';
 import { useKeyboardShortcuts } from '../lib/useKeyboardShortcuts';
 import { useMobileDrawers } from '../lib/useMobileDrawers';
@@ -98,7 +100,6 @@ interface EditorHybridProps {
   /** Вызывается по Ctrl+S — принудительный flush debounce */
   onSave?: () => void;
   versionToast?: boolean;
-  versionToastLeaving?: boolean;
 }
 
 export function EditorHybrid({
@@ -115,7 +116,6 @@ export function EditorHybrid({
   savedAt = null,
   onSave,
   versionToast = false,
-  versionToastLeaving = false,
 }: EditorHybridProps) {
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [focusMode, setFocusMode] = useState(false);
@@ -183,7 +183,7 @@ export function EditorHybrid({
   const { visible: showPageHint, dismiss: dismissPageHint } = usePageHint(isPage);
 
   const dailyGoal = book?.daily_goal ?? 0;
-  const { toast: goalToast, toastLeaving: goalToastLeaving } = useGoalToast({ todayWords: writingStats.todayWords, dailyGoal });
+  const { toast: goalToast } = useGoalToast({ todayWords: writingStats.todayWords, dailyGoal });
 
   return (
     <div className="as" style={{ height: '100%', overflow: 'hidden', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative' }}>
@@ -428,65 +428,71 @@ export function EditorHybrid({
         />
       )}
 
-      {goalToast && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 52,
-            right: 20,
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '10px 16px',
-            background: 'var(--surface-2)',
-            border: '1px solid var(--border)',
-            borderRadius: 10,
-            boxShadow: '0 8px 24px oklch(0 0 0 / 0.35)',
-            font: '400 13px var(--font-ui)',
-            color: 'var(--ink)',
-            pointerEvents: 'none',
-            animation: goalToastLeaving
-              ? 'toast-out 0.1s ease-in both'
-              : 'toast-in 0.2s cubic-bezier(0.22,0.68,0,1.2)',
-          }}
-        >
-          <span style={{ fontSize: 16 }}>{goalToast === 'exceeded' ? '💪' : '🎉'}</span>
-          <span>
-            {goalToast === 'exceeded'
-              ? `Превысил цель! +${writingStats.todayWords.toLocaleString('ru')} ${plural(writingStats.todayWords, 'слово', 'слова', 'слов')} сегодня`
-              : `Цель дня достигнута! +${writingStats.todayWords.toLocaleString('ru')} ${plural(writingStats.todayWords, 'слово', 'слова', 'слов')}`}
-          </span>
-        </div>
-      )}
+      <AnimatePresence>
+        {goalToast && (
+          <motion.div
+            variants={toastVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            style={{
+              position: 'fixed',
+              bottom: 52,
+              right: 20,
+              zIndex: 200,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '10px 16px',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              boxShadow: '0 8px 24px oklch(0 0 0 / 0.35)',
+              font: '400 13px var(--font-ui)',
+              color: 'var(--ink)',
+              pointerEvents: 'none',
+            }}
+          >
+            <span style={{ fontSize: 16 }}>{goalToast === 'exceeded' ? '💪' : '🎉'}</span>
+            <span>
+              {goalToast === 'exceeded'
+                ? `Превысил цель! +${writingStats.todayWords.toLocaleString('ru')} ${plural(writingStats.todayWords, 'слово', 'слова', 'слов')} сегодня`
+                : `Цель дня достигнута! +${writingStats.todayWords.toLocaleString('ru')} ${plural(writingStats.todayWords, 'слово', 'слова', 'слов')}`}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {versionToast && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: goalToast ? 100 : 52,
-            right: 20,
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '8px 14px',
-            background: 'var(--surface-2)',
-            border: '1px solid var(--border)',
-            borderRadius: 10,
-            boxShadow: '0 8px 24px oklch(0 0 0 / 0.35)',
-            font: '400 12px var(--font-ui)',
-            color: 'var(--ink-3)',
-            pointerEvents: 'none',
-            animation: versionToastLeaving
-              ? 'toast-out 0.15s ease-in both'
-              : 'toast-in 0.2s cubic-bezier(0.22,0.68,0,1.2)',
-          }}
-        >
-          <span style={{ fontSize: 13, opacity: 0.7 }}>◷</span>
-          <span>Снимок сохранён</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {versionToast && (
+          <motion.div
+            variants={toastVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            style={{
+              position: 'fixed',
+              bottom: goalToast ? 100 : 52,
+              right: 20,
+              zIndex: 200,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 14px',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              boxShadow: '0 8px 24px oklch(0 0 0 / 0.35)',
+              font: '400 12px var(--font-ui)',
+              color: 'var(--ink-3)',
+              pointerEvents: 'none',
+            }}
+          >
+            <span style={{ fontSize: 13, opacity: 0.7 }}>◷</span>
+            <span>Снимок сохранён</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
