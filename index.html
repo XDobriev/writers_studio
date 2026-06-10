@@ -150,6 +150,34 @@
   <body>
     <noscript><div><img src="https://mc.yandex.ru/watch/109723861" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
     <div id="root"></div>
+    <script>
+      /* Анти-флэш предотрисованного лендинга.
+         scripts/prerender.mjs пишет полностью отрендеренный лендинг в dist/index.html
+         (для Яндексбота и краулеров без JS). nginx и Vercel отдают ЭТОТ index.html как
+         SPA-fallback для ВСЕХ роутов, поэтому на /books и др. лендинг мелькает до загрузки
+         React. Чистим #root, когда предотрисованное содержимое не совпадёт с тем, что
+         отрендерит React. Краулеры JS не исполняют — статический HTML и SEO не страдают. */
+      (function () {
+        try {
+          var p = location.pathname.replace(/\/+$/, '') || '/';
+          var prerendered = p === '/' || p === '/privacy' || p === '/terms';
+          var loggedIn = false;
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && k.slice(0, 3) === 'sb-' && k.indexOf('-auth-token') > 0) {
+              var v = JSON.parse(localStorage.getItem(k) || 'null');
+              if (v && v.access_token) { loggedIn = true; break; }
+            }
+          }
+          // Чистим, если: (а) роут не предотрисован (отдан лендинг-fallback), либо
+          // (б) корень, но юзер залогинен — Landing всё равно редиректнет на /books.
+          if (!prerendered || (p === '/' && loggedIn)) {
+            var r = document.getElementById('root');
+            if (r) r.textContent = '';
+          }
+        } catch (e) {}
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

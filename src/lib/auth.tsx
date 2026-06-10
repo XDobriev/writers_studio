@@ -40,39 +40,21 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 function readLocalSession(): { session: Session | null; hadToken: boolean } {
   // Ключ формируется ИДЕНТИЧНО supabase-js: createClient передаёт в GoTrueClient
   // storageKey = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`
-  // (см. node_modules/@supabase/supabase-js/src/SupabaseClient.ts:301).
-  // Константа STORAGE_KEY='supabase.auth.token' в auth-js — лишь дефолт GoTrueClient,
-  // который createClient ВСЕГДА переопределяет. Читать её нельзя — ключа нет в localStorage.
-  // TEMP DIAG — удалить после подтверждения причины флэша
-  let key = '';
+  // (см. @supabase/supabase-js SupabaseClient.ts). Дефолт 'supabase.auth.token' из auth-js
+  // читать нельзя — createClient его ВСЕГДА переопределяет, такого ключа в localStorage нет.
   try {
     const url = (import.meta.env.VITE_SUPABASE_URL ?? '') as string;
-    if (!url) { console.log('[auth] readLocal: VITE_SUPABASE_URL пуст'); return { session: null, hadToken: false }; }
-    key = `sb-${new URL(url).hostname.split('.')[0]}-auth-token`;
-    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') || k === 'supabase.auth.token');
+    if (!url) return { session: null, hadToken: false };
+    const key = `sb-${new URL(url).hostname.split('.')[0]}-auth-token`;
     const raw = localStorage.getItem(key);
-    if (!raw) {
-      console.log('[auth] readLocal: ключ НЕ найден', { key, sbKeysInStorage: sbKeys });
-      return { session: null, hadToken: false };
-    }
+    if (!raw) return { session: null, hadToken: false };
     const data = JSON.parse(raw) as Record<string, unknown> | null;
-    if (!data?.access_token) {
-      console.log('[auth] readLocal: распарсилось, но НЕТ access_token', { key, topKeys: data ? Object.keys(data) : null });
-      return { session: null, hadToken: false };
-    }
+    if (!data?.access_token) return { session: null, hadToken: false };
     // expires_at — unix секунды; истёкший токен есть, но как сессию его не отдаём
     const exp = data.expires_at as number | undefined;
-    const now = Math.floor(Date.now() / 1000);
-    if (exp && exp < now) {
-      console.log('[auth] readLocal: токен ИСТЁК → hadToken=true, session=null', { key, expiredAgoSec: now - exp, sbKeysInStorage: sbKeys });
-      return { session: null, hadToken: true };
-    }
-    console.log('[auth] readLocal: валидная сессия → синхронный логин', { key, leftSec: exp ? exp - now : null });
+    if (exp && exp < Math.floor(Date.now() / 1000)) return { session: null, hadToken: true };
     return { session: data as unknown as Session, hadToken: true };
-  } catch (e) {
-    console.log('[auth] readLocal: ИСКЛЮЧЕНИЕ (parse/URL) → hadToken=false', { key, err: String(e) });
-    return { session: null, hadToken: false };
-  }
+  } catch { return { session: null, hadToken: false }; }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -93,25 +75,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const getSessionPending = useRef(true);
 
   useEffect(() => {
-    // TEMP DIAG — удалить после подтверждения причины флэша
-    const t0 = performance.now();
-    const ms = () => Math.round(performance.now() - t0);
-    console.log('[auth] mount', { hadToken, timeout: hadToken ? 15000 : 5000, path: window.location.pathname, hasLocalSession: localSession !== null });
-
     // Fallback-таймаут на случай медленного Supabase (throttled ISP, VPS /sb прокси).
     // Нет сохранённого токена → 5 с: юзер скорее всего реально разлогинен, открываем Landing/login.
     // Токен был (идёт рефреш истёкшего) → 15 с: НЕ открываем роуты раньше времени, иначе AuthGuard
-    // мигнёт лендингом и отскочит назад. 15 с — лишь страховка от вечного спиннера на мёртвом канале;
+    // мигнёт логином и отскочит назад. 15 с — лишь страховка от вечного спиннера на мёртвом канале;
     // на живом-но-медленном getSession() резолвится раньше.
     const fallback = setTimeout(() => {
-      console.log('[auth] ⚠️ FALLBACK сработал РАНЬШЕ getSession()', { atMs: ms(), willFlash: !session });
       getSessionPending.current = false;
       setInitializing(false);
       setLoading(false);
     }, hadToken ? 15_000 : 5_000);
 
     supabase.auth.getSession().then(({ data }) => {
-      console.log('[auth] getSession() резолвился', { atMs: ms(), hasSession: !!data.session, fallbackAlreadyFired: !getSessionPending.current });
       getSessionPending.current = false;
       clearTimeout(fallback);
       if (data.session) hadSession.current = true;
