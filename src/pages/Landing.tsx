@@ -108,6 +108,9 @@ export default function Landing() {
   if (initializing) return null;
   if (session) return <Navigate to="/books" replace />;
 
+  // TEMP DIAG — удалить после подтверждения причины флэша
+  console.log('[auth] 🔴 LANDING КРАСИТСЯ (initializing=false, session=null)', { path: window.location.pathname });
+
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)' }}>
       <style>{`
