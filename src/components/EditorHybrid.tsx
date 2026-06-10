@@ -208,6 +208,7 @@ export function EditorHybrid({
               className="tb-btn"
               onClick={sidebar.open}
               title="Главы"
+              aria-label="Главы"
               style={{ flexShrink: 0 }}
             >
               <Icon name="panel" size={16} />
@@ -223,6 +224,7 @@ export function EditorHybrid({
                 className={'tb-btn' + (right.isOpen ? ' tb-btn--on' : '')}
                 onClick={() => right.isOpen ? right.close() : right.open()}
                 title="Заметки и версии"
+                aria-label="Заметки и версии"
                 style={{ flexShrink: 0 }}
               >
                 <Icon name="note" size={16} />
@@ -233,6 +235,7 @@ export function EditorHybrid({
               className="tb-btn"
               onClick={() => setMode('page')}
               title="Страница — чистый лист"
+              aria-label="Страница — чистый лист"
               style={{ flexShrink: 0 }}
             >
               <Icon name="focus" size={16} />
@@ -247,6 +250,7 @@ export function EditorHybrid({
                 className="tb-btn"
                 onClick={sidebar.open}
                 title="Главы"
+                aria-label="Главы"
                 style={{ flexShrink: 0 }}
               >
                 <Icon name="panel" size={16} />
@@ -261,6 +265,7 @@ export function EditorHybrid({
                 className="tb-btn tb-btn--on"
                 onClick={() => setMode('studio')}
                 title="Выйти из режима страницы"
+                aria-label="Выйти из режима страницы"
                 style={{ flexShrink: 0 }}
               >
                 <Icon name="focus" size={16} />

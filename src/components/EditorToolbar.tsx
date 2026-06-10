@@ -29,6 +29,7 @@ export function ModeSegment({ mode, setMode }: { mode: EditorMode; setMode: (m: 
           type="button"
           onClick={() => setMode(k)}
           title={tip}
+          aria-label={tip}
           className={'tb-btn' + (mode === k ? ' tb-btn--on' : '')}
           style={{ height: 24, padding: '0 6px', borderRadius: 6, color: mode === k ? 'var(--ink)' : 'var(--ink-3)' }}
         >
@@ -393,7 +394,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
               onMouseDown={e => { e.preventDefault(); apply(); }}
               style={{
                 flex: 1, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
-                background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 500,
+                background: 'var(--accent)', color: 'oklch(0.98 0 0)', fontSize: 12, fontWeight: 500,
               }}
             >Применить</button>
             {active && (
