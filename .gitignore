@@ -22,10 +22,19 @@ docs/email-onboarding.md
 docs/design-audit-2026-05-29.md
 docs/feature-research-2026-05-29.md
 
-# QA screenshots
+# QA / debug screenshots (root-level)
 qa_*.png
 qa_*.jpeg
 qa_*.jpg
+e2e-*.png
+e2e-*.txt
+fix-*.png
+fix-*.json
+iter*.png
+loop*.png
+landing-*.png
+report.html
+report.json
 
 # Playwright
 playwright-report/
