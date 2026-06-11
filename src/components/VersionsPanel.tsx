@@ -141,6 +141,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
             className="input"
             style={{ fontSize: 12, height: 32 }}
             placeholder="Название версии…"
+            aria-label="Название версии"
             value={labelInput}
             onChange={(e) => setLabelInput(e.target.value)}
             onKeyDown={(e) => {
@@ -238,6 +239,7 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
           {isPro && (
             <button
               title="Удалить"
+              aria-label="Удалить версию"
               onClick={(e) => void onDelete(version.id, e)}
               style={{
                 background: 'none', border: 'none', color: 'var(--ink-4)',

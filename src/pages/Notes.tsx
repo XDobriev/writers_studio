@@ -120,6 +120,7 @@ function SortableNoteCard({ note, chapterTitle, color, colorSoft, label, onOpen 
           {...attributes}
           {...listeners}
           onClick={(e) => e.stopPropagation()}
+          aria-label="Переместить"
           title="Переместить"
           style={{
             position: 'absolute', top: 10, right: 10,
@@ -315,6 +316,7 @@ export default function Notes() {
     <button
       key={color}
       onClick={() => onSelect(color)}
+      aria-label={KIND_LABELS[color]}
       title={KIND_LABELS[color]}
       style={{
         width: 16, height: 16, borderRadius: '50%',
@@ -393,6 +395,7 @@ export default function Notes() {
                 <button
                   onClick={() => setActiveChapterId(null)}
                   style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: '0 2px', fontSize: 14, lineHeight: 1 }}
+                  aria-label="Сбросить фильтр"
                   title="Сбросить фильтр"
                 >×</button>
               </div>
@@ -583,6 +586,7 @@ export default function Notes() {
                   className="tb-btn"
                   style={{ width: 28, height: 28, fontSize: 16 }}
                   onClick={closeModal}
+                  aria-label="Закрыть"
                   title="Закрыть"
                 >×</button>
               </div>

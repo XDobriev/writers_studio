@@ -133,7 +133,7 @@ export default function Split() {
 
   return (
     <div className="as as-app" style={{ height: '100dvh', overflow: 'hidden' }}>
-      <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, background: 'var(--bg)', overflow: 'hidden' }}>
+      <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, background: 'var(--bg)', overflow: 'hidden', gridColumn: '1 / -1' }}>
         <div className="tb" style={{ justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Link to={`/books/${bookId}`} className="btn btn--ghost" style={{ textDecoration: 'none', fontSize: 12 }}>← {book.title}</Link>
@@ -217,6 +217,7 @@ function Pane({ side, chapter, chapters, saveState, onSelect, onPersist }: {
         <select
           value={chapter?.id ?? ''}
           onChange={(e) => onSelect(e.target.value)}
+          aria-label={side === 'left' ? 'Глава слева' : 'Глава справа'}
           style={{ flex: 1, minWidth: 0, height: 26, padding: '0 6px', border: '1px solid var(--border-soft)', borderRadius: 5, background: 'var(--surface)', color: 'var(--ink)', fontSize: 12, outline: 'none' }}
         >
           {chapters.map((c, i) => (

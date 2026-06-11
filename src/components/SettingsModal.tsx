@@ -303,7 +303,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
           <div style={{ display: 'flex', alignItems: 'center', padding: '18px 24px 0', flexShrink: 0 }}>
             <span style={{ font: '600 14px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Настройки</span>
             <span style={{ flex: 1 }} />
-            <button className="tb-btn" onClick={onClose} style={{ fontSize: 20, lineHeight: 1, padding: '0 6px', color: 'var(--ink-4)' }}>×</button>
+            <button className="tb-btn" onClick={onClose} aria-label="Закрыть" title="Закрыть" style={{ fontSize: 20, lineHeight: 1, padding: '0 6px', color: 'var(--ink-4)' }}>×</button>
           </div>
 
           {/* Tab bar */}

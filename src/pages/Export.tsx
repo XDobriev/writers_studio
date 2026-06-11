@@ -203,7 +203,7 @@ export default function Export() {
           <div>
             <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 4 }}>Экспорт книги</div>
             <h2 style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em', color: 'var(--ink)' }}>
-              {book.title} · {totalWords.toLocaleString('ru-RU')} слов
+              {book.title} · {totalWords.toLocaleString('ru-RU')} {plural(totalWords, 'слово', 'слова', 'слов')}
             </h2>
           </div>
           <button type="button" onClick={close} aria-label="Закрыть" title="Закрыть" style={{ width: 30, height: 30, borderRadius: 999, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 18, lineHeight: 1 }}>×</button>
@@ -221,6 +221,7 @@ export default function Export() {
                 <button
                   key={o.value}
                   onClick={() => locked ? setShowUpgrade(true) : setFormat(o.value)}
+                  aria-pressed={active}
                   style={{
                     padding: '14px 16px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
                     border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
@@ -256,6 +257,7 @@ export default function Export() {
                 <button
                   key={o.value}
                   onClick={() => setFormat(o.value)}
+                  aria-pressed={active}
                   style={{
                     padding: '4px 12px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
                     border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
@@ -371,6 +373,7 @@ export default function Export() {
                     <button
                       key={s.value}
                       onClick={() => { setParagraphStyle(s.value); localStorage.setItem('export-paragraph-style', s.value); }}
+                      aria-pressed={active}
                       style={{
                         padding: '6px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
                         border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',

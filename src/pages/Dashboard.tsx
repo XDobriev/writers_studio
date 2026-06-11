@@ -436,15 +436,16 @@ export default function Dashboard() {
                 </div>
                 {book.goal > book.words && (
                   <div style={{ marginTop: 10, fontSize: 12, color: 'var(--ink-3)' }}>
-                    Осталось <span style={{ color: 'var(--ink-2)' }}>{fmtNumber(book.goal - book.words)}</span> слов до цели.
+                    Осталось <span style={{ color: 'var(--ink-2)' }}>{fmtNumber(book.goal - book.words)}</span> {plural(book.goal - book.words, 'слово', 'слова', 'слов')} до цели.
                   </div>
                 )}
-                {activityData && activityData.avg7 > 0 && book.goal > book.words && (() => {
-                  const etaDays = Math.ceil((book.goal - book.words) / activityData.avg7);
+                {activityData && Math.round(activityData.avg7) > 0 && book.goal > book.words && (() => {
+                  const pace = Math.round(activityData.avg7);
+                  const etaDays = Math.ceil((book.goal - book.words) / pace);
                   return (
                     <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink-3)' }}>
                       Темп за 7 дней:{' '}
-                      <span style={{ color: 'var(--ink-2)' }}>{fmtNumber(Math.round(activityData.avg7))} слов/день</span>
+                      <span style={{ color: 'var(--ink-2)' }}>{fmtNumber(pace)} слов/день</span>
                       {' · '}завершение через{' '}
                       <span style={{ color: 'var(--ink-2)' }}>≈ {etaDays} {pluralDays(etaDays)}</span>
                     </div>
@@ -624,8 +625,8 @@ export default function Dashboard() {
                           <circle cx={toX(pts.length - 1)} cy={toY(pts[pts.length - 1].words)} r="1.8" fill="var(--accent)" />
                         </svg>
                         <div style={{ display: 'flex', justifyContent: 'space-between', font: '400 10px var(--font-mono)', color: 'var(--ink-4)', marginTop: 4 }}>
-                          <span>{fmtNumber(pts[0].words)} слов</span>
-                          <span>{fmtNumber(pts[pts.length - 1].words)} слов сейчас</span>
+                          <span>{fmtNumber(pts[0].words)} {plural(pts[0].words, 'слово', 'слова', 'слов')}</span>
+                          <span>{fmtNumber(pts[pts.length - 1].words)} {plural(pts[pts.length - 1].words, 'слово', 'слова', 'слов')} сейчас</span>
                         </div>
                       </div>
                     );

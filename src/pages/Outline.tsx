@@ -405,6 +405,7 @@ function SortableChapterRow({
           color: 'var(--ink-4)', padding: 0,
         }}
         title="Перетащить"
+        aria-label="Перетащить"
       >
         <Icon name="drag" size={12} />
       </button>
@@ -484,6 +485,7 @@ function SortableChapterRow({
             border: 'none', cursor: 'pointer', borderRadius: 4, color: 'var(--ink-3)',
           }}
           title="Действия"
+          aria-label="Действия"
         >
           <Icon name="moremenu" size={14} />
         </button>
@@ -686,7 +688,7 @@ export default function Outline() {
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
         <Sidebar book={book} subtitle={`структура · ${totals.words.toLocaleString('ru')} / ${(book?.goal ?? 0).toLocaleString('ru')} сл`}>
           <div className="sb-tabs">
-            <button className="sb-tab sb-tab--on">Структура</button>
+            <button className="sb-tab sb-tab--on" aria-current="true">Структура</button>
             <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/corkboard`)}>Доска</button>
           </div>
           <div style={{ padding: '18px 18px 14px', color: 'var(--ink-3)', fontSize: 12 }}>

@@ -158,6 +158,7 @@ export function Sidebar({
                 type="button"
                 onClick={onCreateChapter}
                 title="Новая глава"
+                aria-label="Новая глава"
                 className="sb-section-add"
               >
                 <Icon name="plus" size={13} />

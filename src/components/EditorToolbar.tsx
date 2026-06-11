@@ -164,6 +164,7 @@ function HeadingDropdown({ editor }: { editor: Editor | null }) {
         type="button"
         className="tb-sel"
         title="Уровень текста"
+        aria-label="Уровень текста"
         disabled={!editor}
         onMouseDown={(ev) => { ev.preventDefault(); setOpen((v) => !v); }}
       >

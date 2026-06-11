@@ -46,7 +46,7 @@ export function SidebarNav({ bookId }: SidebarNavProps) {
           );
         }
         return (
-          <Link key={label} to={href} className={cls} style={style}>
+          <Link key={label} to={href} className={cls} style={style} aria-current={on ? 'page' : undefined}>
             {inner}
           </Link>
         );

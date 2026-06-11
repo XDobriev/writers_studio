@@ -8,6 +8,7 @@ import {
   type ChapterPatch,
   type SaveState,
 } from '../lib/chapters';
+import { plural } from '../lib/i18n';
 import { useBook, useChapters, useChapterContent } from '../lib/queries';
 import { updateChapterWithCache } from '../lib/chapterMutations';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
@@ -161,7 +162,7 @@ export default function Focus() {
             <span style={{ color: 'var(--accent)' }}>{book.words.toLocaleString('ru-RU')}/{book.goal.toLocaleString('ru-RU')}</span>
           </>
         ) : (
-          <span>{book.words.toLocaleString('ru-RU')} слов в книге</span>
+          <span>{book.words.toLocaleString('ru-RU')} {plural(book.words, 'слово', 'слова', 'слов')} в книге</span>
         )}
       </div>
     </div>

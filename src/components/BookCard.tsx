@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Icon } from './Icon';
 import { cardHoverTransition } from '../lib/motion';
+import { pluralDays } from '../lib/i18n';
 import type { Book } from '../lib/supabase';
 
 const isImageUrl = (v: string) => v.startsWith('http') || v.startsWith('blob:');
@@ -68,7 +69,7 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
             )}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)' }}>
-            <span>{dayDiff(b.created_at)} дн. в работе</span>
+            <span>{dayDiff(b.created_at)} {pluralDays(dayDiff(b.created_at))} в работе</span>
             <span>изм. {formatDate(b.updated_at)}</span>
           </div>
         </div>

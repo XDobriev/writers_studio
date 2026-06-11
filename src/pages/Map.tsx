@@ -227,6 +227,7 @@ export default function MapScreen() {
                   type="button"
                   onClick={() => setMode(m.value)}
                   className={'sb-item' + (mode === m.value ? ' sb-item--on' : '')}
+                  aria-pressed={mode === m.value}
                   style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
                 >
                   <span>{m.icon}</span>
@@ -253,6 +254,7 @@ export default function MapScreen() {
               <button
                 className="btn btn--ghost"
                 onClick={() => setBgModalOpen(true)}
+                aria-label="Стиль карты"
                 style={{ fontSize: 12, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}
               >
                 <span>🖼</span>
@@ -262,6 +264,7 @@ export default function MapScreen() {
                 className="btn btn--ghost"
                 onClick={() => { void onExportPng(); }}
                 disabled={exportBusy}
+                aria-label="Скачать PNG"
                 style={{ fontSize: 12, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}
               >
                 {exportBusy ? <span className="btn-spinner" /> : <span>↓</span>}
@@ -345,7 +348,7 @@ export default function MapScreen() {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <span style={{ font: '500 14px var(--font-ui)', color: 'var(--ink)' }}>Стиль карты</span>
-              <button onClick={() => setBgModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '20px var(--font-ui)', lineHeight: 1, padding: '0 2px' }}>×</button>
+              <button onClick={() => setBgModalOpen(false)} aria-label="Закрыть" title="Закрыть" style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '20px var(--font-ui)', lineHeight: 1, padding: '0 2px' }}>×</button>
             </div>
 
             {/* Template picker */}

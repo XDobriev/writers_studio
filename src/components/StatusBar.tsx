@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { pluralDays } from '../lib/i18n';
+import { pluralDays, plural } from '../lib/i18n';
 import { useResponsive } from '../lib/useResponsive';
 import { EDITOR_FONTS, getStoredEditorFont, applyEditorFont, EDITOR_FONT_EVENT, type EditorFontId } from '../lib/editorFont';
 
@@ -264,7 +264,7 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
                   padding: '0 4px', outline: 'none', textAlign: 'right',
                 }}
               />
-              <span> слов</span>
+              <span> {plural(parseInt(goalInput, 10) || 0, 'слово', 'слова', 'слов')}</span>
             </span>
           ) : (
             <span
@@ -291,6 +291,7 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
         <button
           onClick={onToggleFocusMode}
           title={focusMode ? 'Выключить режим фокуса' : 'Режим фокуса'}
+          aria-label={focusMode ? 'Выключить режим фокуса' : 'Режим фокуса'}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -377,6 +378,7 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
           <button
             onClick={() => setPopupOpen(o => !o)}
             title="Фоновые звуки"
+            aria-label="Фоновые звуки"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

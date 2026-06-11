@@ -517,7 +517,7 @@ export function WorldMap({
               <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 4, padding: '2px 7px' }}>
                 {TYPE_GLYPHS[selected.type]} {TYPE_LABELS[selected.type]}
               </span>
-              <button onClick={() => setSelectedId(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '18px var(--font-ui)', lineHeight: 1, padding: '0 3px' }}>×</button>
+              <button onClick={() => setSelectedId(null)} aria-label="Закрыть" title="Закрыть" style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '18px var(--font-ui)', lineHeight: 1, padding: '0 3px' }}>×</button>
             </div>
             <input
               value={editName}
@@ -527,6 +527,7 @@ export function WorldMap({
             <select
               value={editType}
               onChange={e => { const t = e.target.value as LocationType; setEditType(t); scheduleUpdate(selected.id, { type: t }); }}
+              aria-label="Тип локации"
               style={{ width: '100%', height: 30, padding: '0 28px 0 8px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--ink-2)', font: '400 11px var(--font-ui)', outline: 'none', marginBottom: 7, appearance: 'none', backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 9px center', cursor: 'pointer' }}
             >
               {(['city','village','forest','sea','castle','other'] as const).map(t => (
@@ -597,6 +598,7 @@ export function WorldMap({
                   setEditConnStyle(s);
                   scheduleConnUpdate(conn.id, { style: s });
                 }}
+                aria-label="Стиль связи"
                 style={{ background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 4, color: 'var(--ink-2)', padding: '3px 22px 3px 6px', font: '400 11px var(--font-ui)', outline: 'none', appearance: 'none', backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 5px center', cursor: 'pointer' }}
               >
                 {(Object.entries(CONNECTION_STYLES) as [LocationConnection['style'], typeof CONNECTION_STYLES[keyof typeof CONNECTION_STYLES]][]).map(([k, v]) => (
@@ -606,6 +608,8 @@ export function WorldMap({
               <button
                 className="map-popup-del"
                 style={{ font: '16px var(--font-ui)' }}
+                aria-label="Удалить связь"
+                title="Удалить связь"
                 onClick={() => { setSelectedConnId(null); onDeleteConnection(conn.id); }}
               >×</button>
             </div>
@@ -659,7 +663,7 @@ export function WorldMap({
             <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 4, padding: '2px 7px' }}>
               {TYPE_GLYPHS[selected.type]} {TYPE_LABELS[selected.type]}
             </span>
-            <button onClick={() => setSelectedId(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '20px var(--font-ui)', lineHeight: 1, padding: '0 3px' }}>×</button>
+            <button onClick={() => setSelectedId(null)} aria-label="Закрыть" title="Закрыть" style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '20px var(--font-ui)', lineHeight: 1, padding: '0 3px' }}>×</button>
           </div>
           <input
             value={editName}
@@ -669,6 +673,7 @@ export function WorldMap({
           <select
             value={editType}
             onChange={e => { const t = e.target.value as LocationType; setEditType(t); scheduleUpdate(selected.id, { type: t }); }}
+            aria-label="Тип локации"
             style={{ width: '100%', height: 32, padding: '0 28px 0 9px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--ink-2)', font: '400 12px var(--font-ui)', outline: 'none', marginBottom: 8, appearance: 'none', backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 9px center', cursor: 'pointer' }}
           >
             {(['city','village','forest','sea','castle','other'] as const).map(t => (
@@ -708,7 +713,7 @@ export function WorldMap({
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--surface)', borderTop: '1px solid var(--border)', borderRadius: '16px 16px 0 0', boxShadow: '0 -4px 32px oklch(0 0 0 / 0.5)', zIndex: 30 }}>
           <div style={{ padding: '14px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ font: '500 12px var(--font-ui)', color: 'var(--ink-2)' }}>Не размещены на карте</span>
-            <button onClick={() => setUnmappedSheetOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-4)', font: '20px var(--font-ui)', cursor: 'pointer' }}>×</button>
+            <button onClick={() => setUnmappedSheetOpen(false)} aria-label="Закрыть" title="Закрыть" style={{ background: 'none', border: 'none', color: 'var(--ink-4)', font: '20px var(--font-ui)', cursor: 'pointer' }}>×</button>
           </div>
           {unmapped.map(loc => (
             <div key={loc.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderTop: '1px solid var(--border-soft)', font: '400 13px var(--font-ui)', color: 'var(--ink-2)' }}>

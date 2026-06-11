@@ -336,6 +336,7 @@ export default function Timeline() {
                   <button
                     onClick={() => switchView('list')}
                     className="btn"
+                    aria-pressed={view === 'list'}
                     style={{
                       borderRadius: 0,
                       border: 'none',
@@ -351,6 +352,7 @@ export default function Timeline() {
                   <button
                     onClick={() => switchView('lane')}
                     className="btn"
+                    aria-pressed={view === 'lane'}
                     style={{
                       borderRadius: 0,
                       border: 'none',
@@ -640,6 +642,7 @@ function TimelineLane({
                         {isLastRow && (
                           <button
                             onClick={onAdd}
+                            aria-label="Добавить событие"
                             title="Добавить событие"
                             style={{
                               display: 'flex',
@@ -753,7 +756,7 @@ function DragCard({ event }: { event: TimelineEvent }) {
           WebkitBoxOrient: 'vertical',
         }}
       >
-        {event.title}
+        {event.title || '—'}
       </div>
     </div>
   );
@@ -854,7 +857,7 @@ function SortableNode({
           WebkitBoxOrient: 'vertical',
         }}
       >
-        {event.title}
+        {event.title || '—'}
       </div>
     </div>
   );
@@ -1062,7 +1065,7 @@ function EventCard({
   const onTitleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     setTitle(v);
-    schedule({ title: v.trim() === '' ? 'Событие' : v });
+    schedule({ title: v });
   };
   const onDescChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setDescription(e.target.value);
@@ -1191,6 +1194,7 @@ function EventCard({
           <select
             value={event.chapter_id ?? ''}
             onChange={onChapterChange}
+            aria-label="Глава"
             style={{
               flex: '1 1 120px',
               height: 28,

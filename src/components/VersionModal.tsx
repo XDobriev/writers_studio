@@ -205,7 +205,7 @@ export function VersionModal({
                 )}
               </div>
             </div>
-            <button className="tb-btn" onClick={onClose} style={{ color: 'var(--ink-3)' }}>✕</button>
+            <button className="tb-btn" onClick={onClose} aria-label="Закрыть" title="Закрыть" style={{ color: 'var(--ink-3)' }}>✕</button>
           </div>
 
           <div style={{

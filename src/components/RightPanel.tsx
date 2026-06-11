@@ -199,6 +199,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   value={editKind}
                   onChange={(e) => setEditKind(e.target.value as NoteKind)}
                   className="input"
+                  aria-label="Тип заметки"
                   style={{ fontSize: 12 }}
                 >
                   <option value="idea">Идея</option>

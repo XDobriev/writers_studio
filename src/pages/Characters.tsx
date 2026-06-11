@@ -256,6 +256,7 @@ export default function Characters() {
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="Поиск"
+                      aria-label="Поиск персонажей"
                       className="tb-search__input"
                     />
                   </div>
@@ -265,6 +266,8 @@ export default function Characters() {
                         key={f.value}
                         className={'tb-btn' + (roleFilter === f.value ? ' tb-btn--on' : '')}
                         onClick={() => setRoleFilter(f.value)}
+                        aria-pressed={roleFilter === f.value}
+                        title={f.value !== 'all' ? ROLE_LABELS[f.value] : undefined}
                       >
                         {f.label}
                       </button>
@@ -285,6 +288,7 @@ export default function Characters() {
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="Поиск"
+                      aria-label="Поиск персонажей"
                       className="tb-search__input"
                     />
                   </div>
@@ -329,6 +333,7 @@ export default function Characters() {
                   <button
                     className={'tb-btn' + (viewMode === 'grid' ? ' tb-btn--on' : '')}
                     onClick={goToGrid}
+                    aria-pressed={viewMode === 'grid'}
                     title="Картотека (сетка)"
                     aria-label="Картотека (сетка)"
                   >
@@ -338,6 +343,7 @@ export default function Characters() {
                     className={'tb-btn' + (viewMode === 'detail' ? ' tb-btn--on' : '')}
                     onClick={() => { if (activeId) setViewMode('detail'); }}
                     disabled={!activeId}
+                    aria-pressed={viewMode === 'detail'}
                     title="Детальная карточка"
                     aria-label="Детальная карточка"
                   >
@@ -443,6 +449,7 @@ export default function Characters() {
               onSelect={selectCharacter}
               onCreate={handleCreate}
               onDelete={setCharToDelete}
+              onClearFilter={() => { setQuery(''); setRoleFilter('all'); }}
             />
           )}
         </main>}
@@ -475,12 +482,14 @@ function CharacterGrid({
   onSelect,
   onCreate,
   onDelete,
+  onClearFilter,
 }: {
   characters: Character[];
   emptyAll: boolean;
   onSelect: (id: string) => void;
   onCreate: () => void;
   onDelete: (c: Character) => void;
+  onClearFilter?: () => void;
 }) {
   if (emptyAll) {
     return (
@@ -500,8 +509,13 @@ function CharacterGrid({
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px 28px' }}>
       {characters.length === 0 ? (
-        <div style={{ paddingTop: 40, font: '400 13px var(--font-ui)', color: 'var(--ink-3)', textAlign: 'center' }}>
-          Ничего не найдено
+        <div style={{ paddingTop: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+          <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>Ничего не найдено</div>
+          {onClearFilter && (
+            <button className="btn btn--ghost" style={{ fontSize: 12 }} onClick={onClearFilter}>
+              Сбросить фильтры
+            </button>
+          )}
         </div>
       ) : (
         <motion.div
@@ -939,6 +953,7 @@ function RelationsBlock({ activeId, characters, relationships, onCreate, onDelet
             value={toId}
             onChange={(e) => setToId(e.target.value)}
             className="input input--sm"
+            aria-label="Персонаж для связи"
             style={{ alignSelf: 'flex-start', minWidth: 200 }}
           >
             {candidates.map((c) => (

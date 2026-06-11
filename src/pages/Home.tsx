@@ -275,8 +275,9 @@ export default function Home() {
             <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label className="label">Название</label>
+                <label htmlFor="edit-book-title" className="label">Название</label>
                 <input
+                  id="edit-book-title"
                   className="input"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
@@ -287,8 +288,9 @@ export default function Home() {
               </div>
               <GenrePicker value={editGenres} onChange={setEditGenres} />
               <div>
-                <label className="label">Цель по словам</label>
+                <label htmlFor="edit-book-goal" className="label">Цель по словам</label>
                 <input
+                  id="edit-book-goal"
                   className="input"
                   type="number"
                   min={0}
@@ -436,13 +438,13 @@ export default function Home() {
             <h2 style={{ font: '600 22px var(--font-serif)', marginBottom: 16 }}>Новая книга</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label className="label">Название</label>
-                <input className="input" name="title" required autoFocus maxLength={120} />
+                <label htmlFor="create-book-title" className="label">Название</label>
+                <input id="create-book-title" className="input" name="title" required autoFocus maxLength={120} />
               </div>
               <GenrePicker value={createGenres} onChange={setCreateGenres} />
               <div>
-                <label className="label">Цель по словам</label>
-                <input className="input" name="goal" type="number" min={0} step={1000} placeholder="необязательно" />
+                <label htmlFor="create-book-goal" className="label">Цель по словам</label>
+                <input id="create-book-goal" className="input" name="goal" type="number" min={0} step={1000} placeholder="необязательно" />
                 <div className="input-hint">
                   Рассказ 1–10 тыс. · Новелла 10–20 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпос / сага 120–300 тыс. слов
                 </div>

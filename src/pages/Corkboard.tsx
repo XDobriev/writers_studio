@@ -142,6 +142,7 @@ function SortableCorkCard({
             borderRadius: 4,
           }}
           title="Перетащить"
+          aria-label="Перетащить"
         >
           <Icon name="drag" size={12} />
         </button>
@@ -220,6 +221,7 @@ function SortableCorkCard({
             onClick={() => setMenuOpen((o) => !o)}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, margin: -4, background: menuOpen ? 'var(--bg-deep)' : 'transparent', border: 'none', cursor: 'pointer', borderRadius: 4, color: 'var(--ink-3)' }}
             title="Изменить статус"
+            aria-label="Изменить статус"
           >
             <Icon name="moremenu" size={14} />
           </button>
@@ -403,7 +405,7 @@ export default function Corkboard() {
         <Sidebar book={book} subtitle={`${counts.all} ${plural(counts.all, 'глава', 'главы', 'глав')} · ${(book?.words ?? 0).toLocaleString('ru')} сл`}>
           <div className="sb-tabs">
             <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/outline`)}>Структура</button>
-            <button className="sb-tab sb-tab--on">Доска</button>
+            <button className="sb-tab sb-tab--on" aria-current="true">Доска</button>
           </div>
           <div style={{ padding: '18px 18px 14px', color: 'var(--ink-3)', fontSize: 12, lineHeight: 1.6 }}>
             На доске — главы как индексные карточки. Щелчок по карточке — открыть в редакторе.
@@ -416,6 +418,7 @@ export default function Corkboard() {
                 type="button"
                 onClick={() => setFilter(key)}
                 className={'sb-item' + (filter === key ? ' sb-item--on' : '')}
+                aria-pressed={filter === key}
                 style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
               >
                 <span />
