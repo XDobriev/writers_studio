@@ -43,7 +43,7 @@ export const cardContainerVariants: Variants = {
 
 export const cardItemVariants: Variants = {
   initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 25, duration: 0.4 } },
+  animate: { opacity: 1, y: 0, transition: { ...springCard, duration: 0.4 } },
 };
 
 export const cardHoverTransition: Transition = springCard;
@@ -60,22 +60,22 @@ export const heroItemVariants: Variants = {
 
 export const featTextVariants: Variants = {
   initial: { opacity: 0, x: -36 },
-  animate: { opacity: 1, x: 0, transition: springLanding },
+  animate: { opacity: 1, x: 0, transition: { ...springLanding, delay: 0 } },
 };
 
 export const featMockVariants: Variants = {
   initial: { opacity: 0, x: 36 },
-  animate: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 30, delay: 0.12 } },
+  animate: { opacity: 1, x: 0, transition: { ...springLanding, delay: 0.12 } },
 };
 
 export const featTextVariantsRev: Variants = {
   initial: { opacity: 0, x: 36 },
-  animate: { opacity: 1, x: 0, transition: springLanding },
+  animate: { opacity: 1, x: 0, transition: { ...springLanding, delay: 0 } },
 };
 
 export const featMockVariantsRev: Variants = {
   initial: { opacity: 0, x: -36 },
-  animate: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 30, delay: 0.12 } },
+  animate: { opacity: 1, x: 0, transition: { ...springLanding, delay: 0.12 } },
 };
 
 export const revealVariants: Variants = {
