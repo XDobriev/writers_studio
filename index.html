@@ -159,6 +159,9 @@
         try {
           var p = location.pathname.replace(/\/+$/, '') || '/';
           var prerendered = p === '/' || p === '/privacy' || p === '/terms';
+          // Update canonical to current page for non-prerendered routes
+          var c = document.querySelector('link[rel="canonical"]');
+          if (c && !prerendered) c.href = location.origin + p;
           var loggedIn = false;
           for (var i = 0; i < localStorage.length; i++) {
             var k = localStorage.key(i);

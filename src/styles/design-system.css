@@ -700,10 +700,10 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .btn:hover { background: var(--surface); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn--primary {
-  background: oklch(0.54 0.16 30); border-color: oklch(0.54 0.16 30);
+  background: oklch(0.46 0.16 30); border-color: oklch(0.46 0.16 30);
   color: oklch(0.98 0 0);
 }
-.btn--primary:hover { background: oklch(0.59 0.16 30); border-color: oklch(0.59 0.16 30); }
+.btn--primary:hover { background: oklch(0.52 0.16 30); border-color: oklch(0.52 0.16 30); }
 .btn--ghost { border-color: transparent; color: var(--ink-2); }
 .btn--lg { height: 42px; padding: 0 24px; font-size: 14px; }
 .btn-spinner {

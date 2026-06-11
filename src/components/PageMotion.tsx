@@ -4,7 +4,7 @@ import { pageVariants } from '../lib/motion';
 
 export function PageMotion({ children }: { children: ReactNode }) {
   return (
-    <motion.div
+    <motion.main
       variants={pageVariants}
       initial="initial"
       animate="animate"
@@ -12,6 +12,6 @@ export function PageMotion({ children }: { children: ReactNode }) {
       style={{ width: '100%', height: '100%' }}
     >
       {children}
-    </motion.div>
+    </motion.main>
   );
 }

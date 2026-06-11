@@ -47,3 +47,11 @@
 
 URL: https://avtorstudio.com
 Язык: русский
+
+## Ссылки
+
+- [Главная страница](https://avtorstudio.com/)
+- [Тарифы и оферта](https://avtorstudio.com/offer)
+- [Вход и регистрация](https://avtorstudio.com/login)
+- [Политика конфиденциальности](https://avtorstudio.com/privacy)
+- [Условия использования](https://avtorstudio.com/terms)
