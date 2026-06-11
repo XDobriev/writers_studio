@@ -1,28 +1,17 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
+import { motion, useInView } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { getLifetimeSlotsRemaining } from '../lib/profiles';
 import { Icon } from '../components/Icon';
 import { LogoMark } from '../components/LogoMark';
 import { supabase } from '../lib/supabase';
-
-// ─── Animation hooks ──────────────────────────────────────────────────────────
-
-function useInViewOnce(threshold = 0.5) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setInView(true); io.disconnect(); } },
-      { threshold }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [threshold]);
-  return [ref, inView] as const;
-}
+import {
+  heroContainerVariants, heroItemVariants,
+  featTextVariants, featMockVariants,
+  featTextVariantsRev, featMockVariantsRev,
+  revealVariants,
+} from '../lib/motion';
 
 const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -87,135 +76,11 @@ const MS = [
 export default function Landing() {
   const { session, initializing } = useAuth();
 
-  useEffect(() => {
-    if (initializing) return;
-    const els = document.querySelectorAll<Element>('.lnd-reveal');
-    if (!els.length) return;
-    const reveal = (el: Element) => {
-      el.classList.add('lnd-visible');
-      if (el.classList.contains('lnd-manifesto-row')) el.classList.add('lnd-line-reveal');
-    };
-    const io = new IntersectionObserver(
-      entries => entries.forEach(e => { if (e.isIntersecting) { reveal(e.target); io.unobserve(e.target); } }),
-      { threshold: 0.08 }
-    );
-    els.forEach(el => io.observe(el));
-    const fallback = window.setTimeout(() => {
-      document.querySelectorAll<Element>('.lnd-reveal:not(.lnd-visible)').forEach(reveal);
-    }, 4000);
-    return () => { io.disconnect(); clearTimeout(fallback); };
-  }, [initializing]);
-
   if (initializing) return null;
   if (session) return <Navigate to="/books" replace />;
 
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)' }}>
-      <style>{`
-        @media (prefers-reduced-motion: no-preference) {
-          @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-          @keyframes lnd-fade-up { from{opacity:0;transform:translateY(44px)} to{opacity:1;transform:translateY(0)} }
-          @keyframes lnd-slide-left  { from{opacity:0;transform:translateX(-36px)} to{opacity:1;transform:none} }
-          @keyframes lnd-slide-right { from{opacity:0;transform:translateX( 36px)} to{opacity:1;transform:none} }
-        }
-        .lnd-reveal { opacity: 0; }
-        @media (prefers-reduced-motion: no-preference) {
-          .lnd-reveal { transform: translateY(44px); }
-          .lnd-reveal.lnd-visible { animation: lnd-fade-up 0.55s cubic-bezier(0.16,1,0.3,1) forwards; }
-          .lnd-reveal.lnd-visible.d1 { animation-delay: 0.1s; }
-          .lnd-reveal.lnd-visible.d2 { animation-delay: 0.2s; }
-          .lnd-reveal.lnd-visible.d3 { animation-delay: 0.3s; }
-          .lnd-feat-row.lnd-reveal { opacity: 1; transform: none; animation: none; }
-          .lnd-feat-row .lnd-text { opacity: 0; transform: translateX(-36px); }
-          .lnd-feat-row .lnd-mock { opacity: 0; transform: translateX( 36px); }
-          .lnd-feat-row--rev .lnd-text { transform: translateX( 36px); }
-          .lnd-feat-row--rev .lnd-mock { transform: translateX(-36px); }
-          .lnd-feat-row.lnd-visible .lnd-text { animation: lnd-slide-left  0.65s cubic-bezier(0.16,1,0.3,1) both; }
-          .lnd-feat-row.lnd-visible .lnd-mock { animation: lnd-slide-right 0.65s cubic-bezier(0.16,1,0.3,1) 0.12s both; }
-          .lnd-feat-row--rev.lnd-visible .lnd-text { animation: lnd-slide-right 0.65s cubic-bezier(0.16,1,0.3,1) both; }
-          .lnd-feat-row--rev.lnd-visible .lnd-mock { animation: lnd-slide-left  0.65s cubic-bezier(0.16,1,0.3,1) 0.12s both; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .lnd-reveal { opacity: 1; transform: none; }
-          .lnd-feat-row .lnd-text,
-          .lnd-feat-row .lnd-mock { opacity: 1; transform: none; }
-        }
-        .lnd-price-card--accent { transform: translateY(-8px); }
-        .lnd-sheet-float { /* base tilt lives on js-controlled wrapper */ }
-        .faq-chevron.open { transform: rotate(180deg); }
-        @media (prefers-reduced-motion: no-preference) {
-          @keyframes lnd-hero-in { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:none} }
-          .lnd-hero-el { animation: lnd-hero-in 0.65s cubic-bezier(0.16,1,0.3,1) backwards; }
-          .lnd-hero-el.h2 { animation-delay: 0.2s; }
-          @keyframes lnd-word-in { from{transform:translateY(105%)} to{transform:translateY(0)} }
-          .lnd-word-inner { display:inline-block; animation: lnd-word-in 0.72s cubic-bezier(0.16,1,0.3,1) backwards; }
-          .lnd-hero-el.h3 { animation-delay: 0.35s; }
-          .lnd-hero-el.h4 { animation-delay: 0.5s; }
-          @keyframes lnd-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-          .lnd-sheet-float { animation: lnd-float 7s ease-in-out infinite; }
-          @keyframes lnd-note-in { from{opacity:0;transform:translateY(10px) scale(0.94)} to{opacity:1;transform:none} }
-          .lnd-note-in { animation: lnd-note-in 0.5s cubic-bezier(0.16,1,0.3,1) backwards; }
-          .lnd-note-in.n1 { animation-delay: 0.55s; }
-          .lnd-note-in.n2 { animation-delay: 0.75s; }
-          .lnd-nav-links a { transition: color 0.15s ease; }
-          .lnd-nav-login { transition: color 0.15s ease; }
-          .lnd-foot-link, .lnd-foot-link--sub { transition: color 0.15s ease; }
-          .faq-chevron { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1), color 0.15s ease; }
-          .faq-body { transition: height 0.3s cubic-bezier(0.16,1,0.3,1); }
-          .lnd-browser-mock { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }
-          .lnd-browser-mock:hover { transform: translateY(-4px); }
-          .lnd-price-card { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }
-          .lnd-price-card:hover { transform: translateY(-4px); }
-          .lnd-price-card--accent:hover { transform: translateY(-12px); }
-        }
-        .lnd-max { max-width: 1300px; margin: 0 auto; }
-        .lnd-hero-grid { display: grid; grid-template-columns: 1.05fr 1.15fr; gap: 64px; align-items: center; }
-        .lnd-feat-row { display: grid; grid-template-columns: 0.95fr 1.15fr; gap: 80px; align-items: center; padding: 72px 0; border-top: 1px solid var(--border-soft); }
-        .lnd-feat-row--rev .lnd-text { order: 2; }
-        .lnd-feat-row--rev .lnd-mock { order: 1; }
-        .lnd-feat-row-full { padding: 72px 0; border-top: 1px solid var(--border-soft); }
-        .lnd-prices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1100px; margin: 0 auto; }
-        .lnd-nav-links { display: flex; gap: 28px; font-size: 13.5px; color: var(--ink-2); }
-        .lnd-nav-links a:hover { color: var(--ink); }
-        .lnd-nav-login { color: var(--ink-2); }
-        .lnd-nav-login:hover { color: var(--ink); }
-        .lnd-foot-link { color: var(--ink-2); }
-        .lnd-foot-link:hover { color: var(--ink); }
-        .lnd-foot-link--sub { color: var(--ink-3); }
-        .lnd-foot-link--sub:hover { color: var(--ink-2); }
-        .faq-chevron { color: var(--ink-3); }
-        .faq-trigger:hover .faq-chevron { color: var(--ink-2); }
-        .lnd-manifesto { display: flex; flex-direction: column; }
-        .lnd-manifesto-row { display: grid; grid-template-columns: 52px 1fr; gap: 40px; padding: 36px 0; align-items: start; position: relative; }
-        .lnd-manifesto-row::before { content: ''; position: absolute; top: 0; left: 0; height: 1px; background: var(--border-soft); width: 100%; }
-        @media (prefers-reduced-motion: no-preference) {
-          .lnd-manifesto-row::before { width: 0; transition: width 0.5s ease; }
-          .lnd-manifesto-row.lnd-line-reveal::before { width: 100%; }
-        }
-        .lnd-footer-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 40px; }
-        @media (max-width: 1023px) {
-          .lnd-hero-grid { grid-template-columns: 1fr; }
-          .lnd-hero-sheet { display: none; }
-          .lnd-feat-row { grid-template-columns: 1fr; gap: 40px; padding: 48px 0; }
-          .lnd-feat-row--rev .lnd-text { order: 1; }
-          .lnd-feat-row--rev .lnd-mock { order: 2; }
-          .lnd-feat-row-full { padding: 48px 0; }
-          .lnd-prices { grid-template-columns: 1fr; }
-          .lnd-nav-links { display: none; }
-          .lnd-footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
-        }
-        @media (max-width: 639px) {
-          .lnd-manifesto-row { grid-template-columns: 40px 1fr; gap: 20px; padding: 28px 0; }
-        }
-        @media (max-width: 479px) {
-          .lnd-footer-grid { grid-template-columns: 1fr; }
-        }
-        .lnd-hero-mobile-card { display: none; }
-        @media (max-width: 1023px) {
-          .lnd-hero-mobile-card { display: block; margin-top: 40px; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 32px oklch(0 0 0 / 0.45); }
-          .lnd-hero-text { max-width: 640px; }
-        }
-      `}</style>
       <LandingNav />
       <main>
         <LandingHero />
@@ -308,44 +173,34 @@ function LandingHero() {
       <div style={{ position: 'absolute', inset: 0, opacity: 0.08, backgroundImage: 'linear-gradient(oklch(0.95 0.01 80) 1px,transparent 1px),linear-gradient(90deg,oklch(0.95 0.01 80) 1px,transparent 1px)', backgroundSize: '56px 56px', pointerEvents: 'none' }} />
       <div className="lnd-max" style={{ position: 'relative' }}>
         <div className="lnd-hero-grid">
-          <div className="lnd-hero-text">
-            <div className="lnd-hero-el" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 999, marginBottom: 28 }}>
+          <motion.div
+            className="lnd-hero-text"
+            variants={heroContainerVariants}
+            initial="initial"
+            animate="animate"
+          >
+            <motion.div variants={heroItemVariants} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 999, marginBottom: 28 }}>
               <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />
               <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Ранний доступ · 2026</span>
-            </div>
-            <h1 style={{ font: '600 clamp(52px,6vw,88px)/0.98 var(--font-serif)', letterSpacing: '-0.025em', marginBottom: 28, color: 'var(--ink)' }}>
-              <span style={{ display:'inline-block', overflow:'hidden', verticalAlign:'bottom', paddingBottom:'0.12em', marginBottom:'-0.12em' }}>
-                <span className="lnd-word-inner" style={{ animationDelay:'0.08s' }}>Здесь</span>
-              </span>
-              {' '}
-              <span style={{ display:'inline-block', overflow:'hidden', verticalAlign:'bottom', paddingBottom:'0.12em', marginBottom:'-0.12em' }}>
-                <span className="lnd-word-inner" style={{ animationDelay:'0.14s' }}>пишете</span>
-              </span>
+            </motion.div>
+            <motion.h1 variants={heroItemVariants} style={{ font: '600 clamp(52px,6vw,88px)/0.98 var(--font-serif)', letterSpacing: '-0.025em', marginBottom: 28, color: 'var(--ink)' }}>
+              Здесь пишете
               <br />
-              <em style={{ fontStyle: 'italic', fontWeight: 500, color: 'var(--accent-2)' }}>
-                <span style={{ display:'inline-block', overflow:'hidden', verticalAlign:'bottom', paddingBottom:'0.12em', marginBottom:'-0.12em' }}>
-                  <span className="lnd-word-inner" style={{ animationDelay:'0.20s', animationDuration:'0.88s' }}>только</span>
-                </span>
-                {' '}
-                <span style={{ display:'inline-block', overflow:'hidden', verticalAlign:'bottom', paddingBottom:'0.12em', marginBottom:'-0.12em' }}>
-                  <span className="lnd-word-inner" style={{ animationDelay:'0.26s', animationDuration:'0.88s' }}>вы</span>
-                </span>
-              </em>
-              .
-            </h1>
-            <p className="lnd-hero-el h2" style={{ font: '400 clamp(16px,1.5vw,19px)/1.6 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 520, marginBottom: 36 }}>
+              <em style={{ fontStyle: 'italic', fontWeight: 500, color: 'var(--accent-2)' }}>только вы</em>.
+            </motion.h1>
+            <motion.p variants={heroItemVariants} style={{ font: '400 clamp(16px,1.5vw,19px)/1.6 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 520, marginBottom: 36 }}>
               Рукопись, картотека персонажей, карта мира и хронология — в одном чистом редакторе. Без нейросети, которая дописывает за вас.
-            </p>
-            <div className="lnd-hero-el h3" style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+            </motion.p>
+            <motion.div variants={heroItemVariants} style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
               <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
                 Начать свою книгу
               </Link>
-            </div>
-            <div className="lnd-hero-el h4">
+            </motion.div>
+            <motion.div variants={heroItemVariants}>
               <p style={{ font: '400 13px/1.5 var(--font-ui)', color: 'var(--ink-2)', margin: 0 }}>
                 Открытая бета: все функции без ограничений, без привязки карты.
               </p>
-            </div>
+            </motion.div>
             <div className="lnd-hero-mobile-card" aria-hidden="true">
               <div style={{ background: 'var(--paper)', padding: '24px 28px', color: 'var(--paper-ink)', fontFamily: 'var(--font-serif)', fontSize: 14, lineHeight: 1.8 }}>
                 <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--paper-ink-2)', marginBottom: 8 }}>Глава первая</div>
@@ -355,7 +210,7 @@ function LandingHero() {
                 <p style={{ margin: 0, textIndent: '1.4em', color: 'var(--paper-ink-2)' }}>Аней Ворон узнала об этом в архиве, на третьем этаже башни, где пахло железом и устым мхом…</p>
               </div>
             </div>
-          </div>
+          </motion.div>
           <div className="lnd-hero-sheet" style={{ position: 'relative', height: 540 }} aria-hidden="true">
             <FloatingSheet tiltRef={tiltRef} />
             <div style={{ position: 'absolute', top: 14, right: -16, width: 200, transform: 'rotate(2deg)' }}>
@@ -403,7 +258,8 @@ function FloatingSheet({ tiltRef }: { tiltRef: React.RefObject<HTMLDivElement> }
 // ─── Features ─────────────────────────────────────────────────────────────────
 
 function SectionLabel({ kicker, title, subtitle, align = 'left' }: { kicker?: string; title: string; subtitle?: string; align?: 'left' | 'center' }) {
-  const [kickerRef, kickerInView] = useInViewOnce();
+  const kickerRef = useRef<HTMLDivElement>(null);
+  const kickerInView = useInView(kickerRef, { once: true, margin: '-40px' });
   const scrambledKicker = useScramble(kicker ?? '', kickerInView);
   const c = align === 'center';
   return (
@@ -452,13 +308,19 @@ function LandingFeatures() {
 
 function FeatureRowFull({ headline, body, mock }: { headline: string; body: string; mock: ReactNode }) {
   return (
-    <div className="lnd-feat-row-full lnd-reveal">
+    <motion.div
+      className="lnd-feat-row-full"
+      variants={revealVariants}
+      initial="initial"
+      whileInView="animate"
+      viewport={{ once: true, margin: '-80px' }}
+    >
       <div style={{ marginBottom: 36, maxWidth: 700 }}>
         <h3 style={{ font: '600 clamp(24px,3vw,38px)/1.1 var(--font-serif)', letterSpacing: '-0.015em', marginBottom: 16, color: 'var(--ink)' }}>{headline}</h3>
         <p style={{ font: '400 16px/1.65 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 580 }}>{body}</p>
       </div>
       <div aria-hidden="true">{mock}</div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -470,12 +332,17 @@ function FeatureRow({ headline, body, mock, reverse, noBrowserChrome, mockHeight
   largeHeadline?: boolean;
 }) {
   return (
-    <div className={`lnd-feat-row${reverse ? ' lnd-feat-row--rev' : ''} lnd-reveal`}>
-      <div className="lnd-text">
+    <motion.div
+      className={`lnd-feat-row${reverse ? ' lnd-feat-row--rev' : ''}`}
+      initial="initial"
+      whileInView="animate"
+      viewport={{ once: true, margin: '-80px' }}
+    >
+      <motion.div variants={reverse ? featTextVariantsRev : featTextVariants}>
         <h3 style={{ font: `600 ${largeHeadline ? 'clamp(28px,3.5vw,48px)' : 'clamp(24px,3vw,38px)'}/1.1 var(--font-serif)`, letterSpacing: '-0.015em', marginBottom: 18, color: 'var(--ink)' }}>{headline}</h3>
         <p style={{ font: '400 16px/1.65 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 480 }}>{body}</p>
-      </div>
-      <div className="lnd-mock" aria-hidden="true">
+      </motion.div>
+      <motion.div variants={reverse ? featMockVariantsRev : featMockVariants} aria-hidden="true">
         {noBrowserChrome
           ? (
             <div data-theme="dark">
@@ -486,8 +353,8 @@ function FeatureRow({ headline, body, mock, reverse, noBrowserChrome, mockHeight
           )
           : <BrowserMock mockHeight={mockHeight}>{mock}</BrowserMock>
         }
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -635,7 +502,8 @@ function MockWorld() {
 }
 
 function MockDashboard() {
-  const [containerRef, inView] = useInViewOnce(0.3);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(containerRef, { once: true, margin: '-40px' });
   const words = useCounter(21540, inView);
   const days = useCounter(7, inView);
   const workDays = useCounter(48, inView);
@@ -715,7 +583,15 @@ function LandingProcess() {
         <SectionLabel title="От пустого листа до экспорта." subtitle="Каждый шаг — на своём месте. Не нужно жонглировать четырьмя приложениями и папками с файлами." />
         <div className="lnd-manifesto">
           {steps.map((s, i) => (
-            <div key={s.n} className={`lnd-manifesto-row lnd-reveal d${Math.min(i, 3)}`}>
+            <motion.div
+              key={s.n}
+              className="lnd-manifesto-row"
+              variants={revealVariants}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ delay: Math.min(i, 3) * 0.1 }}
+            >
               <div style={{ font: '600 clamp(28px,3vw,40px)/1 var(--font-serif)', color: 'var(--ink-4)', letterSpacing: '-0.02em', paddingTop: 6 }}>
                 {String(s.n).padStart(2, '0')}
               </div>
@@ -723,7 +599,7 @@ function LandingProcess() {
                 <h3 style={{ font: '600 clamp(20px,2.5vw,28px)/1.15 var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.012em', marginBottom: 10 }}>{s.t}</h3>
                 <p style={{ font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 620, margin: 0 }}>{s.s}</p>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -763,7 +639,15 @@ function LandingPrinciples() {
         </div>
         <div className="lnd-manifesto">
           {PRINCIPLES.map((p, i) => (
-            <div key={p.title} className={`lnd-manifesto-row lnd-reveal d${Math.min(i, 3)}`}>
+            <motion.div
+              key={p.title}
+              className="lnd-manifesto-row"
+              variants={revealVariants}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ delay: Math.min(i, 3) * 0.1 }}
+            >
               <div style={{ font: '600 clamp(28px,3vw,40px)/1 var(--font-serif)', color: 'var(--accent)', letterSpacing: '-0.02em', paddingTop: 6 }}>
                 {String(i + 1).padStart(2, '0')}
               </div>
@@ -771,7 +655,7 @@ function LandingPrinciples() {
                 <h3 style={{ font: '600 clamp(20px,2.5vw,28px)/1.15 var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.012em', marginBottom: 10 }}>{p.title}</h3>
                 <p style={{ font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 620, margin: 0 }}>{p.body}</p>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -800,7 +684,14 @@ function LandingEmailCapture() {
 
   return (
     <section style={{ padding: 'clamp(64px,8vw,80px) clamp(20px,4vw,56px)', background: 'var(--bg)', borderTop: '1px solid var(--border-soft)' }}>
-      <div className="lnd-max lnd-reveal" style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
+      <motion.div
+        className="lnd-max"
+        style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}
+        variants={revealVariants}
+        initial="initial"
+        whileInView="animate"
+        viewport={{ once: true, margin: '-80px' }}
+      >
         <h2 style={{ font: '600 clamp(26px,3vw,40px)/1.08 var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 12, color: 'var(--ink)' }}>
           Следите за развитием студии.
         </h2>
@@ -838,7 +729,7 @@ function LandingEmailCapture() {
             Что-то пошло не так. Попробуйте ещё раз.
           </p>
         )}
-      </div>
+      </motion.div>
     </section>
   );
 }
@@ -909,7 +800,13 @@ function LandingPricing() {
         <SectionLabel align="center" kicker="Тарифы" title="Начните бесплатно." subtitle="Бесплатный план — не «пробный период на 14 дней». Одна книга навсегда. Переходите на Pro, когда проект вырастет." />
         <div className="lnd-prices">
           {visibleTiers.map((t) => (
-            <div key={t.name} className="lnd-reveal">
+            <motion.div
+              key={t.name}
+              variants={revealVariants}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true, margin: '-80px' }}
+            >
               <div className={`lnd-price-card${t.accent ? ' lnd-price-card--accent' : ''}`} style={{ position: 'relative', background: t.accent ? 'var(--surface)' : 'var(--bg)', border: t.accent ? '1px solid var(--accent)' : '1px solid var(--border-soft)', borderRadius: 14, padding: '32px 28px 28px', display: 'flex', flexDirection: 'column', boxShadow: t.accent ? '0 20px 60px oklch(0 0 0 / 0.3),0 0 0 4px var(--accent-soft)' : 'none' }}>
               {t.tag && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', padding: '4px 12px', borderRadius: 999, background: t.accent ? 'var(--accent)' : 'var(--surface-2)', color: t.accent ? 'oklch(0.98 0 0)' : 'var(--ink-2)', font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', border: t.accent ? 'none' : '1px solid var(--border)', whiteSpace: 'nowrap' }}>{t.tag}</div>}
               <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: t.accent ? 'var(--accent)' : 'var(--ink-3)', marginBottom: 14 }}>{t.name}</div>
@@ -939,7 +836,7 @@ function LandingPricing() {
                 </p>
               )}
             </div>
-            </div>
+            </motion.div>
           ))}
         </div>
         <p style={{ textAlign: 'center', marginTop: 32, fontSize: 13, color: 'var(--ink-3)' }}>
@@ -1050,7 +947,13 @@ function LandingCTA() {
   return (
     <section style={{ padding: 'clamp(100px,12vw,140px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)', position: 'relative', overflow: 'hidden' }}>
       <div ref={decoRef} style={{ position: 'absolute', right: -100, top: '50%', transform: 'translateY(-50%) rotate(-8deg)', font: '600 280px/1 var(--font-serif)', color: 'var(--surface-2)', opacity: 0.4, pointerEvents: 'none', letterSpacing: '-0.04em', userSelect: 'none' }} aria-hidden="true">книга</div>
-      <div className="lnd-reveal" style={{ position: 'relative', maxWidth: 880, margin: '0 auto', textAlign: 'center' }}>
+      <motion.div
+        style={{ position: 'relative', maxWidth: 880, margin: '0 auto', textAlign: 'center' }}
+        variants={revealVariants}
+        initial="initial"
+        whileInView="animate"
+        viewport={{ once: true, margin: '-80px' }}
+      >
         <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 24 }}>Ранний доступ</div>
         <h2 style={{ font: '600 clamp(44px,6vw,76px)/1.02 var(--font-serif)', letterSpacing: '-0.022em', marginBottom: 24, color: 'var(--ink)' }}>
           Начните свою <em style={{ fontWeight: 500, color: 'var(--accent-2)' }}>книгу</em><br />сегодня вечером.
@@ -1064,7 +967,7 @@ function LandingCTA() {
             <Icon name="eye" size={15} /> Войти
           </Link>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
