@@ -9,7 +9,7 @@ const PLAN_LABEL: Record<string, string> = {
 };
 
 export function SidebarFoot() {
-  const { displayName, initials, plan, planLoaded } = useUserDisplay();
+  const { displayName, initials, avatarUrl, plan, planLoaded } = useUserDisplay();
 
   return (
     <AccountMenu placement="above">
@@ -22,7 +22,12 @@ export function SidebarFoot() {
           aria-expanded={open}
           onClick={onClick}
         >
-          <div className="sb-avatar" style={signingOut ? { opacity: 0.5 } : undefined}>{initials}</div>
+          <div className="sb-avatar" style={signingOut ? { opacity: 0.5 } : undefined}>
+            {avatarUrl
+              ? <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer" />
+              : initials
+            }
+          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="sb-foot-name">{displayName || '—'}</div>
             <div className="sb-foot-meta">{planLoaded ? (PLAN_LABEL[plan] ?? plan) : '…'}</div>
