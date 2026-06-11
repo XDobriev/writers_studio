@@ -62,6 +62,8 @@ npm run preview    # превью продакшен-сборки
 - `src/components/PasswordInput.tsx` — поле пароля с toggle-глазом; управляет своим show-состоянием сам.
 - `src/components/AccountMenu.tsx` — переиспользуемый дропдаун аккаунта (Настройки + Выйти); render-prop `children` для кастомного триггера; `placement="above"|"below"`.
 - `src/components/PageMotion.tsx` — обёртка `motion.div` для анимации переходов между страницами (fade via `pageVariants`); используется в `App.tsx` на каждом маршруте.
+- `src/components/SpotlightButton.tsx` — CTA-кнопка с cursor-spotlight эффектом (21st.dev pattern).
+- `src/components/AnimatedPricingCard.tsx` — карточка тарифа с hover-lift и glow (21st.dev pattern).
 - `src/components/AuthGuard.tsx` — защита роутов.
 - `src/components/ErrorBoundary.tsx` — перехват краша компонентов, fallback UI.
 - `src/components/CookieBanner.tsx` — GDPR-баннер куки: Принять / Отклонить, сохраняет выбор (`accepted`|`rejected`) в `localStorage` под ключом `cookie_consent_v1`.

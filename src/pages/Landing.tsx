@@ -12,6 +12,8 @@ import {
   featTextVariantsRev, featMockVariantsRev,
   revealVariants,
 } from '../lib/motion';
+import { SpotlightButton } from '../components/SpotlightButton';
+import { AnimatedPricingCard } from '../components/AnimatedPricingCard';
 
 const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -192,9 +194,11 @@ function LandingHero() {
               Рукопись, картотека персонажей, карта мира и хронология — в одном чистом редакторе. Без нейросети, которая дописывает за вас.
             </motion.p>
             <motion.div variants={heroItemVariants} style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-              <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
-                Начать свою книгу
-              </Link>
+              <SpotlightButton className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center' }}>
+                <Link to="/login?tab=signup" style={{ color: 'inherit', textDecoration: 'none' }}>
+                  Начать свою книгу
+                </Link>
+              </SpotlightButton>
             </motion.div>
             <motion.div variants={heroItemVariants}>
               <p style={{ font: '400 13px/1.5 var(--font-ui)', color: 'var(--ink-2)', margin: 0 }}>
@@ -807,7 +811,11 @@ function LandingPricing() {
               whileInView="animate"
               viewport={{ once: true, margin: '-80px' }}
             >
-              <div className={`lnd-price-card${t.accent ? ' lnd-price-card--accent' : ''}`} style={{ position: 'relative', background: t.accent ? 'var(--surface)' : 'var(--bg)', border: t.accent ? '1px solid var(--accent)' : '1px solid var(--border-soft)', borderRadius: 14, padding: '32px 28px 28px', display: 'flex', flexDirection: 'column', boxShadow: t.accent ? '0 20px 60px oklch(0 0 0 / 0.3),0 0 0 4px var(--accent-soft)' : 'none' }}>
+              <AnimatedPricingCard
+                featured={t.accent}
+                className={`lnd-price-card${t.accent ? ' lnd-price-card--accent' : ''}`}
+                style={{ position: 'relative', background: t.accent ? 'var(--surface)' : 'var(--bg)', border: t.accent ? '1px solid var(--accent)' : '1px solid var(--border-soft)', borderRadius: 14, padding: '32px 28px 28px', display: 'flex', flexDirection: 'column', boxShadow: t.accent ? '0 20px 60px oklch(0 0 0 / 0.3),0 0 0 4px var(--accent-soft)' : 'none' }}
+              >
               {t.tag && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', padding: '4px 12px', borderRadius: 999, background: t.accent ? 'var(--accent)' : 'var(--surface-2)', color: t.accent ? 'oklch(0.98 0 0)' : 'var(--ink-2)', font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', border: t.accent ? 'none' : '1px solid var(--border)', whiteSpace: 'nowrap' }}>{t.tag}</div>}
               <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: t.accent ? 'var(--accent)' : 'var(--ink-3)', marginBottom: 14 }}>{t.name}</div>
               <div style={{ marginBottom: 6 }}>
@@ -835,7 +843,7 @@ function LandingPricing() {
                   <Link to="/offer" style={{ color: 'var(--ink-3)', textDecoration: 'underline' }}>условиями оферты</Link>
                 </p>
               )}
-            </div>
+              </AnimatedPricingCard>
             </motion.div>
           ))}
         </div>
@@ -962,7 +970,9 @@ function LandingCTA() {
           Бесплатно, без карты, без 14-дневного триала. Регистрация в три клика — и у вас открыт первый лист.
         </p>
         <div style={{ display: 'inline-flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 50, padding: '0 28px', fontSize: 15, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать свою книгу</Link>
+          <SpotlightButton className="btn btn--primary" style={{ height: 50, padding: '0 28px', fontSize: 15, display: 'inline-flex', alignItems: 'center' }}>
+            <Link to="/login?tab=signup" style={{ color: 'inherit', textDecoration: 'none' }}>Начать свою книгу</Link>
+          </SpotlightButton>
           <Link to="/login" className="btn" style={{ height: 50, padding: '0 22px', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <Icon name="eye" size={15} /> Войти
           </Link>

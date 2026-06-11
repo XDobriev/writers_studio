@@ -717,6 +717,28 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .btn--danger-ghost:hover { opacity: 1; background: none; }
 
+/* SpotlightButton */
+.spotlight-btn {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.spotlight-btn::before {
+  content: '';
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, oklch(1 0 0 / 0.28) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+  left: var(--spot-x, 50%);
+  top:  var(--spot-y, 50%);
+}
+.spotlight-btn:hover::before { opacity: 1; }
+
 /* modal overlay + panel */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 100;
