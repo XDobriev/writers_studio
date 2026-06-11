@@ -34,7 +34,7 @@ const KIND_LABELS: Record<NoteKind, string> = {
   question: 'Вопрос',
   todo: 'TODO',
   important: 'Важно',
-  custom: 'Своё',
+  custom: 'Прочее',
 };
 
 const KIND_COLORS: Record<NoteKind, string> = {
@@ -62,7 +62,7 @@ function noteColorSoft(n: Note): string {
   return KIND_COLORS_SOFT[n.kind];
 }
 function noteLabel(n: Note): string {
-  return n.kind === 'custom' ? (n.custom_label || 'Своё') : KIND_LABELS[n.kind];
+  return n.kind === 'custom' ? (n.custom_label || KIND_LABELS.custom) : KIND_LABELS[n.kind];
 }
 
 interface SortableNoteCardProps {

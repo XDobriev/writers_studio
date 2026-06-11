@@ -64,7 +64,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
       {chapterTitle && (
         <div style={{
           padding: '8px 0 6px',
-          font: '400 11.5px var(--font-serif)',
+          font: '400 11.5px var(--font-ui)',
           color: 'var(--ink-3)',
           borderBottom: '1px solid var(--border-soft)',
           marginBottom: 4,
@@ -80,10 +80,6 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
           <button onClick={clearVersionError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 13, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
         </div>
       )}
-      <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)', lineHeight: 1.6, marginBottom: 8 }}>
-        {isPro ? 'Каждые 30 мин · смена главы · закрытие вкладки' : 'Каждые 2 ч · смена главы · закрытие вкладки'}
-      </div>
-
       {isPro && named.length > 0 && (
         <>
           <SectionLabel>Именованные вехи</SectionLabel>
@@ -108,35 +104,58 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
         </div>
       )}
 
+      <div style={{ font: '400 9.5px var(--font-mono)', color: 'var(--ink-4)', lineHeight: 1.6, marginTop: 8, textAlign: 'center' }}>
+        {isPro ? 'Авто: каждые 30 мин · смена главы · закрытие' : 'Авто: каждые 2 ч · смена главы · закрытие'}
+      </div>
+
       {!isPro && (
         <div style={{
-          border: '1px solid var(--border-soft)', borderRadius: 'var(--r-2)',
-          padding: '10px 12px', fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5,
-          marginTop: 4,
+          background: 'color-mix(in oklch, var(--accent) 5%, var(--surface))',
+          border: '1px solid color-mix(in oklch, var(--accent) 20%, var(--border-soft))',
+          borderRadius: 'var(--r-2)',
+          padding: '10px 12px', fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.55,
+          marginTop: 8,
         }}>
           Хранятся последние 10 копий.<br />
           Именованные вехи и 30 дней истории —{' '}
-          <span style={{ color: 'var(--accent)' }}>Pro</span>.
+          <span style={{ color: 'var(--accent)', fontWeight: 500 }}>Pro</span>.
         </div>
       )}
 
       {isPro && !showLabelForm && (
-        <button
-          onClick={() => setShowLabelForm(true)}
-          style={{
-            marginTop: 4, width: '100%', height: 30,
-            border: '1px dashed var(--border)', borderRadius: 'var(--r-2)',
-            font: '400 12px var(--font-ui)', color: 'var(--ink-3)',
-            background: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          }}
-        >
-          + Сохранить текущую версию
-        </button>
+        <div style={{
+          position: 'sticky',
+          bottom: 0,
+          background: 'linear-gradient(to top, oklch(0.165 0.012 50) 60%, oklch(0.165 0.012 50 / 0))',
+          paddingTop: 18,
+          paddingBottom: 2,
+          marginBottom: -2,
+        }}>
+          <button
+            onClick={() => setShowLabelForm(true)}
+            style={{
+              width: '100%', height: 30,
+              border: '1px dashed var(--border)', borderRadius: 'var(--r-2)',
+              font: '400 12px var(--font-ui)', color: 'var(--ink-3)',
+              background: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            + Сохранить текущую версию
+          </button>
+        </div>
       )}
 
       {isPro && showLabelForm && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+        <div style={{
+          position: 'sticky',
+          bottom: 0,
+          background: 'linear-gradient(to top, oklch(0.165 0.012 50) 60%, oklch(0.165 0.012 50 / 0))',
+          paddingTop: 18,
+          paddingBottom: 2,
+          marginBottom: -2,
+          display: 'flex', flexDirection: 'column', gap: 6,
+        }}>
           <input
             className="input"
             style={{ fontSize: 12, height: 32 }}
@@ -217,20 +236,20 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <span style={{
-          fontSize: 12.5,
+          fontSize: 12,
           color: isNamed ? 'var(--accent)' : 'var(--ink)',
           fontWeight: isNamed ? 500 : 400,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
         }}>
           {title}
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
           {chip && (
             <span style={{
               display: 'inline-flex', alignItems: 'center',
-              height: 18, padding: '0 7px', borderRadius: 999,
+              height: 16, padding: '0 6px', borderRadius: 999,
               border: '1px solid var(--border)',
-              font: '400 10px var(--font-mono)', color: 'var(--ink-3)',
+              font: '400 9.5px var(--font-mono)', color: 'var(--ink-4)',
               whiteSpace: 'nowrap',
             }}>
               {chip}
@@ -243,15 +262,15 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
               onClick={(e) => void onDelete(version.id, e)}
               style={{
                 background: 'none', border: 'none', color: 'var(--ink-4)',
-                cursor: 'pointer', fontSize: 12, padding: '0 2px', lineHeight: 1,
+                cursor: 'pointer', fontSize: 13, padding: '0 2px', lineHeight: 1,
               }}
             >
-              ✕
+              ×
             </button>
           )}
         </div>
       </div>
-      <div style={{ font: '400 10.5px var(--font-mono)', color: 'var(--ink-4)' }}>
+      <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4)' }}>
         {version.word_count ?? 0} сл.{isNamed ? ` · ${formatDateShort(version.created_at)}` : ''}
       </div>
     </div>

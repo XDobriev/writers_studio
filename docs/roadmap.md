@@ -222,17 +222,111 @@ _Обновлён: 2026-06-11_ — Три бага из E2E-аудита зак�
 
 **Что это:** альтернативный способ входа для российских пользователей, которые не используют Google. ВКонтакте — основная площадка писательских сообществ в РФ.
 
-**Контекст:** иностранные OAuth-провайдеры (Google) регулятивно нестабильны в РФ и периодически throttled РКН. Email + Telegram уже покрывают ~90% аудитории; VK добавит покрытие именно писательской ниши. Supabase поддерживает VK нативно — реализация минимальна.
+**Контекст:** Google регулятивно нестабилен в РФ и периодически throttled РКН. Email + Telegram покрывают ~90% аудитории; VK добавит покрытие писательской ниши. **Supabase НЕ поддерживает VK как встроенный провайдер** (`provider: 'vk'` не существует в supabase-js). Реализация — через Edge Function по образцу `telegram-auth`.
 
-**Что сделать:**
-1. В Supabase Dashboard → Auth → Providers → VK: включить, вставить `App ID` и `App Secret`
-2. В ВК: создать приложение (тип «Веб-сайт»), прописать Redirect URI → `https://joaxeoavjvlqmtlepkrr.supabase.co/auth/v1/callback`
-3. В `src/lib/auth.tsx`: добавить `signInWithVK` (аналог `signInWithGoogle`, `provider: 'vk'`)
-4. В `src/pages/Auth.tsx` (или где лендит форма входа): добавить кнопку «Войти через ВК» рядом с Google
-5. Убрать Google с первого плана: переместить оба OAuth-провайдера под разворачиваемый «другие способы» или сделать VK основной, Google — дополнительным
+---
 
-**Файлы:** `src/lib/auth.tsx`, `src/pages/Auth.tsx`  
-**Проверить:** авторизация через VK → `session.user` установлен → редирект в Home → повторный вход без ввода данных
+#### Технические детали (исследовано 2026-06-11)
+
+VK ID использует **OAuth 2.1 + PKCE** (не старый `oauth.vk.com`). Документация: [id.vk.com/about/business/go/docs](https://id.vk.com/about/business/go/docs/ru/vkid/latest/vk-id/intro/plan)
+
+**Эндпоинты VK ID:**
+
+| Шаг | URL | Метод |
+|---|---|---|
+| Авторизация | `https://id.vk.com/authorize` | GET (редирект) |
+| Обмен кода на токен | `https://id.vk.com/oauth2/auth` | POST form-urlencoded |
+| Данные пользователя | `https://id.vk.ru/oauth2/user_info` | GET, `Authorization: Bearer` |
+
+**Параметры авторизационного URL:**
+```
+https://id.vk.com/authorize
+  ?response_type=code
+  &client_id=APP_ID
+  &redirect_uri=https://avtorstudio.com/login
+  &scope=vkid.personal_info%20email
+  &state=RANDOM_NONCE
+  &code_challenge=BASE64URL(SHA256(code_verifier))
+  &code_challenge_method=S256
+```
+
+**Параметры token exchange (POST body):**
+```
+grant_type=authorization_code
+&client_id=APP_ID
+&code=AUTHORIZATION_CODE
+&redirect_uri=https://avtorstudio.com/login
+&device_id=DEVICE_ID        ← приходит вместе с code в redirect URL
+&code_verifier=CODE_VERIFIER
+```
+> ⚠️ `client_secret` не нужен — PKCE заменяет его. `device_id` — обязательный параметр, без него token exchange завалится.
+
+**Token response:**
+```json
+{ "access_token": "vk2.a.WYs8...", "expires_in": 3600, "refresh_token": "vk2.a.zYe8...", "user_id": 123456789 }
+```
+
+**UserInfo response** (`GET https://id.vk.ru/oauth2/user_info`, `Authorization: Bearer ACCESS_TOKEN`):
+```json
+{ "user": { "user_id": "123456789", "first_name": "Иван", "last_name": "Иванов", "email": "user@example.com", "avatar": "https://sun9-xxx.userapi.com/..." } }
+```
+> Email возвращается только если `scope=email` и у пользователя есть подтверждённый email — не гарантирован. Нужна стратегия фолбэка при создании аккаунта без email.
+
+---
+
+#### Почему Custom Supabase OAuth Provider не подходит
+
+Supabase Custom Provider не умеет передавать `device_id` при обмене кода — он приходит вместе с `code` в redirect URL, но Supabase его игнорирует. Без `device_id` VK ID отклонит token exchange.
+
+---
+
+#### Схема реализации (Edge Function)
+
+```
+Браузер → генерирует code_verifier/challenge → редирект на id.vk.com/authorize
+         ← ?code=X&device_id=Y&state=Z в redirect URI
+Браузер → POST /functions/v1/vk-auth { code, device_id, code_verifier }
+         → Edge Function: POST id.vk.com/oauth2/auth → access_token
+         → Edge Function: GET id.vk.ru/oauth2/user_info → { user }
+         → Edge Function: supabase.auth.admin.createUser / getUserByEmail
+         → возвращает token_hash
+Браузер: supabase.auth.verifyOtp({ token_hash, type: 'magiclink' }) → сессия
+```
+
+PKCE-пара генерируется на **фронтенде** (или в Edge Function), `code_verifier` передаётся вместе с `code` в Edge Function при обратном вызове.
+
+---
+
+#### Что нужно сделать
+
+**Шаг 0 — Создать VK ID приложение:**
+1. Зайти на [id.vk.com/about/business/go](https://id.vk.com/about/business/go/) → «Подключить»
+2. Тип: **Веб-сайт**
+3. Redirect URI: `https://avtorstudio.com/login`
+4. Получить **App ID** (= client_id) — клиентский секрет не нужен
+
+**Шаг 1 — Edge Function** `supabase/functions/vk-auth/index.ts`:
+- Принимает `{ code, device_id, code_verifier }`
+- POST на `id.vk.com/oauth2/auth` → токен
+- GET на `id.vk.ru/oauth2/user_info` → профиль
+- `supabase.auth.admin.getUserById` / `createUser` → `token_hash`
+- Возвращает `{ token_hash }`
+
+**Шаг 2 — `src/lib/auth.tsx`:**
+- Добавить `signInWithVK(code, deviceId, codeVerifier): Promise<{error: string|null}>`
+- Добавить в `AuthContextValue` и `AuthProvider`
+
+**Шаг 3 — `src/pages/Auth.tsx`:**
+- Кнопка «Войти через ВК» с иконкой VK
+- При клике: генерировать PKCE-пару → сохранить `code_verifier` в `sessionStorage` → редирект на `id.vk.com/authorize`
+- В `useEffect`: если в URL есть `?code=` и `?provider=vk` → достать `code_verifier` из `sessionStorage` → вызвать `signInWithVK`
+
+**Env:**
+- `VITE_VK_APP_ID` — публичный (во фронтенде)
+- Секреты не нужны (PKCE, без client_secret)
+
+**Файлы:** `supabase/functions/vk-auth/index.ts` (новый), `src/lib/auth.tsx`, `src/pages/Auth.tsx`  
+**Проверить:** клик «Войти через VK» → редирект на VK → авторизация → возврат на `/login` → `session.user` установлен → редирект в `/books` → повторный вход без ввода данных
 
 ---
 

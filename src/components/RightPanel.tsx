@@ -20,7 +20,15 @@ interface RightPanelProps {
 }
 
 export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, openNoteAt }: RightPanelProps) {
-  const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно' };
+  const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно', custom: 'Прочее' };
+  const KIND_COLORS: Record<string, string> = {
+    idea: 'var(--note-idea)', question: 'var(--note-question)',
+    todo: 'var(--note-todo)', important: 'var(--note-important)',
+  };
+  const KIND_COLORS_SOFT: Record<string, string> = {
+    idea: 'var(--note-idea-soft)', question: 'var(--note-question-soft)',
+    todo: 'var(--note-todo-soft)', important: 'var(--note-important-soft)',
+  };
   const queryClient = useQueryClient();
   const { error: noteError, setError: setNoteError, clearError: clearNoteError } = useErrorState();
   const { data: allNotes = [] } = useNotes(bookId);
@@ -29,10 +37,12 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   const [showForm, setShowForm] = useState(false);
   const [formKind, setFormKind] = useState<NoteKind>('idea');
   const [formText, setFormText] = useState('');
+  const [formCustomLabel, setFormCustomLabel] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<NoteKind>('idea');
   const [editText, setEditText] = useState('');
+  const [editCustomLabel, setEditCustomLabel] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; text: string } | null>(null);
 
   // Ctrl+Shift+N из EditorHybrid — открыть вкладку заметок и показать форму
@@ -50,9 +60,13 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
     if (!bookId || !formText.trim()) return;
     setSaving(true);
     try {
-      await createNote(bookId, formKind, formText.trim(), undefined, undefined, chapterId);
+      await createNote(bookId, formKind, formText.trim(),
+        formKind === 'custom' ? formCustomLabel || undefined : undefined,
+        undefined, chapterId);
       invalidate();
       setFormText('');
+      setFormCustomLabel('');
+      setFormKind('idea');
       setShowForm(false);
     } catch (e) {
       setNoteError(e instanceof Error ? e.message : 'Не удалось сохранить заметку');
@@ -78,13 +92,15 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
     setEditingId(n.id);
     setEditKind(n.kind);
     setEditText(n.text);
+    setEditCustomLabel(n.custom_label ?? '');
   };
 
   const handleUpdate = async () => {
     if (!editingId || !editText.trim()) return;
     setSaving(true);
     try {
-      await updateNote(editingId, editKind, editText.trim());
+      await updateNote(editingId, editKind, editText.trim(),
+        editKind === 'custom' ? editCustomLabel || undefined : undefined);
       invalidate();
       setEditingId(null);
     } catch (e) {
@@ -144,19 +160,45 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
         {activeTab === 'notes' && (
           <>
             {showForm && (
-              <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <select
-                  value={formKind}
-                  onChange={(e) => setFormKind(e.target.value as NoteKind)}
-                  className="input"
-                  aria-label="Тип заметки"
-                  style={{ fontSize: 12 }}
-                >
-                  <option value="idea">Идея</option>
-                  <option value="question">Вопрос</option>
-                  <option value="todo">TODO</option>
-                  <option value="important">Важно</option>
-                </select>
+              <div style={{ padding: '12px 14px 14px', borderBottom: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 3, flexWrap: 'nowrap', alignItems: 'center' }}>
+                  {(['idea', 'question', 'todo', 'important'] as NoteKind[]).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setFormKind(k)}
+                      style={{
+                        fontSize: 10.5, padding: '2.5px 7px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
+                        border: `1px solid ${formKind === k ? KIND_COLORS[k] : 'var(--border)'}`,
+                        background: formKind === k ? KIND_COLORS_SOFT[k] : 'transparent',
+                        color: formKind === k ? KIND_COLORS[k] : 'var(--ink-3)',
+                        transition: 'color 0.12s, border-color 0.12s, background 0.12s',
+                      }}
+                    >{labels[k]}</button>
+                  ))}
+                  <span style={{ width: 1, height: 12, background: 'var(--border)', flexShrink: 0, margin: '0 1px' }} />
+                  <button
+                    type="button"
+                    onClick={() => setFormKind('custom')}
+                    style={{
+                      fontSize: 10.5, padding: '2.5px 7px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
+                      border: `1px solid ${formKind === 'custom' ? 'var(--border-strong)' : 'var(--border)'}`,
+                      background: formKind === 'custom' ? 'var(--surface-2)' : 'transparent',
+                      color: formKind === 'custom' ? 'var(--ink)' : 'var(--ink-3)',
+                      transition: 'color 0.12s, border-color 0.12s, background 0.12s',
+                    }}
+                  >{labels.custom}</button>
+                </div>
+                {formKind === 'custom' && (
+                  <input
+                    className="input"
+                    placeholder="Название типа…"
+                    value={formCustomLabel}
+                    onChange={(e) => setFormCustomLabel(e.target.value)}
+                    style={{ fontSize: 12, padding: '5px 10px' }}
+                    maxLength={32}
+                  />
+                )}
                 <textarea
                   className="input"
                   rows={3}
@@ -170,7 +212,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   <button
                     className="btn btn--ghost"
                     style={{ fontSize: 12, padding: '4px 10px' }}
-                    onClick={() => { setShowForm(false); setFormText(''); }}
+                    onClick={() => { setShowForm(false); setFormText(''); setFormCustomLabel(''); setFormKind('idea'); }}
                   >Отмена</button>
                   <button
                     className="btn btn--primary"
@@ -195,18 +237,44 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
           <div key={n.id} className={'mn' + (n.kind !== 'idea' ? ' mn--' + n.kind : '')}>
             {editingId === n.id ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <select
-                  value={editKind}
-                  onChange={(e) => setEditKind(e.target.value as NoteKind)}
-                  className="input"
-                  aria-label="Тип заметки"
-                  style={{ fontSize: 12 }}
-                >
-                  <option value="idea">Идея</option>
-                  <option value="question">Вопрос</option>
-                  <option value="todo">TODO</option>
-                  <option value="important">Важно</option>
-                </select>
+                <div style={{ display: 'flex', gap: 3, flexWrap: 'nowrap', alignItems: 'center' }}>
+                  {(['idea', 'question', 'todo', 'important'] as NoteKind[]).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setEditKind(k)}
+                      style={{
+                        fontSize: 10.5, padding: '2.5px 7px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
+                        border: `1px solid ${editKind === k ? KIND_COLORS[k] : 'var(--border)'}`,
+                        background: editKind === k ? KIND_COLORS_SOFT[k] : 'transparent',
+                        color: editKind === k ? KIND_COLORS[k] : 'var(--ink-3)',
+                        transition: 'color 0.12s, border-color 0.12s, background 0.12s',
+                      }}
+                    >{labels[k]}</button>
+                  ))}
+                  <span style={{ width: 1, height: 12, background: 'var(--border)', flexShrink: 0, margin: '0 1px' }} />
+                  <button
+                    type="button"
+                    onClick={() => setEditKind('custom')}
+                    style={{
+                      fontSize: 10.5, padding: '2.5px 7px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
+                      border: `1px solid ${editKind === 'custom' ? 'var(--border-strong)' : 'var(--border)'}`,
+                      background: editKind === 'custom' ? 'var(--surface-2)' : 'transparent',
+                      color: editKind === 'custom' ? 'var(--ink)' : 'var(--ink-3)',
+                      transition: 'color 0.12s, border-color 0.12s, background 0.12s',
+                    }}
+                  >{labels.custom}</button>
+                </div>
+                {editKind === 'custom' && (
+                  <input
+                    className="input"
+                    placeholder="Название типа…"
+                    value={editCustomLabel}
+                    onChange={(e) => setEditCustomLabel(e.target.value)}
+                    style={{ fontSize: 12, padding: '5px 10px' }}
+                    maxLength={32}
+                  />
+                )}
                 <textarea
                   className="input"
                   rows={3}
@@ -235,23 +303,21 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
             ) : (
               <>
                 <div className="mn-head">
-                  <span className="mn-label">{labels[n.kind]}</span>
-                  <span style={{ color: 'var(--ink-4)', margin: '0 4px' }}>·</span>
+                  <span className="mn-label">{n.kind === 'custom' ? (n.custom_label || labels.custom) : labels[n.kind]}</span>
                   <span className="mn-time">{new Date(n.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
-                  <span style={{ flex: 1 }} />
                   <button
                     className="tb-btn"
                     onClick={() => startEdit(n)}
                     title="Редактировать заметку"
                     aria-label="Редактировать заметку"
-                    style={{ opacity: 0.5, padding: '2px 5px', minWidth: 24 }}
-                  ><Icon name="pencil" size={11} /></button>
+                    style={{ opacity: 0.45, padding: '2px 4px', minWidth: 22 }}
+                  ><Icon name="pencil" size={10} /></button>
                   <button
                     className="tb-btn"
                     onClick={() => requestDelete(n)}
                     title="Удалить заметку"
                     aria-label="Удалить заметку"
-                    style={{ opacity: 0.5, fontSize: 14, lineHeight: 1, padding: '2px 6px', minWidth: 24 }}
+                    style={{ opacity: 0.45, fontSize: 13, lineHeight: 1, padding: '2px 5px', minWidth: 22 }}
                   >×</button>
                 </div>
                 <div className="mn-text">{n.text}</div>
