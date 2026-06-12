@@ -29,7 +29,7 @@ function text(status: number, body: string): Response {
 }
 
 function md5hex(input: string): string {
-  return new Md5().update(input).toString('hex');
+  return Md5.hashStr(input) as string;
 }
 
 function timingSafeEqual(a: string, b: string): boolean {

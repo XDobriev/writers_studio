@@ -26,7 +26,7 @@ function json(status: number, body: unknown): Response {
 }
 
 function md5hex(input: string): string {
-  return new Md5().update(input).toString('hex');
+  return Md5.hashStr(input) as string;
 }
 
 Deno.serve(async (req) => {
