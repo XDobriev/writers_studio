@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import type { Character } from './characters';
 import { htmlToText } from './htmlUtils';
 
-function extractCharacterMentions(content: string, aliases: string[]): boolean {
+export function extractCharacterMentions(content: string, aliases: string[]): boolean {
   const text = htmlToText(content);
   for (const alias of aliases) {
     const trimmed = alias.trim();
@@ -42,46 +42,15 @@ export async function syncCharacterAcrossAllChapters(
   character: Character,
   bookId: string,
 ): Promise<void> {
-  const { data, error } = await supabase
-    .from('chapters')
-    .select('id, content')
-    .eq('book_id', bookId);
-  if (error || !data) return;
-
   const aliases = [character.name, ...(character.aliases ?? [])].filter(Boolean);
-  const found: string[] = [];
-  const notFound: string[] = [];
+  if (aliases.length === 0) return;
 
-  for (const chapter of data) {
-    if (extractCharacterMentions(chapter.content ?? '', aliases)) {
-      found.push(chapter.id);
-    } else {
-      notFound.push(chapter.id);
-    }
-  }
-
-  if (found.length > 0) {
-    await supabase.from('chapter_characters').upsert(
-      found.map((chapterId) => ({
-        book_id: bookId,
-        user_id: character.user_id,
-        chapter_id: chapterId,
-        character_id: character.id,
-        auto_detected: true,
-      })),
-      { onConflict: 'chapter_id,character_id', ignoreDuplicates: true },
-    );
-  }
-
-  if (notFound.length > 0) {
-    await supabase
-      .from('chapter_characters')
-      .delete()
-      .in('chapter_id', notFound)
-      .eq('character_id', character.id)
-      .eq('auto_detected', true)
-      .eq('is_pov', false);
-  }
+  const { error } = await supabase.rpc('sync_character_chapters', {
+    p_character_id: character.id,
+    p_book_id: bookId,
+    p_aliases: aliases,
+  });
+  if (error) throw error;
 }
 
 export async function findNameVariantsInText(
