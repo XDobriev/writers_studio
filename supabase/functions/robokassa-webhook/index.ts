@@ -59,11 +59,12 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return text(405, 'method not allowed');
 
-  const password2 = Deno.env.get('ROBOKASSA_PASSWORD2');
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const password2     = Deno.env.get('ROBOKASSA_PASSWORD2');
+  const testPassword2 = Deno.env.get('ROBOKASSA_TEST_PASSWORD2');
+  const supabaseUrl   = Deno.env.get('SUPABASE_URL');
+  const serviceKey    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-  if (!password2 || !supabaseUrl || !serviceKey) {
+  if (!supabaseUrl || !serviceKey) {
     console.error('[robokassa-webhook] missing env');
     return text(200, 'ERROR: env not configured');
   }
@@ -82,12 +83,19 @@ Deno.serve(async (req) => {
   const shpPlan = params.get('Shp_plan') ?? '';
   const shpUserId = params.get('Shp_user_id') ?? '';
 
+  const isTest = params.get('IsTest') === '1';
+  const activePassword2 = isTest ? testPassword2 : password2;
+  if (!activePassword2) {
+    console.error('[robokassa-webhook] missing password2 for isTest=' + isTest);
+    return text(200, 'ERROR: env not configured');
+  }
+
   if (!outSum || !invId || !signatureValue || !shpPlan || !shpUserId) {
     console.error('[robokassa-webhook] missing params', { outSum, invId, shpPlan, shpUserId });
     return text(200, 'ERROR: missing params');
   }
 
-  const sigString = buildSignatureString(outSum, invId, password2, {
+  const sigString = buildSignatureString(outSum, invId, activePassword2, {
     Shp_plan: shpPlan,
     Shp_user_id: shpUserId,
   });
