@@ -30,6 +30,23 @@ const PRO_FEATURES = [
 function UpgradeModal({ onClose }: { onClose: () => void }) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+
+  async function handlePurchase(plan: 'pro' | 'lifetime') {
+    setIsLoading(true);
+    setPurchaseError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-payment-url', {
+        body: { plan },
+      });
+      if (error || !data?.url) throw error ?? new Error('Не удалось получить ссылку на оплату');
+      window.location.href = data.url;
+    } catch (e) {
+      setPurchaseError(e instanceof Error ? e.message : 'Ошибка оплаты');
+      setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -103,21 +120,22 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <a
-              href="https://avtorskaya-studiya.vercel.app/#pricing"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
               className="btn btn--primary"
-              style={{
-                textDecoration: 'none', justifyContent: 'center', fontSize: 13,
-                height: 38, display: 'flex', alignItems: 'center',
-              }}
+              style={{ justifyContent: 'center', fontSize: 13, height: 38 }}
+              onClick={() => handlePurchase('pro')}
+              disabled={isLoading}
             >
-              Оформить подписку
-            </a>
+              {isLoading ? 'Переход к оплате…' : 'Оформить подписку'}
+            </button>
             <button className="btn btn--ghost" onClick={onClose} style={{ fontSize: 13, height: 38 }}>
               Позже
             </button>
+            {purchaseError && (
+              <p style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', margin: '4px 0 0', textAlign: 'center' }}>
+                {purchaseError}
+              </p>
+            )}
           </div>
 
           {showLifetime && (
@@ -140,18 +158,14 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
                 <span style={{ font: '700 22px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.03em' }}>4 990 ₽</span>
                 <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>разовый платёж</span>
               </div>
-              <a
-                href="https://avtorskaya-studiya.vercel.app/#pricing"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
                 className="btn"
-                style={{
-                  textDecoration: 'none', justifyContent: 'center', fontSize: 13,
-                  height: 36, display: 'flex', alignItems: 'center', width: '100%',
-                }}
+                style={{ justifyContent: 'center', fontSize: 13, height: 36, width: '100%' }}
+                onClick={() => handlePurchase('lifetime')}
+                disabled={isLoading}
               >
-                Купить Lifetime
-              </a>
+                {isLoading ? 'Переход к оплате…' : 'Купить Lifetime'}
+              </button>
             </div>
           )}
         </div>
