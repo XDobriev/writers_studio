@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { createRepository } from './repository';
+import { createRepository, DbError } from './repository';
 
 export type CharacterRole = 'protagonist' | 'secondary' | 'minor';
 
@@ -37,6 +37,18 @@ const repo = createRepository<Character>(
 
 export function listCharacters(bookId: string, options?: { limit?: number }): Promise<Character[]> {
   return repo.list(bookId, options);
+}
+
+export async function listCharactersPage(bookId: string, from: number, to: number): Promise<Character[]> {
+  const { data, error } = await supabase
+    .from('characters')
+    .select('*')
+    .eq('book_id', bookId)
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true })
+    .range(from, to);
+  if (error) throw new DbError(error.message, error.code, 'characters');
+  return (data ?? []) as Character[];
 }
 
 export function createCharacter(

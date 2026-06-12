@@ -1,9 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { getBook, listBooks, listWritingSnapshots } from './books';
 import { getProfile, getRegistrationOpen, type Profile } from './profiles';
 import type { Book } from './supabase';
 import { listChaptersMeta, getChapterContent, type ChapterMeta } from './chapters';
-import { listCharacters, type Character } from './characters';
+import { listCharactersPage, type Character } from './characters';
 import { listRelationships, type CharacterRelationship } from './relationships';
 import { fetchNotes, type Note } from './notes';
 import { listLocations, type Location } from './locations';
@@ -13,8 +14,7 @@ import { listVersions, type ChapterVersionMeta } from './versions';
 import { listChapterCharacters, type ChapterCharacterRow } from './crossrefs';
 import { listBookPovEntries, type PovEntry } from './pov';
 
-// Увеличить когда появится реальный пользователь с 500+ персонажами → заменить на cursor-based пагинацию
-const CHARACTERS_QUERY_LIMIT = 500;
+const CHARACTERS_PAGE_SIZE = 50;
 
 export const QUERY_KEYS = {
   books: (userId: string) => ['books', userId] as const,
@@ -70,11 +70,26 @@ export function useChapterContent(chapterId: string | undefined) {
 }
 
 export function useCharacters(bookId: string | undefined) {
-  return useQuery<Character[]>(makeQuery(
-    bookId ? QUERY_KEYS.characters(bookId) : ['characters', null],
-    () => listCharacters(bookId!, { limit: CHARACTERS_QUERY_LIMIT }),
-    2 * 60_000,
-  ));
+  const result = useInfiniteQuery({
+    queryKey: bookId ? QUERY_KEYS.characters(bookId) : ['characters', null],
+    queryFn: ({ pageParam }: { pageParam: number }) =>
+      listCharactersPage(bookId!, pageParam, pageParam + CHARACTERS_PAGE_SIZE - 1),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: Character[], allPages: Character[][]) =>
+      lastPage.length < CHARACTERS_PAGE_SIZE
+        ? undefined
+        : allPages.reduce((sum, p) => sum + p.length, 0),
+    enabled: !!bookId,
+    staleTime: 2 * 60_000,
+  });
+  const data = useMemo(() => result.data?.pages.flat(), [result.data]);
+  return {
+    ...result,
+    data,
+    fetchNextPage: result.fetchNextPage,
+    hasNextPage: result.hasNextPage,
+    isFetchingNextPage: result.isFetchingNextPage,
+  };
 }
 
 export function useNotes(bookId: string | undefined) {
