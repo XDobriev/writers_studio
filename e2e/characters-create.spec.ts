@@ -29,6 +29,10 @@ test('characters: создать нового персонажа', async ({ page
   await expect(gridBtn).toBeVisible({ timeout: 5_000 });
   await gridBtn.click();
 
+  // Прокручиваем грид вниз, чтобы виртуалайзер срендерил нижние строки с новым персонажем
+  await page.locator('[data-testid="character-card"]').first().hover();
+  await page.mouse.wheel(0, 600);
+
   // Карточек стало больше
   await expect(page.locator('[data-testid="character-card"]')).toHaveCount(
     cardsBefore + 1,
