@@ -33,7 +33,8 @@ const Privacy    = lazy(() => import('./pages/Privacy'));
 const Terms      = lazy(() => import('./pages/Terms'));
 const Offer      = lazy(() => import('./pages/Offer'));
 const ShareBook  = lazy(() => import('./pages/ShareBook'));
-const NotFound   = lazy(() => import('./pages/NotFound'));
+const NotFound       = lazy(() => import('./pages/NotFound'));
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 
 function PageFallback() {
   return (
@@ -90,6 +91,7 @@ function AnimatedRoutes() {
         <Route path="/privacy" element={<PageMotion><Privacy /></PageMotion>} />
         <Route path="/terms" element={<PageMotion><Terms /></PageMotion>} />
         <Route path="/offer" element={<PageMotion><Offer /></PageMotion>} />
+        <Route path="/payment-success" element={<PageMotion><Guard><PaymentSuccess /></Guard></PageMotion>} />
         <Route path="*" element={<PageMotion><NotFound /></PageMotion>} />
       </Routes>
     </AnimatePresence>
@@ -135,7 +137,16 @@ export default function App() {
   return (
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{ persister, maxAge: 24 * 60 * 60_000 }}
+      persistOptions={{
+          persister,
+          maxAge: 24 * 60 * 60_000,
+          dehydrateOptions: {
+            shouldDehydrateQuery: (query) => {
+              const key = query.queryKey[0];
+              return key !== 'chapter-content' && key !== 'chapter-versions';
+            },
+          },
+        }}
     >
     <AuthProvider>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
