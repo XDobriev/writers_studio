@@ -59,6 +59,11 @@ npm run preview    # превью продакшен-сборки
 - `src/components/Skeleton.tsx` — скелетон-загрузка для async-состояний.
 - `src/components/VersionsPanel.tsx` + `VersionModal.tsx` — UI снапшотов/версий.
 - `src/components/CharacterFieldCard.tsx` — именованная карточка-поле (label + textarea + warn-состояние); используется в детальном виде персонажа.
+- `src/components/CharacterHeroBlock.tsx` — блок героя детальной карточки персонажа: аватар, имя, псевдонимы, цитата, смена роли.
+- `src/components/CharacterRelationsBlock.tsx` — блок связей персонажа: форма добавления, пресеты, список строк RelationRow (приватная).
+- `src/components/CharacterChaptersTab.tsx` — вкладка «Главы» детальной карточки: POV-главы и упоминания персонажа по главам.
+- `src/components/TimelineEventCard.tsx` — карточка события хронологии: редактирование типа, названия, описания, эпохи, главы.
+- `src/components/TimelineFilters.tsx` — фильтры хронологии по слоям; `variant="sidebar"|"mobile"` унифицирует два варианта рендера.
 - `src/components/PasswordInput.tsx` — поле пароля с toggle-глазом; управляет своим show-состоянием сам.
 - `src/components/AccountMenu.tsx` — переиспользуемый дропдаун аккаунта (Настройки + Выйти); render-prop `children` для кастомного триггера; `placement="above"|"below"`.
 - `src/components/PageMotion.tsx` — обёртка `motion.div` для анимации переходов между страницами (fade via `pageVariants`); используется в `App.tsx` на каждом маршруте.
@@ -116,6 +121,9 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/config.ts` — централизованные env-константы: `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
 - `src/lib/useCharacterFilter.ts` — хук фильтрации персонажей по роли и поисковому запросу; экспортирует тип `RoleFilter`.
 - `src/lib/motion.ts` — реестр Framer Motion вариантов и переходов: overlay, modalPanel, page, toast, dropdown, card, hero, feat, reveal.
+- `src/lib/repository.test.ts` — unit-тесты `createRepository` (list с лимитом, DbError, create с дефолтами); мокает `./supabase`.
+- `src/lib/crossrefs.test.ts` — unit-тесты `extractCharacterMentions`: кириллица, word-boundary lookaround, HTML-стрипинг; без моков.
+- `src/lib/queries.test.ts` — тесты стабильности `QUERY_KEYS`: структура, детерминированность, отсутствие коллизий между entity-префиксами.
 
 ## Supabase
 
