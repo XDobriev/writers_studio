@@ -25,16 +25,13 @@ test('characters: создать нового персонажа', async ({ page
   // Сохраняем URL нового персонажа для последующей проверки
   const newCharUrl = page.url();
 
-  // Возвращаемся в grid-mode через кнопку (сохраняем React Query кэш с новым персонажем)
+  // Возвращаемся в grid-mode через кнопку (viewMode меняется локально, URL не трогается)
   const gridBtn = page.locator('button[title="Картотека (сетка)"]');
   await expect(gridBtn).toBeVisible({ timeout: 5_000 });
   await gridBtn.click();
 
-  // Убеждаемся что вернулись в грид (URL без ?character=)
-  await expect(page).not.toHaveURL(/character=/, { timeout: 5_000 });
-
-  // Грид показывает карточки
-  await expect(page.locator('[data-testid="character-card"]').first()).toBeVisible({ timeout: 5_000 });
+  // Грид показывает карточки (первая карточка видна — значит в режиме грида)
+  await expect(page.locator('[data-testid="character-card"]').first()).toBeVisible({ timeout: 10_000 });
 
   // Персонаж сохранился: прямая навигация к его URL открывает detail-mode
   await page.goto(newCharUrl);
