@@ -59,8 +59,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return text(405, 'method not allowed');
 
-  const password2     = Deno.env.get('ROBOKASSA_PASSWORD2');
-  const testPassword2 = Deno.env.get('ROBOKASSA_TEST_PASSWORD2');
+  const password2     = Deno.env.get('ROBOKASSA_PASSWORD2')?.trim();
+  const testPassword2 = Deno.env.get('ROBOKASSA_TEST_PASSWORD2')?.trim();
   const supabaseUrl   = Deno.env.get('SUPABASE_URL');
   const serviceKey    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -100,14 +100,6 @@ Deno.serve(async (req) => {
     Shp_user_id: shpUserId,
   });
   const expectedSig = md5hex(sigString);
-  console.log('[robokassa-webhook] sig check', {
-    sigString,
-    expectedSig,
-    gotSig: signatureValue,
-    isTest,
-    outSum,
-    invId,
-  });
   if (!timingSafeEqual(expectedSig.toLowerCase(), signatureValue.toLowerCase())) {
     console.error('[robokassa-webhook] bad signature', { expected: expectedSig, got: signatureValue });
     return text(200, 'BAD SIGN');

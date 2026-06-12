@@ -38,8 +38,8 @@ Deno.serve(async (req) => {
   const serviceKey    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const isTestMode    = Deno.env.get('ROBOKASSA_IS_TEST') === 'true';
   const password1     = isTestMode
-    ? Deno.env.get('ROBOKASSA_TEST_PASSWORD1')
-    : Deno.env.get('ROBOKASSA_PASSWORD1');
+    ? Deno.env.get('ROBOKASSA_TEST_PASSWORD1')?.trim()
+    : Deno.env.get('ROBOKASSA_PASSWORD1')?.trim();
 
   if (!merchantLogin || !supabaseUrl || !serviceKey || !password1) {
     console.error('[create-payment-url] missing env');
