@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import {
   createCharacter,
   deleteCharacter,
@@ -47,7 +47,12 @@ export function useCharacterMutations({
         role: 'protagonist',
         position,
       });
-      queryClient.setQueryData<Character[]>(QUERY_KEYS.characters(bookId), (prev) => [...(prev ?? []), created]);
+      queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) => {
+        if (!prev) return { pages: [[created]], pageParams: [0] };
+        const pages = [...prev.pages];
+        pages[pages.length - 1] = [...pages[pages.length - 1], created];
+        return { ...prev, pages };
+      });
       onCreated(created.id);
     } catch (e) {
       onError((e as Error).message);
@@ -62,7 +67,10 @@ export function useCharacterMutations({
     try {
       await deleteCharacter(characterId);
       const remaining = characters.filter((c) => c.id !== characterId);
-      queryClient.setQueryData<Character[]>(QUERY_KEYS.characters(bookId), remaining);
+      queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) => {
+        if (!prev) return prev;
+        return { ...prev, pages: prev.pages.map((page) => page.filter((c) => c.id !== characterId)) };
+      });
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) =>
         prev ? prev.filter((r) => r.char_a_id !== characterId && r.char_b_id !== characterId) : prev
       );
