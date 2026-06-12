@@ -47,6 +47,9 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_ADMIN_EMAIL: admin@avtorstudio.com
           VITE_TELEGRAM_BOT_USERNAME: authorsStudioBot
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
       - name: Validate nginx.conf (security check)
         run: |
