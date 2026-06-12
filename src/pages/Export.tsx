@@ -27,8 +27,6 @@ import {
   slugify,
   triggerDownload,
   downloadText,
-  buildDocxBlob,
-  buildEpubBlob,
   buildFb2Doc,
   buildHtmlDoc,
   buildMarkdownDoc,
@@ -165,8 +163,10 @@ export default function Export() {
     const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle, cover: coverData, mapImage: mapImageData };
     try {
       if (format === 'docx') {
+        const { buildDocxBlob } = await import('../lib/exportDocx');
         triggerDownload(await buildDocxBlob(bookWithAuthor, chaptersWithContent, opts), filename);
       } else if (format === 'epub') {
+        const { buildEpubBlob } = await import('../lib/exportEpub');
         triggerDownload(await buildEpubBlob(bookWithAuthor, chaptersWithContent, opts), filename);
       } else if (format === 'fb2') {
         downloadText(buildFb2Doc(bookWithAuthor, chaptersWithContent, opts), 'application/xml', filename);

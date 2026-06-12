@@ -89,6 +89,7 @@ npm run preview    # превью продакшен-сборки
 - `src/pages/AdminUserDetail.tsx` — карточка пользователя `/admin/users/:id`: книги, история плана, сброс пароля.
 - `src/pages/Landing.tsx` — публичный лендинг.
 - `src/pages/Offer.tsx` — публичная страница оферты `/offer`: тарифы, цены, возврат, акцепт.
+- `src/pages/PaymentSuccess.tsx` — страница `/payment-success` после редиректа Робокассы: 3 состояния (`checking` / `success` / `timeout`), поллинг `getProfile` каждые 2с до смены плана или 30с таймаута.
 
 ### lib/
 - `src/lib/repository.ts` — фабрика `createRepository<T>(table, defaults, orderBy)` → `{ list, create, update, delete }` с единой обработкой ошибок; используется в characters, locations, timeline, connections, notes.

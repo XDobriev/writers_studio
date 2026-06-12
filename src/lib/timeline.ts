@@ -61,6 +61,16 @@ export const TYPE_COLORS: Record<TimelineEventType, string> = {
   other: 'var(--ink-3)',
 };
 
+export type TypeFilter = 'all' | TimelineEventType;
+
+export const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
+  { value: 'all',       label: 'все'      },
+  { value: 'plot',      label: 'сюжет'    },
+  { value: 'character', label: 'персонаж' },
+  { value: 'world',     label: 'мир'      },
+  { value: 'other',     label: 'другое'   },
+];
+
 export async function reorderTimelineEvents(updates: { id: string; position: number }[]): Promise<void> {
   if (updates.length === 0) return;
   const { error } = await supabase

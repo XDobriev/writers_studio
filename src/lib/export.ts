@@ -233,7 +233,5 @@ export function estimateSize(format: Format, chapters: { words: number; content?
   return `~${(bytes / 1024 / 1024).toFixed(1)} МБ`;
 }
 
-// Re-exports — backward compatibility
-export { buildDocxBlob } from './exportDocx';
+// buildFb2Doc re-exported (no heavy deps); buildDocxBlob/buildEpubBlob are dynamic-imported in Export.tsx
 export { buildFb2Doc } from './exportFb2';
-export { buildEpubBlob } from './exportEpub';

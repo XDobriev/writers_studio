@@ -100,6 +100,14 @@ Deno.serve(async (req) => {
     Shp_user_id: shpUserId,
   });
   const expectedSig = md5hex(sigString);
+  console.log('[robokassa-webhook] sig check', {
+    sigString,
+    expectedSig,
+    gotSig: signatureValue,
+    isTest,
+    outSum,
+    invId,
+  });
   if (!timingSafeEqual(expectedSig.toLowerCase(), signatureValue.toLowerCase())) {
     console.error('[robokassa-webhook] bad signature', { expected: expectedSig, got: signatureValue });
     return text(200, 'BAD SIGN');
