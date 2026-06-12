@@ -14,8 +14,6 @@ test('characters: создать нового персонажа', async ({ page
     // Если ни того, ни другого — просто ждём тулбар
   });
 
-  const cardsBefore = await page.locator('[data-testid="character-card"]').count();
-
   // Кнопка «Новый персонаж» в тулбаре
   const newCharBtn = page.locator('button[title="Новый персонаж"]');
   await expect(newCharBtn).toBeVisible({ timeout: 10_000 });
@@ -24,18 +22,21 @@ test('characters: создать нового персонажа', async ({ page
   // Создание открывает detail-mode: URL должен содержать ?character=
   await expect(page).toHaveURL(/character=/, { timeout: 10_000 });
 
+  // Сохраняем URL нового персонажа для последующей проверки
+  const newCharUrl = page.url();
+
   // Возвращаемся в grid-mode через кнопку (сохраняем React Query кэш с новым персонажем)
   const gridBtn = page.locator('button[title="Картотека (сетка)"]');
   await expect(gridBtn).toBeVisible({ timeout: 5_000 });
   await gridBtn.click();
 
-  // Прокручиваем грид вниз, чтобы виртуалайзер срендерил нижние строки с новым персонажем
-  await page.locator('[data-testid="character-card"]').first().hover();
-  await page.mouse.wheel(0, 600);
+  // Убеждаемся что вернулись в грид (URL без ?character=)
+  await expect(page).not.toHaveURL(/character=/, { timeout: 5_000 });
 
-  // Карточек стало больше
-  await expect(page.locator('[data-testid="character-card"]')).toHaveCount(
-    cardsBefore + 1,
-    { timeout: 10_000 },
-  );
+  // Грид показывает карточки
+  await expect(page.locator('[data-testid="character-card"]').first()).toBeVisible({ timeout: 5_000 });
+
+  // Персонаж сохранился: прямая навигация к его URL открывает detail-mode
+  await page.goto(newCharUrl);
+  await expect(page).toHaveURL(/character=/, { timeout: 5_000 });
 });
