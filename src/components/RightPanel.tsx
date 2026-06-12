@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
 import { ConfirmDialog } from './ConfirmDialog';
 import { createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
 import { useNotes, QUERY_KEYS } from '../lib/queries';
-import { VersionsPanel } from './VersionsPanel';
+
+const VersionsPanel = lazy(() => import('./VersionsPanel').then(m => ({ default: m.VersionsPanel })));
 import { useErrorState } from '../lib/useErrorState';
 
 interface RightPanelProps {
@@ -142,6 +143,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
           </div>
         )}
         {activeTab === 'versions' && chapterId && bookId && userId && (
+          <Suspense fallback={<div style={{ padding: 24, color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>Загрузка…</div>}>
           <VersionsPanel
             chapterId={chapterId}
             chapterTitle={chapterTitle}
@@ -151,6 +153,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
             isPro={isPro ?? false}
             onRestoreContent={onRestoreContent}
           />
+          </Suspense>
         )}
         {activeTab === 'versions' && !chapterId && (
           <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>

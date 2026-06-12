@@ -224,8 +224,8 @@ export function buildMarkdownDoc(book: Book, chapters: Chapter[], opts: BuildOpt
 
 // ─── Size estimate ────────────────────────────────────────────────────────────
 
-export function estimateSize(format: Format, chapters: Chapter[]): string {
-  const len = chapters.reduce((s, c) => s + (c.content?.length ?? 0), 0);
+export function estimateSize(format: Format, chapters: { words: number; content?: string | null }[]): string {
+  const len = chapters.reduce((s, c) => s + (c.content?.length ?? c.words * 5), 0);
   const bytes = Math.round(len * ({ epub: 0.65, fb2: 0.75, docx: 0.6, html: 0.5, md: 0.35, txt: 0.3 }[format] ?? 0.5)
     + ({ epub: 15000, fb2: 3000, docx: 12000, html: 2000, md: 500, txt: 500 }[format] ?? 2000));
   if (bytes < 1024) return `${bytes} Б`;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toastVariants } from '../lib/motion';
 import { useGoalToast } from '../lib/useGoalToast';
@@ -21,7 +21,7 @@ import { useUserDisplay } from '../lib/useUserDisplay';
 import { useAuth } from '../lib/auth';
 import { useProfile, QUERY_KEYS, useCharacters } from '../lib/queries';
 import { useCharacterHover } from '../lib/useCharacterHover';
-import { CharacterHoverCard } from './CharacterHoverCard';
+const CharacterHoverCard = lazy(() => import('./CharacterHoverCard').then(m => ({ default: m.CharacterHoverCard })));
 import { addWordToDictionary, type Profile } from '../lib/profiles';
 
 type Mode = 'studio' | 'left' | 'right' | 'page';
@@ -420,12 +420,14 @@ export function EditorHybrid({
       )}
 
       {hoveredChar && book?.id && (
-        <CharacterHoverCard
-          state={hoveredChar}
-          bookId={book.id}
-          onMouseEnter={onCardEnter}
-          onMouseLeave={onCardLeave}
-        />
+        <Suspense fallback={null}>
+          <CharacterHoverCard
+            state={hoveredChar}
+            bookId={book.id}
+            onMouseEnter={onCardEnter}
+            onMouseLeave={onCardLeave}
+          />
+        </Suspense>
       )}
 
       <AnimatePresence>

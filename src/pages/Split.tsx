@@ -102,7 +102,7 @@ export default function Split() {
 
   if (error) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32 }}>
+      <div className="as page-fill" style={{ color: 'var(--ink)', padding: 32 }}>
         <div style={{ color: 'var(--danger)' }}>Ошибка: {error}</div>
         <Link to={`/books/${bookId}/editor`} className="btn" style={{ marginTop: 16, textDecoration: 'none' }}>← Назад к редактору</Link>
       </div>
@@ -111,7 +111,7 @@ export default function Split() {
 
   if (!book || !chapters) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="as page-fill--center">
         <div className="page-spinner" />
       </div>
     );
@@ -123,7 +123,7 @@ export default function Split() {
 
   if (chapters.length < 2) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink-2)', padding: 32, display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center', justifyContent: 'center' }}>
+      <div className="as page-fill--center" style={{ color: 'var(--ink-2)', padding: 32, flexDirection: 'column', gap: 14 }}>
         <div style={{ font: '500 16px var(--font-serif)' }}>Для сравнения нужно минимум две главы.</div>
         <div style={{ color: 'var(--ink-3)', fontSize: 13 }}>Сейчас в книге {chapters.length === 0 ? 'нет глав' : 'одна глава'}.</div>
         <Link to={`/books/${bookId}/editor`} className="btn btn--primary" style={{ textDecoration: 'none' }}>← Открыть редактор</Link>

@@ -13,6 +13,9 @@ import { listVersions, type ChapterVersionMeta } from './versions';
 import { listChapterCharacters, type ChapterCharacterRow } from './crossrefs';
 import { listBookPovEntries, type PovEntry } from './pov';
 
+// Увеличить когда появится реальный пользователь с 500+ персонажами → заменить на cursor-based пагинацию
+const CHARACTERS_QUERY_LIMIT = 500;
+
 export const QUERY_KEYS = {
   books: (userId: string) => ['books', userId] as const,
   profile: (userId: string) => ['profile', userId] as const,
@@ -69,7 +72,7 @@ export function useChapterContent(chapterId: string | undefined) {
 export function useCharacters(bookId: string | undefined) {
   return useQuery<Character[]>(makeQuery(
     bookId ? QUERY_KEYS.characters(bookId) : ['characters', null],
-    () => listCharacters(bookId!, { limit: 500 }),
+    () => listCharacters(bookId!, { limit: CHARACTERS_QUERY_LIMIT }),
     2 * 60_000,
   ));
 }
@@ -90,9 +93,10 @@ export function useRelationships(bookId: string | undefined) {
   ));
 }
 
+const WRITING_HISTORY_DAYS = 366;
 const SNAPSHOTS_FROM = (() => {
   const d = new Date();
-  d.setDate(d.getDate() - 366);
+  d.setDate(d.getDate() - WRITING_HISTORY_DAYS);
   return d.toISOString().slice(0, 10);
 })();
 

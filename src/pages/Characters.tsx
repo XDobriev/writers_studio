@@ -37,6 +37,8 @@ import { useCharacterMutations } from '../lib/useCharacterMutations';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type DetailTab = 'info' | 'chapters';
 
+const AVATAR_MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 МБ
+
 const ROLE_FILTERS: { value: RoleFilter; label: string }[] = [
   { value: 'all', label: 'все' },
   { value: 'protagonist', label: 'гл.' },
@@ -185,7 +187,7 @@ export default function Characters() {
 
   if (queryError) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
+      <div className="as page-fill--center" style={{ flexDirection: 'column', gap: 8 }}>
         <span style={{ font: '500 14px var(--font-ui)', color: 'var(--danger)' }}>Ошибка загрузки</span>
         <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{queryError}</span>
         <a href={bookId ? `/books/${bookId}` : '/books'} style={{ color: 'var(--accent)', fontSize: 13, marginTop: 4 }}>← К книге</a>
@@ -195,7 +197,7 @@ export default function Characters() {
 
   if (!book || !characters || !relationships) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="as page-fill--center">
         <div className="page-spinner" />
       </div>
     );
@@ -712,7 +714,7 @@ function HeroBlock({ character, bookId, onChange, onError }: {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    if (file.size > 2 * 1024 * 1024) { onError('Файл слишком большой. Максимум 2 МБ.'); return; }
+    if (file.size > AVATAR_MAX_FILE_BYTES) { onError('Файл слишком большой. Максимум 2 МБ.'); return; }
     setAvatarUploading(true);
     try {
       const url = await uploadCharacterAvatar(character.id, character.user_id, file);

@@ -1,8 +1,142 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-11_ — Три бага из E2E-аудита закрыты: `<main>` landmark на Home.tsx, контраст `.btn--primary` (0.54 L), flex-wrap на чипах роли персонажа.
+_Обновлён: 2026-06-12_ — Архитектурный аудит: зафиксированы 6 технических долгов масштабирования. Исправлено сейчас: defer загрузка контента глав в Export (listChaptersMeta на маунте → listChapters только при скачивании), именованная константа CHARACTERS_QUERY_LIMIT в queries.ts.
 
 **Сейчас:** _(не задана — заполнить в начале сессии)_
+
+---
+
+## Технический долг — масштабирование
+
+> Отсортировано по значимости. Первые два блокируют нормальную работу при росте данных.
+
+---
+
+### ARCH-1. Пагинация персонажей — убрать жёсткий лимит 500
+
+**Проблема:** `useCharacters` в [src/lib/queries.ts](src/lib/queries.ts) загружает максимум `CHARACTERS_QUERY_LIMIT = 500` персонажей. При превышении лимита данные молча обрезаются — пользователь видит неполный список и не получает об этом никакого сигнала. React Query кэширует усечённый набор на 2 минуты.
+
+**Когда критично:** при ~300+ персонажах в одной книге (встречается в больших фэнтези-сагах) пользователь начнёт замечать пропажи. При 500+ — потеря данных гарантирована.
+
+**Решение:** cursor-based пагинация через Supabase `.range(from, to)` + `useInfiniteQuery` от React Query. Виртуализация списка через `@tanstack/react-virtual` (один пакет решает и ARCH-2).
+
+**Шаги реализации:**
+1. В `src/lib/characters.ts` — добавить `listCharactersPage(bookId, from, to)` поверх существующего `createRepository`, используя `.range(from, to)`
+2. В `src/lib/queries.ts` — добавить `useCharactersInfinite(bookId)` на базе `useInfiniteQuery`; существующий `useCharacters` оставить для мест где нужен полный список (hover-карточки, crossrefs)
+3. В `src/pages/Characters.tsx` — переключить `CharacterGrid` на `useCharactersInfinite` + infinite scroll или кнопку «Ещё»
+4. В `src/lib/crossrefs.ts` — `syncCharacterAcrossAllChapters` и `syncBacklinks` продолжают использовать полный список (они итерируют по всем для regexp-поиска); оставить без изменений до ARCH-3
+
+**Файлы:** `src/lib/characters.ts`, `src/lib/queries.ts`, `src/pages/Characters.tsx`
+**Проверить:** книга с 600 персонажами → первые 100 загружены → скролл вниз → следующие 100; общий счётчик персонажей соответствует реальному количеству
+
+---
+
+### ARCH-2. Виртуализация CharacterGrid — рендер 500 DOM-узлов одновременно
+
+**Проблема:** `src/pages/Characters.tsx` рендерит весь список персонажей как `motion.div` без виртуализации. При 200+ персонажах — layout thrashing при скролле, при 500 — 500 `<img>` + анимации одновременно в DOM, ~50–80 МБ памяти и заметная задержка первого рендера.
+
+**Когда критично:** уже при 150–200 персонажах на слабых устройствах (мобильные, бюджетные ноутбуки).
+
+**Решение:** `@tanstack/react-virtual` — virtualizer отрисовывает только видимые карточки + небольшой overscan. Хорошо сочетается с ARCH-1 (infinite query + virtual list — стандартный паттерн).
+
+**Шаги реализации:**
+1. `npm install @tanstack/react-virtual`
+2. В `CharacterGrid` внутри `Characters.tsx` — добавить `useVirtualizer` с `estimateSize: () => 200` (высота карточки)
+3. Заменить прямой `.map` на `virtualizer.getVirtualItems().map`
+4. Добавить внешний контейнер с `height: virtualizer.getTotalSize()` и абсолютным позиционированием для виртуальных элементов
+5. Проверить что `motion.div` (Framer) совместим с виртуализацией — при необходимости убрать enter-анимацию для виртуализированных элементов
+
+**Файлы:** `src/pages/Characters.tsx`
+**Проверить:** 500 персонажей → в DOM одновременно ~10–15 карточек; плавный скролл без задержек; Framer-анимации не ломают виртуализацию
+
+---
+
+### ARCH-3. Оптимизация crossrefs.ts — N+1 при синхронизации персонажей
+
+**Проблема:** `syncCharacterAcrossAllChapters` в [src/lib/crossrefs.ts](src/lib/crossrefs.ts) делает три сетевых раунда для каждого вызова:
+1. `SELECT id, content FROM chapters WHERE book_id = ?` — загружает весь контент всех глав
+2. `UPSERT` в `chapter_characters` для найденных глав
+3. `DELETE` из `chapter_characters` для не-найденных глав
+
+Для книги с 50 главами по 5000 слов каждая — запрос тянет ~500 КБ текста только чтобы прогнать regexp. Вызывается при каждом сохранении персонажа с псевдонимами.
+
+**Когда критично:** при 30+ главах или частом сохранении персонажей. Сейчас терпимо, но с ростом книг станет ощутимым.
+
+**Решение:** перенести regexp-поиск на уровень PostgreSQL через RPC-функцию. PostgreSQL `regexp_matches` + `tsvector` (если добавить FTS-индекс на `chapters.content`) сделает поиск за один запрос на стороне сервера без передачи контента по сети.
+
+**Шаги реализации:**
+1. Миграция: создать SQL-функцию `sync_character_chapters(character_id uuid, book_id uuid, aliases text[])` которая делает всё в одном atomic блоке: regexp-поиск по `chapters.content`, upsert/delete в `chapter_characters`
+2. В `src/lib/crossrefs.ts` — заменить `syncCharacterAcrossAllChapters` на вызов RPC: `supabase.rpc('sync_character_chapters', { character_id, book_id, aliases })`
+3. Аналогично рассмотреть `findNameVariantsInText` — тоже тянет весь контент глав
+
+**Файлы:** `supabase/migrations/` (новая функция), `src/lib/crossrefs.ts`
+**Проверить:** сохранение персонажа с 3 псевдонимами в книге из 40 глав → вкладка Network показывает 1 запрос вместо 3; главы корректно определяются в `chapter_characters`
+
+---
+
+### ARCH-4. Performance instrumentation — нет метрик Supabase-запросов
+
+**Проблема:** нет никакого инструмента для измерения производительности запросов к Supabase в продакшене. Невозможно объективно понять, какой запрос тормозит и насколько помогает оптимизация. Единственный `performance.now()` — самодельный, только на лендинге.
+
+**Sentry уже подключён** (`@sentry/react` в `src/main.tsx`) — достаточно добавить инструментирование в существующий код.
+
+**Решение:**
+1. В `src/lib/repository.ts` обернуть все методы в timing-wrapper с `Sentry.metrics.distribution` (или `performance.measure`) — одно место, покрывает все таблицы автоматически
+2. Добавить трассировку для `listChapters`, `listCharacters`, `syncCharacterAcrossAllChapters` — три самых тяжёлых запроса
+3. Опционально: Playwright E2E assertion на время загрузки страницы Characters (`expect(duration).toBeLessThan(2000)`)
+
+**Шаги реализации:**
+1. В `createRepository` (repository.ts) — обернуть `list/create/update/delete` в `performance.mark` + `performance.measure`, отправлять в Sentry через `Sentry.addBreadcrumb` или `Sentry.metrics`
+2. В `src/lib/characters.ts` — аналогично для `listCharacters`
+3. Проверить что метрики появляются в Sentry Dashboard → Performance
+
+**Файлы:** `src/lib/repository.ts`, `src/lib/characters.ts`
+**Проверить:** открыть Characters → Sentry → Performance → появились spans `db.characters.list` с временем выполнения
+
+---
+
+### ARCH-5. Разбивка монолитных компонентов
+
+**Проблема:** три компонента значительно превышают порог читаемости:
+
+| Файл | Строк | Встроенных компонентов |
+|---|---|---|
+| `src/pages/Timeline.tsx` | ~1221 | 5–6 |
+| `src/pages/Characters.tsx` | ~1192 | 6–7 (`HeroBlock` ~287 стр, `RelationsBlock` ~150 стр) |
+| `src/pages/Landing.tsx` | ~1044 | 3–4 секционных блока |
+
+Такой размер делает git diff нечитаемым, усложняет навигацию, увеличивает вероятность конфликтов и мешает извлечению логики в хуки.
+
+**Решение:** поэтапное выделение sub-компонентов в отдельные файлы без изменения поведения.
+
+**Порядок (от наибольшей связности к наименьшей):**
+1. `Characters.tsx` → выделить `HeroBlock.tsx`, `RelationsBlock.tsx`, `ChaptersTab.tsx` в `src/components/` (или `src/pages/Characters/`)
+2. `Timeline.tsx` → выделить `TimelineEventCard.tsx`, `TimelineFilters.tsx`
+3. `Landing.tsx` → выделить секционные блоки (FeaturesSection, ProcessSection, PricingSection)
+
+**Критерий готовности:** ни один файл в `src/pages/` и `src/components/` не превышает 400 строк.
+
+**Файлы:** `src/pages/Characters.tsx`, `src/pages/Timeline.tsx`, `src/pages/Landing.tsx`, новые файлы в `src/components/`
+**Проверить:** typecheck чистый; визуально страницы не изменились; git diff следующего коммита читаем
+
+---
+
+### ARCH-6. Тесты для критического кода — repository.ts и queries.ts не покрыты
+
+**Проблема:** самые важные части data layer (`repository.ts`, `queries.ts`) не имеют unit-тестов. Изменение `createRepository` или `QUERY_KEYS` может сломать весь data layer без видимого сигнала до E2E.
+
+**Что покрыть в первую очередь:**
+- `repository.ts` — `list` с лимитом, обработка ошибок → `DbError`, `create` с дефолтами
+- `queries.ts` — стабильность ключей `QUERY_KEYS` (регрессия при переименовании)
+- `crossrefs.ts` — `extractCharacterMentions` для кириллических имён с lookaround (особенно баг с `\b` для кириллицы)
+
+**Шаги реализации:**
+1. Создать `src/lib/__tests__/repository.test.ts` — мокировать `supabase` через `vi.mock('../supabase')`
+2. Создать `src/lib/__tests__/crossrefs.test.ts` — юнит-тесты `extractCharacterMentions` без моков (чистая функция)
+3. Создать `src/lib/__tests__/queries.test.ts` — проверить стабильность ключей `QUERY_KEYS`
+
+**Файлы:** `src/lib/__tests__/repository.test.ts` (новый), `src/lib/__tests__/crossrefs.test.ts` (новый), `src/lib/__tests__/queries.test.ts` (новый)
+**Проверить:** `npm test` → все три файла зелёные; `extractCharacterMentions('Анна', ['Аня'])` → верно для кириллицы
 
 ---
 

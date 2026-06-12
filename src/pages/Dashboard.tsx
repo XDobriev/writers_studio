@@ -26,6 +26,8 @@ const STATUS_DOT: Record<Chapter['status'], string> = {
   done: 'var(--ok)',
 };
 
+const HEATMAP_WEEKS = 52;
+
 const QUICK_ACTIONS: Array<{ title: string; dest: string; icon: 'tree' | 'char' | 'note' | 'clock'; path: string }> = [
   { title: 'Новая глава',    dest: 'Структура →',  icon: 'tree',  path: '/outline?create=true'    },
   { title: 'Новый персонаж', dest: 'Картотека →',  icon: 'char',  path: '/characters?create=true' },
@@ -113,11 +115,11 @@ export default function Dashboard() {
     const dow = today.getDay();
     const daysFromMon = dow === 0 ? 6 : dow - 1;
     const startDate = new Date(today);
-    startDate.setDate(today.getDate() - daysFromMon - 51 * 7);
+    startDate.setDate(today.getDate() - daysFromMon - (HEATMAP_WEEKS - 1) * 7);
 
     type Cell = { date: string; delta: number; future: boolean; weekIdx: number };
     const cells: Cell[] = [];
-    for (let i = 0; i < 52 * 7; i++) {
+    for (let i = 0; i < HEATMAP_WEEKS * 7; i++) {
       const d = new Date(startDate);
       d.setDate(d.getDate() + i);
       const ds = d.toISOString().slice(0, 10);
@@ -129,7 +131,7 @@ export default function Dashboard() {
       cells.push({ date: ds, delta, future, weekIdx: Math.floor(i / 7) });
     }
 
-    const weeks: number[] = Array.from({ length: 52 }, (_, w) =>
+    const weeks: number[] = Array.from({ length: HEATMAP_WEEKS }, (_, w) =>
       cells.slice(w * 7, w * 7 + 7).reduce((s, c) => s + c.delta, 0)
     );
 
@@ -297,7 +299,7 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="as page-fill--error" style={{ gap: 16 }}>
         <div style={{ color: 'var(--danger)', fontSize: 14 }}>Ошибка загрузки: {error}</div>
         <Link to="/books" className="btn btn--ghost" style={{ textDecoration: 'none', alignSelf: 'flex-start' }}>← К полке</Link>
       </div>
@@ -311,7 +313,7 @@ export default function Dashboard() {
           <div className="skeleton" style={{ height: '100%', borderRadius: 0 }} />
         )}
         <div style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: 20, background: 'var(--bg)', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
             {Array.from({ length: 5 }, (_, i) => (
               <div key={i} className="skeleton" style={{ height: 116, borderRadius: 12 }} />
             ))}
@@ -384,7 +386,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(190px, 1fr))', gap: isMobile ? 10 : 16, marginBottom: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? 10 : 16, marginBottom: 20 }}>
                 {statCards.map((s) => (
                   <div key={s.l} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 20px' }}>
                     <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>{s.l}</div>
@@ -540,7 +542,7 @@ export default function Dashboard() {
                       ))}
                     </div>
                     <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>
-                      {Array.from({ length: 52 }, (_, w) => (
+                      {Array.from({ length: HEATMAP_WEEKS }, (_, w) => (
                         <div key={w} style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
                           {activityData.cells.slice(w * 7, w * 7 + 7).map((cell) => {
                             const t = cell.delta / activityData.maxDelta;
@@ -660,8 +662,9 @@ export default function Dashboard() {
               <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
 
               <div>
-                <label className="label">Название</label>
+                <label className="label" htmlFor="edit-book-title">Название</label>
                 <input
+                  id="edit-book-title"
                   className="input"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
@@ -674,8 +677,9 @@ export default function Dashboard() {
               <GenrePicker value={editGenres} onChange={setEditGenres} />
 
               <div>
-                <label className="label">Цель по словам</label>
+                <label className="label" htmlFor="edit-book-goal">Цель по словам</label>
                 <input
+                  id="edit-book-goal"
                   className="input"
                   type="number"
                   min={0}

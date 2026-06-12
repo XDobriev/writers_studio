@@ -1178,6 +1178,7 @@ function EventCard({
           <input
             value={era}
             onChange={onEraChange}
+            aria-label="Когда"
             placeholder="когда (Зима 824)"
             style={{
               flex: '1 1 120px',

@@ -8,7 +8,7 @@ import { UpgradePrompt } from '../components/UpgradePrompt';
 import { Icon } from '../components/Icon';
 import { isImageUrl } from '../components/CoverPicker';
 import { getBook } from '../lib/books';
-import { listChapters, type Chapter } from '../lib/chapters';
+import { listChapters, listChaptersMeta, type ChapterMeta } from '../lib/chapters';
 import { fetchNotes, type Note } from '../lib/notes';
 import { listLocations, type Location } from '../lib/locations';
 import { listConnections, type LocationConnection } from '../lib/connections';
@@ -46,7 +46,7 @@ export default function Export() {
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const [book, setBook] = useState<Book | null>(null);
-  const [chapters, setChapters] = useState<Chapter[] | null>(null);
+  const [chapters, setChapters] = useState<ChapterMeta[] | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [mapLocations, setMapLocations] = useState<Location[]>([]);
   const [mapConnections, setMapConnections] = useState<LocationConnection[]>([]);
@@ -77,7 +77,7 @@ export default function Export() {
       try {
         const [book, list, notesList, locs, conns] = await Promise.all([
           getBook(bookId),
-          listChapters(bookId),
+          listChaptersMeta(bookId),
           fetchNotes(bookId),
           listLocations(bookId),
           listConnections(bookId),
@@ -127,11 +127,23 @@ export default function Export() {
   }, [book, format]);
 
   const onDownload = useCallback(async () => {
-    if (!book) return;
+    if (!book || !bookId) return;
     if (selectedChapters.length === 0) { setError('Нет глав для экспорта.'); return; }
     setBusy(true);
     clearError();
     const bookWithAuthor = { ...book, author: authorName.trim() || book.author };
+    const selectedIds = new Set(selectedChapters.map((c) => c.id));
+    let chaptersWithContent;
+    try {
+      const full = await listChapters(bookId);
+      chaptersWithContent = full
+        .filter((c) => selectedIds.has(c.id))
+        .sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at));
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(false);
+      return;
+    }
     let coverData: CoverData | undefined;
     if (bookWithAuthor.cover && isImageUrl(bookWithAuthor.cover)) {
       try {
@@ -153,24 +165,24 @@ export default function Export() {
     const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle, cover: coverData, mapImage: mapImageData };
     try {
       if (format === 'docx') {
-        triggerDownload(await buildDocxBlob(bookWithAuthor, selectedChapters, opts), filename);
+        triggerDownload(await buildDocxBlob(bookWithAuthor, chaptersWithContent, opts), filename);
       } else if (format === 'epub') {
-        triggerDownload(await buildEpubBlob(bookWithAuthor, selectedChapters, opts), filename);
+        triggerDownload(await buildEpubBlob(bookWithAuthor, chaptersWithContent, opts), filename);
       } else if (format === 'fb2') {
-        downloadText(buildFb2Doc(bookWithAuthor, selectedChapters, opts), 'application/xml', filename);
+        downloadText(buildFb2Doc(bookWithAuthor, chaptersWithContent, opts), 'application/xml', filename);
       } else if (format === 'html') {
-        downloadText(buildHtmlDoc(bookWithAuthor, selectedChapters, opts), 'text/html', filename);
+        downloadText(buildHtmlDoc(bookWithAuthor, chaptersWithContent, opts), 'text/html', filename);
       } else if (format === 'md') {
-        downloadText(buildMarkdownDoc(bookWithAuthor, selectedChapters, opts), 'text/markdown', filename);
+        downloadText(buildMarkdownDoc(bookWithAuthor, chaptersWithContent, opts), 'text/markdown', filename);
       } else {
-        downloadText(buildTextDoc(bookWithAuthor, selectedChapters, opts), 'text/plain', filename);
+        downloadText(buildTextDoc(bookWithAuthor, chaptersWithContent, opts), 'text/plain', filename);
       }
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(false);
     }
-  }, [book, authorName, selectedChapters, format, includeChapterTitles, includeTitlePage, includeNotes, notes, language, paragraphStyle, filename, includeMap, mapLocations, mapConnections, setError, clearError]);
+  }, [book, bookId, authorName, selectedChapters, format, includeChapterTitles, includeTitlePage, includeNotes, notes, language, paragraphStyle, filename, includeMap, mapLocations, mapConnections, setError, clearError]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
@@ -285,6 +297,7 @@ export default function Export() {
             <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
               <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Автор</div>
               <input
+                aria-label="Автор"
                 value={authorName}
                 onChange={(e) => setAuthorName(e.target.value)}
                 placeholder="Имя автора…"
@@ -293,7 +306,7 @@ export default function Export() {
             </div>
             <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
               <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Жанр</div>
-              <div style={{ fontSize: 13.5, color: 'var(--ink)' }}>{book.genre || '—'}</div>
+              <div style={{ fontSize: 13.5, color: 'var(--ink)' }}>{(book.genres?.length ? book.genres.join(', ') : book.genre) || '—'}</div>
             </div>
             <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
               <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Язык</div>

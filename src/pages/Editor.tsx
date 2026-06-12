@@ -289,7 +289,7 @@ export default function Editor() {
 
   if (error) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="as page-fill--error">
         <div style={{ color: 'var(--danger)' }}>Ошибка: {error}</div>
         <a href="/books" style={{ color: 'var(--accent)', fontSize: 13 }}>← К книгам</a>
       </div>
@@ -298,7 +298,7 @@ export default function Editor() {
 
   if (!book || !chapters) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="as page-fill--center">
         <div className="page-spinner" />
       </div>
     );

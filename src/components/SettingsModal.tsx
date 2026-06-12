@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, type CSSProperties } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { Icon } from './Icon';
+import { PasswordInput } from './PasswordInput';
 import { supabase } from '../lib/supabase';
 import { getProfile, getLifetimeSlotsRemaining } from '../lib/profiles';
 import { useAuth } from '../lib/auth';
@@ -176,7 +177,6 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
   const [nameSaved, setNameSaved] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [newPass, setNewPass] = useState('');
-  const [showPass, setShowPass] = useState(false);
   const [passSaving, setPassSaving] = useState(false);
   const [passError, setPassError] = useState<string | null>(null);
   const [passSaved, setPassSaved] = useState(false);
@@ -336,9 +336,10 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
             {activeTab === 'profile' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={FG}>
-                  <span style={FL}>Имя</span>
+                  <label htmlFor="settings-name" style={FL}>Имя</label>
                   <div style={ROW}>
                     <input
+                      id="settings-name"
                       className="input"
                       value={name}
                       onChange={(e) => { setName(e.target.value); setNameSaved(false); }}
@@ -358,8 +359,9 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
                 </div>
 
                 <div style={FG}>
-                  <span style={FL}>{accountLabel}</span>
+                  <label htmlFor="settings-account" style={FL}>{accountLabel}</label>
                   <input
+                    id="settings-account"
                     className="input"
                     value={accountDisplay}
                     readOnly
@@ -369,27 +371,16 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
 
                 {!isTelegram && (
                   <form style={FG} onSubmit={(e) => { e.preventDefault(); handleSavePass(); }}>
-                    <span style={FL}>Новый пароль</span>
+                    <label htmlFor="settings-new-password" style={FL}>Новый пароль</label>
                     <div style={ROW}>
-                      <div style={{ position: 'relative', flex: 1 }}>
-                        <input
-                          className="input"
-                          type={showPass ? 'text' : 'password'}
+                      <div style={{ flex: 1 }}>
+                        <PasswordInput
+                          id="settings-new-password"
                           value={newPass}
-                          onChange={(e) => { setNewPass(e.target.value); setPassSaved(false); setPassError(null); }}
+                          onChange={(v) => { setNewPass(v); setPassSaved(false); setPassError(null); }}
                           placeholder="Минимум 6 символов"
-                          style={{ width: '100%', fontSize: 13, height: H, paddingRight: 36 }}
                           autoComplete="new-password"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPass(v => !v)}
-                          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: 0 }}
-                          tabIndex={-1}
-                          aria-label={showPass ? 'Скрыть пароль' : 'Показать пароль'}
-                        >
-                          <Icon name={showPass ? 'eye-off' : 'eye'} size={15} />
-                        </button>
                       </div>
                       <button
                         type="submit"
