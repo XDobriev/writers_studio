@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
   }
 
   const outSum    = PRICES[plan];
-  const invId     = String(Math.floor(Date.now() / 1000) % 2_147_483_647);
+  const invId     = String(Date.now()); // milliseconds — collision-safe at current scale
   const shpPlan   = plan;
   const shpUserId = user.id;
 
