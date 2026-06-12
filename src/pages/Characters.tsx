@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { useCharacterFilter, type RoleFilter } from '../lib/useCharacterFilter';
 import { motion } from 'framer-motion';
-import { cardContainerVariants, cardItemVariants } from '../lib/motion';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useErrorState } from '../lib/useErrorState';
 import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { CharacterFieldCard } from '../components/CharacterFieldCard';
@@ -58,7 +58,7 @@ export default function Characters() {
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const { data: book } = useBook(bookId);
-  const { data: characters, error: charsQueryError } = useCharacters(bookId);
+  const { data: characters, error: charsQueryError, fetchNextPage, hasNextPage, isFetchingNextPage } = useCharacters(bookId);
   const { data: relationships, error: relsQueryError } = useRelationships(bookId);
   const { error: mutationError, setError, clearError } = useErrorState();
   useEffect(() => {
@@ -93,9 +93,10 @@ export default function Characters() {
       setSaveState('saving');
       try {
         const updated = await updateCharacter(id, patch);
-        queryClient.setQueryData<Character[]>(QUERY_KEYS.characters(bookId), (prev) =>
-          prev ? prev.map((c) => (c.id === id ? updated : c)) : prev
-        );
+        queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) => {
+          if (!prev) return prev;
+          return { ...prev, pages: prev.pages.map((page) => page.map((c) => (c.id === id ? updated : c))) };
+        });
         setSaveState('saved');
         if (patch.name !== undefined || patch.aliases !== undefined) {
           void syncCharacterAcrossAllChapters(updated, bookId)
@@ -113,9 +114,10 @@ export default function Characters() {
 
   const scheduleSave = useCallback((id: string, patch: CharacterPatch) => {
     if (bookId) {
-      queryClient.setQueryData<Character[]>(QUERY_KEYS.characters(bookId), (prev) =>
-        prev ? prev.map((c) => (c.id === id ? { ...c, ...patch } as Character : c)) : prev
-      );
+      queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) => {
+        if (!prev) return prev;
+        return { ...prev, pages: prev.pages.map((page) => page.map((c) => (c.id === id ? { ...c, ...patch } as Character : c))) };
+      });
     }
     setSaveState('saving');
     debouncedSave(id, patch);
@@ -452,6 +454,9 @@ export default function Characters() {
               onCreate={handleCreate}
               onDelete={setCharToDelete}
               onClearFilter={() => { setQuery(''); setRoleFilter('all'); }}
+              hasMore={!!hasNextPage}
+              onLoadMore={() => void fetchNextPage()}
+              loadingMore={isFetchingNextPage}
             />
           )}
         </main>}
@@ -478,6 +483,11 @@ export default function Characters() {
 
 // ─── Обзорная сетка персонажей ────────────────────────────────────────────
 
+const CHAR_CARD_HEIGHT = 168; // __portrait 110px + __body ~58px
+const CHAR_GRID_GAP = 14;
+const CHAR_GRID_PADDING = 24;
+const CHAR_CARD_MIN_WIDTH = 160;
+
 function CharacterGrid({
   characters,
   emptyAll,
@@ -485,6 +495,9 @@ function CharacterGrid({
   onCreate,
   onDelete,
   onClearFilter,
+  hasMore = false,
+  onLoadMore,
+  loadingMore = false,
 }: {
   characters: Character[];
   emptyAll: boolean;
@@ -492,7 +505,51 @@ function CharacterGrid({
   onCreate: () => void;
   onDelete: (c: Character) => void;
   onClearFilter?: () => void;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) onLoadMore?.(); },
+      { rootMargin: '120px', root: containerRef.current },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, onLoadMore]);
+
+  // characters[] + один слот для AddCard
+  const allItems: (Character | null)[] = emptyAll || characters.length === 0
+    ? []
+    : [...characters, null];
+
+  const columnCount = containerWidth > 0
+    ? Math.max(1, Math.floor((containerWidth + CHAR_GRID_GAP) / (CHAR_CARD_MIN_WIDTH + CHAR_GRID_GAP)))
+    : 4;
+  const rowCount = allItems.length > 0 ? Math.ceil(allItems.length / columnCount) : 0;
+
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => containerRef.current,
+    // estimateSize включает gap: следующий ряд начинается через CHAR_CARD_HEIGHT + CHAR_GRID_GAP
+    estimateSize: () => CHAR_CARD_HEIGHT + CHAR_GRID_GAP,
+    overscan: 2,
+  });
+
   if (emptyAll) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
@@ -508,9 +565,9 @@ function CharacterGrid({
     );
   }
 
-  return (
-    <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px 28px' }}>
-      {characters.length === 0 ? (
+  if (characters.length === 0) {
+    return (
+      <div ref={containerRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px ${CHAR_GRID_PADDING}px 28px` }}>
         <div style={{ paddingTop: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
           <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>Ничего не найдено</div>
           {onClearFilter && (
@@ -519,24 +576,48 @@ function CharacterGrid({
             </button>
           )}
         </div>
-      ) : (
-        <motion.div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-            gap: 14,
-          }}
-          variants={cardContainerVariants}
-          initial="initial"
-          animate="animate"
-        >
-          {characters.map((c) => (
-            <motion.div key={c.id} variants={cardItemVariants}>
-              <CharacterCard character={c} onSelect={onSelect} onDelete={onDelete} />
-            </motion.div>
-          ))}
-          <AddCard onCreate={onCreate} />
-        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px ${CHAR_GRID_PADDING}px 28px` }}
+    >
+      <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const startIdx = virtualRow.index * columnCount;
+          const rowItems = allItems.slice(startIdx, startIdx + columnCount);
+          return (
+            <div
+              key={virtualRow.key}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: CHAR_CARD_HEIGHT,
+                transform: `translateY(${virtualRow.start}px)`,
+                display: 'grid',
+                gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
+                gap: CHAR_GRID_GAP,
+              }}
+            >
+              {rowItems.map((item) =>
+                item === null
+                  ? <AddCard key="add" onCreate={onCreate} />
+                  : <CharacterCard key={item.id} character={item} onSelect={onSelect} onDelete={onDelete} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div ref={sentinelRef} style={{ height: 1 }} />
+      {loadingMore && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
+          <div className="page-spinner" style={{ width: 20, height: 20 }} />
+        </div>
       )}
     </div>
   );

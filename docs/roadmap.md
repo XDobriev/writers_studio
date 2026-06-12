@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-12_ — Архитектурный аудит: зафиксированы 6 технических долгов масштабирования. Исправлено сейчас: defer загрузка контента глав в Export (listChaptersMeta на маунте → listChapters только при скачивании), именованная константа CHARACTERS_QUERY_LIMIT в queries.ts.
+_Обновлён: 2026-06-12_ — Виртуализация CharacterGrid: @tanstack/react-virtual, row-based virtualizer, ResizeObserver для динамических колонок, Framer Motion убран с уровня элементов. Ранее: cursor-based пагинация персонажей (useInfiniteQuery + IntersectionObserver), PersistQueryClientProvider dehydrateOptions, Export dynamic imports DOCX/EPUB (490 KB → 25 KB), 7 FK-индексов в Supabase. Идентифицирован: RLS auth_rls_initplan на 10 таблицах.
 
 **Сейчас:** _(не задана — заполнить в начале сессии)_
 
@@ -12,44 +12,6 @@ _Обновлён: 2026-06-12_ — Архитектурный аудит: заф
 
 ---
 
-### ARCH-1. Пагинация персонажей — убрать жёсткий лимит 500
-
-**Проблема:** `useCharacters` в [src/lib/queries.ts](src/lib/queries.ts) загружает максимум `CHARACTERS_QUERY_LIMIT = 500` персонажей. При превышении лимита данные молча обрезаются — пользователь видит неполный список и не получает об этом никакого сигнала. React Query кэширует усечённый набор на 2 минуты.
-
-**Когда критично:** при ~300+ персонажах в одной книге (встречается в больших фэнтези-сагах) пользователь начнёт замечать пропажи. При 500+ — потеря данных гарантирована.
-
-**Решение:** cursor-based пагинация через Supabase `.range(from, to)` + `useInfiniteQuery` от React Query. Виртуализация списка через `@tanstack/react-virtual` (один пакет решает и ARCH-2).
-
-**Шаги реализации:**
-1. В `src/lib/characters.ts` — добавить `listCharactersPage(bookId, from, to)` поверх существующего `createRepository`, используя `.range(from, to)`
-2. В `src/lib/queries.ts` — добавить `useCharactersInfinite(bookId)` на базе `useInfiniteQuery`; существующий `useCharacters` оставить для мест где нужен полный список (hover-карточки, crossrefs)
-3. В `src/pages/Characters.tsx` — переключить `CharacterGrid` на `useCharactersInfinite` + infinite scroll или кнопку «Ещё»
-4. В `src/lib/crossrefs.ts` — `syncCharacterAcrossAllChapters` и `syncBacklinks` продолжают использовать полный список (они итерируют по всем для regexp-поиска); оставить без изменений до ARCH-3
-
-**Файлы:** `src/lib/characters.ts`, `src/lib/queries.ts`, `src/pages/Characters.tsx`
-**Проверить:** книга с 600 персонажами → первые 100 загружены → скролл вниз → следующие 100; общий счётчик персонажей соответствует реальному количеству
-
----
-
-### ARCH-2. Виртуализация CharacterGrid — рендер 500 DOM-узлов одновременно
-
-**Проблема:** `src/pages/Characters.tsx` рендерит весь список персонажей как `motion.div` без виртуализации. При 200+ персонажах — layout thrashing при скролле, при 500 — 500 `<img>` + анимации одновременно в DOM, ~50–80 МБ памяти и заметная задержка первого рендера.
-
-**Когда критично:** уже при 150–200 персонажах на слабых устройствах (мобильные, бюджетные ноутбуки).
-
-**Решение:** `@tanstack/react-virtual` — virtualizer отрисовывает только видимые карточки + небольшой overscan. Хорошо сочетается с ARCH-1 (infinite query + virtual list — стандартный паттерн).
-
-**Шаги реализации:**
-1. `npm install @tanstack/react-virtual`
-2. В `CharacterGrid` внутри `Characters.tsx` — добавить `useVirtualizer` с `estimateSize: () => 200` (высота карточки)
-3. Заменить прямой `.map` на `virtualizer.getVirtualItems().map`
-4. Добавить внешний контейнер с `height: virtualizer.getTotalSize()` и абсолютным позиционированием для виртуальных элементов
-5. Проверить что `motion.div` (Framer) совместим с виртуализацией — при необходимости убрать enter-анимацию для виртуализированных элементов
-
-**Файлы:** `src/pages/Characters.tsx`
-**Проверить:** 500 персонажей → в DOM одновременно ~10–15 карточек; плавный скролл без задержек; Framer-анимации не ломают виртуализацию
-
----
 
 ### ARCH-3. Оптимизация crossrefs.ts — N+1 при синхронизации персонажей
 
@@ -137,6 +99,24 @@ _Обновлён: 2026-06-12_ — Архитектурный аудит: заф
 
 **Файлы:** `src/lib/__tests__/repository.test.ts` (новый), `src/lib/__tests__/crossrefs.test.ts` (новый), `src/lib/__tests__/queries.test.ts` (новый)
 **Проверить:** `npm test` → все три файла зелёные; `extractCharacterMentions('Анна', ['Аня'])` → верно для кириллицы
+
+---
+
+### ARCH-7. RLS initplan — `auth.uid()` re-evaluates per-row
+
+**Проблема:** Supabase advisors зафиксировали `auth_rls_initplan` на **10 таблицах**: `books`, `chapters`, `characters`, `character_relations`, `chapter_characters`, `timeline_events`, `locations`, `notes`, `profiles`, `writing_snapshots`. Все политики используют `auth.uid()` напрямую — Postgres вычисляет его заново для каждой строки вместо одного вычисления на запрос. На таблицах с большим числом строк это full-scan × cost-per-row.
+
+**Когда критично:** при 1 000+ строк на `book_id` (главы большого проекта, timeline с событиями). Сейчас незаметно; становится ощутимым при росте данных.
+
+**Решение:** заменить `auth.uid()` на `(select auth.uid())` во всех `WHERE`/`USING` условиях RLS. PostgreSQL превращает его в initplan — вычисляется один раз на весь запрос.
+
+**Шаги реализации:**
+1. Для каждой из 10 таблиц: `ALTER POLICY ... USING ((select auth.uid()) = user_id)`
+2. Применить через Supabase MCP одной миграцией
+3. Проверить через `EXPLAIN (ANALYZE, FORMAT JSON)` что initplan стал `Result` а не повторным вызовом
+
+**Файлы:** `supabase/migrations/` (новая миграция `fix_rls_initplan.sql`)
+**Проверить:** `EXPLAIN SELECT * FROM characters WHERE book_id = '...'` — `InitPlan` со статическим результатом; `Rows Removed by RLS` не растёт пропорционально числу строк
 
 ---
 
