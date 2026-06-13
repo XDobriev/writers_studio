@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useResponsive } from '../lib/useResponsive';
 import { useErrorState } from '../lib/useErrorState';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,20 +11,13 @@ import { CoverPicker, COVERS } from '../components/CoverPicker';
 import { GenrePicker } from '../components/GenrePicker';
 import { supabase, type Book } from '../lib/supabase';
 import { createBook, updateBook, deleteBook as deleteBookApi } from '../lib/books';
-import { markOnboarded, getPlanLimits } from '../lib/profiles';
+import { getPlanLimits } from '../lib/profiles';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useProfile, QUERY_KEYS } from '../lib/queries';
 
 import { plural } from '../lib/i18n';
-
-const ONBOARDING_FEATURES = [
-  { icon: 'feather' as const, title: 'Редактор глав', desc: 'Rich-text, фокусный режим, подсчёт слов в реальном времени' },
-  { icon: 'user' as const, title: 'Персонажи', desc: 'Карточки героев, связи между персонажами, описания' },
-  { icon: 'clock' as const, title: 'Хронология', desc: 'Все события книги на одной оси времени' },
-  { icon: 'map' as const, title: 'Карта мира', desc: 'Локации и места действия' },
-];
 
 export default function Home() {
   const { user } = useAuth();
@@ -37,7 +30,6 @@ export default function Home() {
   const { error: err, setError: setErr } = useErrorState();
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
 
   const [editBook, setEditBook] = useState<Book | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -120,33 +112,6 @@ export default function Home() {
     } finally {
       setEditSaving(false);
     }
-  };
-
-
-  useEffect(() => {
-    if (books != null && books.length === 0 && !localStorage.getItem('as_onboarding_done')) {
-      setShowWelcome(true);
-    }
-  }, [books]);
-
-  useEffect(() => {
-    if (profile?.onboarded_at) {
-      localStorage.setItem('as_onboarding_done', '1');
-      setShowWelcome(false);
-    }
-  }, [profile]);
-
-  const handleWelcomeCreate = () => {
-    localStorage.setItem('as_onboarding_done', '1');
-    if (user) markOnboarded(user.id);
-    setShowWelcome(false);
-    openCreateModal();
-  };
-
-  const dismissWelcome = () => {
-    localStorage.setItem('as_onboarding_done', '1');
-    if (user) markOnboarded(user.id);
-    setShowWelcome(false);
   };
 
   const handleNewBookClick = () => {
@@ -346,70 +311,6 @@ export default function Home() {
       )}
 
       <UpgradePrompt open={showUpgrade} feature="books" onClose={() => setShowUpgrade(false)} />
-
-      {/* ─── Welcome / onboarding modal ─── */}
-      {showWelcome && (
-        <div
-          className="modal-overlay"
-          style={{ zIndex: 200, background: 'oklch(0 0 0 / 0.65)', backdropFilter: 'blur(8px)' }}
-          onClick={dismissWelcome}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Добро пожаловать в Авторскую студию"
-            className="modal-panel modal-panel--xl"
-            style={{ width: 520 }}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') { dismissWelcome(); return; }
-              if (e.key === 'Tab') {
-                const focusable = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
-                const arr = Array.from(focusable);
-                if (!arr.length) return;
-                const first = arr[0], last = arr[arr.length - 1];
-                if (e.shiftKey ? document.activeElement === first : document.activeElement === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
-              }
-            }}
-            tabIndex={-1}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: 16 }}>
-              <div style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, color: 'oklch(0.98 0 0)' }}>
-                <Icon name="feather" size={26} />
-              </div>
-              <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 10 }}>
-                Добро пожаловать в Авторскую студию
-              </h2>
-              <p style={{ font: '400 14px/1.65 var(--font-ui)', color: 'var(--ink-3)', maxWidth: 360 }}>
-                Всё необходимое для работы над книгой — от первой строки до экспорта.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 28 }}>
-              {ONBOARDING_FEATURES.map(({ icon, title, desc }) => (
-                <div key={title} className="feature-item">
-                  <div className="feature-item__icon">
-                    <Icon name={icon} size={16} />
-                  </div>
-                  <div>
-                    <div className="feature-item__name">{title}</div>
-                    <div className="feature-item__desc">{desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn--primary btn--lg" style={{ flex: 1 }} onClick={handleWelcomeCreate}>
-                <Icon name="plus" size={15} /> Создать первую книгу
-              </button>
-              <button className="btn btn--lg" onClick={dismissWelcome}>
-                Посмотрю позже
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <ConfirmDialog
         open={confirmDeleteBook && !!editBook}
