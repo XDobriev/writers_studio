@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../lib/useResponsive';
 import { useErrorState } from '../lib/useErrorState';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,6 +12,7 @@ import { CoverPicker, COVERS } from '../components/CoverPicker';
 import { GenrePicker } from '../components/GenrePicker';
 import { supabase, type Book } from '../lib/supabase';
 import { createBook, updateBook, deleteBook as deleteBookApi } from '../lib/books';
+import { createChapter } from '../lib/chapters';
 import { getPlanLimits } from '../lib/profiles';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
@@ -23,6 +25,7 @@ export default function Home() {
   const { user } = useAuth();
   const { displayName } = useUserDisplay();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: books, error: booksError } = useBooks(user?.id);
   const { data: profile } = useProfile(user?.id);
   const limits = getPlanLimits(profile?.plan);
@@ -133,8 +136,15 @@ export default function Home() {
     setCreating(true);
     try {
       const data = await createBook({ user_id: user.id, title, genre: null, genres: createGenres, goal, words: 0, cover: createCover });
+      const isFirstBook = (books?.length ?? 0) === 0;
+      if (isFirstBook) {
+        await createChapter(data.id, user.id, { title: 'Глава 1', position: 0 });
+        navigate(`/books/${data.id}/editor`);
+        return;
+      }
       queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => [data, ...(prev ?? [])]);
       setShowCreate(false);
+      setCreateCover(COVERS[0]);
       setCreateGenres([]);
     } catch (e) {
       setErr((e as Error).message);
