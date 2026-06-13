@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-13_ — VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Split Characters → 669 строк, Timeline → 965 строк (ARCH-5 частично). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
+_Обновлён: 2026-06-13_ — VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
 **Сейчас:** _(не задана — заполнить в начале сессии)_
 
@@ -13,33 +13,6 @@ _Обновлён: 2026-06-13_ — VK ID авторизация (OAuth 2.1 + PKC
 ---
 
 
-### ARCH-5. Разбивка монолитных компонентов
-
-**Проблема:** три компонента значительно превышают порог читаемости:
-
-| Файл | Строк | Встроенных компонентов |
-|---|---|---|
-| `src/pages/Timeline.tsx` | ~1221 | 5–6 |
-| `src/pages/Characters.tsx` | ~1192 | 6–7 (`HeroBlock` ~287 стр, `RelationsBlock` ~150 стр) |
-| `src/pages/Landing.tsx` | ~1044 | 3–4 секционных блока |
-
-Такой размер делает git diff нечитаемым, усложняет навигацию, увеличивает вероятность конфликтов и мешает извлечению логики в хуки.
-
-**Решение:** поэтапное выделение sub-компонентов в отдельные файлы без изменения поведения.
-
-**Порядок (от наибольшей связности к наименьшей):**
-1. `Characters.tsx` → выделить `HeroBlock.tsx`, `RelationsBlock.tsx`, `ChaptersTab.tsx` в `src/components/` (или `src/pages/Characters/`)
-2. `Timeline.tsx` → выделить `TimelineEventCard.tsx`, `TimelineFilters.tsx`
-3. `Landing.tsx` → выделить секционные блоки (FeaturesSection, ProcessSection, PricingSection)
-
-**Прогресс:** Characters.tsx 1192 → 669 строк ✅ (HeroBlock, RelationsBlock, ChaptersTab, FieldCard вынесены). Timeline.tsx 1221 → 965 строк (EventCard, Filters вынесены). Landing.tsx 1057 строк — не тронута.
-
-**Что осталось:** Landing.tsx — выделить FeaturesSection, ProcessSection, PricingSection в `src/components/`.
-
-**Файлы:** `src/pages/Landing.tsx`, новые файлы в `src/components/`
-**Проверить:** typecheck чистый; визуально лендинг не изменился
-
----
 
 ## Активные баги
 
