@@ -182,7 +182,10 @@ export default function Auth() {
   // Редирект в эффекте — не в render — чтобы форма не мигала пустым кадром
   useEffect(() => {
     if (!session) return;
-    const from = (location.state as { from?: string } | null)?.from ?? '/books';
+    const rawFrom = (location.state as { from?: string } | null)?.from ?? '/books';
+    // Срезаем до /books если from указывает на конкретную книгу —
+    // после смены аккаунта (VK/Telegram → email и наоборот) та книга недоступна.
+    const from = rawFrom.startsWith('/books/') ? '/books' : rawFrom;
     navigate(from, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
