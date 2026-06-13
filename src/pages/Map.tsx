@@ -26,9 +26,14 @@ import {
 import { updateBook } from '../lib/books';
 import { MAP_TEMPLATES, getMapTemplate } from '../lib/mapTemplates';
 import { generateMapPngBuffer, triggerMapDownload } from '../lib/mapExport';
-import { QUERY_KEYS, useBook, useLocations, useConnections } from '../lib/queries';
+import { QUERY_KEYS, useBook, useLocations, useConnections, useStamps } from '../lib/queries';
+import {
+  createStamp, updateStamp, deleteStamp,
+  STAMP_LABELS, STAMP_SVG, STAMP_TYPES,
+  type MapStamp, type StampPatch, type StampType,
+} from '../lib/mapStamps';
 
-export type MapMode = 'place' | 'connect' | 'pan';
+export type MapMode = 'place' | 'connect' | 'pan' | 'stamp';
 
 export default function MapScreen() {
   const { id: bookId } = useParams<{ id: string }>();
@@ -39,6 +44,8 @@ export default function MapScreen() {
   const { data: book } = useBook(bookId);
   const { data: locations, error: locErr } = useLocations(bookId);
   const { data: connections, error: connErr } = useConnections(bookId);
+  const { data: stamps = [] } = useStamps(bookId);
+  const [selectedStampType, setSelectedStampType] = useState<StampType>('mountain');
 
   const { error: mutationError, setError, clearError } = useErrorState();
   const [bgModalOpen, setBgModalOpen] = useState(false);
@@ -91,6 +98,47 @@ export default function MapScreen() {
       );
     } catch (e) { setError((e as Error).message); }
   }, [bookId, confirmDeleteId, queryClient, setError]);
+
+  // ── Stamp handlers ───────────────────────────────────────────────────────
+
+  const onCreateStamp = useCallback(async (x: number, y: number) => {
+    if (!bookId || !user) return;
+    try {
+      const created = await createStamp(bookId, user.id, selectedStampType, x, y);
+      queryClient.setQueryData<MapStamp[]>(QUERY_KEYS.stamps(bookId), prev =>
+        [...(prev ?? []), created]
+      );
+    } catch (e) { setError((e as Error).message); }
+  }, [bookId, user, selectedStampType, queryClient, setError]);
+
+  const onUpdateStamp = useCallback(async (id: string, patch: StampPatch) => {
+    if (!bookId) return;
+    queryClient.setQueryData<MapStamp[]>(QUERY_KEYS.stamps(bookId), prev =>
+      prev ? prev.map(s => s.id === id ? { ...s, ...patch } as MapStamp : s) : prev
+    );
+    try {
+      const updated = await updateStamp(id, patch);
+      queryClient.setQueryData<MapStamp[]>(QUERY_KEYS.stamps(bookId), prev =>
+        prev ? prev.map(s => s.id === id ? updated : s) : prev
+      );
+    } catch (e) {
+      setError((e as Error).message);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stamps(bookId) });
+    }
+  }, [bookId, queryClient, setError]);
+
+  const onDeleteStamp = useCallback(async (id: string) => {
+    if (!bookId) return;
+    queryClient.setQueryData<MapStamp[]>(QUERY_KEYS.stamps(bookId), prev =>
+      prev ? prev.filter(s => s.id !== id) : prev
+    );
+    try {
+      await deleteStamp(id);
+    } catch (e) {
+      setError((e as Error).message);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stamps(bookId) });
+    }
+  }, [bookId, queryClient, setError]);
 
   // ── Connection handlers ──────────────────────────────────────────────────
 
@@ -171,14 +219,14 @@ export default function MapScreen() {
     setExportBusy(true);
     clearError();
     try {
-      const buffer = await generateMapPngBuffer(book, locations, connections);
+      const buffer = await generateMapPngBuffer(book, locations, connections, stamps);
       triggerMapDownload(buffer, book.title);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setExportBusy(false);
     }
-  }, [book, locations, connections, setError, clearError]);
+  }, [book, locations, connections, stamps, setError, clearError]);
 
   // ── Guards ───────────────────────────────────────────────────────────────
 
@@ -206,6 +254,7 @@ export default function MapScreen() {
     { value: 'place',   icon: '📍', label: 'Место' },
     { value: 'connect', icon: '↔',  label: 'Связь' },
     { value: 'pan',     icon: '✋', label: 'Перемещение' },
+    { value: 'stamp',   icon: '🖌',  label: 'Рельеф' },
   ];
 
   return (
@@ -234,6 +283,28 @@ export default function MapScreen() {
                   <span className="sb-item-title">{m.label}</span>
                 </button>
               ))}
+              {mode === 'stamp' && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Тип</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
+                    {STAMP_TYPES.map(type => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setSelectedStampType(type)}
+                        className={'sb-item' + (selectedStampType === type ? ' sb-item--on' : '')}
+                        aria-pressed={selectedStampType === type}
+                        style={{ cursor: 'pointer', justifyContent: 'flex-start', gap: 6 }}
+                      >
+                        <svg width="20" height="16" viewBox="0 0 40 32" style={{ flexShrink: 0 }}>
+                          <g dangerouslySetInnerHTML={{ __html: STAMP_SVG[type] }} />
+                        </svg>
+                        <span className="sb-item-title" style={{ fontSize: 11 }}>{STAMP_LABELS[type]}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </Sidebar>
         )}
@@ -293,6 +364,10 @@ export default function MapScreen() {
               onCreateConnection={onCreateConnection}
               onDeleteConnection={onDeleteConnection}
               onUpdateConnection={onUpdateConnection}
+              stamps={stamps}
+              onCreateStamp={(x, y) => { void onCreateStamp(x, y); }}
+              onUpdateStamp={onUpdateStamp}
+              onDeleteStamp={(id) => { void onDeleteStamp(id); }}
             />
 
             {!book.map_bg_url && locations.length === 0 && (

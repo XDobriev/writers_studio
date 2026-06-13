@@ -4,6 +4,9 @@ import { TYPE_GLYPHS, TYPE_LABELS, type Location, type LocationPatch, type Locat
 import { CONNECTION_STYLES, type LocationConnection, type ConnectionPatch } from '../lib/connections';
 import { getMapTemplate, type MapTemplateId } from '../lib/mapTemplates';
 import type { MapMode } from '../pages/Map';
+import { MapStampsLayer } from './MapStampsLayer';
+import { StampPopup } from './StampPopup';
+import { type MapStamp, type StampPatch } from '../lib/mapStamps';
 
 const CW = 1600;
 const CH = 900;
@@ -23,6 +26,10 @@ interface WorldMapProps {
   onCreateConnection: (fromId: string, toId: string) => void;
   onDeleteConnection: (id: string) => void;
   onUpdateConnection: (id: string, patch: ConnectionPatch) => void;
+  stamps: MapStamp[];
+  onCreateStamp: (x: number, y: number) => void;
+  onUpdateStamp: (id: string, patch: StampPatch) => void;
+  onDeleteStamp: (id: string) => void;
 }
 
 function TemplateBg({ id }: { id: MapTemplateId }) {
@@ -119,6 +126,8 @@ export function WorldMap({
   locations, connections, bgUrl, template, mode,
   onUpdate, onCreate, onDelete,
   onCreateConnection, onDeleteConnection, onUpdateConnection,
+  stamps,
+  onCreateStamp, onUpdateStamp, onDeleteStamp,
 }: WorldMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { isMobile } = useResponsive();
@@ -136,6 +145,9 @@ export function WorldMap({
   const [selectedConnId, setSelectedConnId] = useState<string | null>(null);
   const [connectFrom, setConnectFrom] = useState<string | null>(null);
   const [dragPinPos, setDragPinPos] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [selectedStampId, setSelectedStampId] = useState<string | null>(null);
+  const [dragStampPos, setDragStampPos] = useState<{ id: string; x: number; y: number } | null>(null);
+  const stampDragRef = useRef<{ id: string; startPX: number; startPY: number } | null>(null);
   const [pendingPlaceId, setPendingPlaceId] = useState<string | null>(null);
   const [unmappedSheetOpen, setUnmappedSheetOpen] = useState(false);
 
@@ -249,6 +261,7 @@ export function WorldMap({
       setConnectFrom(null);
       setSelectedId(null);
       setSelectedConnId(null);
+      setSelectedStampId(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -257,6 +270,10 @@ export function WorldMap({
   // Reset connectFrom when mode changes away from connect
   useEffect(() => {
     if (mode !== 'connect') setConnectFrom(null);
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode !== 'stamp') setSelectedStampId(null);
   }, [mode]);
 
   // ── Popup field sync when selection changes ──────────────────────────────
@@ -316,11 +333,22 @@ export function WorldMap({
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     const target = e.target as Element;
-    const locEl = target.closest('[data-loc-id]');
+    const stampEl = target.closest('[data-stamp-id]');
+    const locEl   = target.closest('[data-loc-id]');
 
-    if (locEl) {
+    if (mode === 'stamp' && stampEl) {
+      const id = stampEl.getAttribute('data-stamp-id')!;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      const stamp = stamps.find(s => s.id === id);
+      if (!stamp) return;
+      stampDragRef.current = { id, startPX: e.clientX, startPY: e.clientY };
+      setDragStampPos({ id, x: stamp.x, y: stamp.y });
+      return;
+    }
+
+    if (locEl && mode !== 'stamp') {
       const id = locEl.getAttribute('data-loc-id')!;
-      if (mode === 'connect') return; // handled on pointerUp
+      if (mode === 'connect') return;
       e.currentTarget.setPointerCapture(e.pointerId);
       const loc = locations.find(l => l.id === id);
       if (!loc || loc.x == null || loc.y == null) return;
@@ -330,12 +358,16 @@ export function WorldMap({
       e.currentTarget.setPointerCapture(e.pointerId);
       setSelectedId(null);
       setSelectedConnId(null);
+      setSelectedStampId(null);
       panRef.current = { px: e.clientX, py: e.clientY, ox: panValRef.current.x, oy: panValRef.current.y };
     }
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (pinDragRef.current) {
+    if (stampDragRef.current) {
+      const { x, y } = getLogical(e.clientX, e.clientY);
+      setDragStampPos({ id: stampDragRef.current.id, x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
+    } else if (pinDragRef.current) {
       const { x, y } = getLogical(e.clientX, e.clientY);
       setDragPinPos({ id: pinDragRef.current.id, x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
     } else if (panRef.current) {
@@ -345,8 +377,21 @@ export function WorldMap({
 
   const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target as Element;
-    const locEl = target.closest('[data-loc-id]');
+    const locEl  = target.closest('[data-loc-id]');
     const connEl = target.closest('[data-conn-id]');
+
+    if (stampDragRef.current) {
+      const { id, startPX, startPY } = stampDragRef.current;
+      const dragged = Math.abs(e.clientX - startPX) > DRAG_THRESHOLD || Math.abs(e.clientY - startPY) > DRAG_THRESHOLD;
+      if (dragged && dragStampPos) {
+        onUpdateStamp(id, { x: dragStampPos.x, y: dragStampPos.y });
+      } else {
+        setSelectedStampId(prev => prev === id ? null : id);
+      }
+      stampDragRef.current = null;
+      setDragStampPos(null);
+      return;
+    }
 
     if (pinDragRef.current) {
       const { id, startPX, startPY } = pinDragRef.current;
@@ -377,10 +422,15 @@ export function WorldMap({
       const dx = Math.abs(e.clientX - panRef.current.px);
       const dy = Math.abs(e.clientY - panRef.current.py);
       if (dx <= DRAG_THRESHOLD && dy <= DRAG_THRESHOLD) {
-        if (connEl) {
+        if (connEl && mode !== 'stamp') {
           const id = connEl.getAttribute('data-conn-id')!;
           setSelectedConnId(prev => prev === id ? null : id);
           setSelectedId(null);
+        } else if (mode === 'stamp') {
+          const { x, y } = getLogical(e.clientX, e.clientY);
+          if (x >= 0 && x <= 1 && y >= 0 && y <= 1) {
+            onCreateStamp(x, y);
+          }
         } else if (mode === 'connect') {
           setConnectFrom(null);
         } else if (mode === 'place') {
@@ -414,8 +464,19 @@ export function WorldMap({
     ? Math.max(Math.min(selected.y * CH * scale + pan.y - 60, containerH - 320), 8)
     : 0;
 
+  // Stamp popup position
+  const selectedStamp = selectedStampId ? stamps.find(s => s.id === selectedStampId) ?? null : null;
+  const stampPopupLeft = selectedStamp?.x != null
+    ? Math.min(Math.max(selectedStamp.x * CW * scale + pan.x + 20, 8), containerW - 260)
+    : 0;
+  const stampPopupTop = selectedStamp?.y != null
+    ? Math.max(Math.min(selectedStamp.y * CH * scale + pan.y - 80, containerH - 280), 8)
+    : 0;
+
   // Hint text
-  const hintText = mode === 'connect'
+  const hintText = mode === 'stamp'
+    ? 'Кликните на карту чтобы поставить штамп · тяните штамп для перемещения'
+    : mode === 'connect'
     ? connectFrom
       ? `«${locations.find(l => l.id === connectFrom)?.name ?? '…'}» → кликните вторую локацию · Esc отмена`
       : 'Режим «Связь» — кликните первую локацию'
@@ -431,7 +492,7 @@ export function WorldMap({
       {/* ── Canvas ── */}
       <div
         ref={containerRef}
-        style={{ flex: 1, overflow: 'hidden', position: 'relative', cursor: mode === 'connect' ? 'crosshair' : pendingPlaceId ? 'cell' : 'default' }}
+        style={{ flex: 1, overflow: 'hidden', position: 'relative', cursor: mode === 'connect' ? 'crosshair' : mode === 'stamp' ? 'cell' : pendingPlaceId ? 'cell' : 'default' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -448,6 +509,13 @@ export function WorldMap({
             ? <image href={bgUrl} x={0} y={0} width={CW} height={CH} preserveAspectRatio="xMidYMid slice" opacity={0.85} />
             : <TemplateBg id={getMapTemplate(template)} />
           }
+
+          {/* Stamps — below connections and pins */}
+          <MapStampsLayer
+            stamps={stamps}
+            selectedId={selectedStampId}
+            dragPos={dragStampPos}
+          />
 
           {/* Connection lines — render before pins */}
           {connections.map(conn => {
@@ -564,6 +632,20 @@ export function WorldMap({
               </button>
             </div>
           </div>
+        )}
+
+        {/* ── Stamp popup ── */}
+        {!isMobile && selectedStamp && (
+          <StampPopup
+            stamp={selectedStamp}
+            position={{ left: stampPopupLeft, top: stampPopupTop }}
+            onUpdate={patch => onUpdateStamp(selectedStamp.id, patch)}
+            onDelete={() => {
+              onDeleteStamp(selectedStamp.id);
+              setSelectedStampId(null);
+            }}
+            onClose={() => setSelectedStampId(null)}
+          />
         )}
 
         {/* ── Connection mini-popup ── */}
