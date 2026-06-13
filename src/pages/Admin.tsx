@@ -77,6 +77,11 @@ function fmt(n: number): string {
   return n.toLocaleString('ru');
 }
 
+function displayEmail(email: string): string {
+  const m = email.match(/^vk-(\d+)@vk\.local$/);
+  return m ? `ВКонтакте #${m[1]}` : email;
+}
+
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
 }
@@ -627,7 +632,7 @@ export default function Admin() {
                   <tr key={u.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border-soft)' : 'none', background: i % 2 === 0 ? 'transparent' : 'oklch(0.96 0.002 50 / 0.4)' }}>
                     <td style={{ padding: '10px 16px', font: '400 13px var(--font-ui)' }}>
                       <Link to={`/admin/users/${u.id}`} style={{ color: 'var(--ink)', textDecoration: 'none' }}>
-                        {u.email}
+                        {displayEmail(u.email)}
                       </Link>
                     </td>
                     <td style={{ padding: '10px 16px', font: '400 12px var(--font-mono)', color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>{fmtDate(u.created_at)}</td>

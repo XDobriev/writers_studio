@@ -50,6 +50,12 @@ export default function Home() {
   const [createGenres, setCreateGenres] = useState<string[]>([]);
   const [createCover, setCreateCover] = useState(COVERS[0]);
   const [createUploading, setCreateUploading] = useState(false);
+
+  const openCreateModal = () => {
+    setCreateCover(COVERS[(books?.length ?? 0) % COVERS.length]);
+    setCreateGenres([]);
+    setShowCreate(true);
+  };
   const [editUploading, setEditUploading] = useState(false);
   const [confirmDeleteBook, setConfirmDeleteBook] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -134,7 +140,7 @@ export default function Home() {
     localStorage.setItem('as_onboarding_done', '1');
     if (user) markOnboarded(user.id);
     setShowWelcome(false);
-    setShowCreate(true);
+    openCreateModal();
   };
 
   const dismissWelcome = () => {
@@ -147,7 +153,7 @@ export default function Home() {
     if ((books?.length ?? 0) >= limits.maxBooks) {
       setShowUpgrade(true);
     } else {
-      setShowCreate(true);
+      openCreateModal();
     }
   };
 
@@ -164,7 +170,6 @@ export default function Home() {
       const data = await createBook({ user_id: user.id, title, genre: null, genres: createGenres, goal, words: 0, cover: createCover });
       queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => [data, ...(prev ?? [])]);
       setShowCreate(false);
-      setCreateCover(COVERS[0]);
       setCreateGenres([]);
     } catch (e) {
       setErr((e as Error).message);

@@ -5,6 +5,15 @@ import { supabase } from '../lib/supabase';
 import { LogoMark } from '../components/LogoMark';
 import { useErrorState } from '../lib/useErrorState';
 
+function displayEmail(email: string): string {
+  const m = email.match(/^vk-(\d+)@vk\.local$/);
+  return m ? `ВКонтакте #${m[1]}` : email;
+}
+
+function isVkEmail(email: string): boolean {
+  return /^vk-\d+@vk\.local$/.test(email);
+}
+
 interface BookSummary {
   id: string;
   title: string;
@@ -117,9 +126,9 @@ export default function AdminUserDetail() {
 
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 32 }}>
           <h1 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', margin: 0 }}>
-            {userEmail ?? userId}
+            {userEmail ? displayEmail(userEmail) : userId}
           </h1>
-          {userEmail && (
+          {userEmail && !isVkEmail(userEmail) && (
             <button
               onClick={handleResetPassword}
               disabled={resetting || resetDone}
