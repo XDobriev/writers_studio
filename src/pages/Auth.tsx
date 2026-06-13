@@ -29,14 +29,47 @@ function te(msg: string): string {
 const TG_BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string | undefined;
 const TG_CALLBACK = '__onTelegramAuth';
 
+interface VkidOneTapInstance {
+  on: (event: string, handler: (payload?: unknown) => void) => VkidOneTapInstance;
+}
+
+interface VkidSDK {
+  Config: {
+    init: (opts: {
+      app: number;
+      redirectUrl: string;
+      responseMode: unknown;
+      source: unknown;
+      scope: string;
+    }) => void;
+  };
+  ConfigResponseMode: { Callback: unknown };
+  ConfigSource: { LOWCODE: unknown };
+  OneTap: new () => {
+    render: (opts: { container: HTMLElement; showAlternativeLogin: boolean }) => VkidOneTapInstance;
+  };
+  Auth: {
+    exchangeCode: (code: string, deviceId: string) => Promise<{
+      access_token: string;
+      user_id?: number;
+      user?: { id: number };
+    }>;
+  };
+  WidgetEvents: { ERROR: string };
+  OneTapInternalEvents: { LOGIN_SUCCESS: string };
+}
+
+const VK_APP_ID = 54634821;
+
 declare global {
   interface Window {
     [TG_CALLBACK]?: (user: TelegramAuthData) => void;
+    VKIDSDK?: VkidSDK;
   }
 }
 
 export default function Auth() {
-  const { session, signIn, signUp, signInWithGoogle, signInWithTelegram, resetPasswordForEmail } = useAuth();
+  const { session, signIn, signUp, signInWithGoogle, signInWithTelegram, signInWithVk, resetPasswordForEmail } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>(() =>
@@ -48,11 +81,12 @@ export default function Auth() {
   const [busy, setBusy] = useState(false);
   const [consent, setConsent] = useState(false);
   const [consentMarketing, setConsentMarketing] = useState(false);
-  const [oauthBusy, setOauthBusy] = useState<'google' | 'telegram' | null>(null);
+  const [oauthBusy, setOauthBusy] = useState<'google' | 'telegram' | 'vk' | null>(null);
   const { error: err, setError: setErr, clearError: clearErr } = useErrorState();
   const [info, setInfo] = useState<string | null>(null);
   const { data: registrationOpen = true } = useRegistrationOpen();
   const tgSlotRef = useRef<HTMLDivElement | null>(null);
+  const vkSlotRef = useRef<HTMLDivElement | null>(null);
   const { isMobile } = useResponsive();
 
   useEffect(() => {
@@ -90,6 +124,58 @@ export default function Auth() {
       delete window[TG_CALLBACK];
     };
   }, [signInWithTelegram, clearErr, setErr]);
+
+  useEffect(() => {
+    if (!vkSlotRef.current) return;
+    const slot = vkSlotRef.current;
+
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js';
+
+    script.onload = () => {
+      const VKID = window.VKIDSDK;
+      if (!VKID) return;
+
+      VKID.Config.init({
+        app: VK_APP_ID,
+        redirectUrl: 'https://joaxeoavjvlqmtlepkrr.supabase.co/auth/v1/callback',
+        responseMode: VKID.ConfigResponseMode.Callback,
+        source: VKID.ConfigSource.LOWCODE,
+        scope: '',
+      });
+
+      const oneTap = new VKID.OneTap();
+      oneTap
+        .render({ container: slot, showAlternativeLogin: false })
+        .on(VKID.WidgetEvents.ERROR, () => {
+          setOauthBusy(null);
+          setErr('Ошибка VK ID. Попробуйте войти по почте или повторите позже.');
+        })
+        .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, (payload) => {
+          void (async () => {
+            const { code, device_id } = payload as { code: string; device_id: string };
+            setOauthBusy('vk');
+            clearErr();
+            try {
+              const tokenData = await VKID.Auth.exchangeCode(code, device_id);
+              const vkUserId = tokenData.user?.id ?? tokenData.user_id ?? 0;
+              const { error } = await signInWithVk(tokenData.access_token, vkUserId);
+              if (error) setErr(`VK: ${error}`);
+            } catch {
+              setErr('Ошибка авторизации VK. Попробуйте ещё раз.');
+            } finally {
+              setOauthBusy(null);
+            }
+          })();
+        });
+    };
+
+    slot.appendChild(script);
+    return () => {
+      slot.innerHTML = '';
+    };
+  }, [signInWithVk, clearErr, setErr]);
 
   // Редирект в эффекте — не в render — чтобы форма не мигала пустым кадром
   useEffect(() => {
@@ -335,6 +421,33 @@ export default function Auth() {
                 {oauthBusy === 'telegram' && (
                   <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', textAlign: 'center' }}>Подтверждение Telegram…</div>
                 )}
+
+                <div
+                  style={{
+                    position: 'relative',
+                    height: 42,
+                    opacity: (tab === 'signup' && !consent) ? 0.4 : 1,
+                    pointerEvents: (tab === 'signup' && !consent) ? 'none' : 'auto',
+                  }}
+                >
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    className="btn"
+                    style={{ pointerEvents: 'none', width: '100%', height: 42, justifyContent: 'center', gap: 10 }}
+                  >
+                    <VkGlyph />
+                    <span>
+                      {oauthBusy === 'vk'
+                        ? 'Подключение VK…'
+                        : tab === 'signin'
+                        ? 'Войти через VK ID'
+                        : 'Зарегистрироваться через VK ID'}
+                    </span>
+                  </button>
+                  <div ref={vkSlotRef} style={{ position: 'absolute', inset: 0, opacity: 0, overflow: 'hidden' }} />
+                </div>
               </div>
 
               {tab === 'signup' && (
@@ -465,6 +578,14 @@ function GoogleGlyph() {
       <path fill="#FF3D00" d="M6.3 14.1l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.2 29.5 4 24 4 16.3 4 9.7 8.4 6.3 14.1z" />
       <path fill="#4CAF50" d="M24 44c5.4 0 10.3-2.1 14-5.4l-6.5-5.5C29.3 34.6 26.8 35.5 24 35.5c-5.2 0-9.6-3.3-11.2-8L6.2 32C9.6 37.6 16.3 44 24 44z" />
       <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.6l6.5 5.5C41.6 35.8 44 30.2 44 24c0-1.2-.1-2.4-.4-3.5z" />
+    </svg>
+  );
+}
+
+function VkGlyph() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" aria-hidden fill="currentColor">
+      <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.392 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.864-.525-2.05-1.727-1.033-1-1.49-.9-1.49.521v1.575c0 .45-.143.722-1.318.722-1.93 0-4.074-1.168-5.57-3.358-2.267-3.196-2.888-5.586-2.888-6.075 0-.243.099-.47.328-.47h1.75c.483 0 .667.228.853.762.939 2.713 2.51 5.09 3.157 5.09.244 0 .355-.112.355-.728V9.352c-.072-1.312-.77-1.42-.77-1.89 0-.216.18-.44.47-.44h2.758c.408 0 .551.215.551.664v3.564c0 .408.18.551.293.551.244 0 .45-.143.9-.593 1.393-1.562 2.386-3.969 2.386-3.969.132-.271.357-.522.808-.522h1.75c.523 0 .638.268.523.68-.218 1.01-2.33 3.992-2.33 3.992-.185.3-.254.434 0 .773.184.267.787.8 1.187 1.287.738.843 1.3 1.55 1.453 2.041.138.484-.113.73-.549.73z" />
     </svg>
   );
 }
