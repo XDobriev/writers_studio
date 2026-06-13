@@ -69,6 +69,10 @@ npm run preview    # превью продакшен-сборки
 - `src/components/PageMotion.tsx` — обёртка `motion.div` для анимации переходов между страницами (fade via `pageVariants`); используется в `App.tsx` на каждом маршруте.
 - `src/components/SpotlightButton.tsx` — CTA-кнопка с cursor-spotlight эффектом (21st.dev pattern).
 - `src/components/AnimatedPricingCard.tsx` — карточка тарифа с hover-lift и glow (21st.dev pattern).
+- `src/components/LandingSectionLabel.tsx` — `SectionLabel` + `useScramble`: заголовок секции лендинга со scramble-анимацией kicker-строки.
+- `src/components/LandingFeaturesSection.tsx` — секция «Возможности»: 4 FeatureRow с браузерными моками (редактор, пробковая доска, карта, дашборд).
+- `src/components/LandingProcessSection.tsx` — секция «Процесс»: 4 шага от пустого листа до экспорта.
+- `src/components/LandingPricingSection.tsx` — секция «Цены»: тарифные карточки Free/Pro/Lifetime с динамическим счётчиком слотов.
 - `src/components/AuthGuard.tsx` — защита роутов.
 - `src/components/ErrorBoundary.tsx` — перехват краша компонентов, fallback UI.
 - `src/components/CookieBanner.tsx` — GDPR-баннер куки: Принять / Отклонить, сохраняет выбор (`accepted`|`rejected`) в `localStorage` под ключом `cookie_consent_v1`.
