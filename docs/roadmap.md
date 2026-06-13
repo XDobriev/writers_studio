@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-13_ — Виртуализация CharacterGrid: @tanstack/react-virtual, row-based virtualizer, ResizeObserver для динамических колонок, Framer Motion убран с уровня элементов. Ранее: cursor-based пагинация персонажей (useInfiniteQuery + IntersectionObserver), PersistQueryClientProvider dehydrateOptions, Export dynamic imports DOCX/EPUB (490 KB → 25 KB), 7 FK-индексов в Supabase. Идентифицирован: RLS auth_rls_initplan на 10 таблицах.
+_Обновлён: 2026-06-13_ — VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Split Characters → 669 строк, Timeline → 965 строк (ARCH-5 частично). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
 **Сейчас:** _(не задана — заполнить в начале сессии)_
 
@@ -12,50 +12,6 @@ _Обновлён: 2026-06-13_ — Виртуализация CharacterGrid: @ta
 
 ---
 
-
-### ARCH-3. Оптимизация crossrefs.ts — N+1 при синхронизации персонажей
-
-**Проблема:** `syncCharacterAcrossAllChapters` в [src/lib/crossrefs.ts](src/lib/crossrefs.ts) делает три сетевых раунда для каждого вызова:
-1. `SELECT id, content FROM chapters WHERE book_id = ?` — загружает весь контент всех глав
-2. `UPSERT` в `chapter_characters` для найденных глав
-3. `DELETE` из `chapter_characters` для не-найденных глав
-
-Для книги с 50 главами по 5000 слов каждая — запрос тянет ~500 КБ текста только чтобы прогнать regexp. Вызывается при каждом сохранении персонажа с псевдонимами.
-
-**Когда критично:** при 30+ главах или частом сохранении персонажей. Сейчас терпимо, но с ростом книг станет ощутимым.
-
-**Решение:** перенести regexp-поиск на уровень PostgreSQL через RPC-функцию. PostgreSQL `regexp_matches` + `tsvector` (если добавить FTS-индекс на `chapters.content`) сделает поиск за один запрос на стороне сервера без передачи контента по сети.
-
-**Шаги реализации:**
-1. Миграция: создать SQL-функцию `sync_character_chapters(character_id uuid, book_id uuid, aliases text[])` которая делает всё в одном atomic блоке: regexp-поиск по `chapters.content`, upsert/delete в `chapter_characters`
-2. В `src/lib/crossrefs.ts` — заменить `syncCharacterAcrossAllChapters` на вызов RPC: `supabase.rpc('sync_character_chapters', { character_id, book_id, aliases })`
-3. Аналогично рассмотреть `findNameVariantsInText` — тоже тянет весь контент глав
-
-**Файлы:** `supabase/migrations/` (новая функция), `src/lib/crossrefs.ts`
-**Проверить:** сохранение персонажа с 3 псевдонимами в книге из 40 глав → вкладка Network показывает 1 запрос вместо 3; главы корректно определяются в `chapter_characters`
-
----
-
-### ARCH-4. Performance instrumentation — нет метрик Supabase-запросов
-
-**Проблема:** нет никакого инструмента для измерения производительности запросов к Supabase в продакшене. Невозможно объективно понять, какой запрос тормозит и насколько помогает оптимизация. Единственный `performance.now()` — самодельный, только на лендинге.
-
-**Sentry уже подключён** (`@sentry/react` в `src/main.tsx`) — достаточно добавить инструментирование в существующий код.
-
-**Решение:**
-1. В `src/lib/repository.ts` обернуть все методы в timing-wrapper с `Sentry.metrics.distribution` (или `performance.measure`) — одно место, покрывает все таблицы автоматически
-2. Добавить трассировку для `listChapters`, `listCharacters`, `syncCharacterAcrossAllChapters` — три самых тяжёлых запроса
-3. Опционально: Playwright E2E assertion на время загрузки страницы Characters (`expect(duration).toBeLessThan(2000)`)
-
-**Шаги реализации:**
-1. В `createRepository` (repository.ts) — обернуть `list/create/update/delete` в `performance.mark` + `performance.measure`, отправлять в Sentry через `Sentry.addBreadcrumb` или `Sentry.metrics`
-2. В `src/lib/characters.ts` — аналогично для `listCharacters`
-3. Проверить что метрики появляются в Sentry Dashboard → Performance
-
-**Файлы:** `src/lib/repository.ts`, `src/lib/characters.ts`
-**Проверить:** открыть Characters → Sentry → Performance → появились spans `db.characters.list` с временем выполнения
-
----
 
 ### ARCH-5. Разбивка монолитных компонентов
 
@@ -76,47 +32,12 @@ _Обновлён: 2026-06-13_ — Виртуализация CharacterGrid: @ta
 2. `Timeline.tsx` → выделить `TimelineEventCard.tsx`, `TimelineFilters.tsx`
 3. `Landing.tsx` → выделить секционные блоки (FeaturesSection, ProcessSection, PricingSection)
 
-**Критерий готовности:** ни один файл в `src/pages/` и `src/components/` не превышает 400 строк.
+**Прогресс:** Characters.tsx 1192 → 669 строк ✅ (HeroBlock, RelationsBlock, ChaptersTab, FieldCard вынесены). Timeline.tsx 1221 → 965 строк (EventCard, Filters вынесены). Landing.tsx 1057 строк — не тронута.
 
-**Файлы:** `src/pages/Characters.tsx`, `src/pages/Timeline.tsx`, `src/pages/Landing.tsx`, новые файлы в `src/components/`
-**Проверить:** typecheck чистый; визуально страницы не изменились; git diff следующего коммита читаем
+**Что осталось:** Landing.tsx — выделить FeaturesSection, ProcessSection, PricingSection в `src/components/`.
 
----
-
-### ARCH-6. Тесты для критического кода — repository.ts и queries.ts не покрыты
-
-**Проблема:** самые важные части data layer (`repository.ts`, `queries.ts`) не имеют unit-тестов. Изменение `createRepository` или `QUERY_KEYS` может сломать весь data layer без видимого сигнала до E2E.
-
-**Что покрыть в первую очередь:**
-- `repository.ts` — `list` с лимитом, обработка ошибок → `DbError`, `create` с дефолтами
-- `queries.ts` — стабильность ключей `QUERY_KEYS` (регрессия при переименовании)
-- `crossrefs.ts` — `extractCharacterMentions` для кириллических имён с lookaround (особенно баг с `\b` для кириллицы)
-
-**Шаги реализации:**
-1. Создать `src/lib/__tests__/repository.test.ts` — мокировать `supabase` через `vi.mock('../supabase')`
-2. Создать `src/lib/__tests__/crossrefs.test.ts` — юнит-тесты `extractCharacterMentions` без моков (чистая функция)
-3. Создать `src/lib/__tests__/queries.test.ts` — проверить стабильность ключей `QUERY_KEYS`
-
-**Файлы:** `src/lib/__tests__/repository.test.ts` (новый), `src/lib/__tests__/crossrefs.test.ts` (новый), `src/lib/__tests__/queries.test.ts` (новый)
-**Проверить:** `npm test` → все три файла зелёные; `extractCharacterMentions('Анна', ['Аня'])` → верно для кириллицы
-
----
-
-### ARCH-7. RLS initplan — `auth.uid()` re-evaluates per-row
-
-**Проблема:** Supabase advisors зафиксировали `auth_rls_initplan` на **10 таблицах**: `books`, `chapters`, `characters`, `character_relations`, `chapter_characters`, `timeline_events`, `locations`, `notes`, `profiles`, `writing_snapshots`. Все политики используют `auth.uid()` напрямую — Postgres вычисляет его заново для каждой строки вместо одного вычисления на запрос. На таблицах с большим числом строк это full-scan × cost-per-row.
-
-**Когда критично:** при 1 000+ строк на `book_id` (главы большого проекта, timeline с событиями). Сейчас незаметно; становится ощутимым при росте данных.
-
-**Решение:** заменить `auth.uid()` на `(select auth.uid())` во всех `WHERE`/`USING` условиях RLS. PostgreSQL превращает его в initplan — вычисляется один раз на весь запрос.
-
-**Шаги реализации:**
-1. Для каждой из 10 таблиц: `ALTER POLICY ... USING ((select auth.uid()) = user_id)`
-2. Применить через Supabase MCP одной миграцией
-3. Проверить через `EXPLAIN (ANALYZE, FORMAT JSON)` что initplan стал `Result` а не повторным вызовом
-
-**Файлы:** `supabase/migrations/` (новая миграция `fix_rls_initplan.sql`)
-**Проверить:** `EXPLAIN SELECT * FROM characters WHERE book_id = '...'` — `InitPlan` со статическим результатом; `Rows Removed by RLS` не растёт пропорционально числу строк
+**Файлы:** `src/pages/Landing.tsx`, новые файлы в `src/components/`
+**Проверить:** typecheck чистый; визуально лендинг не изменился
 
 ---
 
@@ -244,11 +165,11 @@ _Обновлён: 2026-06-13_ — Виртуализация CharacterGrid: @ta
 - ✅ `src/components/SettingsModal.tsx` — кнопки «Оформить» подключены к `create-payment-url`; страница `/payment-success` с поллингом
 - ✅ E2E тестовый платёж Pro пройден (IsTest=1): `profiles.plan = 'pro'` обновился, страница `/payment-success` показала успех
 
-**Что осталось:**
-1. **Переключить на боевой режим:** изменить `ROBOKASSA_IS_TEST` с `true` на `false` в Supabase Vault
-2. **Тестовый боевой платёж 1 ₽** — убедиться что подпись, webhook и `profiles.plan` работают в продакшене
-3. **Проверить возвраты** — через Robokassa ЛК (ручной возврат) убедиться что средства возвращаются
-4. **E2E Lifetime** — тестовый платёж с `plan=lifetime` → `lifetime_slots_remaining` убывает → `profiles.plan = 'lifetime'`
+**Что осталось (блокирует монетизацию):**
+1. **Переключить на боевой режим:** `ROBOKASSA_IS_TEST` → `false` в Supabase Vault — **1 клик**
+2. **Тестовый боевой платёж 1 ₽** — проверить подпись + webhook + `profiles.plan` в проде
+3. **E2E Lifetime** — тестовый платёж `plan=lifetime` → `lifetime_slots_remaining` убывает
+4. **Проверить возвраты** — через Robokassa ЛК (ручной возврат)
 
 **Рекуррентные — отдельная фаза после первых платежей:**
 - Сохранять `InvId` первого платежа → продление через Robokassa Recurring API с `PreviousInvoiceID`
@@ -331,117 +252,6 @@ _Обновлён: 2026-06-13_ — Виртуализация CharacterGrid: @ta
 
 
 
-### 9. VK OAuth — авторизация через ВКонтакте
-
-**Что это:** альтернативный способ входа для российских пользователей, которые не используют Google. ВКонтакте — основная площадка писательских сообществ в РФ.
-
-**Контекст:** Google регулятивно нестабилен в РФ и периодически throttled РКН. Email + Telegram покрывают ~90% аудитории; VK добавит покрытие писательской ниши. **Supabase НЕ поддерживает VK как встроенный провайдер** (`provider: 'vk'` не существует в supabase-js). Реализация — через Edge Function по образцу `telegram-auth`.
-
----
-
-#### Технические детали (исследовано 2026-06-11)
-
-VK ID использует **OAuth 2.1 + PKCE** (не старый `oauth.vk.com`). Документация: [id.vk.com/about/business/go/docs](https://id.vk.com/about/business/go/docs/ru/vkid/latest/vk-id/intro/plan)
-
-**Эндпоинты VK ID:**
-
-| Шаг | URL | Метод |
-|---|---|---|
-| Авторизация | `https://id.vk.com/authorize` | GET (редирект) |
-| Обмен кода на токен | `https://id.vk.com/oauth2/auth` | POST form-urlencoded |
-| Данные пользователя | `https://id.vk.ru/oauth2/user_info` | GET, `Authorization: Bearer` |
-
-**Параметры авторизационного URL:**
-```
-https://id.vk.com/authorize
-  ?response_type=code
-  &client_id=APP_ID
-  &redirect_uri=https://avtorstudio.com/login
-  &scope=vkid.personal_info%20email
-  &state=RANDOM_NONCE
-  &code_challenge=BASE64URL(SHA256(code_verifier))
-  &code_challenge_method=S256
-```
-
-**Параметры token exchange (POST body):**
-```
-grant_type=authorization_code
-&client_id=APP_ID
-&code=AUTHORIZATION_CODE
-&redirect_uri=https://avtorstudio.com/login
-&device_id=DEVICE_ID        ← приходит вместе с code в redirect URL
-&code_verifier=CODE_VERIFIER
-```
-> ⚠️ `client_secret` не нужен — PKCE заменяет его. `device_id` — обязательный параметр, без него token exchange завалится.
-
-**Token response:**
-```json
-{ "access_token": "vk2.a.WYs8...", "expires_in": 3600, "refresh_token": "vk2.a.zYe8...", "user_id": 123456789 }
-```
-
-**UserInfo response** (`GET https://id.vk.ru/oauth2/user_info`, `Authorization: Bearer ACCESS_TOKEN`):
-```json
-{ "user": { "user_id": "123456789", "first_name": "Иван", "last_name": "Иванов", "email": "user@example.com", "avatar": "https://sun9-xxx.userapi.com/..." } }
-```
-> Email возвращается только если `scope=email` и у пользователя есть подтверждённый email — не гарантирован. Нужна стратегия фолбэка при создании аккаунта без email.
-
----
-
-#### Почему Custom Supabase OAuth Provider не подходит
-
-Supabase Custom Provider не умеет передавать `device_id` при обмене кода — он приходит вместе с `code` в redirect URL, но Supabase его игнорирует. Без `device_id` VK ID отклонит token exchange.
-
----
-
-#### Схема реализации (Edge Function)
-
-```
-Браузер → генерирует code_verifier/challenge → редирект на id.vk.com/authorize
-         ← ?code=X&device_id=Y&state=Z в redirect URI
-Браузер → POST /functions/v1/vk-auth { code, device_id, code_verifier }
-         → Edge Function: POST id.vk.com/oauth2/auth → access_token
-         → Edge Function: GET id.vk.ru/oauth2/user_info → { user }
-         → Edge Function: supabase.auth.admin.createUser / getUserByEmail
-         → возвращает token_hash
-Браузер: supabase.auth.verifyOtp({ token_hash, type: 'magiclink' }) → сессия
-```
-
-PKCE-пара генерируется на **фронтенде** (или в Edge Function), `code_verifier` передаётся вместе с `code` в Edge Function при обратном вызове.
-
----
-
-#### Что нужно сделать
-
-**Шаг 0 — Создать VK ID приложение:**
-1. Зайти на [id.vk.com/about/business/go](https://id.vk.com/about/business/go/) → «Подключить»
-2. Тип: **Веб-сайт**
-3. Redirect URI: `https://avtorstudio.com/login`
-4. Получить **App ID** (= client_id) — клиентский секрет не нужен
-
-**Шаг 1 — Edge Function** `supabase/functions/vk-auth/index.ts`:
-- Принимает `{ code, device_id, code_verifier }`
-- POST на `id.vk.com/oauth2/auth` → токен
-- GET на `id.vk.ru/oauth2/user_info` → профиль
-- `supabase.auth.admin.getUserById` / `createUser` → `token_hash`
-- Возвращает `{ token_hash }`
-
-**Шаг 2 — `src/lib/auth.tsx`:**
-- Добавить `signInWithVK(code, deviceId, codeVerifier): Promise<{error: string|null}>`
-- Добавить в `AuthContextValue` и `AuthProvider`
-
-**Шаг 3 — `src/pages/Auth.tsx`:**
-- Кнопка «Войти через ВК» с иконкой VK
-- При клике: генерировать PKCE-пару → сохранить `code_verifier` в `sessionStorage` → редирект на `id.vk.com/authorize`
-- В `useEffect`: если в URL есть `?code=` и `?provider=vk` → достать `code_verifier` из `sessionStorage` → вызвать `signInWithVK`
-
-**Env:**
-- `VITE_VK_APP_ID` — публичный (во фронтенде)
-- Секреты не нужны (PKCE, без client_secret)
-
-**Файлы:** `supabase/functions/vk-auth/index.ts` (новый), `src/lib/auth.tsx`, `src/pages/Auth.tsx`  
-**Проверить:** клик «Войти через VK» → редирект на VK → авторизация → возврат на `/login` → `session.user` установлен → редирект в `/books` → повторный вход без ввода данных
-
----
 
 ## Фичи на исследование
 
@@ -451,6 +261,23 @@ PKCE-пара генерируется на **фронтенде** (или в Ed
 ---
 
 
+
+### R0. Ручная отрисовка на карте мира
+
+**Контекст:** лендинг показывает карту с горами, лесами, реками, дорогами — нарисованными вручную. Реальное приложение даёт только пины на шаблонном фоне. Пользователь хочет, чтобы приложение соответствовало лендингу (решено 2026-06-13).
+
+**Что нужно:**
+- Инструмент рисования поверх шаблона карты: карандаш, форма (горы, лес, вода), ластик
+- Слои: фоновый шаблон (parchment/sea/paper/dark) + вектор/растр поверх
+- Экспорт итоговой карты в PNG (уже есть `mapExport.ts`, дополнить слоями)
+
+**Подходы:** SVG-редактор (fabricjs, konva) + конвертация в base64 для хранения в `map_data`.
+
+**Файлы для изменения:** `src/pages/Map.tsx`, `src/lib/mapExport.ts`, `src/lib/mapTemplates.ts`
+
+**Приоритет:** до публичного запуска (лендинг обещает этот функционал).
+
+---
 
 ### R1. Страница профиля пользователя + загрузка аватара
 

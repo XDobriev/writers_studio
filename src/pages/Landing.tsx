@@ -499,10 +499,23 @@ function MockWorld() {
 const _MD_WEEKS = 52;
 const _MD_CELLS = Array.from({ length: _MD_WEEKS * 7 }, (_, i) => {
   const w = Math.floor(i / 7), d = i % 7;
-  if (w < _MD_WEEKS - 8) return 0;
-  const rw = w - (_MD_WEEKS - 8);
-  const r = Math.sin((rw * 7 + d) * 0.85) + Math.cos(rw * 0.5 + d * 0.3);
-  if (r > 1.1) return 4; if (r > 0.3) return 3; if (r > -0.3) return 2; if (r > -0.85) return 1; return 0;
+  // Hardcoded gaps: late-Aug micro-vacation, New Year, early-Apr slump
+  if ((w === 7 && d >= 4) || (w === 8 && d <= 0)) return 0;
+  if ((w === 24 && d >= 5) || (w === 25 && d <= 1)) return 0;
+  if (w === 38 && d >= 4) return 0;
+  // Deterministic rest ~14% of days (product of two sines rarely exceeds 0.72)
+  const p = Math.sin(w * 2.39 + d * 3.71) * Math.sin(w * 4.13 + d * 1.97 + 2.3);
+  if (p > 0.72) return 0;
+  // Weekends: ~25% extra chance of rest
+  if (d >= 5 && Math.cos(w * 3.17 + d) > 0.55) return 0;
+  // Intensity: layered waves → natural rhythm
+  const f = Math.sin(w * 0.29 + d * 0.73) * 0.55
+          + Math.cos(w * 0.47 + d * 1.03) * 0.4
+          + Math.sin(w * 0.83 + 1.1) * 0.3;
+  if (f > 0.9) return 4;
+  if (f > 0.25) return 3;
+  if (f > -0.3) return 2;
+  return 1;
 });
 const _MD_WEEK_TOTALS = Array.from({ length: _MD_WEEKS }, (_, w) =>
   _MD_CELLS.slice(w * 7, w * 7 + 7).reduce((a, v) => a + v, 0 as number)
@@ -525,7 +538,7 @@ function MockDashboard() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexShrink: 0 }}>
         <span style={{ font: '500 11px var(--font-ui)', color: 'var(--ink)' }}>История активности</span>
-        <span style={{ font: '400 9.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em' }}>рекорд: 1 478 слов</span>
+        <span style={{ font: '400 9.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em' }}>рекорд: 2 341 слов</span>
       </div>
 
       {/* Month labels — same flex structure as grid columns */}
@@ -576,21 +589,23 @@ function MockDashboard() {
       <div style={{ flex: 1, minHeight: 44, display: 'flex', flexDirection: 'column', gap: 5 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexShrink: 0 }}>
           <span style={{ font: '500 8px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Накопленный объём</span>
-          <span style={{ font: '400 9px var(--font-mono)', color: 'var(--ink-3)' }}>+1 086 за период</span>
+          <span style={{ font: '400 9px var(--font-mono)', color: 'var(--ink-3)' }}>+143 200 за год</span>
         </div>
-        <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
-          <svg viewBox="0 0 300 56" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <svg viewBox="0 0 300 56" preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
             <defs>
               <linearGradient id="mdAreaGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="oklch(0.63 0.16 30)" stopOpacity="0.32" />
                 <stop offset="100%" stopColor="oklch(0.63 0.16 30)" stopOpacity="0.02" />
               </linearGradient>
             </defs>
-            <path d="M0 50 C 22 44 48 28 80 14 C 112 4 132 3 158 3 C 200 3 250 3 300 4 L300 56 L0 56Z" fill="url(#mdAreaGrad)" />
-            <path d="M0 50 C 22 44 48 28 80 14 C 112 4 132 3 158 3 C 200 3 250 3 300 4" fill="none" stroke="oklch(0.63 0.16 30)" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M0 54 C 35 53 80 48 130 36 C 175 24 230 12 300 4 L300 56 L0 56Z" fill="url(#mdAreaGrad)" />
+            <path d="M0 54 C 35 53 80 48 130 36 C 175 24 230 12 300 4" fill="none" stroke="oklch(0.63 0.16 30)" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
-          <span style={{ position: 'absolute', bottom: 0, left: 0, font: '400 8px var(--font-mono)', color: 'var(--ink-4)' }}>226 слов</span>
-          <span style={{ position: 'absolute', bottom: 0, right: 0, font: '400 8px var(--font-mono)', color: 'var(--ink-4)' }}>1 312 слов сейчас</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', flexShrink: 0 }}>
+          <span style={{ font: '400 8px var(--font-mono)', color: 'var(--ink-4)' }}>8 400 слов</span>
+          <span style={{ font: '400 8px var(--font-mono)', color: 'var(--ink-4)' }}>151 600 слов</span>
         </div>
       </div>
     </div>

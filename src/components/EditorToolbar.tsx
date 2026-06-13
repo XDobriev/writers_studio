@@ -16,10 +16,10 @@ interface ToolbarProps {
 
 export function ModeSegment({ mode, setMode }: { mode: EditorMode; setMode: (m: EditorMode) => void }) {
   const opts: Array<[EditorMode, Parameters<typeof Icon>[0]['name'], string]> = [
-    ['studio', 'layout', 'Фокус — обе боковые панели рядом с текстом'],
-    ['left', 'panel', 'Структура — список глав, без правой панели'],
+    ['studio', 'layout', 'Студия — обе боковые панели рядом с текстом'],
+    ['left', 'panel', 'Рукопись — оглавление глав, без правой панели'],
     ['right', 'note', 'Сплит — редактор и заметки рядом'],
-    ['page', 'focus', 'Страница — чистый лист, без боковых панелей'],
+    ['page', 'focus', 'Фокус — чистый лист, без боковых панелей'],
   ];
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-deep)', border: '1px solid var(--border-soft)' }}>
