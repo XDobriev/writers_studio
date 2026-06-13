@@ -87,6 +87,7 @@ npm run preview    # превью продакшен-сборки
 - `src/pages/Export.tsx` — экспорт: DOCX, EPUB, FB2, HTML.
 - `src/pages/Admin.tsx` + `AdminAnalytics.tsx` — AdminOnly: управление пользователями.
 - `src/pages/AdminUserDetail.tsx` — карточка пользователя `/admin/users/:id`: книги, история плана, сброс пароля.
+- `src/pages/Auth.tsx` — авторизация и регистрация: Telegram, VK ID 2.1, email/пароль; вкладки signin/signup, восстановление пароля.
 - `src/pages/Landing.tsx` — публичный лендинг.
 - `src/pages/Offer.tsx` — публичная страница оферты `/offer`: тарифы, цены, возврат, акцепт.
 - `src/pages/PaymentSuccess.tsx` — страница `/payment-success` после редиректа Робокассы: 3 состояния (`checking` / `success` / `timeout`), поллинг `getProfile` каждые 2с до смены плана или 30с таймаута.
@@ -130,7 +131,7 @@ npm run preview    # превью продакшен-сборки
 
 - Клиент читает `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY` из `.env`.
 - Миграции: `supabase/migrations/*.sql`. Применять через Supabase MCP (`apply_migration` / `execute_sql`). CLI локально не используется.
-- Edge Functions: `supabase/functions/telegram-auth/` — авторизация через Telegram. `supabase/functions/robokassa-webhook/` — вебхук Робокассы: Pro/Lifetime-подписки, декремент lifetime_slots, grandfathered (требует Secrets: `ROBOKASSA_MERCHANT_LOGIN`, `ROBOKASSA_PASSWORD2`, опционально `GRANDFATHERING_ENDS_AT`).
+- Edge Functions: `supabase/functions/telegram-auth/` — авторизация через Telegram. `supabase/functions/robokassa-webhook/` — вебхук Робокассы: Pro/Lifetime-подписки, декремент lifetime_slots, grandfathered (требует Secrets: `ROBOKASSA_MERCHANT_LOGIN`, `ROBOKASSA_PASSWORD2`, опционально `GRANDFATHERING_ENDS_AT`). `supabase/functions/vk-auth/` — авторизация через VK ID 2.1: верификация access_token, создание пользователя, возврат token_hash.
 - **При добавлении таблиц: обязательно RLS** `auth.uid() = user_id` (образец: `0001_init.sql`).
 - **При добавлении таблиц: обязательно GRANT** (с 30.10.2026 без него supabase-js не видит таблицу): `GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.<table> TO anon, authenticated;`
 - Auth URL: `site_url=https://avtorskaya-studiya.vercel.app`, allow-list включает прод + `avtorskaya-studiya-*.vercel.app` + `localhost:5273`.
