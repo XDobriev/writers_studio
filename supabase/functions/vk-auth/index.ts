@@ -34,16 +34,20 @@ Deno.serve(async (req) => {
   }
 
   const { access_token, user_id } = body;
-  if (!access_token || !user_id) return json(400, { error: 'access_token and user_id are required' });
+  if (!access_token || user_id == null) return json(400, { error: 'access_token and user_id are required' });
 
-  // Верифицируем токен через VK API
-  const vkRes = await fetch(
-    `https://api.vk.com/method/users.get?access_token=${encodeURIComponent(access_token)}&fields=first_name,last_name,photo_100&v=5.199`,
-  );
-  const vkData = await vkRes.json() as VkUserResponse;
+  let vkData: VkUserResponse;
+  try {
+    const vkRes = await fetch(
+      `https://api.vk.com/method/users.get?access_token=${encodeURIComponent(access_token)}&fields=first_name,last_name,photo_100&v=5.199`,
+    );
+    vkData = await vkRes.json() as VkUserResponse;
+  } catch {
+    return json(502, { error: 'vk api unreachable' });
+  }
 
   if (vkData.error || !vkData.response?.[0]) {
-    return json(401, { error: `vk token invalid: ${vkData.error?.error_msg ?? 'no response'}` });
+    return json(401, { error: 'vk token invalid' });
   }
 
   const vkUser = vkData.response[0];
@@ -62,7 +66,6 @@ Deno.serve(async (req) => {
     provider: 'vk',
   };
 
-  // Поиск существующего пользователя по синтетическому email
   let userId: string | null = null;
   for (let page = 1; page <= 5; page++) {
     const { data: list, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
@@ -81,7 +84,8 @@ Deno.serve(async (req) => {
     if (error || !created.user) return json(500, { error: `createUser failed: ${error?.message ?? 'unknown'}` });
     userId = created.user.id;
   } else {
-    await admin.auth.admin.updateUserById(userId, { user_metadata: meta });
+    const { error: updateErr } = await admin.auth.admin.updateUserById(userId, { user_metadata: meta });
+    if (updateErr) return json(500, { error: `updateUser failed: ${updateErr.message}` });
   }
 
   const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
