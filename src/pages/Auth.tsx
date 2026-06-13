@@ -161,7 +161,7 @@ export default function Auth() {
               const tokenData = await VKID.Auth.exchangeCode(code, device_id);
               const vkUserId = tokenData.user?.id ?? tokenData.user_id ?? 0;
               const { error } = await signInWithVk(tokenData.access_token, vkUserId);
-              if (error) setErr(`VK: ${error}`);
+              if (error) setErr(`VK: ${te(error)}`);
             } catch {
               setErr('Ошибка авторизации VK. Попробуйте ещё раз.');
             } finally {
