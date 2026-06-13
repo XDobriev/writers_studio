@@ -1345,7 +1345,7 @@ select.input {
   .lnd-note-in.n2 { animation-delay: 0.75s; }
   .lnd-nav-links a { transition: color 0.15s ease; }
   .lnd-nav-login { transition: color 0.15s ease; }
-  .lnd-foot-link, .lnd-foot-link--sub { transition: color 0.15s ease; }
+  .lnd-foot-link, .lnd-foot-link--sub, .lnd-foot-icon { transition: color 0.15s ease; }
   .faq-chevron { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1), color 0.15s ease; }
   .faq-body { transition: height 0.3s cubic-bezier(0.16,1,0.3,1); }
   .lnd-browser-mock { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }
@@ -1369,6 +1369,8 @@ select.input {
 .lnd-foot-link:hover { color: var(--ink); }
 .lnd-foot-link--sub { color: var(--ink-3); }
 .lnd-foot-link--sub:hover { color: var(--ink-2); }
+.lnd-foot-icon { color: var(--ink-3); display: inline-flex; align-items: center; }
+.lnd-foot-icon:hover { color: var(--ink-2); }
 .faq-chevron { color: var(--ink-3); }
 .faq-trigger:hover .faq-chevron { color: var(--ink-2); }
 .lnd-manifesto { display: flex; flex-direction: column; }
