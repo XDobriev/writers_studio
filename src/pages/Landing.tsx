@@ -35,28 +35,6 @@ function useScramble(text: string, trigger: boolean): string {
   return display;
 }
 
-function useCounter(target: number, active: boolean, duration = 1200): number {
-  const [value, setValue] = useState(() =>
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches ? target : 0
-  );
-  const rafRef = useRef<number>(0);
-  useEffect(() => {
-    if (!active) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setValue(target);
-      return;
-    }
-    const start = performance.now();
-    const tick = (now: number) => {
-      const p = Math.min((now - start) / duration, 1);
-      setValue(Math.round((1 - Math.pow(1 - p, 3)) * target));
-      if (p < 1) rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [active, target, duration]);
-  return value;
-}
 
 const MC = [
   { num: 1, title: 'Город, которого нет', status: 'done' as const },
@@ -282,7 +260,7 @@ function LandingFeatures() {
         <SectionLabel title="Студия, а не текстовое поле." subtitle="Каждая часть книги живёт рядом с рукописью — не в отдельном приложении, не на отдельной вкладке. Открыли главу — видите её мир." />
         <FeatureRowFull
           headline="Четыре режима. Один редактор."
-          body="Полная студия с заметками и оглавлением — для редактуры. Только страница — для черновика. Промежуточные режимы — для всего, что между. Состояние помнит, на каком вы остановились."
+          body="Студия открывает все панели — для глубокой редактуры. Фокус убирает лишнее — для чистого черновика. Рукопись и Сплит — для работы между крайностями. Редактор помнит, на каком режиме вы остановились."
           mock={<MockEditorModesStrip />}
         />
         <FeatureRow
@@ -410,46 +388,59 @@ function MockEditorModesStrip() {
     </div>
   );
 
+  const RightCards = () => (
+    <div style={{ background: 'var(--bg-deep)', padding: '8px 5px', borderLeft: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ background: 'color-mix(in oklch, var(--accent-2) 8%, var(--surface))', border: '1px solid color-mix(in oklch, var(--accent-2) 22%, var(--border-soft))', borderRadius: 3, padding: '4px 5px' }}>
+        <div style={{ height: 2, background: 'var(--ink-3)', opacity: 0.5, borderRadius: 1, marginBottom: 3, width: '60%' }} />
+        <div style={{ height: 2, background: 'var(--ink)', opacity: 0.4, borderRadius: 1, width: '85%' }} />
+        <div style={{ height: 2, background: 'var(--ink)', opacity: 0.35, borderRadius: 1, marginTop: 2, width: '70%' }} />
+      </div>
+      <div style={{ background: 'color-mix(in oklch, var(--info) 8%, var(--surface))', border: '1px solid color-mix(in oklch, var(--info) 22%, var(--border-soft))', borderRadius: 3, padding: '4px 5px' }}>
+        <div style={{ height: 2, background: 'var(--ink-3)', opacity: 0.5, borderRadius: 1, marginBottom: 3, width: '50%' }} />
+        <div style={{ height: 2, background: 'var(--ink)', opacity: 0.4, borderRadius: 1, width: '90%' }} />
+      </div>
+    </div>
+  );
+
   return (
-    <div data-theme="dark" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
+    <div data-theme="dark" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
       <ModePane label="Студия" desc="все панели открыты">
         <div style={{ height: '100%', display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', background: 'var(--bg)' }}>
-          <div style={{ background: 'var(--bg-deep)', padding: '8px 6px', borderRight: '1px solid var(--border-soft)' }}>
+          <div style={{ background: 'var(--bg-deep)', padding: '8px 5px', borderRight: '1px solid var(--border-soft)' }}>
             {MC.slice(0, 4).map((c, i) => (
-              <div key={c.num} style={{ height: 9, borderRadius: 2, background: i === 0 ? 'var(--surface)' : 'transparent', marginBottom: 4 }} />
+              <div key={c.num} style={{ height: 8, borderRadius: 2, background: i === 0 ? 'var(--surface)' : 'transparent', marginBottom: 4 }} />
             ))}
           </div>
-          <div style={{ padding: '10px 6px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+          <div style={{ padding: '10px 5px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
             <Paper />
           </div>
-          <div style={{ background: 'var(--bg-deep)', padding: '8px 6px', borderLeft: '1px solid var(--border-soft)' }}>
-            <div style={{ background: 'color-mix(in oklch, var(--accent-2) 8%, var(--surface))', border: '1px solid color-mix(in oklch, var(--accent-2) 22%, var(--border-soft))', borderRadius: 3, padding: '4px 5px', marginBottom: 5 }}>
-              <div style={{ height: 2, background: 'var(--ink-3)', opacity: 0.5, borderRadius: 1, marginBottom: 3, width: '60%' }} />
-              <div style={{ height: 2, background: 'var(--ink)', opacity: 0.4, borderRadius: 1, width: '85%' }} />
-              <div style={{ height: 2, background: 'var(--ink)', opacity: 0.35, borderRadius: 1, marginTop: 2, width: '70%' }} />
-            </div>
-            <div style={{ background: 'color-mix(in oklch, var(--info) 8%, var(--surface))', border: '1px solid color-mix(in oklch, var(--info) 22%, var(--border-soft))', borderRadius: 3, padding: '4px 5px' }}>
-              <div style={{ height: 2, background: 'var(--ink-3)', opacity: 0.5, borderRadius: 1, marginBottom: 3, width: '50%' }} />
-              <div style={{ height: 2, background: 'var(--ink)', opacity: 0.4, borderRadius: 1, width: '90%' }} />
-            </div>
-          </div>
+          <RightCards />
         </div>
       </ModePane>
 
       <ModePane label="Рукопись" desc="оглавление + текст">
         <div style={{ height: '100%', display: 'grid', gridTemplateColumns: '1fr 2.5fr', background: 'var(--bg)' }}>
-          <div style={{ background: 'var(--bg-deep)', padding: '8px 6px', borderRight: '1px solid var(--border-soft)' }}>
+          <div style={{ background: 'var(--bg-deep)', padding: '8px 5px', borderRight: '1px solid var(--border-soft)' }}>
             {MC.slice(0, 4).map((c, i) => (
-              <div key={c.num} style={{ height: 9, borderRadius: 2, background: i === 0 ? 'var(--surface)' : 'transparent', marginBottom: 4 }} />
+              <div key={c.num} style={{ height: 8, borderRadius: 2, background: i === 0 ? 'var(--surface)' : 'transparent', marginBottom: 4 }} />
             ))}
           </div>
-          <div style={{ padding: '10px 8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+          <div style={{ padding: '10px 6px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
             <Paper />
           </div>
         </div>
       </ModePane>
 
-      <ModePane label="Страница" desc="только текст">
+      <ModePane label="Сплит" desc="текст + заметки">
+        <div style={{ height: '100%', display: 'grid', gridTemplateColumns: '2.5fr 1fr', background: 'var(--bg)' }}>
+          <div style={{ padding: '10px 6px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+            <Paper />
+          </div>
+          <RightCards />
+        </div>
+      </ModePane>
+
+      <ModePane label="Фокус" desc="только текст">
         <div style={{ height: '100%', background: 'var(--bg)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 18 }}>
           <Paper narrow />
         </div>
@@ -505,67 +496,101 @@ function MockWorld() {
   );
 }
 
-function MockDashboard() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const inView = useInView(containerRef, { once: true, margin: '-40px' });
-  const words = useCounter(21540, inView);
-  const days = useCounter(7, inView);
-  const workDays = useCounter(48, inView);
-  const fmtWords = (n: number) => n < 1000 ? String(n) : `${Math.floor(n / 1000)} ${String(n % 1000).padStart(3, '0')}`;
+const _MD_WEEKS = 52;
+const _MD_CELLS = Array.from({ length: _MD_WEEKS * 7 }, (_, i) => {
+  const w = Math.floor(i / 7), d = i % 7;
+  if (w < _MD_WEEKS - 8) return 0;
+  const rw = w - (_MD_WEEKS - 8);
+  const r = Math.sin((rw * 7 + d) * 0.85) + Math.cos(rw * 0.5 + d * 0.3);
+  if (r > 1.1) return 4; if (r > 0.3) return 3; if (r > -0.3) return 2; if (r > -0.85) return 1; return 0;
+});
+const _MD_WEEK_TOTALS = Array.from({ length: _MD_WEEKS }, (_, w) =>
+  _MD_CELLS.slice(w * 7, w * 7 + 7).reduce((a, v) => a + v, 0 as number)
+);
+const _MD_MAX_WEEK = Math.max(..._MD_WEEK_TOTALS, 1);
+const _MD_MONTHS: { [k: number]: string } = {
+  0: 'июль', 4: 'авг', 9: 'сент', 13: 'окт',
+  17: 'нояб', 22: 'дек', 26: 'янв', 30: 'февр',
+  35: 'март', 39: 'апр', 43: 'май', 48: 'июнь',
+};
 
-  const WEEKS = 24;
-  const cells = Array.from({ length: WEEKS * 7 }, (_, i) => {
-    const w = Math.floor(i / 7), d = i % 7;
-    if (w < 2 && d < 4) return 0;
-    const r = Math.sin((w * 7 + d) * 0.7) + Math.cos(w * 0.3 + d);
-    if (r > 1.2) return 4; if (r > 0.4) return 3; if (r > -0.2) return 2; if (r > -0.9) return 1; return 0;
-  });
-  const weekTotals = Array.from({ length: WEEKS }, (_, w) => cells.slice(w * 7, w * 7 + 7).reduce((s: number, v) => s + v, 0));
-  const maxWeek = Math.max(...weekTotals, 1);
-  const hc = (v: number) => (['var(--surface-3)', 'oklch(0.63 0.16 30 / 0.28)', 'oklch(0.63 0.16 30 / 0.52)', 'oklch(0.63 0.16 30 / 0.76)', 'var(--accent)'] as const)[v];
+function MockDashboard() {
+  const CELL = 7, GAP = 2, DAY_W = 16;
+  const hc = (v: number) => (
+    ['var(--surface-2)', 'oklch(0.63 0.16 30/0.25)', 'oklch(0.63 0.16 30/0.5)', 'oklch(0.63 0.16 30/0.75)', 'oklch(0.63 0.16 30)'] as const
+  )[v];
 
   return (
-    <div ref={containerRef} style={{ height: '100%', padding: 20, background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
-        {([
-          [fmtWords(words), 'слов', '+348'],
-          [String(days), 'дней подряд', 'серия'],
-          [String(workDays), 'рабочих дней', 'из 184'],
-        ] as [string, string, string][]).map(([v, l, d], i) => (
-          <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px' }}>
-            <div style={{ font: '500 9px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 5 }}>{l}</div>
-            <div style={{ font: '600 20px var(--font-serif)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{v}</div>
-            <div style={{ font: '500 10px var(--font-mono)', color: i < 2 ? 'var(--ok)' : 'var(--ink-3)', marginTop: 2 }}>{d}</div>
+    <div style={{ height: '100%', padding: '14px 14px 10px', background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 7, overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexShrink: 0 }}>
+        <span style={{ font: '500 11px var(--font-ui)', color: 'var(--ink)' }}>История активности</span>
+        <span style={{ font: '400 9.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em' }}>рекорд: 1 478 слов</span>
+      </div>
+
+      {/* Month labels — same flex structure as grid columns */}
+      <div style={{ display: 'flex', gap: GAP, paddingLeft: DAY_W + GAP, flexShrink: 0, height: 11 }}>
+        {Array.from({ length: _MD_WEEKS }, (_, w) => (
+          <div key={w} style={{ flex: 1, minWidth: 0, font: '400 8px var(--font-mono)', color: 'var(--ink-4)', overflow: 'visible', whiteSpace: 'nowrap', lineHeight: 1 }}>
+            {_MD_MONTHS[w] ?? ''}
           </div>
         ))}
       </div>
-      <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <div style={{ font: '500 11px var(--font-ui)', color: 'var(--ink)' }}>Активность · {WEEKS} недель</div>
-          <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)' }}>Ø 161 сл/день</div>
-        </div>
-        <div style={{ display: 'flex', gap: 2 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 18, flexShrink: 0 }}>
-            {['Пн', '', 'Ср', '', 'Пт', '', 'Вс'].map((label, i) => (
-              <div key={i} style={{ height: 9, font: '400 8px var(--font-mono)', color: 'var(--ink-4)', textAlign: 'right', paddingRight: 3, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                {label}
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>
-            {Array.from({ length: WEEKS }, (_, w) => (
-              <div key={w} style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
-                {cells.slice(w * 7, w * 7 + 7).map((v, d) => (
-                  <div key={d} style={{ height: 9, borderRadius: 2, background: hc(v) }} />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div style={{ paddingLeft: 20, display: 'flex', gap: 2, alignItems: 'flex-end', height: 28 }}>
-          {weekTotals.map((w, i) => (
-            <div key={i} style={{ flex: 1, minWidth: 0, height: Math.max(2, Math.round((w / maxWeek) * 28)), borderRadius: '2px 2px 0 0', background: w > 0 ? 'oklch(0.63 0.16 30 / 0.5)' : 'var(--surface-3)' }} />
+
+      {/* Heatmap */}
+      <div style={{ display: 'flex', gap: GAP, flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, width: DAY_W, flexShrink: 0 }}>
+          {['Пн', '', 'Ср', '', 'Пт', '', 'Вс'].map((d, i) => (
+            <div key={i} style={{ height: CELL, font: '400 7px var(--font-mono)', color: 'var(--ink-4)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 3 }}>{d}</div>
           ))}
+        </div>
+        <div style={{ display: 'flex', gap: GAP, flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          {Array.from({ length: _MD_WEEKS }, (_, w) => (
+            <div key={w} style={{ display: 'flex', flexDirection: 'column', gap: GAP, flex: 1, minWidth: 0 }}>
+              {_MD_CELLS.slice(w * 7, w * 7 + 7).map((v, d) => (
+                <div key={d} style={{ height: CELL, borderRadius: 2, background: hc(v) }} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Weekly bars */}
+      <div style={{ flexShrink: 0 }}>
+        <div style={{ font: '500 8px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4, paddingLeft: DAY_W + GAP }}>Объём по неделям</div>
+        <div style={{ display: 'flex', gap: GAP, paddingLeft: DAY_W + GAP, alignItems: 'flex-end', height: 24 }}>
+          {_MD_WEEK_TOTALS.map((wt, i) => (
+            <div key={i} style={{ flex: 1, minWidth: 0, height: Math.max(1, (wt / _MD_MAX_WEEK) * 24), borderRadius: '1.5px 1.5px 0 0', background: wt > 0 ? 'oklch(0.63 0.16 30/0.5)' : 'var(--surface-2)' }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+        <span style={{ font: '400 8px var(--font-mono)', color: 'var(--ink-4)' }}>меньше</span>
+        {[0, 1, 2, 3, 4].map(v => <div key={v} style={{ width: 8, height: 8, borderRadius: 2, background: hc(v) }} />)}
+        <span style={{ font: '400 8px var(--font-mono)', color: 'var(--ink-4)' }}>больше</span>
+      </div>
+
+      {/* Cumulative area chart */}
+      <div style={{ flex: 1, minHeight: 44, display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexShrink: 0 }}>
+          <span style={{ font: '500 8px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Накопленный объём</span>
+          <span style={{ font: '400 9px var(--font-mono)', color: 'var(--ink-3)' }}>+1 086 за период</span>
+        </div>
+        <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
+          <svg viewBox="0 0 300 56" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+            <defs>
+              <linearGradient id="mdAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="oklch(0.63 0.16 30)" stopOpacity="0.32" />
+                <stop offset="100%" stopColor="oklch(0.63 0.16 30)" stopOpacity="0.02" />
+              </linearGradient>
+            </defs>
+            <path d="M0 50 C 22 44 48 28 80 14 C 112 4 132 3 158 3 C 200 3 250 3 300 4 L300 56 L0 56Z" fill="url(#mdAreaGrad)" />
+            <path d="M0 50 C 22 44 48 28 80 14 C 112 4 132 3 158 3 C 200 3 250 3 300 4" fill="none" stroke="oklch(0.63 0.16 30)" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          <span style={{ position: 'absolute', bottom: 0, left: 0, font: '400 8px var(--font-mono)', color: 'var(--ink-4)' }}>226 слов</span>
+          <span style={{ position: 'absolute', bottom: 0, right: 0, font: '400 8px var(--font-mono)', color: 'var(--ink-4)' }}>1 312 слов сейчас</span>
         </div>
       </div>
     </div>
@@ -596,7 +621,7 @@ function LandingProcess() {
               viewport={{ once: true, margin: '-60px' }}
               transition={{ delay: Math.min(i, 3) * 0.1 }}
             >
-              <div style={{ font: '600 clamp(28px,3vw,40px)/1 var(--font-serif)', color: 'var(--ink-4)', letterSpacing: '-0.02em', paddingTop: 6 }}>
+              <div style={{ font: '600 clamp(28px,3vw,40px)/1 var(--font-serif)', color: 'var(--accent)', letterSpacing: '-0.02em', paddingTop: 6 }}>
                 {String(s.n).padStart(2, '0')}
               </div>
               <div>
