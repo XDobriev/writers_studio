@@ -120,11 +120,16 @@ Deno.serve(async (req) => {
   };
 
   let userId: string | null = null;
+  let existingAppMeta: Record<string, unknown> | null = null;
   for (let page = 1; page <= 5; page++) {
     const { data: list, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
     if (error) return json(500, { error: `listUsers failed: ${error.message}` });
     const hit = list.users.find((u) => u.email === email);
-    if (hit) { userId = hit.id; break; }
+    if (hit) {
+      userId = hit.id;
+      existingAppMeta = (hit.app_metadata ?? null) as Record<string, unknown> | null;
+      break;
+    }
     if (list.users.length < 200) break;
   }
 
@@ -133,10 +138,16 @@ Deno.serve(async (req) => {
       email,
       email_confirm: true,
       user_metadata: meta,
+      app_metadata: { provider: 'vk', vk_id: Number(vkUser.user_id) },
     });
     if (error || !created.user) return json(500, { error: `createUser failed: ${error?.message ?? 'unknown'}` });
     userId = created.user.id;
   } else {
+    // Guard against pre-hijacking: reject if existing account was not created via VK.
+    // app_metadata is server-controlled and cannot be set by users through signUp.
+    if (existingAppMeta?.provider !== 'vk') {
+      return json(409, { error: 'email conflict: account exists with different provider' });
+    }
     const { error: updateErr } = await admin.auth.admin.updateUserById(userId, { user_metadata: meta });
     if (updateErr) return json(500, { error: `updateUser failed: ${updateErr.message}` });
   }

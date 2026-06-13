@@ -27,6 +27,12 @@ Sentry.init({
   environment: import.meta.env.MODE,
   enabled: !!import.meta.env.VITE_SENTRY_DSN,
   tracesSampleRate: 0.2,
+  ignoreErrors: [
+    // VK ID SDK делает внутренние запросы к id.vk.ru при инициализации виджета;
+    // если VK недоступен (блокировщик, РФ-провайдер) — летит unhandled rejection.
+    // Ошибка не в нашем коде и не требует действий с нашей стороны.
+    /Failed to fetch.*id\.vk\.ru/,
+  ],
 });
 import App from './App';
 import './styles/design-system.css';

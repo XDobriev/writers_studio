@@ -88,6 +88,7 @@ export default function Auth() {
   const tgSlotRef = useRef<HTMLDivElement | null>(null);
   const vkSlotRef = useRef<HTMLDivElement | null>(null);
   const vkHasClickedRef = useRef(false);
+  const [vkSdkFailed, setVkSdkFailed] = useState(false);
   const { isMobile } = useResponsive();
 
   useEffect(() => {
@@ -133,6 +134,8 @@ export default function Auth() {
     const script = document.createElement('script');
     script.async = true;
     script.src = 'https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js';
+
+    script.onerror = () => { setVkSdkFailed(true); };
 
     script.onload = () => {
       const VKID = window.VKIDSDK;
@@ -427,7 +430,7 @@ export default function Auth() {
                   <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', textAlign: 'center' }}>Подтверждение Telegram…</div>
                 )}
 
-                <div
+                {!vkSdkFailed && <div
                   style={{
                     position: 'relative',
                     height: 42,
@@ -453,7 +456,7 @@ export default function Auth() {
                     </span>
                   </button>
                   <div ref={vkSlotRef} style={{ position: 'absolute', inset: 0, opacity: 0, overflow: 'hidden' }} />
-                </div>
+                </div>}
               </div>
 
               {tab === 'signup' && (
