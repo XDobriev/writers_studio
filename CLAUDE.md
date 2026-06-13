@@ -78,6 +78,7 @@ npm run preview    # превью продакшен-сборки
 - `src/components/AuthGuard.tsx` — защита роутов.
 - `src/components/ErrorBoundary.tsx` — перехват краша компонентов, fallback UI.
 - `src/components/CookieBanner.tsx` — GDPR-баннер куки: Принять / Отклонить, сохраняет выбор (`accepted`|`rejected`) в `localStorage` под ключом `cookie_consent_v1`.
+- `src/components/OnboardingChecklist.tsx` — прогресс-чеклист онбординга: 4 шага (книга, слова, персонаж, экспорт), прогресс-бар, автоскрытие при завершении; используется на Home.tsx.
 - `src/styles/design-system.css` — CSS-переменные (oklch), классы `.as`, `.sb`, `.tb`, `.sheet`, `.btn`, `.input`, `.label`.
 
 ### Страницы
