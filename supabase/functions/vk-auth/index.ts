@@ -28,6 +28,18 @@ interface VkUserInfoResponse {
   error?: string;
 }
 
+interface VkApiUser {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  photo_200?: string;
+}
+
+interface VkApiResponse {
+  response?: VkApiUser[];
+  error?: { error_code: number; error_msg: string };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
@@ -46,7 +58,7 @@ Deno.serve(async (req) => {
   const { access_token, user_id } = body;
   if (!access_token || user_id == null) return json(400, { error: 'access_token and user_id are required' });
 
-  // VK ID 2.1 tokens must be verified via id.vk.com/oauth2/user_info, not api.vk.com
+  // VK ID 2.1 tokens must be verified via id.vk.com/oauth2/user_info
   let vkInfo: VkUserInfoResponse;
   try {
     const vkRes = await fetch('https://id.vk.com/oauth2/user_info', {
@@ -68,14 +80,42 @@ Deno.serve(async (req) => {
     return json(401, { error: 'user_id mismatch' });
   }
 
+  // Fetch Cyrillic names via VK classic API (lang=0 = Russian)
+  let firstName = vkUser.first_name ?? null;
+  let lastName = vkUser.last_name ?? null;
+  let photoUrl = vkUser.avatar ?? null;
+
+  try {
+    const apiRes = await fetch('https://api.vk.com/method/users.get', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        user_ids: vkUser.user_id,
+        fields: 'photo_200',
+        lang: '0',
+        v: '5.199',
+        access_token,
+      }),
+    });
+    const apiData = await apiRes.json() as VkApiResponse;
+    if (apiData.response?.[0]) {
+      const u = apiData.response[0];
+      firstName = u.first_name ?? firstName;
+      lastName = u.last_name ?? lastName;
+      photoUrl = u.photo_200 ?? photoUrl;
+    }
+  } catch {
+    // fall back to user_info names
+  }
+
   const email = `vk-${vkUser.user_id}@vk.local`;
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
   const meta = {
     vk_id: Number(vkUser.user_id),
-    first_name: vkUser.first_name ?? null,
-    last_name: vkUser.last_name ?? null,
-    photo_url: vkUser.avatar ?? null,
+    first_name: firstName,
+    last_name: lastName,
+    photo_url: photoUrl,
     provider: 'vk',
   };
 
