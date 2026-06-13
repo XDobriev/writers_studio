@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-12_ — Виртуализация CharacterGrid: @tanstack/react-virtual, row-based virtualizer, ResizeObserver для динамических колонок, Framer Motion убран с уровня элементов. Ранее: cursor-based пагинация персонажей (useInfiniteQuery + IntersectionObserver), PersistQueryClientProvider dehydrateOptions, Export dynamic imports DOCX/EPUB (490 KB → 25 KB), 7 FK-индексов в Supabase. Идентифицирован: RLS auth_rls_initplan на 10 таблицах.
+_Обновлён: 2026-06-13_ — Виртуализация CharacterGrid: @tanstack/react-virtual, row-based virtualizer, ResizeObserver для динамических колонок, Framer Motion убран с уровня элементов. Ранее: cursor-based пагинация персонажей (useInfiniteQuery + IntersectionObserver), PersistQueryClientProvider dehydrateOptions, Export dynamic imports DOCX/EPUB (490 KB → 25 KB), 7 FK-индексов в Supabase. Идентифицирован: RLS auth_rls_initplan на 10 таблицах.
 
 **Сейчас:** _(не задана — заполнить в начале сессии)_
 
@@ -231,25 +231,24 @@ _Обновлён: 2026-06-12_ — Виртуализация CharacterGrid: @ta
 **Что уже сделано:**
 - ✅ Магазин `AvtorStudio` зарегистрирован и активен, алгоритм MD5
 - ✅ РобоЧеки СМЗ подключены (зелёная точка) — чеки в ФНС автоматически
-- ✅ Боевые Пароль #1 и #2 сгенерированы; тестовые #1 и #2 сгенерированы (2026-06-10)
+- ✅ Боевые Пароль #1 и #2 сгенерированы; тестовые #1 и #2 сгенерированы (ротированы 2026-06-13)
 - ✅ Result URL → `https://joaxeoavjvlqmtlepkrr.supabase.co/functions/v1/robokassa-webhook`, метод POST
-- ✅ `supabase/functions/robokassa-webhook/index.ts` — реализован и задеплоен (2026-06-10): MD5 timing-safe, pro/pro_annual/lifetime, грандфазеринг, audit_log, fire-and-forget email
+- ✅ `supabase/functions/robokassa-webhook/index.ts` — реализован, задеплоен (v14): MD5 timing-safe, pro/pro_annual/lifetime, грандфазеринг, audit_log, fire-and-forget email; `.trim()` на паролях
+- ✅ `supabase/functions/create-payment-url/index.ts` — реализован, задеплоен (v10): формирует подписанную ссылку, поддерживает IsTest
 - ✅ `supabase/functions/payment-confirmation/index.ts` — письмо покупателю через UniSender Go (готов)
 - ✅ `app_settings.lifetime_slots_remaining = 50` + атомарный RPC `decrement_lifetime_slot()` (миграция 0025)
 - ✅ `profiles.grandfathered boolean` (миграция 0026)
 - ✅ Лендинг и UpgradeModal показывают живой счётчик Lifetime-слотов
 - ✅ В настройках у грандфазированных: «✦ Ранняя цена · 290 ₽/мес навсегда»
+- ✅ Все Secrets заданы в Supabase Vault: `ROBOKASSA_MERCHANT_LOGIN`, `PASSWORD1/2`, `TEST_PASSWORD1/2`, `ROBOKASSA_IS_TEST=true`
+- ✅ `src/components/SettingsModal.tsx` — кнопки «Оформить» подключены к `create-payment-url`; страница `/payment-success` с поллингом
+- ✅ E2E тестовый платёж Pro пройден (IsTest=1): `profiles.plan = 'pro'` обновился, страница `/payment-success` показала успех
 
-**Что осталось до первого платежа:**
-1. Установить Secrets в Supabase Dashboard → Edge Functions → Manage secrets:
-   - `ROBOKASSA_PASSWORD2` (боевой Пароль #2)
-   - `ROBOKASSA_TEST_PASSWORD2` (тестовый Пароль #2)
-   - `GRANDFATHERING_ENDS_AT` (напр. `2026-09-01`)
-   - `UNISENDER_API_KEY` и `EMAIL_FROM` (для email-подтверждений)
-2. Обновить вебхук: при `IsTest=1` использовать `ROBOKASSA_TEST_PASSWORD2`
-3. Создать Edge Function `create-payment-url` — формирует подписанную ссылку Robokassa, редиректит пользователя
-4. Подключить кнопки «Оформить» / «Купить Lifetime» в `SettingsModal.tsx` к `create-payment-url` (сейчас — заглушка `#pricing`)
-5. Провести тестовый платёж (IsTest=1) → убедиться что `profiles.plan` обновился
+**Что осталось:**
+1. **Переключить на боевой режим:** изменить `ROBOKASSA_IS_TEST` с `true` на `false` в Supabase Vault
+2. **Тестовый боевой платёж 1 ₽** — убедиться что подпись, webhook и `profiles.plan` работают в продакшене
+3. **Проверить возвраты** — через Robokassa ЛК (ручной возврат) убедиться что средства возвращаются
+4. **E2E Lifetime** — тестовый платёж с `plan=lifetime` → `lifetime_slots_remaining` убывает → `profiles.plan = 'lifetime'`
 
 **Рекуррентные — отдельная фаза после первых платежей:**
 - Сохранять `InvId` первого платежа → продление через Robokassa Recurring API с `PreviousInvoiceID`

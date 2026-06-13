@@ -87,6 +87,7 @@ export default function Auth() {
   const { data: registrationOpen = true } = useRegistrationOpen();
   const tgSlotRef = useRef<HTMLDivElement | null>(null);
   const vkSlotRef = useRef<HTMLDivElement | null>(null);
+  const vkHasClickedRef = useRef(false);
   const { isMobile } = useResponsive();
 
   useEffect(() => {
@@ -149,6 +150,7 @@ export default function Auth() {
       oneTap
         .render({ container: slot, showAlternativeLogin: false })
         .on(VKID.WidgetEvents.ERROR, () => {
+          if (!vkHasClickedRef.current) return;
           setOauthBusy(null);
           setErr('Ошибка VK ID. Попробуйте войти по почте или повторите позже.');
         })
@@ -429,6 +431,7 @@ export default function Auth() {
                     opacity: (tab === 'signup' && !consent) ? 0.4 : 1,
                     pointerEvents: (tab === 'signup' && !consent) ? 'none' : 'auto',
                   }}
+                  onClick={() => { vkHasClickedRef.current = true; }}
                 >
                   <button
                     type="button"

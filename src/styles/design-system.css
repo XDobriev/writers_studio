@@ -933,6 +933,7 @@ select.input {
 .book-card { position: relative; }
 .book-card__edit { display: none; }
 .book-card:hover .book-card__edit { display: flex; }
+@media (hover: none) { .book-card__edit { display: flex; } }
 .book-card__link {
   background: var(--surface); border-radius: 12px;
   border: 1px solid var(--border-soft); overflow: hidden;
