@@ -48,6 +48,7 @@ npm run preview    # превью продакшен-сборки
 - `src/components/RailNav.tsx` — иконочная рейлнавигация (режимы Focus/Split).
 - `src/components/EditorHybrid.tsx` — главный редактор, 4 режима (studio/left/right/page).
 - `src/components/CharacterHoverCard.tsx` — портальная hover-карточка персонажа в редакторе: аватар, имя, роль, snippet, навигация в Characters.
+- `src/components/MapStampsLayer.tsx` — SVG-слой штампов карты: рендер всех штампов с drag-состоянием и selection ring; получает stamps[], selectedId, dragPos.
 - `src/components/RichEditor.tsx` — TipTap wrapper.
 - `src/components/EditorToolbar.tsx` — полноценный тулбар TipTap.
 - `src/components/RightPanel.tsx` — правая панель редактора: версии, персонажи главы, POV.
