@@ -53,6 +53,9 @@ export function useCharacterMutations({
         pages[pages.length - 1] = [...pages[pages.length - 1], created];
         return { ...prev, pages };
       });
+      if (!localStorage.getItem('as_checklist_char')) {
+        localStorage.setItem('as_checklist_char', '1');
+      }
       onCreated(created.id);
     } catch (e) {
       onError((e as Error).message);
