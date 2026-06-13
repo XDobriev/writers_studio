@@ -2,6 +2,7 @@ import type { Book } from './supabase';
 import { TYPE_GLYPHS, type Location } from './locations';
 import type { LocationConnection } from './connections';
 import { getMapTemplate, renderTemplateBgSvg } from './mapTemplates';
+import { STAMP_SVG, STAMP_BASE_SCALE, type MapStamp, type StampType } from './mapStamps';
 
 const CW = 1600;
 const CH = 900;
@@ -18,6 +19,15 @@ function escXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+function buildStampsSvg(stamps: MapStamp[]): string {
+  return stamps.map(s => {
+    const x = s.x * CW;
+    const y = s.y * CH;
+    const inner = STAMP_SVG[s.type as StampType] ?? '';
+    return `<g transform="translate(${x},${y}) scale(${s.size * STAMP_BASE_SCALE})"><g transform="translate(-20,-16)">${inner}</g></g>`;
+  }).join('\n');
+}
+
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -31,6 +41,7 @@ function buildSvgString(
   book: Book,
   locations: Location[],
   connections: LocationConnection[],
+  stamps: MapStamp[],
   bgDataUrl: string | null,
 ): string {
   const template = getMapTemplate(book.map_template);
@@ -71,8 +82,11 @@ ${label}`;
 </g>`;
     }).join('\n');
 
+  const stampsSvg = buildStampsSvg(stamps);
+
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${CW}" height="${CH}" viewBox="0 0 ${CW} ${CH}">
 ${bg}
+${stampsSvg}
 ${connsSvg}
 ${pinsSvg}
 </svg>`;
@@ -82,6 +96,7 @@ export async function generateMapPngBuffer(
   book: Book,
   locations: Location[],
   connections: LocationConnection[],
+  stamps: MapStamp[] = [],
 ): Promise<ArrayBuffer> {
   let bgDataUrl: string | null = null;
   if (book.map_bg_url) {
@@ -92,7 +107,7 @@ export async function generateMapPngBuffer(
     } catch { /* render template only */ }
   }
 
-  const svgStr = buildSvgString(book, locations, connections, bgDataUrl);
+  const svgStr = buildSvgString(book, locations, connections, stamps, bgDataUrl);
   const canvas = document.createElement('canvas');
   canvas.width = CW;
   canvas.height = CH;

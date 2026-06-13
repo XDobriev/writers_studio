@@ -31,7 +31,6 @@ export function MapStampsLayer({ stamps, selectedId, dragPos }: MapStampsLayerPr
             )}
             <g
               transform="translate(-20,-16)"
-              // eslint-disable-next-line react/no-danger
               dangerouslySetInnerHTML={{ __html: svgContent }}
             />
             {isSelected && (
