@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { BookCard } from '../components/BookCard';
 import { CoverPicker, COVERS } from '../components/CoverPicker';
 import { GenrePicker } from '../components/GenrePicker';
+import { OnboardingChecklist } from '../components/OnboardingChecklist';
 import { supabase, type Book } from '../lib/supabase';
 import { createBook, updateBook, deleteBook as deleteBookApi } from '../lib/books';
 import { createChapter } from '../lib/chapters';
@@ -187,6 +188,14 @@ export default function Home() {
             </button>
           </div>
         </div>
+
+        {books != null && user && (
+          <OnboardingChecklist
+            books={books}
+            userId={user.id}
+            onboardedAt={profile?.onboarded_at ?? null}
+          />
+        )}
 
         {(err ?? (booksError as Error | null)?.message) && (
           <div className="error-banner" style={{ marginBottom: 16 }}>
