@@ -9,7 +9,10 @@ export function useUserDisplay() {
   const tgName = meta?.provider === 'telegram'
     ? ([meta?.first_name, meta?.last_name].filter(Boolean).join(' ') || (meta?.telegram_username ? `@${meta.telegram_username}` : null))
     : null;
-  const displayName: string = meta?.full_name ?? meta?.name ?? tgName ?? user?.email ?? '';
+  const vkName = meta?.provider === 'vk'
+    ? ([meta?.first_name, meta?.last_name].filter(Boolean).join(' ') || null)
+    : null;
+  const displayName: string = meta?.full_name ?? meta?.name ?? tgName ?? vkName ?? user?.email ?? '';
   const initials = displayName
     .split(/\s+/)
     .filter(Boolean)

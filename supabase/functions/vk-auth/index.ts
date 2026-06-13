@@ -13,9 +13,19 @@ function json(status: number, body: unknown): Response {
   });
 }
 
-interface VkUserResponse {
-  response?: Array<{ id: number; first_name?: string; last_name?: string; photo_100?: string }>;
-  error?: { error_code: number; error_msg: string };
+const VK_APP_ID = 54634821;
+
+interface VkUserInfo {
+  user_id: string;
+  first_name?: string;
+  last_name?: string;
+  avatar?: string;
+  email?: string;
+}
+
+interface VkUserInfoResponse {
+  user?: VkUserInfo;
+  error?: string;
 }
 
 Deno.serve(async (req) => {
@@ -36,33 +46,36 @@ Deno.serve(async (req) => {
   const { access_token, user_id } = body;
   if (!access_token || user_id == null) return json(400, { error: 'access_token and user_id are required' });
 
-  let vkData: VkUserResponse;
+  // VK ID 2.1 tokens must be verified via id.vk.com/oauth2/user_info, not api.vk.com
+  let vkInfo: VkUserInfoResponse;
   try {
-    const vkRes = await fetch(
-      `https://api.vk.com/method/users.get?access_token=${encodeURIComponent(access_token)}&fields=first_name,last_name,photo_100&v=5.199`,
-    );
-    vkData = await vkRes.json() as VkUserResponse;
+    const vkRes = await fetch('https://id.vk.com/oauth2/user_info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: String(VK_APP_ID), access_token }),
+    });
+    vkInfo = await vkRes.json() as VkUserInfoResponse;
   } catch {
     return json(502, { error: 'vk api unreachable' });
   }
 
-  if (vkData.error || !vkData.response?.[0]) {
+  if (vkInfo.error || !vkInfo.user) {
     return json(401, { error: 'vk token invalid' });
   }
 
-  const vkUser = vkData.response[0];
-  if (vkUser.id !== user_id) {
+  const vkUser = vkInfo.user;
+  if (Number(vkUser.user_id) !== user_id) {
     return json(401, { error: 'user_id mismatch' });
   }
 
-  const email = `vk-${vkUser.id}@vk.local`;
+  const email = `vk-${vkUser.user_id}@vk.local`;
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
   const meta = {
-    vk_id: vkUser.id,
+    vk_id: Number(vkUser.user_id),
     first_name: vkUser.first_name ?? null,
     last_name: vkUser.last_name ?? null,
-    photo_url: vkUser.photo_100 ?? null,
+    photo_url: vkUser.avatar ?? null,
     provider: 'vk',
   };
 
