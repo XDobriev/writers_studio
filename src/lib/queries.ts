@@ -10,6 +10,7 @@ import { fetchNotes, type Note } from './notes';
 import { listLocations, type Location } from './locations';
 import { listTimelineEvents, type TimelineEvent } from './timeline';
 import { listConnections, type LocationConnection } from './connections';
+import { listStamps, type MapStamp } from './mapStamps';
 import { listVersions, type ChapterVersionMeta } from './versions';
 import { listChapterCharacters, type ChapterCharacterRow } from './crossrefs';
 import { listBookPovEntries, type PovEntry } from './pov';
@@ -29,6 +30,7 @@ export const QUERY_KEYS = {
   locations: (bookId: string) => ['locations', bookId] as const,
   timelineEvents: (bookId: string) => ['timeline-events', bookId] as const,
   connections: (bookId: string) => ['connections', bookId] as const,
+  stamps: (bookId: string) => ['stamps', bookId] as const,
   chapterVersions: (chapterId: string) => ['chapter-versions', chapterId] as const,
   chapterCharacters: (characterId: string) => ['chapter-characters', characterId] as const,
   chapterCharactersAll: () => ['chapter-characters'] as const,
@@ -144,6 +146,14 @@ export function useConnections(bookId: string | undefined) {
     bookId ? QUERY_KEYS.connections(bookId) : ['connections', null],
     () => listConnections(bookId!),
     2 * 60_000,
+  ));
+}
+
+export function useStamps(bookId: string | undefined) {
+  return useQuery<MapStamp[]>(makeQuery(
+    bookId ? QUERY_KEYS.stamps(bookId) : ['stamps', null],
+    () => listStamps(bookId!),
+    30_000,
   ));
 }
 
