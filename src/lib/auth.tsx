@@ -22,6 +22,7 @@ interface AuthContextValue {
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
   signInWithTelegram: (data: TelegramAuthData) => Promise<{ error: string | null }>;
+  signInWithVk: (accessToken: string, userId: number) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   sessionExpired: boolean;
   clearSessionExpired: () => void;
@@ -144,6 +145,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: verifyErr?.message ?? null };
   };
 
+  const signInWithVk: AuthContextValue['signInWithVk'] = async (accessToken, userId) => {
+    const { data: res, error } = await supabase.functions.invoke('vk-auth', {
+      body: { access_token: accessToken, user_id: userId },
+    });
+    if (error) return { error: error.message };
+    const token_hash = (res as { token_hash?: string } | null)?.token_hash;
+    if (!token_hash) return { error: 'vk-auth: token_hash отсутствует' };
+    const { error: verifyErr } = await supabase.auth.verifyOtp({ token_hash, type: 'magiclink' });
+    return { error: verifyErr?.message ?? null };
+  };
+
   const signOut = async () => {
     deliberateSignOut.current = true;
     try {
@@ -180,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signInWithGoogle,
         signInWithTelegram,
+        signInWithVk,
         signOut,
         sessionExpired,
         clearSessionExpired,
