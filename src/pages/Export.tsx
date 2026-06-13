@@ -162,6 +162,10 @@ export default function Export() {
     }
     const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle, cover: coverData, mapImage: mapImageData };
     try {
+      // Set onboarding flag on first export
+      if (!localStorage.getItem('as_checklist_export')) {
+        localStorage.setItem('as_checklist_export', '1');
+      }
       if (format === 'docx') {
         const { buildDocxBlob } = await import('../lib/exportDocx');
         triggerDownload(await buildDocxBlob(bookWithAuthor, chaptersWithContent, opts), filename);
