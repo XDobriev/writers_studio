@@ -4,6 +4,6 @@
 UPDATE profiles
 SET onboarded_at = now()
 WHERE onboarded_at IS NULL
-  AND id IN (
+  AND user_id IN (
     SELECT DISTINCT user_id FROM books
   );
