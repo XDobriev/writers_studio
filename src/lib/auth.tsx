@@ -149,7 +149,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: res, error } = await supabase.functions.invoke('vk-auth', {
       body: { access_token: accessToken, user_id: userId },
     });
-    if (error) return { error: error.message };
+    if (error) {
+      let detail = error.message;
+      try {
+        const body = await (error.context as Response | undefined)?.json() as { error?: string } | undefined;
+        if (body?.error) detail = body.error;
+      } catch { /* ignore */ }
+      console.error('[vk-auth] edge function error:', detail);
+      return { error: detail };
+    }
     const token_hash = (res as { token_hash?: string } | null)?.token_hash;
     if (!token_hash) return { error: 'vk-auth: token_hash отсутствует' };
     const { error: verifyErr } = await supabase.auth.verifyOtp({ token_hash, type: 'magiclink' });

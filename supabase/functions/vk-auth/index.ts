@@ -61,13 +61,14 @@ Deno.serve(async (req) => {
   // VK ID 2.1 tokens must be verified via id.vk.com/oauth2/user_info
   let vkInfo: VkUserInfoResponse;
   try {
-    const vkRes = await fetch('https://id.vk.com/oauth2/user_info', {
+    const vkRes = await fetch('https://id.vk.ru/oauth2/user_info', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ client_id: String(VK_APP_ID), access_token }),
     });
     vkInfo = await vkRes.json() as VkUserInfoResponse;
-  } catch {
+  } catch (e) {
+    console.error('[vk-auth] user_info fetch failed:', e);
     return json(502, { error: 'vk api unreachable' });
   }
 
@@ -86,7 +87,7 @@ Deno.serve(async (req) => {
   let photoUrl = vkUser.avatar ?? null;
 
   try {
-    const apiRes = await fetch('https://api.vk.com/method/users.get', {
+    const apiRes = await fetch('https://api.vk.ru/method/users.get', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
