@@ -142,7 +142,7 @@ export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }
               {done ? '✓' : '○'}
             </span>
             <span style={{ flex: 1 }}>{step.label}</span>
-            {!done && step.path && (
+            {!done && (step.path || (step.key === 'bookCreated' && !!onCreateBook)) && (
               <span style={{ fontSize: 12, color: isCurrent ? 'var(--accent)' : 'var(--ink-4)' }}>→</span>
             )}
           </div>
