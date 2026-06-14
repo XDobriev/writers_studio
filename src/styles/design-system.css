@@ -1397,3 +1397,18 @@ select.input {
 @media (max-width: 479px) {
   .lnd-footer-grid { grid-template-columns: 1fr; }
 }
+
+/* OnboardingChecklist */
+.checklist-dismiss {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: var(--ink-4);
+  font: 400 14px var(--font-ui);
+  line-height: 1;
+  margin-left: 8px;
+}
+.checklist-dismiss:hover {
+  color: var(--ink-2);
+}

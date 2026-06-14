@@ -45,6 +45,14 @@ export function OnboardingChecklist({ books, userId, onboardedAt }: Props) {
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [allDone, onboardedAt, userId, queryClient]);
 
+  const handleDismiss = () => {
+    setHiding(true);
+    setTimeout(() => {
+      markOnboarded(userId);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.profile(userId) });
+    }, 200);
+  };
+
   if (onboardedAt) return null;
 
   const firstBook = books[0];
@@ -65,9 +73,18 @@ export function OnboardingChecklist({ books, userId, onboardedAt }: Props) {
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <span className="label">С чего начать</span>
-        <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>
-          {completedCount} из 4
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>
+            {completedCount} из 4
+          </span>
+          <button
+            aria-label="Скрыть чеклист"
+            onClick={handleDismiss}
+            className="checklist-dismiss"
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       <div style={{
