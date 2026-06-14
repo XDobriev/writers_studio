@@ -705,6 +705,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   background: transparent;
   cursor: pointer;
   font-family: inherit;
+  transition: background var(--dur-fast);
 }
 .btn:hover { background: var(--surface); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -1251,7 +1252,10 @@ select.input {
   cursor: pointer; font-family: inherit; font-size: 12.5px;
   transition: background var(--dur-fast);
 }
-.auth-tg-btn:hover { background: var(--surface); }
+
+/* ── Auth OAuth wrapper: hover через родителя (iframe/VK SDK перекрывают кнопку) ── */
+.auth-oauth-wrap:hover .btn,
+.auth-oauth-wrap:hover .auth-tg-btn { background: var(--surface); }
 
 /* ── Version card (VersionsPanel) ── */
 .version-card {
@@ -1267,6 +1271,22 @@ select.input {
   border-color: color-mix(in oklch, var(--accent) 28%, var(--border-soft));
 }
 .version-card--named:hover { background: color-mix(in oklch, var(--accent) 10%, var(--surface)); }
+
+/* ── Map stamp-type strip button ── */
+.map-strip-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 8px 3px 6px;
+  border-radius: var(--r-1);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer; flex-shrink: 0;
+  transition: background var(--dur-hover), border-color var(--dur-hover);
+}
+.map-strip-btn:hover { background: var(--surface); }
+.map-strip-btn--on {
+  background: var(--accent-soft);
+  border-color: color-mix(in oklch, var(--accent) 40%, var(--border-soft));
+}
 
 /* ── Map popup delete / unlink button ── */
 .map-popup-del {

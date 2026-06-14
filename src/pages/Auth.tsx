@@ -411,7 +411,8 @@ export default function Auth() {
 
                 {TG_BOT_USERNAME && (
                   <div
-                    style={{ position: 'relative', height: 42, opacity: (tab === 'signup' && !consent) ? 0.4 : 1, pointerEvents: (tab === 'signup' && !consent) ? 'none' : 'auto' }}
+                    className="auth-oauth-wrap"
+                    style={{ position: 'relative', height: 42, cursor: 'pointer', opacity: (tab === 'signup' && !consent) ? 0.4 : 1, pointerEvents: (tab === 'signup' && !consent) ? 'none' : 'auto' }}
                   >
                     <button
                       type="button"
@@ -431,9 +432,11 @@ export default function Auth() {
                 )}
 
                 {!vkSdkFailed && <div
+                  className="auth-oauth-wrap"
                   style={{
                     position: 'relative',
                     height: 42,
+                    cursor: 'pointer',
                     opacity: (tab === 'signup' && !consent) ? 0.4 : 1,
                     pointerEvents: (tab === 'signup' && !consent) ? 'none' : 'auto',
                   }}
