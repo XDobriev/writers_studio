@@ -42,7 +42,7 @@ export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }
     const t2 = setTimeout(() => {
       markOnboarded(userId);
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.profile(userId) });
-    }, 1400);
+    }, 1000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [allDone, onboardedAt, userId, queryClient]);
 
@@ -67,9 +67,8 @@ export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }
         padding: '14px 16px',
         marginBottom: 28,
         opacity: hiding ? 0 : 1,
-        maxHeight: hiding ? 0 : 300,
-        overflow: 'hidden',
-        transition: 'opacity 0.5s ease, max-height 0.5s ease',
+        pointerEvents: hiding ? 'none' : undefined,
+        transition: 'opacity 0.2s cubic-bezier(0.25, 1, 0.5, 1)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -97,7 +96,7 @@ export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }
           width: `${(completedCount / 4) * 100}%`,
           background: 'var(--accent)',
           borderRadius: 2,
-          transition: 'width 0.4s ease',
+          transition: 'width 0.2s cubic-bezier(0.25, 1, 0.5, 1)',
         }} />
       </div>
 
