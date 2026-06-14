@@ -9,6 +9,7 @@ interface Props {
   books: Book[];
   userId: string;
   onboardedAt: string | null;
+  onCreateBook?: () => void;
 }
 
 type StepKey = 'bookCreated' | 'wroteWords' | 'addedChar' | 'triedExport';
@@ -20,7 +21,7 @@ const STEPS: { key: StepKey; label: string; path: string | null }[] = [
   { key: 'triedExport', label: 'Попробовать экспорт',    path: 'export' },
 ];
 
-export function OnboardingChecklist({ books, userId, onboardedAt }: Props) {
+export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [hiding, setHiding] = useState(false);
@@ -103,16 +104,31 @@ export function OnboardingChecklist({ books, userId, onboardedAt }: Props) {
       {STEPS.map((step, i) => {
         const done = completed[step.key];
         const isCurrent = !done && STEPS.slice(0, i).every(s => completed[s.key]);
-        const canClick = !done && step.path !== null && !!firstBook;
-        const target = canClick ? `/books/${firstBook!.id}/${step.path}` : undefined;
+        const canClick = !done && (
+          step.path !== null ? !!firstBook : step.key === 'bookCreated' && !!onCreateBook
+        );
+
+        const handleClick = () => {
+          if (!canClick) return;
+          if (step.path !== null && firstBook) {
+            navigate(`/books/${firstBook.id}/${step.path}`);
+          } else if (step.key === 'bookCreated' && onCreateBook) {
+            onCreateBook();
+          }
+        };
 
         return (
           <div
             key={step.key}
             role={canClick ? 'button' : undefined}
             tabIndex={canClick ? 0 : undefined}
-            onClick={() => target && navigate(target)}
-            onKeyDown={(e) => { if (target && (e.key === 'Enter' || e.key === ' ')) navigate(target); }}
+            onClick={handleClick}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ' ') && canClick) {
+                e.preventDefault();
+                handleClick();
+              }
+            }}
             style={{
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '5px 0',

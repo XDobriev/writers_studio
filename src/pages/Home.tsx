@@ -194,6 +194,7 @@ export default function Home() {
             books={books}
             userId={user.id}
             onboardedAt={profile?.onboarded_at ?? null}
+            onCreateBook={handleNewBookClick}
           />
         )}
 
