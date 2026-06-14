@@ -186,7 +186,8 @@ export function EditorHybrid({
   const { toast: goalToast } = useGoalToast({ todayWords: writingStats.todayWords, dailyGoal });
 
   return (
-    <div className="as" style={{ height: '100%', overflow: 'hidden', display: 'grid', gridTemplateColumns: cols, background: 'var(--bg)', position: 'relative' }}>
+    <div className="as" style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'var(--bg)', position: 'relative' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: cols, overflow: 'hidden' }}>
       {isPage && !isMobile && <RailNav active="editor" bookId={book?.id} style={{ position: 'relative', height: '100%' }} />}
 
       {showLeft && (
@@ -341,24 +342,6 @@ export function EditorHybrid({
           )}
         </div>
 
-        {!isPage && (
-          isReal ? (
-            <StatusBar
-              words={activeChapter?.words ?? 0}
-              chars={activeContent.replace(/<[^>]+>/g, '').length}
-              statusLabel={saveLabel(saveState, savedAt)}
-              saveState={saveState}
-              todayWords={writingStats.todayWords}
-              goalWords={book?.daily_goal ?? 1000}
-              streak={writingStats.streak}
-              onGoalChange={onGoalChange}
-              focusMode={focusMode}
-              onToggleFocusMode={() => setFocusMode(f => !f)}
-            />
-          ) : (
-            <StatusBar />
-          )
-        )}
       </main>
 
       {showRight && (
@@ -374,6 +357,26 @@ export function EditorHybrid({
             openNoteAt={openNoteAt}
           />
         </div>
+      )}
+      </div>
+
+      {!isPage && (
+        isReal ? (
+          <StatusBar
+            words={activeChapter?.words ?? 0}
+            chars={activeContent.replace(/<[^>]+>/g, '').length}
+            statusLabel={saveLabel(saveState, savedAt)}
+            saveState={saveState}
+            todayWords={writingStats.todayWords}
+            goalWords={book?.daily_goal ?? 1000}
+            streak={writingStats.streak}
+            onGoalChange={onGoalChange}
+            focusMode={focusMode}
+            onToggleFocusMode={() => setFocusMode(f => !f)}
+          />
+        ) : (
+          <StatusBar />
+        )
       )}
 
       {isMobile && sidebar.isOpen && (
