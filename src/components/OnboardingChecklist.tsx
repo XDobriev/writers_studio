@@ -34,7 +34,7 @@ export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }
   };
 
   const completedCount = Object.values(completed).filter(Boolean).length;
-  const allDone = completedCount === 4;
+  const allDone = completedCount === STEPS.length;
 
   useEffect(() => {
     if (!allDone || !!onboardedAt) return;
@@ -74,8 +74,12 @@ export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <span className="label">С чего начать</span>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>
-            {completedCount} из 4
+          <span
+            aria-live="polite"
+            aria-atomic="true"
+            style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}
+          >
+            {completedCount} из {STEPS.length}
           </span>
           <button
             aria-label="Скрыть чеклист"
@@ -93,7 +97,7 @@ export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }
       }}>
         <div style={{
           height: '100%',
-          width: `${(completedCount / 4) * 100}%`,
+          width: `${(completedCount / STEPS.length) * 100}%`,
           background: 'var(--accent)',
           borderRadius: 2,
           transition: 'width 0.2s cubic-bezier(0.25, 1, 0.5, 1)',
@@ -133,7 +137,7 @@ export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }
               padding: '5px 0',
               borderBottom: i < STEPS.length - 1 ? '1px solid var(--border-soft)' : undefined,
               cursor: canClick ? 'pointer' : 'default',
-              color: done ? 'var(--ink-4)' : isCurrent ? 'var(--ink-1)' : 'var(--ink-3)',
+              color: done ? 'var(--ink-3)' : isCurrent ? 'var(--ink-1)' : 'var(--ink-3)',
               font: `${isCurrent ? 500 : 400} 13px/1.5 var(--font-ui)`,
             }}
           >
