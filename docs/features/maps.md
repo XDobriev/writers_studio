@@ -4,7 +4,7 @@
 
 ## Компоненты
 
-- `src/pages/Map.tsx` — тулбар с режимами, handlers для локаций/связей/bg-upload.
+- `src/pages/Map.tsx` — тулбар с режимами, handlers для локаций/связей/bg-upload; при режиме `stamp` рендерит горизонтальную полосу `.map-strip-btn` между тулбаром и канвасом для выбора типа рельефа.
 - `src/components/WorldMap.tsx` — SVG-холст: zoom/pan, пины, связи, popup, mobile bottom sheet.
 
 ## БД

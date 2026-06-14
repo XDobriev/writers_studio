@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type ChangeEvent } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useErrorState } from '../lib/useErrorState';
 import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useParams } from 'react-router-dom';
@@ -283,28 +283,6 @@ export default function MapScreen() {
                   <span className="sb-item-title">{m.label}</span>
                 </button>
               ))}
-              {mode === 'stamp' && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Тип</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
-                    {STAMP_TYPES.map(type => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setSelectedStampType(type)}
-                        className={'sb-item' + (selectedStampType === type ? ' sb-item--on' : '')}
-                        aria-pressed={selectedStampType === type}
-                        style={{ cursor: 'pointer', justifyContent: 'flex-start', gap: 6 }}
-                      >
-                        <svg width="20" height="16" viewBox="0 0 40 32" style={{ flexShrink: 0 }}>
-                          <g dangerouslySetInnerHTML={{ __html: STAMP_SVG[type] }} />
-                        </svg>
-                        <span className="sb-item-title" style={{ fontSize: 11 }}>{STAMP_LABELS[type]}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </Sidebar>
         )}
@@ -343,6 +321,40 @@ export default function MapScreen() {
               </button>
             </div>
           </div>
+
+          <AnimatePresence>
+            {mode === 'stamp' && (
+              <motion.div
+                key="stamp-strip"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                style={{ overflow: 'hidden', flexShrink: 0 }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '5px 14px', borderBottom: '1px solid var(--border-soft)', background: 'var(--bg-deep)', overflowX: 'auto', scrollbarWidth: 'none' }}>
+                  <span style={{ font: '500 9px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginRight: 8, flexShrink: 0 }}>Тип</span>
+                  {STAMP_TYPES.map(type => (
+                    <button
+                      key={type}
+                      type="button"
+                      className={'map-strip-btn' + (selectedStampType === type ? ' map-strip-btn--on' : '')}
+                      onClick={() => setSelectedStampType(type)}
+                      title={STAMP_LABELS[type]}
+                      aria-pressed={selectedStampType === type}
+                    >
+                      <svg width="18" height="14" viewBox="0 0 40 32" style={{ flexShrink: 0 }}>
+                        <g dangerouslySetInnerHTML={{ __html: STAMP_SVG[type] }} />
+                      </svg>
+                      <span style={{ font: '400 11px var(--font-ui)', color: selectedStampType === type ? 'var(--ink)' : 'var(--ink-3)', whiteSpace: 'nowrap' }}>
+                        {STAMP_LABELS[type]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {mutationError && (
             <div style={{ margin: '8px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 13, flexShrink: 0 }}>
