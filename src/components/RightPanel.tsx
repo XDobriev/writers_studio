@@ -3,7 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
 import { ConfirmDialog } from './ConfirmDialog';
 import { createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
-import { useNotes, QUERY_KEYS } from '../lib/queries';
+import { useNotes, useChapterMembers, QUERY_KEYS } from '../lib/queries';
+import { getCharacterColor } from '../lib/pov';
 
 const VersionsPanel = lazy(() => import('./VersionsPanel').then(m => ({ default: m.VersionsPanel })));
 import { useErrorState } from '../lib/useErrorState';
@@ -33,6 +34,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   const queryClient = useQueryClient();
   const { error: noteError, setError: setNoteError, clearError: clearNoteError } = useErrorState();
   const { data: allNotes = [] } = useNotes(bookId);
+  const { data: chapterMembers = [] } = useChapterMembers(chapterId);
   const notes = chapterId ? allNotes.filter(n => n.chapter_id === chapterId) : allNotes;
   const [activeTab, setActiveTab] = useState<'notes' | 'versions'>('notes');
   const [showForm, setShowForm] = useState(false);
@@ -158,6 +160,27 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
         {activeTab === 'versions' && !chapterId && (
           <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>
             Выберите главу
+          </div>
+        )}
+        {activeTab === 'notes' && chapterId && chapterMembers.length > 0 && (
+          <div className="rp-members">
+            <div className="rp-members-head">Персонажи главы</div>
+            {chapterMembers.map((m) => {
+              const name = m.characters?.name ?? '?';
+              const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+              const color = getCharacterColor(m.characters?.position ?? 0);
+              return (
+                <div key={m.character_id} className="rp-member">
+                  <div className="rp-member-av" style={{ background: color }}>
+                    {m.characters?.avatar_url
+                      ? <img src={m.characters.avatar_url} alt={name} className="rp-member-img" />
+                      : initials}
+                  </div>
+                  <span className="rp-member-name">{name}</span>
+                  {m.is_pov && <span className="rp-member-pov">POV</span>}
+                </div>
+              );
+            })}
           </div>
         )}
         {activeTab === 'notes' && (

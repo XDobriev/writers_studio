@@ -12,7 +12,7 @@ import { listTimelineEvents, type TimelineEvent } from './timeline';
 import { listConnections, type LocationConnection } from './connections';
 import { listStamps, type MapStamp } from './mapStamps';
 import { listVersions, type ChapterVersionMeta } from './versions';
-import { listChapterCharacters, type ChapterCharacterRow } from './crossrefs';
+import { listChapterCharacters, listChapterMembers, type ChapterCharacterRow, type ChapterMemberRow } from './crossrefs';
 import { listBookPovEntries, type PovEntry } from './pov';
 
 const CHARACTERS_PAGE_SIZE = 50;
@@ -34,6 +34,7 @@ export const QUERY_KEYS = {
   chapterVersions: (chapterId: string) => ['chapter-versions', chapterId] as const,
   chapterCharacters: (characterId: string) => ['chapter-characters', characterId] as const,
   chapterCharactersAll: () => ['chapter-characters'] as const,
+  chapterMembers: (chapterId: string) => ['chapter-members', chapterId] as const,
   chapterPovMap: (bookId: string) => ['chapter-pov-map', bookId] as const,
   registrationOpen: () => ['registration-open'] as const,
 };
@@ -161,6 +162,14 @@ export function useChapterCharacters(characterId: string | undefined) {
   return useQuery<ChapterCharacterRow[]>(makeQuery(
     characterId ? QUERY_KEYS.chapterCharacters(characterId) : ['chapter-characters', null],
     () => listChapterCharacters(characterId!),
+    30_000,
+  ));
+}
+
+export function useChapterMembers(chapterId: string | undefined) {
+  return useQuery<ChapterMemberRow[]>(makeQuery(
+    chapterId ? QUERY_KEYS.chapterMembers(chapterId) : ['chapter-members', null],
+    () => listChapterMembers(chapterId!),
     30_000,
   ));
 }

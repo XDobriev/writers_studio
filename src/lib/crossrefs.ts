@@ -28,6 +28,23 @@ export interface ChapterCharacterRow {
   chapters: { title: string; position: number } | null;
 }
 
+export interface ChapterMemberRow {
+  character_id: string;
+  is_pov: boolean;
+  auto_detected: boolean;
+  characters: { name: string; avatar_url: string | null; position: number } | null;
+}
+
+export async function listChapterMembers(chapterId: string): Promise<ChapterMemberRow[]> {
+  const { data, error } = await supabase
+    .from('chapter_characters')
+    .select('character_id, is_pov, auto_detected, characters(name, avatar_url, position)')
+    .eq('chapter_id', chapterId);
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as ChapterMemberRow[];
+  return rows.sort((a, b) => (a.characters?.position ?? 0) - (b.characters?.position ?? 0));
+}
+
 export async function listChapterCharacters(characterId: string): Promise<ChapterCharacterRow[]> {
   const { data, error } = await supabase
     .from('chapter_characters')
