@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   featTextVariants, featMockVariants,
@@ -53,94 +53,320 @@ const _MD_MONTHS: { [k: number]: string } = {
 
 // ─── Mock components ──────────────────────────────────────────────────────────
 
-function MockEditorModesStrip() {
-  const textLines = (ws: number[]) => ws.map((w, i) => (
-    <div key={i} style={{ height: 3, background: 'var(--paper-ink)', opacity: 0.18, borderRadius: 1, marginBottom: 4, width: `${w * 100}%` }} />
-  ));
+const STUDIO_CHAPTERS = [
+  { num: '01', title: 'Исчезновение', done: true, active: true },
+  { num: '02', title: 'Архив', progress: true },
+  { num: '03', title: 'Серая Цапля' },
+  { num: '04', title: 'Дорога вдоль Тихой' },
+  { num: '05', title: 'Стопка карт' },
+];
 
-  const Paper = ({ narrow }: { narrow?: boolean }) => (
-    <div style={{ width: narrow ? '72%' : '82%', background: 'var(--paper)', borderRadius: '2px 2px 0 0', padding: '10px 8px' }}>
-      <div style={{ height: 6, background: 'var(--paper-ink)', opacity: 0.6, borderRadius: 1, marginBottom: 6, width: '65%' }} />
-      <div style={{ height: 2, background: 'var(--paper-ink)', opacity: 0.2, borderRadius: 1, marginBottom: 8, width: '18%' }} />
-      {textLines([0.92, 0.88, 0.65, 0.82, 0.55, 0.9])}
-    </div>
-  );
+const STUDIO_VERSIONS = [
+  { tag: 'v3', name: 'Переработал начало', when: '14 мин назад', current: true },
+  { tag: 'v2', name: 'Письмо наставника', when: '2 ч назад', current: false },
+  { tag: 'v1', name: 'Черновик', when: 'вчера', current: false },
+];
 
-  const ModePane = ({ label, desc, children }: { label: string; desc: string; children: ReactNode }) => (
-    <div>
-      <div data-theme="dark" style={{ borderRadius: 10, overflow: 'hidden', background: 'var(--bg-deep)', border: '1px solid var(--border)', boxShadow: '0 0 0 1px var(--border), 0 12px 36px oklch(0 0 0 / 0.45)' }}>
-        <div style={{ height: 26, background: 'oklch(0.20 0.014 50)', display: 'flex', alignItems: 'center', padding: '0 10px', gap: 5, borderBottom: '1px solid var(--border-soft)' }}>
-          <span style={{ width: 8, height: 8, borderRadius: 999, background: 'oklch(0.62 0.16 25)' }} />
-          <span style={{ width: 8, height: 8, borderRadius: 999, background: 'oklch(0.78 0.12 80)' }} />
-          <span style={{ width: 8, height: 8, borderRadius: 999, background: 'oklch(0.66 0.14 145)' }} />
-        </div>
-        <div style={{ height: 190, overflow: 'hidden', position: 'relative' }}>{children}</div>
-      </div>
-      <div style={{ marginTop: 14, textAlign: 'center' }}>
-        <div style={{ font: '500 13.5px var(--font-ui)', color: 'var(--ink)', marginBottom: 3 }}>{label}</div>
-        <div style={{ font: '400 12px var(--font-serif)', color: 'var(--ink-3)' }}>{desc}</div>
-      </div>
-    </div>
-  );
+const MOCK_SOUNDS = ['Кафе', 'Дождь', 'Костёр', 'Лес', 'Волны', 'Поезд', 'Библиотека', 'Белый шум'] as const;
+const MOCK_FONTS = [
+  { label: 'Source Serif', family: "'Source Serif 4', Georgia, serif" },
+  { label: 'Lora',         family: "'Lora', Georgia, serif" },
+  { label: 'PT Serif',     family: "'PT Serif', Georgia, serif" },
+  { label: 'Spectral',     family: "'Spectral', Georgia, serif" },
+  { label: 'Mono',         family: "'IBM Plex Mono', monospace" },
+] as const;
 
-  const RightCards = () => (
-    <div style={{ background: 'var(--bg-deep)', padding: '8px 5px', borderLeft: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ background: 'color-mix(in oklch, var(--accent-2) 8%, var(--surface))', border: '1px solid color-mix(in oklch, var(--accent-2) 22%, var(--border-soft))', borderRadius: 3, padding: '4px 5px' }}>
-        <div style={{ height: 2, background: 'var(--ink-3)', opacity: 0.5, borderRadius: 1, marginBottom: 3, width: '60%' }} />
-        <div style={{ height: 2, background: 'var(--ink)', opacity: 0.4, borderRadius: 1, width: '85%' }} />
-        <div style={{ height: 2, background: 'var(--ink)', opacity: 0.35, borderRadius: 1, marginTop: 2, width: '70%' }} />
-      </div>
-      <div style={{ background: 'color-mix(in oklch, var(--info) 8%, var(--surface))', border: '1px solid color-mix(in oklch, var(--info) 22%, var(--border-soft))', borderRadius: 3, padding: '4px 5px' }}>
-        <div style={{ height: 2, background: 'var(--ink-3)', opacity: 0.5, borderRadius: 1, marginBottom: 3, width: '50%' }} />
-        <div style={{ height: 2, background: 'var(--ink)', opacity: 0.4, borderRadius: 1, width: '90%' }} />
-      </div>
-    </div>
-  );
+function MockStatusBar() {
+  const [focusOn, setFocusOn]       = useState(false);
+  const [fontOpen, setFontOpen]     = useState(false);
+  const [soundOpen, setSoundOpen]   = useState(false);
+  const [activeFont, setActiveFont] = useState(0);
+  const [activeSound, setActiveSound] = useState<string | null>('Костёр');
+  const [volume, setVolume]         = useState(0.4);
 
   return (
-    <div data-theme="dark" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
-      <ModePane label="Студия" desc="все панели открыты">
-        <div style={{ height: '100%', display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', background: 'var(--bg)' }}>
-          <div style={{ background: 'var(--bg-deep)', padding: '8px 5px', borderRight: '1px solid var(--border-soft)' }}>
-            {MC.slice(0, 4).map((c, i) => (
-              <div key={c.num} style={{ height: 8, borderRadius: 2, background: i === 0 ? 'var(--surface)' : 'transparent', marginBottom: 4 }} />
+    <div style={{ position: 'relative', height: 28, background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 10, flexShrink: 0, font: '400 10.5px var(--font-ui)', color: 'var(--ink-2)' }}>
+
+      {/* Left */}
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+        <span style={{ width: 5, height: 5, borderRadius: 999, background: 'var(--ok)', display: 'inline-block', flexShrink: 0 }} />
+        Сохранено
+      </span>
+      <span style={{ color: 'var(--ink-4)' }}>·</span>
+      <span>Слов: 1 247</span>
+      <span style={{ color: 'var(--ink-4)' }}>·</span>
+      <span>Знаков: 7 043</span>
+      <span style={{ color: 'var(--ink-4)' }}>·</span>
+      <span style={{ color: 'var(--ink-3)' }}>~6 мин чтения</span>
+
+      <span style={{ flex: 1 }} />
+
+      {/* Right */}
+      <span style={{ color: 'var(--ink-3)' }}>сегодня · 312/1 000 слов</span>
+      <span style={{ color: 'var(--ink-4)' }}>·</span>
+      <span style={{ color: 'var(--accent-2)' }}>серия 5 дней</span>
+
+      {/* Focus mode */}
+      <button
+        onClick={() => setFocusOn(v => !v)}
+        title="Режим фокуса"
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: focusOn ? 'var(--accent)' : 'var(--ink-3)', borderRadius: 4 }}
+      >
+        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M3 12h2M19 12h2M12 3v2M12 19v2"/>
+          <path d="M5.6 5.6l1.4 1.4M16.9 16.9l1.4 1.4M5.6 18.4l1.4-1.4M16.9 7.1l1.4-1.4"/>
+        </svg>
+      </button>
+
+      {/* Font picker */}
+      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <button
+          onClick={() => { setFontOpen(v => !v); setSoundOpen(false); }}
+          title="Шрифт редактора"
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: fontOpen ? 'var(--accent)' : 'var(--ink-3)', borderRadius: 4, font: '500 11px var(--font-ui)', letterSpacing: '-0.02em' }}
+        >
+          Aa
+        </button>
+        {fontOpen && (
+          <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, width: 172, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: 6, zIndex: 200, boxShadow: '0 4px 16px oklch(0 0 0 / 0.18)' }}>
+            {MOCK_FONTS.map((f, i) => (
+              <button
+                key={f.label}
+                onClick={() => { setActiveFont(i); setFontOpen(false); }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '5px 8px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 5, fontFamily: f.family, fontSize: 13, color: activeFont === i ? 'var(--ink)' : 'var(--ink-3)', textAlign: 'left' }}
+              >
+                {f.label}
+                {activeFont === i && <span style={{ color: 'var(--accent)', fontSize: 11 }}>✓</span>}
+              </button>
             ))}
           </div>
-          <div style={{ padding: '10px 5px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-            <Paper />
-          </div>
-          <RightCards />
-        </div>
-      </ModePane>
+        )}
+      </div>
 
-      <ModePane label="Рукопись" desc="оглавление + текст">
-        <div style={{ height: '100%', display: 'grid', gridTemplateColumns: '1fr 2.5fr', background: 'var(--bg)' }}>
-          <div style={{ background: 'var(--bg-deep)', padding: '8px 5px', borderRight: '1px solid var(--border-soft)' }}>
-            {MC.slice(0, 4).map((c, i) => (
-              <div key={c.num} style={{ height: 8, borderRadius: 2, background: i === 0 ? 'var(--surface)' : 'transparent', marginBottom: 4 }} />
-            ))}
+      {/* Ambient sounds */}
+      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <button
+          onClick={() => { setSoundOpen(v => !v); setFontOpen(false); }}
+          title="Фоновые звуки"
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: activeSound ? 'var(--accent)' : 'var(--ink-3)', borderRadius: 4 }}
+        >
+          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
+            <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+          </svg>
+        </button>
+        {soundOpen && (
+          <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, width: 220, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', zIndex: 200, boxShadow: '0 4px 16px oklch(0 0 0 / 0.18)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+              {MOCK_SOUNDS.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setActiveSound(activeSound === s ? null : s)}
+                  style={{ font: '400 11.5px var(--font-ui)', padding: '3px 10px', borderRadius: 999, border: activeSound === s ? '1.5px solid var(--accent)' : '1px solid var(--border-soft)', background: 'transparent', color: activeSound === s ? 'var(--ink)' : 'var(--ink-3)', cursor: 'pointer' }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: activeSound ? 8 : 0 }}>
+              <input
+                type="range" min={0} max={1} step={0.01} value={volume}
+                onChange={e => setVolume(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: 'var(--accent)', height: 4, cursor: 'pointer' }}
+              />
+              <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)', width: 28, textAlign: 'right' }}>
+                {Math.round(volume * 100)}%
+              </span>
+            </div>
+            {activeSound && (
+              <button
+                onClick={() => setActiveSound(null)}
+                style={{ width: '100%', font: '400 12px var(--font-ui)', padding: '4px 0', border: '1px solid var(--border-soft)', borderRadius: 4, background: 'transparent', color: 'var(--ink-3)', cursor: 'pointer' }}
+              >
+                × Стоп
+              </button>
+            )}
           </div>
-          <div style={{ padding: '10px 6px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-            <Paper />
-          </div>
-        </div>
-      </ModePane>
-
-      <ModePane label="Сплит" desc="текст + заметки">
-        <div style={{ height: '100%', display: 'grid', gridTemplateColumns: '2.5fr 1fr', background: 'var(--bg)' }}>
-          <div style={{ padding: '10px 6px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-            <Paper />
-          </div>
-          <RightCards />
-        </div>
-      </ModePane>
-
-      <ModePane label="Фокус" desc="только текст">
-        <div style={{ height: '100%', background: 'var(--bg)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 18 }}>
-          <Paper narrow />
-        </div>
-      </ModePane>
+        )}
+      </div>
     </div>
+  );
+}
+
+type EditorMode = 'Студия' | 'Рукопись' | 'Сплит' | 'Фокус';
+type RightTab = 'Заметки' | 'Версии';
+
+const MODE_COLUMNS: Record<EditorMode, string> = {
+  'Студия':   '178px 1fr 156px',
+  'Рукопись': '178px 1fr 0px',
+  'Сплит':    '0px 1fr 156px',
+  'Фокус':    '0px 1fr 0px',
+};
+
+function MockSidebar() {
+  return (
+    <div style={{ background: 'var(--bg-deep)', borderRight: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+      <div style={{ padding: '12px 12px 10px', borderBottom: '1px solid var(--border-soft)', flexShrink: 0 }}>
+        <div style={{ font: '400 8px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 4 }}>Роман</div>
+        <div style={{ font: '600 12.5px var(--font-serif)', color: 'var(--ink)', lineHeight: 1.25, marginBottom: 8 }}>Город, которого нет</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <div style={{ flex: 1, height: 2, borderRadius: 1, background: 'var(--border-soft)', overflow: 'hidden' }}>
+            <div style={{ width: '23%', height: '100%', background: 'var(--accent)', borderRadius: 1 }} />
+          </div>
+          <span style={{ font: '400 8.5px var(--font-mono)', color: 'var(--ink-4)' }}>23%</span>
+        </div>
+      </div>
+      <div style={{ flex: 1, padding: '6px 5px', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {STUDIO_CHAPTERS.map(c => (
+          <div key={c.num} style={{ padding: '5px 7px', borderRadius: 4, background: c.active ? 'var(--surface)' : 'transparent', border: c.active ? '1px solid var(--border-soft)' : '1px solid transparent', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ font: '500 8.5px var(--font-mono)', color: c.done ? 'var(--accent)' : c.progress ? 'oklch(0.72 0.14 145)' : 'var(--ink-4)', flexShrink: 0, width: 14, textAlign: 'center' }}>
+              {c.done ? '✓' : c.progress ? '●' : '○'}
+            </span>
+            <span style={{ font: `${c.active ? '500' : '400'} 11px var(--font-serif)`, color: c.active ? 'var(--ink)' : 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: '8px 10px', borderTop: '1px solid var(--border-soft)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
+        <div style={{ width: 22, height: 22, borderRadius: 999, background: 'var(--surface-2)', flexShrink: 0 }} />
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <div style={{ font: '500 10px var(--font-ui)', color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Аней Ворон</div>
+          <div style={{ font: '400 9px var(--font-mono)', color: 'var(--ink-4)' }}>Ранний доступ</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MockPaper({ wide }: { wide?: boolean }) {
+  return (
+    <div style={{ background: 'var(--bg)', display: 'flex', justifyContent: 'center', padding: wide ? '22px 10%' : '22px 18px 14px', overflow: 'hidden', height: '100%' }}>
+      <div style={{ background: 'var(--paper)', width: '100%', maxWidth: wide ? 560 : 440, borderRadius: '2px 2px 0 0', padding: '26px 30px 20px', boxShadow: '0 4px 28px oklch(0 0 0 / 0.32)', overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ font: '400 8.5px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--paper-ink-2)', marginBottom: 6, opacity: 0.7 }}>Глава первая</div>
+        <div style={{ font: '700 20px var(--font-serif)', color: 'var(--paper-ink)', letterSpacing: '-0.01em', marginBottom: 18, lineHeight: 1.1 }}>Исчезновение</div>
+        <div style={{ font: '400 12.5px/1.85 var(--font-serif)', color: 'var(--paper-ink)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ margin: 0 }}>Аней Ворон получила письмо утром третьего октября — за час до того, как закрыли архив.</p>
+          <p style={{ margin: 0 }}>В конверте лежал один лист. Почерк она узнала сразу: наставник не пользовался машинописью принципиально. Три строки. Дата. Подпись.</p>
+          <p style={{ margin: 0, fontStyle: 'italic', paddingLeft: 18, opacity: 0.78 }}>«Ворна исчезла. Никому не говори.»</p>
+          <p style={{ margin: 0 }}>Она перечитала трижды. За окном синело утреннее небо над черепицей, и где-то на Торговой улице кричал разносчик газет — с той настойчивостью, что бывает лишь у людей, не понимающих смысла произносимых слов.</p>
+          <p style={{ margin: 0 }}>«Никому не говори» означало, что наставник уже знает: будет кому спрашивать. Аней сложила письмо по сгибам и убрала в карман<span style={{ display: 'inline-block', width: '1.5px', height: '0.9em', background: 'var(--paper-ink)', marginLeft: 1, verticalAlign: 'text-bottom', opacity: 0.75 }} /></p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MockRightPanel({ activeTab, onTabChange }: { activeTab: RightTab; onTabChange: (t: RightTab) => void }) {
+  return (
+    <div style={{ background: 'var(--bg-deep)', borderLeft: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-soft)', flexShrink: 0 }}>
+        {(['Заметки', 'Версии'] as RightTab[]).map(t => (
+          <button
+            key={t}
+            onClick={() => onTabChange(t)}
+            style={{ flex: 1, height: 34, font: '500 10.5px var(--font-ui)', color: activeTab === t ? 'var(--ink)' : 'var(--ink-4)', background: 'transparent', border: 'none', borderBottom: activeTab === t ? '2px solid var(--accent)' : '2px solid transparent', cursor: 'pointer', transition: 'color 150ms' }}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'Заметки' ? (
+        <>
+          {/* Notes section */}
+          <div style={{ padding: '9px 9px 8px', borderBottom: '1px solid var(--border-soft)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+              <span style={{ font: '500 8.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-4)' }}>Заметки</span>
+              <span style={{ font: '500 10px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1 }}>+</span>
+            </div>
+            <div style={{ background: 'color-mix(in oklch, var(--accent-2) 6%, var(--surface))', border: '1px solid color-mix(in oklch, var(--accent-2) 18%, var(--border-soft))', borderRadius: 4, padding: '6px 8px' }}>
+              <div style={{ font: '500 10px var(--font-serif)', color: 'var(--ink)', marginBottom: 3 }}>Архивариус Лих</div>
+              <div style={{ font: '400 9.5px/1.5 var(--font-ui)', color: 'var(--ink-3)' }}>Полковник упоминает архив — проверить связь с Ворной.</div>
+            </div>
+          </div>
+
+          {/* Characters section */}
+          <div style={{ padding: '9px 9px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ font: '500 8.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 7 }}>Персонажи главы</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {/* POV character */}
+              <div style={{ background: 'color-mix(in oklch, var(--accent) 7%, var(--surface))', border: '1px solid color-mix(in oklch, var(--accent) 20%, var(--border-soft))', borderRadius: 4, padding: '5px 7px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+                  <span style={{ font: '600 7px var(--font-mono)', color: 'var(--accent)', letterSpacing: '0.08em', background: 'color-mix(in oklch, var(--accent) 14%, var(--surface))', padding: '1px 4px', borderRadius: 2 }}>POV</span>
+                  <span style={{ font: '500 10.5px var(--font-serif)', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Аней Ворон</span>
+                </div>
+                <div style={{ font: '400 9px var(--font-ui)', color: 'var(--ink-3)' }}>Главный герой</div>
+              </div>
+              {/* Other character */}
+              <div style={{ background: 'transparent', border: '1px solid var(--border-soft)', borderRadius: 4, padding: '5px 7px' }}>
+                <div style={{ font: '500 10.5px var(--font-serif)', color: 'var(--ink)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Наставник</div>
+                <div style={{ font: '400 9px var(--font-ui)', color: 'var(--ink-3)' }}>Второй план</div>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        /* Versions tab */
+        <div style={{ padding: '10px 9px', flex: 1, overflow: 'hidden' }}>
+          <div style={{ font: '500 8.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 8 }}>Версии главы</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {STUDIO_VERSIONS.map(v => (
+              <div key={v.tag} style={{ background: v.current ? 'var(--surface)' : 'transparent', border: v.current ? '1px solid var(--border-soft)' : '1px solid transparent', borderRadius: 4, padding: '5px 7px', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                <span style={{ font: '500 8.5px var(--font-mono)', color: 'var(--accent)', flexShrink: 0, paddingTop: 1 }}>{v.tag}</span>
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{ font: '400 10px var(--font-ui)', color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</div>
+                  <div style={{ font: '400 8.5px var(--font-mono)', color: 'var(--ink-4)', marginTop: 1 }}>{v.when}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MockStudioFull() {
+  const [mode, setMode] = useState<EditorMode>('Студия');
+  const [rightTab, setRightTab] = useState<RightTab>('Заметки');
+
+  const showSidebar = mode === 'Студия' || mode === 'Рукопись';
+  const showRight   = mode === 'Студия' || mode === 'Сплит';
+
+  return (
+    <BrowserMock mockHeight={500}>
+      <div data-theme="dark" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
+
+        {/* Mode tabs */}
+        <div style={{ height: 36, background: 'var(--bg-deep)', borderBottom: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', padding: '0 10px', gap: 2, flexShrink: 0 }}>
+          {(['Студия', 'Рукопись', 'Сплит', 'Фокус'] as EditorMode[]).map(m => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              style={{ height: 26, padding: '0 11px', borderRadius: 5, display: 'flex', alignItems: 'center', gap: 5, font: '500 11px var(--font-ui)', color: mode === m ? 'var(--ink)' : 'var(--ink-4)', background: mode === m ? 'var(--surface)' : 'transparent', border: mode === m ? '1px solid var(--border-soft)' : '1px solid transparent', cursor: 'pointer', transition: 'all 150ms' }}
+            >
+              {mode === m && <span style={{ width: 5, height: 5, borderRadius: 999, background: 'var(--accent)', display: 'inline-block' }} />}
+              {m}
+            </button>
+          ))}
+        </div>
+
+        {/* Layout */}
+        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: MODE_COLUMNS[mode], minHeight: 0, transition: 'grid-template-columns 220ms ease-out', overflow: 'hidden' }}>
+          {showSidebar && <MockSidebar />}
+          {!showSidebar && <div />}
+          <MockPaper wide={mode === 'Фокус'} />
+          {showRight && <MockRightPanel activeTab={rightTab} onTabChange={setRightTab} />}
+          {!showRight && <div />}
+        </div>
+
+        {/* Status bar */}
+        <MockStatusBar />
+      </div>
+    </BrowserMock>
   );
 }
 
@@ -350,7 +576,7 @@ export function LandingFeatures() {
         <FeatureRowFull
           headline="Четыре режима. Один редактор."
           body="Студия открывает все панели — для глубокой редактуры. Фокус убирает лишнее — для чистого черновика. Рукопись и Сплит — для работы между крайностями. Редактор помнит, на каком режиме вы остановились."
-          mock={<MockEditorModesStrip />}
+          mock={<MockStudioFull />}
         />
         <FeatureRow
           reverse
