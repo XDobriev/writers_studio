@@ -33,7 +33,7 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
-  async function handlePurchase(plan: 'pro' | 'pro_test' | 'lifetime') {
+  async function handlePurchase(plan: 'pro' | 'lifetime') {
     setIsLoading(true);
     setPurchaseError(null);
     try {
@@ -130,15 +130,6 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
             </button>
             <button className="btn btn--ghost" onClick={onClose} style={{ fontSize: 13, height: 38 }}>
               Позже
-            </button>
-            {/* TODO: удалить после боевого теста */}
-            <button
-              className="btn btn--ghost"
-              style={{ fontSize: 11, height: 28, color: 'var(--ink-4)' }}
-              onClick={() => handlePurchase('pro_test')}
-              disabled={isLoading}
-            >
-              🧪 Тест 1 ₽ (удалить)
             </button>
             {purchaseError && (
               <p style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', margin: '4px 0 0', textAlign: 'center' }}>
