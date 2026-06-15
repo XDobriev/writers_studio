@@ -128,12 +128,13 @@ Deno.serve(async (req) => {
       return text(500, 'ERROR: no lifetime slots');
     }
 
-    const { error } = await db
+    const { data: updatedLifetime, error } = await db
       .from('profiles')
       .update({ plan: 'lifetime', plan_expires_at: null })
-      .eq('user_id', shpUserId);
-    if (error) {
-      console.error('[robokassa-webhook] profiles update failed:', error.message);
+      .eq('user_id', shpUserId)
+      .select('user_id');
+    if (error || !updatedLifetime?.length) {
+      console.error('[robokassa-webhook] profiles update failed (lifetime):', error?.message ?? '0 rows', 'user:', shpUserId);
       return text(500, 'ERROR: profiles update failed');
     }
 
@@ -154,12 +155,13 @@ Deno.serve(async (req) => {
     };
     if (isGrandfathering) updateData.grandfathered = true;
 
-    const { error } = await db
+    const { data: updatedPro, error } = await db
       .from('profiles')
       .update(updateData)
-      .eq('user_id', shpUserId);
-    if (error) {
-      console.error('[robokassa-webhook] profiles update failed:', error.message);
+      .eq('user_id', shpUserId)
+      .select('user_id');
+    if (error || !updatedPro?.length) {
+      console.error('[robokassa-webhook] profiles update failed (pro):', error?.message ?? '0 rows', 'user:', shpUserId);
       return text(500, 'ERROR: profiles update failed');
     }
 
