@@ -134,22 +134,27 @@ Deno.serve(async (req) => {
     if (list.users.length < 200) break;
   }
 
+  const appMeta = { provider: 'vk', providers: ['vk'], vk_id: Number(vkUser.user_id) };
+
   if (!userId) {
     const { data: created, error } = await admin.auth.admin.createUser({
       email,
       email_confirm: true,
       user_metadata: meta,
-      app_metadata: { provider: 'vk', vk_id: Number(vkUser.user_id) },
+      app_metadata: appMeta,
     });
     if (error || !created.user) return json(500, { error: `createUser failed: ${error?.message ?? 'unknown'}` });
     userId = created.user.id;
   } else {
-    // Guard against pre-hijacking: reject if existing account was not created via VK.
-    // app_metadata is server-controlled and cannot be set by users through signUp.
-    if (existingAppMeta?.provider !== 'vk') {
+    // Guard: vk_id in app_metadata is set by this function and not overridden by Supabase.
+    // provider field is unreliable — Supabase may reset it to "email" on createUser.
+    if (!existingAppMeta?.vk_id || existingAppMeta.vk_id !== Number(vkUser.user_id)) {
       return json(409, { error: 'email conflict: account exists with different provider' });
     }
-    const { error: updateErr } = await admin.auth.admin.updateUserById(userId, { user_metadata: meta });
+    const { error: updateErr } = await admin.auth.admin.updateUserById(userId, {
+      user_metadata: meta,
+      app_metadata: appMeta,
+    });
     if (updateErr) return json(500, { error: `updateUser failed: ${updateErr.message}` });
   }
 

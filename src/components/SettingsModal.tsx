@@ -33,7 +33,7 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
-  async function handlePurchase(plan: 'pro' | 'lifetime') {
+  async function handlePurchase(plan: 'pro' | 'lifetime' | 'lifetime_test') {
     setIsLoading(true);
     setPurchaseError(null);
     try {
@@ -165,6 +165,15 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
                 disabled={isLoading}
               >
                 {isLoading ? 'Переход к оплате…' : 'Купить Lifetime'}
+              </button>
+              {/* TODO: удалить после боевого теста Lifetime */}
+              <button
+                className="btn btn--ghost"
+                style={{ justifyContent: 'center', fontSize: 11, height: 28, color: 'var(--ink-4)', width: '100%' }}
+                onClick={() => handlePurchase('lifetime_test')}
+                disabled={isLoading}
+              >
+                🧪 Тест 1 ₽ (удалить)
               </button>
             </div>
           )}
