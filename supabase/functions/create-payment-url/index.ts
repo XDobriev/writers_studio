@@ -8,14 +8,22 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const PRICES: Record<string, string> = {
-  pro: '290.00',
-  lifetime: '4990.00',
+const BASE_PRICES: Record<string, string> = {
+  pro:        '399.00',
+  pro_annual: '3490.00',
+  lifetime:   '4990.00',
+};
+
+// Грандфазерская цена — сохраняется навсегда для profiles.grandfathered = true
+const GRANDFATHERED_PRICES: Record<string, string> = {
+  pro:        '290.00',
+  pro_annual: '2900.00',
 };
 
 const DESCRIPTIONS: Record<string, string> = {
-  pro: 'Подписка Pro — Авторская студия',
-  lifetime: 'Lifetime — Авторская студия',
+  pro:        'Подписка Pro — Авторская студия',
+  pro_annual: 'Подписка Pro (год) — Авторская студия',
+  lifetime:   'Lifetime — Авторская студия',
 };
 
 function json(status: number, body: unknown): Response {
@@ -66,19 +74,30 @@ Deno.serve(async (req) => {
     return json(400, { error: 'invalid body' });
   }
 
-  if (!PRICES[plan]) {
+  if (!BASE_PRICES[plan]) {
     return json(400, { error: `unknown plan: ${plan}` });
   }
 
-  const outSum      = PRICES[plan];
+  // Проверяем грандфазерский флаг — ранние пользователи платят 290₽/2900₽ навсегда
+  const { data: profile } = await db
+    .from('profiles')
+    .select('grandfathered')
+    .eq('user_id', user.id)
+    .single();
+  const isGrandfathered = profile?.grandfathered === true;
+
+  const outSum = (isGrandfathered && GRANDFATHERED_PRICES[plan])
+    ? GRANDFATHERED_PRICES[plan]
+    : BASE_PRICES[plan];
   const invId       = String(Date.now());
   const shpPlan     = plan;
   const shpUserId   = user.id;
   const result2Url  = `${supabaseUrl}/functions/v1/payment-result2`;
 
   // Receipt с номенклатурой (обязателен по ФЗ-54)
-  // tax: 'none' — без НДС (УСН). Если ОСНО → менять на 'vat20'.
-  const receipt = {
+  // tax: 'none' — без НДС (СМЗ/УСН). Если ОСНО → менять на 'vat20'.
+  // email — куда Robokassa отправит электронный чек покупателю.
+  const receipt: Record<string, unknown> = {
     items: [{
       name: DESCRIPTIONS[plan],
       quantity: 1,
@@ -88,6 +107,7 @@ Deno.serve(async (req) => {
       tax: 'none',
     }],
   };
+  if (user.email) receipt['email'] = user.email;
   const receiptJson    = JSON.stringify(receipt);
   const receiptEncoded = encodeURIComponent(receiptJson);
 
