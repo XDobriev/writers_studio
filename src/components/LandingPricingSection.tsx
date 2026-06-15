@@ -1,19 +1,47 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { revealVariants } from '../lib/motion';
 import { AnimatedPricingCard } from './AnimatedPricingCard';
 import { getLifetimeSlotsRemaining } from '../lib/profiles';
 import { SectionLabel } from './LandingSectionLabel';
+import { useAuth } from '../lib/auth';
+import { supabase } from '../lib/supabase';
 
 export function LandingPricing() {
   const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<'pro' | 'lifetime' | null>(null);
+  const { session } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     getLifetimeSlotsRemaining().then((slots) => {
       if (slots !== null) setLifetimeSlots(slots);
     });
   }, []);
+
+  const handleCtaClick = async (planKey: 'pro' | 'lifetime' | null) => {
+    if (!planKey) {
+      navigate('/login');
+      return;
+    }
+    if (!session) {
+      sessionStorage.setItem('pending_plan', planKey);
+      navigate(`/login?tab=signup&plan=${planKey}`);
+      return;
+    }
+    setLoadingPlan(planKey);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-payment-url', {
+        body: { plan: planKey },
+      });
+      if (error || !data?.url) throw error ?? new Error('no url');
+      window.location.href = data.url as string;
+    } catch {
+      setLoadingPlan(null);
+      navigate('/books');
+    }
+  };
 
   const slotsLabel = lifetimeSlots !== null ? `${lifetimeSlots}` : '…';
 
@@ -30,7 +58,7 @@ export function LandingPricing() {
         ['Экспорт EPUB, FB2 (для читалок), DOCX', false],
         ['Безлимит персонажей и хронологии', false],
       ] as [string, boolean][],
-      cta: 'Начать бесплатно', accent: false, tag: null, signup: true,
+      cta: 'Начать бесплатно', accent: false, tag: null, planKey: null as 'pro' | 'lifetime' | null,
     },
     {
       name: 'Pro', price: '399 ₽', sub: 'в месяц · или 3 490 ₽/год',
@@ -44,7 +72,7 @@ export function LandingPricing() {
         ['Приоритетная поддержка', true],
         ['Доступ к закрытому чату автора', true],
       ] as [string, boolean][],
-      cta: 'Перейти на Pro', accent: true, tag: 'Чаще выбирают', signup: true,
+      cta: 'Перейти на Pro', accent: true, tag: 'Чаще выбирают', planKey: 'pro' as 'pro' | 'lifetime' | null,
     },
     {
       name: 'Lifetime', price: '4 990 ₽', sub: 'один раз · навсегда',
@@ -58,7 +86,7 @@ export function LandingPricing() {
         ['Закрытое сообщество авторов', true],
         [`Только первые 50 покупателей`, true],
       ] as [string, boolean][],
-      cta: 'Купить Lifetime', accent: false, tag: `${slotsLabel} мест · ранний доступ`, signup: true,
+      cta: 'Купить Lifetime', accent: false, tag: `${slotsLabel} мест · ранний доступ`, planKey: 'lifetime' as 'pro' | 'lifetime' | null,
     },
   ];
 
@@ -102,7 +130,14 @@ export function LandingPricing() {
                   </li>
                 ))}
               </ul>
-              <Link to={t.signup ? '/login?tab=signup' : '/login'} className={t.accent ? 'btn btn--primary' : 'btn'} style={{ height: 42, fontSize: 14, justifyContent: 'center', width: '100%', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>{t.cta}</Link>
+              <button
+                onClick={() => void handleCtaClick(t.planKey)}
+                disabled={loadingPlan !== null}
+                className={t.accent ? 'btn btn--primary' : 'btn'}
+                style={{ height: 42, fontSize: 14, justifyContent: 'center', width: '100%', display: 'flex', alignItems: 'center' }}
+              >
+                {loadingPlan === t.planKey ? 'Подождите…' : t.cta}
+              </button>
               {t.name !== 'Free' && (
                 <p style={{ margin: '10px 0 0', fontSize: 11, color: 'var(--ink-4)', textAlign: 'center', lineHeight: 1.5 }}>
                   Нажимая кнопку, вы соглашаетесь с{' '}

@@ -74,12 +74,25 @@ Deno.serve(async (req) => {
   const invId       = String(Date.now());
   const shpPlan     = plan;
   const shpUserId   = user.id;
-  // ResultUrl2 — адрес Edge Function для получения OpKey (нужен для API возвратов)
   const result2Url  = `${supabaseUrl}/functions/v1/payment-result2`;
 
-  // Shp-параметры сортируются алфавитно: Shp_plan < Shp_user_id
-  // ResultUrl2 включается в подпись между InvId и Password1
-  const sigString = `${merchantLogin}:${outSum}:${invId}:${result2Url}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
+  // Receipt с номенклатурой (обязателен по ФЗ-54)
+  // tax: 'none' — без НДС (УСН). Если ОСНО → менять на 'vat20'.
+  const receipt = {
+    items: [{
+      name: DESCRIPTIONS[plan],
+      quantity: 1,
+      sum: parseFloat(outSum),
+      payment_method: 'full_payment',
+      payment_object: 'service',
+      tax: 'none',
+    }],
+  };
+  const receiptJson    = JSON.stringify(receipt);
+  const receiptEncoded = encodeURIComponent(receiptJson);
+
+  // Порядок подписи: MerchantLogin:OutSum:InvId:Receipt:ResultUrl2:Password1:Shp_...
+  const sigString = `${merchantLogin}:${outSum}:${invId}:${receiptEncoded}:${result2Url}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
   const signature = md5hex(sigString);
 
   const params = new URLSearchParams({
@@ -94,7 +107,8 @@ Deno.serve(async (req) => {
     Shp_user_id:    shpUserId,
   });
 
-  const url = `https://auth.robokassa.ru/Merchant/Index.aspx?${params.toString()}`;
+  // Receipt добавляем вручную — encodeURIComponent, не двойное кодирование через URLSearchParams
+  const url = `https://auth.robokassa.ru/Merchant/Index.aspx?${params.toString()}&Receipt=${receiptEncoded}`;
   console.log(`[create-payment-url] plan=${plan} invId=${invId} userId=${user.id} isTest=${isTestMode}`);
   return json(200, { url });
 });

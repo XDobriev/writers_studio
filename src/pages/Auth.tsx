@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, type TelegramAuthData } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
 import { PasswordInput } from '../components/PasswordInput';
-import { supabaseConfigured } from '../lib/supabase';
+import { supabase, supabaseConfigured } from '../lib/supabase';
 import { useRegistrationOpen } from '../lib/queries';
 
 type Tab = 'signin' | 'signup';
@@ -82,6 +82,7 @@ export default function Auth() {
   const [consent, setConsent] = useState(false);
   const [consentMarketing, setConsentMarketing] = useState(false);
   const [oauthBusy, setOauthBusy] = useState<'google' | 'telegram' | 'vk' | null>(null);
+  const [redirectingToPay, setRedirectingToPay] = useState(false);
   const { error: err, setError: setErr, clearError: clearErr } = useErrorState();
   const [info, setInfo] = useState<string | null>(null);
   const { data: registrationOpen = true } = useRegistrationOpen();
@@ -185,6 +186,25 @@ export default function Auth() {
   // Редирект в эффекте — не в render — чтобы форма не мигала пустым кадром
   useEffect(() => {
     if (!session) return;
+    const params = new URLSearchParams(location.search);
+    const plan = (params.get('plan') ?? sessionStorage.getItem('pending_plan')) as 'pro' | 'lifetime' | null;
+    if (plan === 'pro' || plan === 'lifetime') {
+      sessionStorage.removeItem('pending_plan');
+      setRedirectingToPay(true);
+      void (async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('create-payment-url', {
+            body: { plan },
+          });
+          if (error || !data?.url) throw error ?? new Error('no url');
+          window.location.href = data.url as string;
+        } catch {
+          setRedirectingToPay(false);
+          navigate('/books', { replace: true });
+        }
+      })();
+      return;
+    }
     const rawFrom = (location.state as { from?: string } | null)?.from ?? '/books';
     // Срезаем до /books если from указывает на конкретную книгу —
     // после смены аккаунта (VK/Telegram → email и наоборот) та книга недоступна.
@@ -240,6 +260,17 @@ export default function Auth() {
     }
     // при успехе редирект уходит на Google — стейт busy не сбрасываем
   };
+
+  if (redirectingToPay) {
+    return (
+      <div className="as" style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <span className="btn-spinner" style={{ display: 'inline-block', marginBottom: 16 }} />
+          <p style={{ font: '400 14px var(--font-ui)', color: 'var(--ink-3)' }}>Переходим к оплате…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="as" style={{ minHeight: '100dvh', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.05fr 1fr', background: 'var(--bg)' }}>

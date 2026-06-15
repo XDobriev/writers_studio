@@ -77,6 +77,8 @@ _Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест ✅, life
 **Также сделано в рамках §1:**
 - ✅ VK auth guard: проверка по `vk_id` вместо ненадёжного поля `provider` (2026-06-15)
 - ✅ Pro → Lifetime: кнопка «Перейти на Lifetime» добавлена в SettingsModal для Pro-пользователей; `UpgradeModal` получил `skipPro` prop (2026-06-15)
+- ✅ §1.5 — лендинг сохраняет выбранный тариф через регистрацию → авто-редирект на Robokassa (2026-06-15): `LandingPricingSection` запускает оплату напрямую; `Auth.tsx` читает `plan` из URL / `sessionStorage.pending_plan` после входа
+- ✅ Чек ФЗ-54 в `create-payment-url` (2026-06-15): параметр `Receipt` с номенклатурой (`tax: none`, УСН) включён в MD5-подпись; требует деплоя Edge Function
 
 **Файлы:** `supabase/functions/robokassa-webhook/index.ts`, `supabase/functions/create-payment-url/index.ts`, `src/components/SettingsModal.tsx`
 **Проверить:** тестовый платёж → `profiles.plan = 'pro'` → SettingsModal показывает Pro; Lifetime → `lifetime_slots_remaining` убывает; чек на email
