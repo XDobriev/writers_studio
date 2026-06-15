@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест пройден ✅ (plan=lifetime, lifetime_slots_remaining=49), lifetime_test кнопка удалена, фикс VK auth guard, фикс Pro→Lifetime upgrade path, решена политика возвратов.
+_Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест ✅, lifetime_test удалена, VK auth guard, Pro→Lifetime upgrade. §1.5 выполнен: лендинг сохраняет выбранный тариф через регистрацию → авто-редирект на Robokassa.
 
 История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
@@ -55,18 +55,11 @@ _Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест прой�
 1. ✅ ~~Переключить на боевой режим~~ — сделано 2026-06-14
 2. ✅ ~~Тестовый боевой платёж 1 ₽ (Pro)~~ — пройден 2026-06-15, webhook отработал, `profiles.plan` обновился
 3. ✅ ~~E2E Lifetime~~ — пройден 2026-06-15: `plan='lifetime'`, `plan_expires_at=null`, `lifetime_slots_remaining=49`; кнопка `lifetime_test` удалена
-4. ✅ ~~Проверить возвраты~~ — Robokassa ЛК делает возврат без webhook; план остаётся (ожидаемое поведение). **Автоматические возвраты — отдельная задача §1.6**
+4. ✅ ~~Проверить возвраты~~ — Robokassa ЛК делает возврат без webhook; план остаётся (ожидаемое поведение). **Автоматические возвраты реализованы (§1.6 ✅ 2026-06-15)**
 
-**Рекуррентные — отдельная фаза после первых платежей:**
-- Сохранять `InvId` первого платежа → продление через Robokassa Recurring API с `PreviousInvoiceID`
-- Sandbox для рекуррентных недоступен — тестировать на реальных суммах (1 ₽)
+**Рекуррентные → §1.7** (отдельная фаза после первых платящих пользователей)
 
-**Email-дюнинг при сбое платежа** (Robokassa не делает smart retries — вручную через UniSender Go):
-- За 3 дня до списания: «Напоминаем о продлении» (pre-billing notification)
-- В день сбоя: «Платёж не прошёл — обновите карту» (прямая ссылка в SettingsModal)
-- +3 дня: «Доступ будет ограничен через 4 дня»
-- +7 дней: «Последний шанс — аккаунт переходит на Free»
-- Cron: Edge Function по расписанию, проверяет `plan_expires_at` и статус последнего платежа
+**Email-дюнинг при сбое платежа → §1.7** (dunning-цепочка описана там же)
 
 **При переносе на self-hosted:** обновить Result URL в Robokassa ЛК; переложить Secrets в docker-compose `.env`; задеплоить функции через Supabase CLI.
 
@@ -79,59 +72,48 @@ _Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест прой�
 
 ---
 
-### 1.6. Автоматические возвраты
 
-**Проблема:** при возврате через Robokassa ЛК webhook не вызывается — `profiles.plan` остаётся платным. Пользователь не может сделать возврат сам. Текущий workaround: ручной SQL в Supabase Dashboard.
+### 1.7. Рекуррентные платежи — автоматическое продление Pro
 
-**Политика (решено 2026-06-15):**
-- Pro — возврат в течение **14 дней** с момента оплаты (ЗоЗПП, ст. 26.1)
-- Lifetime — **невозвратный**; прописать явно в `/offer`
+**Что это:** ежемесячное автоматическое списание для Pro-подписчиков через Robokassa Recurring API. Без этого пользователь платит один раз и остаётся Pro вечно — модель подписки сломана.
+
+**Как работает Robokassa Recurring:**
+- Первый платёж: в URL добавляется `Recurring=true` → Robokassa сохраняет карту
+- Повторные платежи: мы инициируем `POST https://auth.robokassa.ru/Merchant/Recurring` с `PreviousInvoiceID` = InvId первого платежа
+- Ответ `OK+InvoiceId` = операция создана, **не гарантирует списание** — результат приходит через тот же ResultURL (webhook)
+- Подпись child-платежа: `MD5(MerchantLogin:OutSum:InvoiceID:Password1)` — `PreviousInvoiceID` в подпись **не входит**
+- Sandbox недоступен — тестировать на реальных 1 ₽
+- Требует предварительного соглашения с Robokassa на подключение рекуррентного сервиса
 
 **Что нужно сделать:**
 
-1. **Таблица `payments`** (миграция) — `user_id`, `inv_id`, `amount`, `plan`, `paid_at`, `refunded_at nullable`
-   - Сейчас `inv_id` теряется после вебхука — он нужен для Robokassa Refund API
-   - Обновить `robokassa-webhook/index.ts`: после успешного UPDATE profiles → INSERT в `payments`
+1. **Миграция** — добавить в `profiles`:
+   - `recurring_inv_id bigint` — InvId первого платежа (PreviousInvoiceID для будущих списаний)
+   - `plan_expires_at` уже есть ✅ (дата следующего списания)
 
-2. **Edge Function `process-refund`** — авторизованный endpoint (пользователь вызывает сам):
-   - Достать последний платёж из `payments` для текущего пользователя
-   - Проверить: `plan = 'pro'` И `paid_at > now() - interval '14 days'` И `refunded_at IS NULL`
-   - POST на Robokassa Refund API (`/Merchant/Refund`): `MerchantLogin`, `InvId`, `OutSum`, подпись MD5(`MerchantLogin:OutSum:InvId:Password2`)
-   - При успехе: `UPDATE profiles SET plan='free', plan_expires_at=NULL`; `UPDATE payments SET refunded_at=now()`
-   - Lifetime-возврат отклонять с 403
+2. **`create-payment-url`** — добавить `Recurring=true` только для плана `pro`; Lifetime — разовый, не трогать
 
-3. **UI в SettingsModal** — кнопка «Запросить возврат» для Pro-пользователей в окне 14 дней:
-   - Показывать только если `paid_at` в `payments` < 14 дней назад
-   - Подтверждение через `ConfirmDialog` перед вызовом функции
+3. **`robokassa-webhook`** — при успешном Pro-платеже:
+   - Если `recurring_inv_id IS NULL` — первичный платёж: сохранить `InvId` в `recurring_inv_id`, установить `plan_expires_at = now() + interval '30 days'`
+   - Если `recurring_inv_id IS NOT NULL` — продление: только обновить `plan_expires_at += 30 days`
 
-4. **Обновить `/offer`** — добавить раздел политики возврата:
-   - Pro: «Возврат возможен в течение 14 дней с момента оплаты по запросу через приложение»
-   - Lifetime: «После предоставления доступа возврат не производится, так как услуга считается оказанной в полном объёме»
+4. **Новая Edge Function `billing-scheduler`** (pg_cron, раз в сутки):
+   - Находит Pro-пользователей: `plan_expires_at <= now() + interval '3 days'` И `cancel_at_period_end = false` И `recurring_inv_id IS NOT NULL`
+   - Для каждого: генерирует новый уникальный `InvoiceID`, POST на Recurring endpoint
+   - Логирует попытку в `payments` (из §1.6)
 
-**Файлы:** `supabase/migrations/` (таблица `payments`), `supabase/functions/robokassa-webhook/index.ts`, новая `supabase/functions/process-refund/index.ts`, `src/components/SettingsModal.tsx`, `src/pages/Offer.tsx`
-**Проверить:** Pro-пользователь → «Запросить возврат» → подтверждение → деньги возвращены в Robokassa → `profiles.plan = 'free'` → кнопка исчезла
-**Deps:** §1 E2E Lifetime (убедиться что Robokassa боевой работает до добавления refund логики)
+5. **Dunning-цепочка при сбое** (через UniSender Go, связано с §4/§5):
+   - Day −3: «Скоро продление — убедитесь, что карта активна»
+   - Day 0 (сбой webhook): «Платёж не прошёл — обновите карту» + ссылка в SettingsModal
+   - Day +3: «Доступ будет ограничен через 4 дня»
+   - Day +7: downgrade `plan = 'free'`, письмо «Перешли на Free»
+   - `billing-scheduler` определяет просроченных по `plan_expires_at < now()`
 
----
+6. **`SettingsModal`** — показывать «Следующее списание: [дата]» для Pro-пользователей с `plan_expires_at`
 
-### 1.5. Сохранение выбранного тарифа через регистрацию
-
-**Проблема:** кнопки «Перейти на Pro» и «Купить Lifetime» на лендинге ведут на `/login?tab=signup`. После регистрации пользователь оказывается в пустом Home — выбор тарифа потерян. Чтобы заплатить, он должен самостоятельно найти Настройки и нажать «Оформить». Лишний шаг — прямая потеря конверсии.
-
-**Текущий flow:**
-Лендинг → `/login?tab=signup` → Home → Настройки → Robokassa
-
-**Желаемый flow:**
-Лендинг → `/login?tab=signup?plan=pro` → регистрация → Robokassa (без промежуточных шагов)
-
-**Что сделать:**
-1. В `LandingPricingSection.tsx` — передавать `?plan=pro` / `?plan=lifetime` в `Link to="/login?tab=signup"` для платных тарифов
-2. В `Auth.tsx` — читать `plan` из `searchParams`; после успешного входа/регистрации с `plan` — вызывать `create-payment-url` и редиректить на Robokassa
-3. Если пользователь уже залогинен и кликает на тариф с лендинга — сразу `create-payment-url`, минуя `/login`
-
-**Файлы:** `src/components/LandingPricingSection.tsx`, `src/pages/Auth.tsx`
-**Проверить:** клик «Перейти на Pro» → регистрация → автоматический редирект на Robokassa с правильным тарифом
-**Deps:** §1 (Robokassa боевой режим) — реализовывать после переключения на прод
+**Файлы:** `supabase/migrations/` (колонка `recurring_inv_id`), `supabase/functions/create-payment-url/index.ts`, `supabase/functions/robokassa-webhook/index.ts`, новая `supabase/functions/billing-scheduler/index.ts`, `src/components/SettingsModal.tsx`  
+**Проверить:** Pro-платёж 1 ₽ с `Recurring=true` → `recurring_inv_id` заполнен → `billing-scheduler` создаёт child-платёж → webhook подтверждает → `plan_expires_at` продлился на 30 дней  
+**Deps:** §1.6 (таблица `payments` уже хранит `inv_id`); соглашение с Robokassa на рекуррентные
 
 ---
 
@@ -269,7 +251,7 @@ _Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест прой�
 
 **Файлы:** `supabase/migrations/` (колонка `cancel_at_period_end`), `src/components/SettingsModal.tsx` (таб «Подписка»), `supabase/functions/robokassa-webhook/` (планировщик рекуррентных)
 **Проверить:** Pro-пользователь → «Отменить» → подтверждение → баннер «доступ до [дата]»; после `plan_expires_at` → `plan = 'free'`; кнопка «Возобновить» сбрасывает флаг
-**Deps:** §1 (Robokassa, рекуррентные платежи)
+**Deps:** §1.7 (рекуррентные платежи, `cancel_at_period_end` проверяется в `billing-scheduler`)
 
 ---
 
