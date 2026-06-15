@@ -70,13 +70,16 @@ Deno.serve(async (req) => {
     return json(400, { error: `unknown plan: ${plan}` });
   }
 
-  const outSum    = PRICES[plan];
-  const invId     = String(Date.now()); // milliseconds — collision-safe at current scale
-  const shpPlan   = plan;
-  const shpUserId = user.id;
+  const outSum      = PRICES[plan];
+  const invId       = String(Date.now());
+  const shpPlan     = plan;
+  const shpUserId   = user.id;
+  // ResultUrl2 — адрес Edge Function для получения OpKey (нужен для API возвратов)
+  const result2Url  = `${supabaseUrl}/functions/v1/payment-result2`;
 
   // Shp-параметры сортируются алфавитно: Shp_plan < Shp_user_id
-  const sigString = `${merchantLogin}:${outSum}:${invId}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
+  // ResultUrl2 включается в подпись между InvId и Password1
+  const sigString = `${merchantLogin}:${outSum}:${invId}:${result2Url}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
   const signature = md5hex(sigString);
 
   const params = new URLSearchParams({
@@ -86,6 +89,7 @@ Deno.serve(async (req) => {
     Description:    DESCRIPTIONS[plan],
     SignatureValue: signature,
     IsTest:         isTestMode ? '1' : '0',
+    ResultUrl2:     result2Url,
     Shp_plan:       shpPlan,
     Shp_user_id:    shpUserId,
   });
