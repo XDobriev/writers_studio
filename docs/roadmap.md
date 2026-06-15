@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-14_ — Переупорядочено по критическому пути: монетизация → запуск → retention → рост.
+_Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест (lifetime_test 1₽), фикс VK auth guard, фикс Pro→Lifetime upgrade path, решена политика возвратов.
 
 История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
@@ -53,9 +53,9 @@ _Обновлён: 2026-06-14_ — Переупорядочено по крит�
 
 **Что осталось (верифицировать монетизацию):**
 1. ✅ ~~Переключить на боевой режим~~ — сделано 2026-06-14
-2. ✅ ~~Тестовый боевой платёж 1 ₽~~ — пройден 2026-06-15, webhook отработал, `profiles.plan` обновился
-3. **E2E Lifetime** — тестовый платёж `plan=lifetime` → `lifetime_slots_remaining` убывает
-4. **Проверить возвраты** — через Robokassa ЛК (ручной возврат)
+2. ✅ ~~Тестовый боевой платёж 1 ₽ (Pro)~~ — пройден 2026-06-15, webhook отработал, `profiles.plan` обновился
+3. **E2E Lifetime** — нажать «🧪 Тест 1 ₽» в SettingsModal → Robokassa → проверить `profiles.plan = 'lifetime'`, `plan_expires_at = null`, `lifetime_slots_remaining` уменьшился на 1; кнопку удалить после теста
+4. ✅ ~~Проверить возвраты~~ — Robokassa ЛК делает возврат без webhook; план остаётся (ожидаемое поведение). **Автоматические возвраты — отдельная задача §1.6**
 
 **Рекуррентные — отдельная фаза после первых платежей:**
 - Сохранять `InvId` первого платежа → продление через Robokassa Recurring API с `PreviousInvoiceID`
@@ -70,8 +70,47 @@ _Обновлён: 2026-06-14_ — Переупорядочено по крит�
 
 **При переносе на self-hosted:** обновить Result URL в Robokassa ЛК; переложить Secrets в docker-compose `.env`; задеплоить функции через Supabase CLI.
 
+**Также сделано в рамках §1:**
+- ✅ VK auth guard: проверка по `vk_id` вместо ненадёжного поля `provider` (2026-06-15)
+- ✅ Pro → Lifetime: кнопка «Перейти на Lifetime» добавлена в SettingsModal для Pro-пользователей; `UpgradeModal` получил `skipPro` prop (2026-06-15)
+
 **Файлы:** `supabase/functions/robokassa-webhook/index.ts`, `supabase/functions/create-payment-url/index.ts`, `src/components/SettingsModal.tsx`
 **Проверить:** тестовый платёж → `profiles.plan = 'pro'` → SettingsModal показывает Pro; Lifetime → `lifetime_slots_remaining` убывает; чек на email
+
+---
+
+### 1.6. Автоматические возвраты
+
+**Проблема:** при возврате через Robokassa ЛК webhook не вызывается — `profiles.plan` остаётся платным. Пользователь не может сделать возврат сам. Текущий workaround: ручной SQL в Supabase Dashboard.
+
+**Политика (решено 2026-06-15):**
+- Pro — возврат в течение **14 дней** с момента оплаты (ЗоЗПП, ст. 26.1)
+- Lifetime — **невозвратный**; прописать явно в `/offer`
+
+**Что нужно сделать:**
+
+1. **Таблица `payments`** (миграция) — `user_id`, `inv_id`, `amount`, `plan`, `paid_at`, `refunded_at nullable`
+   - Сейчас `inv_id` теряется после вебхука — он нужен для Robokassa Refund API
+   - Обновить `robokassa-webhook/index.ts`: после успешного UPDATE profiles → INSERT в `payments`
+
+2. **Edge Function `process-refund`** — авторизованный endpoint (пользователь вызывает сам):
+   - Достать последний платёж из `payments` для текущего пользователя
+   - Проверить: `plan = 'pro'` И `paid_at > now() - interval '14 days'` И `refunded_at IS NULL`
+   - POST на Robokassa Refund API (`/Merchant/Refund`): `MerchantLogin`, `InvId`, `OutSum`, подпись MD5(`MerchantLogin:OutSum:InvId:Password2`)
+   - При успехе: `UPDATE profiles SET plan='free', plan_expires_at=NULL`; `UPDATE payments SET refunded_at=now()`
+   - Lifetime-возврат отклонять с 403
+
+3. **UI в SettingsModal** — кнопка «Запросить возврат» для Pro-пользователей в окне 14 дней:
+   - Показывать только если `paid_at` в `payments` < 14 дней назад
+   - Подтверждение через `ConfirmDialog` перед вызовом функции
+
+4. **Обновить `/offer`** — добавить раздел политики возврата:
+   - Pro: «Возврат возможен в течение 14 дней с момента оплаты по запросу через приложение»
+   - Lifetime: «После предоставления доступа возврат не производится, так как услуга считается оказанной в полном объёме»
+
+**Файлы:** `supabase/migrations/` (таблица `payments`), `supabase/functions/robokassa-webhook/index.ts`, новая `supabase/functions/process-refund/index.ts`, `src/components/SettingsModal.tsx`, `src/pages/Offer.tsx`
+**Проверить:** Pro-пользователь → «Запросить возврат» → подтверждение → деньги возвращены в Robokassa → `profiles.plan = 'free'` → кнопка исчезла
+**Deps:** §1 E2E Lifetime (убедиться что Robokassa боевой работает до добавления refund логики)
 
 ---
 
