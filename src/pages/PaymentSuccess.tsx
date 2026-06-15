@@ -12,7 +12,7 @@ export default function PaymentSuccess() {
   const { user } = useAuth();
   const navigate  = useNavigate();
   const [searchParams] = useSearchParams();
-  const planParam = searchParams.get('plan') ?? 'pro';
+  const planParam = searchParams.get('Shp_plan') ?? searchParams.get('plan') ?? 'pro';
 
   const [polling, setPolling]   = useState(true);
   const [timedOut, setTimedOut] = useState(false);
@@ -26,10 +26,10 @@ export default function PaymentSuccess() {
   });
 
   useEffect(() => {
-    if (profile?.plan && profile.plan !== 'free') {
+    if (profile?.plan && profile.plan === planParam) {
       setPolling(false);
     }
-  }, [profile?.plan]);
+  }, [profile?.plan, planParam]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -40,7 +40,7 @@ export default function PaymentSuccess() {
   }, []);
 
   const state: ViewState =
-    profile?.plan && profile.plan !== 'free' ? 'success'
+    profile?.plan && profile.plan === planParam ? 'success'
     : timedOut ? 'timeout'
     : 'checking';
 
