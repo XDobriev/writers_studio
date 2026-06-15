@@ -10,11 +10,13 @@ const CORS = {
 
 const PRICES: Record<string, string> = {
   pro: '290.00',
+  pro_test: '1.00', // временно: боевой тест на 1 ₽ — удалить после проверки
   lifetime: '4990.00',
 };
 
 const DESCRIPTIONS: Record<string, string> = {
   pro: 'Подписка Pro — Авторская студия',
+  pro_test: 'Тест Pro — Авторская студия',
   lifetime: 'Lifetime — Авторская студия',
 };
 
@@ -72,7 +74,7 @@ Deno.serve(async (req) => {
 
   const outSum    = PRICES[plan];
   const invId     = String(Date.now()); // milliseconds — collision-safe at current scale
-  const shpPlan   = plan;
+  const shpPlan   = plan === 'pro_test' ? 'pro' : plan; // pro_test → webhook видит 'pro'
   const shpUserId = user.id;
 
   // Shp-параметры сортируются алфавитно: Shp_plan < Shp_user_id
