@@ -1,0 +1,3 @@
+# Robokassa вызывает этот endpoint без Bearer token — JWT верификация отключена.
+[functions.payment-result2]
+verify_jwt = false
