@@ -139,6 +139,7 @@ npm run preview    # превью продакшен-сборки
 
 - Клиент читает `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY` из `.env`.
 - Миграции: `supabase/migrations/*.sql`. Применять через Supabase MCP (`apply_migration` / `execute_sql`). CLI локально не используется.
+- **Edge Functions НЕ деплоятся автоматически при `git push`.** После изменений в `supabase/functions/*` — деплоить вручную: `npx supabase functions deploy <name> --project-ref joaxeoavjvlqmtlepkrr` (Docker не нужен).
 - Edge Functions: `supabase/functions/telegram-auth/` — авторизация через Telegram. `supabase/functions/robokassa-webhook/` — вебхук Робокассы: Pro/Lifetime-подписки, декремент lifetime_slots, grandfathered (требует Secrets: `ROBOKASSA_MERCHANT_LOGIN`, `ROBOKASSA_PASSWORD2`, опционально `GRANDFATHERING_ENDS_AT`). `supabase/functions/vk-auth/` — авторизация через VK ID 2.1: верификация access_token, создание пользователя, возврат token_hash.
 - **При добавлении таблиц: обязательно RLS** `auth.uid() = user_id` (образец: `0001_init.sql`).
 - **При добавлении таблиц: обязательно GRANT** (с 30.10.2026 без него supabase-js не видит таблицу): `GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.<table> TO anon, authenticated;`
