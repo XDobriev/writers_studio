@@ -182,6 +182,15 @@ Deno.serve(async (req) => {
   });
   if (auditErr) console.error('[robokassa-webhook] audit log failed:', auditErr.message);
 
+  const { error: paymentErr } = await db.from('payments').upsert({
+    inv_id:  invId,
+    user_id: shpUserId,
+    amount:  parseFloat(outSum),
+    plan:    shpPlan,
+    paid_at: new Date().toISOString(),
+  }, { onConflict: 'inv_id' });
+  if (paymentErr) console.error('[robokassa-webhook] payments upsert failed:', paymentErr.message);
+
   if (userEmail) {
     const confirmationUrl = `${supabaseUrl}/functions/v1/payment-confirmation`;
     fetch(confirmationUrl, {
