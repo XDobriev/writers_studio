@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест (lifetime_test 1₽), фикс VK auth guard, фикс Pro→Lifetime upgrade path, решена политика возвратов.
+_Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест пройден ✅ (plan=lifetime, lifetime_slots_remaining=49), lifetime_test кнопка удалена, фикс VK auth guard, фикс Pro→Lifetime upgrade path, решена политика возвратов.
 
 История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
@@ -54,7 +54,7 @@ _Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест (lifetime
 **Что осталось (верифицировать монетизацию):**
 1. ✅ ~~Переключить на боевой режим~~ — сделано 2026-06-14
 2. ✅ ~~Тестовый боевой платёж 1 ₽ (Pro)~~ — пройден 2026-06-15, webhook отработал, `profiles.plan` обновился
-3. **E2E Lifetime** — нажать «🧪 Тест 1 ₽» в SettingsModal → Robokassa → проверить `profiles.plan = 'lifetime'`, `plan_expires_at = null`, `lifetime_slots_remaining` уменьшился на 1; кнопку удалить после теста
+3. ✅ ~~E2E Lifetime~~ — пройден 2026-06-15: `plan='lifetime'`, `plan_expires_at=null`, `lifetime_slots_remaining=49`; кнопка `lifetime_test` удалена
 4. ✅ ~~Проверить возвраты~~ — Robokassa ЛК делает возврат без webhook; план остаётся (ожидаемое поведение). **Автоматические возвраты — отдельная задача §1.6**
 
 **Рекуррентные — отдельная фаза после первых платежей:**
