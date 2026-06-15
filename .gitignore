@@ -44,3 +44,11 @@ test-results/
 # Graphify knowledge graph (generated)
 graphify-out/
 .gstack/
+
+# Superpowers артефакты (планы, спеки, council-отчёты)
+docs/superpowers/
+council-report-*.html
+council-transcript-*.md
+
+# Брендинг (локальные ассеты, не в репо)
+brand/
