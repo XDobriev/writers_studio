@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 
-export function ConfirmDialog({ message, onConfirm, onCancel, open }: {
+export function ConfirmDialog({ message, onConfirm, onCancel, open, confirmLabel = 'Удалить' }: {
   message: string;
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
   open: boolean;
+  confirmLabel?: string;
 }) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [clicked, setClicked] = useState(false);
@@ -66,7 +67,7 @@ export function ConfirmDialog({ message, onConfirm, onCancel, open }: {
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               >
                 {clicked && <span className="btn-spinner" style={{ width: 11, height: 11, borderColor: 'color-mix(in oklch, var(--danger) 30%, transparent)', borderTopColor: 'var(--danger)' }} />}
-                {clicked ? 'Удаление…' : 'Удалить'}
+                {clicked ? `${confirmLabel}…` : confirmLabel}
               </button>
             </div>
           </motion.div>

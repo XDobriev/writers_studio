@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { Icon } from './Icon';
 import { PasswordInput } from './PasswordInput';
+import { ConfirmDialog } from './ConfirmDialog';
 import { supabase } from '../lib/supabase';
 import { getProfile, getLifetimeSlotsRemaining } from '../lib/profiles';
 import { useAuth } from '../lib/auth';
@@ -210,6 +211,12 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
   const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
   const [grandfathered, setGrandfathered] = useState(false);
   const [planLoaded, setPlanLoaded] = useState(false);
+  type LastPayment = { id: string; paid_at: string };
+  const [lastProPayment, setLastProPayment] = useState<LastPayment | null>(null);
+  const [refundLoading, setRefundLoading] = useState(false);
+  const [refundError, setRefundError] = useState<string | null>(null);
+  const [refundDone, setRefundDone] = useState(false);
+  const [refundConfirmOpen, setRefundConfirmOpen] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -247,6 +254,19 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  useEffect(() => {
+    if (!user || activeTab !== 'subscription') return;
+    supabase
+      .from('payments')
+      .select('id, paid_at')
+      .in('plan', ['pro', 'pro_annual'])
+      .is('refunded_at', null)
+      .order('paid_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setLastProPayment(data ?? null));
+  }, [user, activeTab]);
+
   const handleSaveName = async () => {
     setNameSaving(true); setNameError(null);
     try {
@@ -267,6 +287,31 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
       else { setPassSaved(true); setNewPass(''); }
     } finally {
       setPassSaving(false);
+    }
+  };
+
+  const handleRefund = async () => {
+    setRefundLoading(true);
+    setRefundError(null);
+    try {
+      const { error } = await supabase.functions.invoke('process-refund');
+      if (error) {
+        let errCode: string | undefined;
+        try { errCode = ((await (error as unknown as { context: Response }).context.json()) as { error?: string }).error; } catch { /* ignore */ }
+        if (errCode === 'op_key_missing') throw new Error('Возврат временно недоступен. Попробуйте через несколько минут.');
+        if (errCode === 'refund_not_eligible') throw new Error('Срок для возврата истёк.');
+        if (errCode === 'lifetime_non_refundable') throw new Error('Lifetime-тариф не возвращается.');
+        throw new Error('Ошибка оформления возврата. Обратитесь в поддержку.');
+      }
+      setPlan('free');
+      setPlanExpiresAt(null);
+      setLastProPayment(null);
+      setRefundDone(true);
+    } catch (e) {
+      setRefundError(e instanceof Error ? e.message : 'Ошибка возврата');
+    } finally {
+      setRefundLoading(false);
+      setRefundConfirmOpen(false);
     }
   };
 
@@ -564,6 +609,29 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
                             >
                               Отменить подписку
                             </a>
+                            {!refundDone && lastProPayment && (() => {
+                              const daysLeft = Math.ceil(
+                                (new Date(lastProPayment.paid_at).getTime() + 14 * 86400_000 - Date.now()) / 86400_000
+                              );
+                              if (daysLeft <= 0) return null;
+                              return (
+                                <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 8, marginTop: 2 }}>
+                                  <button
+                                    className="btn btn--ghost"
+                                    style={{ fontSize: 12, color: 'var(--danger)', width: '100%', justifyContent: 'center' }}
+                                    onClick={() => setRefundConfirmOpen(true)}
+                                    disabled={refundLoading}
+                                  >
+                                    Запросить возврат · ещё {daysLeft} {daysLeft === 1 ? 'день' : daysLeft < 5 ? 'дня' : 'дней'}
+                                  </button>
+                                  {refundError && (
+                                    <p style={{ font: '400 11px var(--font-ui)', color: 'var(--danger)', margin: '6px 0 0', textAlign: 'center' }}>
+                                      {refundError}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                       </div>
@@ -615,6 +683,13 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
           </motion.div>
         )}
       </AnimatePresence>
+      <ConfirmDialog
+        open={refundConfirmOpen}
+        message={`Доступ к Pro-функциям будет прекращён немедленно.\nДеньги вернутся на карту в течение нескольких дней.`}
+        confirmLabel="Подтвердить возврат"
+        onConfirm={handleRefund}
+        onCancel={() => { setRefundConfirmOpen(false); setRefundError(null); }}
+      />
       {upgradeOpen && <UpgradeModal onClose={() => setUpgradeOpen(false)} skipPro={plan === 'pro'} />}
     </>
   );
