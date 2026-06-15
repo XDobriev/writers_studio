@@ -56,6 +56,17 @@ _Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест ✅, life
 2. ✅ ~~Тестовый боевой платёж 1 ₽ (Pro)~~ — пройден 2026-06-15, webhook отработал, `profiles.plan` обновился
 3. ✅ ~~E2E Lifetime~~ — пройден 2026-06-15: `plan='lifetime'`, `plan_expires_at=null`, `lifetime_slots_remaining=49`; кнопка `lifetime_test` удалена
 4. ✅ ~~Проверить возвраты~~ — Robokassa ЛК делает возврат без webhook; план остаётся (ожидаемое поведение). **Автоматические возвраты реализованы (§1.6 ✅ 2026-06-15)**
+5. ⏳ **E2E-тест возвратов** — выполнить после получения Password3 из Robokassa ЛК:
+   - Сгенерировать Password3 в Robokassa ЛК → Настройки магазина → Пароль #3
+   - Добавить Secrets в Supabase: `ROBOKASSA_PASSWORD3`, `ROBOKASSA_TEST_PASSWORD3`
+   - Тестовый платёж Pro (IsTest=true) → проверить `payments` содержит строку с `inv_id` и `user_id`
+   - Подождать 10–30 сек → `SELECT op_key FROM payments ORDER BY paid_at DESC LIMIT 1` — должен быть NOT NULL
+   - Если op_key NULL — проверить логи `payment-result2` в Supabase Edge Functions → Logs
+   - Настройки → Подписка → кнопка «Запросить возврат · ещё 14 дней» видна
+   - Нажать → ConfirmDialog → подтвердить → SettingsModal показывает «Бесплатный план»
+   - SQL: `SELECT plan, refunded_at, refund_request_id FROM payments ORDER BY paid_at DESC LIMIT 1` — refunded_at NOT NULL
+   - SQL: `SELECT plan FROM profiles WHERE user_id = '<id>'` — plan = 'free'
+   - Повторный вызов curl process-refund → `{"error":"refund_not_eligible"}` (422)
 
 **Рекуррентные → §1.7** (отдельная фаза после первых платящих пользователей)
 
