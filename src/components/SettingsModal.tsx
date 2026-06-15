@@ -27,7 +27,7 @@ const PRO_FEATURES = [
   'Приоритетная поддержка',
 ];
 
-function UpgradeModal({ onClose }: { onClose: () => void }) {
+function UpgradeModal({ onClose, skipPro = false }: { onClose: () => void; skipPro?: boolean }) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -86,10 +86,10 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
             <div>
               <div style={{ font: '600 16px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 3 }}>
-                Перейти на Pro
+                {skipPro ? 'Перейти на Lifetime' : 'Перейти на Pro'}
               </div>
               <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>
-                Полный доступ ко всем функциям редактора
+                {skipPro ? 'Один раз — навсегда, без ежемесячной оплаты' : 'Полный доступ ко всем функциям редактора'}
               </div>
             </div>
             <button
@@ -101,42 +101,52 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
             </button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-            {PRO_FEATURES.map(f => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ color: 'var(--ok)', fontSize: 13, flexShrink: 0, lineHeight: 1 }}>✓</span>
-                <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-2)' }}>{f}</span>
+          {!skipPro && (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                {PRO_FEATURES.map(f => (
+                  <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ color: 'var(--ok)', fontSize: 13, flexShrink: 0, lineHeight: 1 }}>✓</span>
+                    <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-2)' }}>{f}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div style={{
-            background: 'var(--surface)', borderRadius: 10,
-            padding: '12px 14px', marginBottom: 16,
-            display: 'flex', alignItems: 'baseline', gap: 6,
-          }}>
-            <span style={{ font: '700 26px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.03em' }}>290 ₽</span>
-            <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-4)' }}>/ месяц</span>
-          </div>
+              <div style={{
+                background: 'var(--surface)', borderRadius: 10,
+                padding: '12px 14px', marginBottom: 16,
+                display: 'flex', alignItems: 'baseline', gap: 6,
+              }}>
+                <span style={{ font: '700 26px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.03em' }}>290 ₽</span>
+                <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-4)' }}>/ месяц</span>
+              </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <button
-              className="btn btn--primary"
-              style={{ justifyContent: 'center', fontSize: 13, height: 38 }}
-              onClick={() => handlePurchase('pro')}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Переход к оплате…' : 'Оформить подписку'}
-            </button>
-            <button className="btn btn--ghost" onClick={onClose} style={{ fontSize: 13, height: 38 }}>
-              Позже
-            </button>
-            {purchaseError && (
-              <p style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', margin: '4px 0 0', textAlign: 'center' }}>
-                {purchaseError}
-              </p>
-            )}
-          </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <button
+                  className="btn btn--primary"
+                  style={{ justifyContent: 'center', fontSize: 13, height: 38 }}
+                  onClick={() => handlePurchase('pro')}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Переход к оплате…' : 'Оформить подписку'}
+                </button>
+                <button className="btn btn--ghost" onClick={onClose} style={{ fontSize: 13, height: 38 }}>
+                  Позже
+                </button>
+                {purchaseError && (
+                  <p style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', margin: '4px 0 0', textAlign: 'center' }}>
+                    {purchaseError}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+
+          {skipPro && purchaseError && (
+            <p style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', margin: '0 0 8px', textAlign: 'center' }}>
+              {purchaseError}
+            </p>
+          )}
 
           {showLifetime && (
             <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 16, paddingTop: 16 }}>
@@ -548,13 +558,22 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
                         )}
 
                         {plan === 'pro' && (
-                          <a
-                            href={`mailto:support@avtorskaya-studiya.ru?subject=Отмена подписки&body=Прошу отменить мою подписку Pro. Email аккаунта: ${user?.email ?? ''}`}
-                            className="btn btn--ghost"
-                            style={{ fontSize: 12, padding: '5px 12px', textDecoration: 'none', color: 'var(--ink-3)' }}
-                          >
-                            Отменить подписку
-                          </a>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <button
+                              className="btn btn--primary"
+                              onClick={() => setUpgradeOpen(true)}
+                              style={{ fontSize: 13, height: H }}
+                            >
+                              Перейти на Lifetime
+                            </button>
+                            <a
+                              href={`mailto:support@avtorskaya-studiya.ru?subject=Отмена подписки&body=Прошу отменить мою подписку Pro. Email аккаунта: ${user?.email ?? ''}`}
+                              className="btn btn--ghost"
+                              style={{ fontSize: 12, padding: '5px 12px', textDecoration: 'none', color: 'var(--ink-3)' }}
+                            >
+                              Отменить подписку
+                            </a>
+                          </div>
                         )}
                       </div>
                     )
@@ -605,7 +624,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
           </motion.div>
         )}
       </AnimatePresence>
-      {upgradeOpen && <UpgradeModal onClose={() => setUpgradeOpen(false)} />}
+      {upgradeOpen && <UpgradeModal onClose={() => setUpgradeOpen(false)} skipPro={plan === 'pro'} />}
     </>
   );
 }
