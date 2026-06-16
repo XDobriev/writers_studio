@@ -703,6 +703,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .chip--accent { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .chip--ok { border-color: oklch(0.72 0.14 145 / 0.5); color: var(--ok); background: oklch(0.72 0.14 145 / 0.12); }
+.chip--sm { font-size: 10px; height: 18px; padding: 0 6px; }
 
 .btn {
   height: 30px; padding: 0 12px;
@@ -1452,12 +1453,15 @@ select.input {
   color: var(--ink-2);
 }
 
-/* RightPanel — chapter members section (sibling of .rp-body, not inside it) */
+/* RightPanel — chapter members section (inside rp-notes-panel tabpanel) */
 .rp-members {
   padding: 10px 14px 12px;
-  border-top: 1px solid var(--border-soft);
+  margin: -14px -14px 0;
   border-bottom: 1px solid var(--border-soft);
-  flex-shrink: 0;
+  position: sticky;
+  top: -14px;
+  background: var(--bg);
+  z-index: 1;
 }
 .rp-members-head {
   font: 500 10px/1 var(--font-ui);

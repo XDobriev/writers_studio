@@ -73,9 +73,11 @@ Color открывает popover (9 цветов + сброс), Highlight — 7 
 
 ## История версий (правая панель)
 
-`RightPanel` имеет две вкладки: **Заметки** и **Резервные копии / История версий**.
+`RightPanel` имеет две вкладки: **Заметки** и **Версии**.
 
-- Вкладка «Резервные копии» (Free) — автоснимки через `chapter_versions` в Supabase. Логика в `src/lib/versions.ts`, UI — `src/components/VersionsPanel.tsx` + `src/components/VersionModal.tsx`.
-- Вкладка «История версий» (Pro) — ручные снимки с метками.
-- Восстановление версии применяет контент через `editor.commands.setContent()`.
-- `isPro` передаётся из `EditorHybrid` → `RightPanel` → `VersionsPanel`.
+- Вкладка «Заметки» — заметки главы + блок «Персонажи главы» (sticky-хедер внутри tabpanel). Персонажи отображаются только когда `chapterId` задан и `chapterMembers.length > 0`.
+- Вкладка «Версии» — `VersionsPanel` (lazy-loaded). Логика в `src/lib/versions.ts`, UI — `src/components/VersionsPanel.tsx` + `src/components/VersionModal.tsx`.
+- **Секции VersionsPanel:** «Именованные версии» (всегда видна — для Free показывает чип `Pro`, для Pro показывает список или подсказку), авто-снимки по дням.
+- **Удаление версии** — через `ConfirmDialog` (промежуточное подтверждение, состояние `deletingId`).
+- **VersionModal** — просмотр контента версии, word-diff, восстановление. Полный a11y-набор: `tabIndex={-1}`, focus при открытии, Tab-трап, Escape-хендлер.
+- `isPro` передаётся из `EditorHybrid` → `RightPanel` → `VersionsPanel` → `VersionModal`.

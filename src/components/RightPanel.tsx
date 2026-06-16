@@ -146,27 +146,6 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
           </button>
         )}
       </div>
-      {activeTab === 'notes' && chapterId && chapterMembers.length > 0 && (
-        <div className="rp-members">
-          <div className="rp-members-head">Персонажи главы</div>
-          {chapterMembers.map((m) => {
-            const name = m.characters?.name ?? '?';
-            const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-            const color = getCharacterColor(m.characters?.position ?? 0);
-            return (
-              <div key={m.character_id} className="rp-member">
-                <div className="rp-member-av" style={{ background: color }}>
-                  {m.characters?.avatar_url
-                    ? <img src={m.characters.avatar_url} alt={name} className="rp-member-img" />
-                    : initials}
-                </div>
-                <span className="rp-member-name">{name}</span>
-                {m.is_pov && <span className="rp-member-pov">POV</span>}
-              </div>
-            );
-          })}
-        </div>
-      )}
       <div className="rp-body">
         {noteError && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '8px 10px 0', padding: '6px 10px', borderRadius: 6, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 12 }}>
@@ -198,6 +177,27 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
         )}
         {activeTab === 'notes' && (
           <div id="rp-panel-notes" className="rp-notes-panel" role="tabpanel" aria-labelledby="rp-tab-notes" tabIndex={0}>
+          {chapterId && chapterMembers.length > 0 && (
+            <div className="rp-members">
+              <div className="rp-members-head">Персонажи главы</div>
+              {chapterMembers.map((m) => {
+                const name = m.characters?.name || '?';
+                const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                const color = getCharacterColor(m.characters?.position ?? 0);
+                return (
+                  <div key={m.character_id} className="rp-member">
+                    <div className="rp-member-av" style={{ background: color }}>
+                      {m.characters?.avatar_url
+                        ? <img src={m.characters.avatar_url} alt={name} className="rp-member-img" />
+                        : initials}
+                    </div>
+                    <span className="rp-member-name">{name}</span>
+                    {m.is_pov && <span className="rp-member-pov">POV</span>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <>
             {showForm && (
               <div style={{ padding: '12px 14px 14px', borderBottom: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 10 }}>

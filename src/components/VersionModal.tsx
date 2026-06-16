@@ -107,9 +107,28 @@ export function VersionModal({
     if (open) dialogRef.current?.focus();
   }, [open]);
 
+  function handleTabTrap(e: React.KeyboardEvent) {
+    if (e.key !== 'Tab') return;
+    const el = dialogRef.current;
+    if (!el) return;
+    const focusable = Array.from(
+      el.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+
   const diff = useMemo(
-    () => (!loading && content !== null ? computeDiff(content, currentContent) : null),
-    [loading, content, currentContent],
+    () => (open && !loading && content !== null ? computeDiff(content, currentContent) : null),
+    [open, loading, content, currentContent],
   );
 
   const safeContent = useMemo(
@@ -186,6 +205,7 @@ export function VersionModal({
             aria-modal="true"
             aria-label="Версия главы"
             tabIndex={-1}
+            onKeyDown={handleTabTrap}
             variants={modalPanelVariants}
             style={{
               background: 'var(--bg)', border: '1px solid var(--border)',

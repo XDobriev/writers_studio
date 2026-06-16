@@ -103,9 +103,8 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
             </div>
           )
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 2 }}>
-            <span style={{ fontSize: 11.5, color: 'var(--ink-3)', opacity: 0.55 }}>Именованные версии</span>
-            <span className="chip chip--accent" style={{ fontSize: 10 }}>Pro</span>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: 2 }}>
+            <span className="chip chip--accent chip--sm">Pro</span>
           </div>
         )}
       </>
@@ -138,7 +137,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
           marginTop: 8,
         }}>
           Хранятся последние 10 копий.<br />
-          Именованные снимки и 30 дней истории —{' '}
+          Именованные версии и 30 дней истории —{' '}
           <span style={{ color: 'var(--accent)', fontWeight: 500 }}>Pro</span>.
         </div>
       )}
