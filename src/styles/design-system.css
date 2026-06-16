@@ -380,7 +380,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   padding: 7px 10px; width: 100%; border-radius: 5px;
   background: transparent; cursor: pointer;
   font: 400 12.5px/1.4 var(--font-ui); color: var(--ink);
-  border: none; text-align: left;
+  border: none; text-align: left; text-decoration: none;
   transition: background 0.1s;
 }
 .sb-dropdown-item:hover { background: var(--surface-2); }

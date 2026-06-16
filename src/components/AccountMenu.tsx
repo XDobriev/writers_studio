@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { dropdownVariants } from '../lib/motion';
 import { useAuth } from '../lib/auth';
@@ -10,8 +11,11 @@ interface AccountMenuProps {
   children: (props: { onClick: () => void; open: boolean; signingOut: boolean }) => ReactNode;
 }
 
+const ADMIN_EMAIL = 'xdobriev@yandex.ru';
+
 export function AccountMenu({ placement = 'above', children }: AccountMenuProps) {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -85,6 +89,17 @@ export function AccountMenu({ placement = 'above', children }: AccountMenuProps)
                 zIndex: 100,
               }}
             >
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  role="menuitem"
+                  className="sb-dropdown-item"
+                  onClick={() => setOpen(false)}
+                >
+                  <Icon name="shield" size={14} />
+                  Администрирование
+                </Link>
+              )}
               <button
                 type="button"
                 role="menuitem"
