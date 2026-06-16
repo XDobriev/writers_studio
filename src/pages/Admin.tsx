@@ -30,6 +30,7 @@ interface AdminUser {
   last_active: string | null;
   plan: Plan;
   suspended: boolean;
+  is_test: boolean;
 }
 
 type SortKey = 'created_at' | 'words_total' | 'last_active';
@@ -138,6 +139,7 @@ export default function Admin() {
   const [revenue, setRevenue] = useState<AdminRevenue | null>(null);
   const [flags, setFlags] = useState<FeatureFlag[] | null>(null);
   const [flagToggling, setFlagToggling] = useState<string | null>(null);
+  const [markingTest, setMarkingTest] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -287,6 +289,22 @@ export default function Admin() {
     setFlagToggling(null);
   };
 
+  const handleMarkTest = async (u: AdminUser) => {
+    setMarkingTest(u.id);
+    clearErr();
+    const next = !u.is_test;
+    const { error } = await supabase.rpc('set_user_test', {
+      target_user_id: u.id,
+      is_test_value: next,
+    });
+    if (error) {
+      setErr(error.message);
+    } else {
+      setUsers((prev) => prev?.map((x) => x.id === u.id ? { ...x, is_test: next } : x) ?? prev);
+    }
+    setMarkingTest(null);
+  };
+
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (isAdmin === null) return null;
@@ -414,7 +432,7 @@ export default function Admin() {
                         <td style={{ padding: '10px 16px', font: '400 12px var(--font-mono)', color: 'var(--ink-2)' }}>
                           {entry.payload
                             ? entry.action === 'payment_received'
-                              ? `${entry.payload.plan} — ${entry.payload.amount} ${entry.payload.currency}`
+                              ? `${entry.payload.plan} — ${entry.payload.amount} ${entry.payload.currency ?? '₽'}`
                               : entry.action === 'set_lifetime_slots'
                               ? `${entry.payload.old_value} → ${entry.payload.new_value} слотов`
                               : entry.action === 'set_feature_flag'
@@ -460,7 +478,7 @@ export default function Admin() {
                           <td style={{ padding: '10px 16px', font: '400 12px var(--font-mono)', color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>{fmtDate(entry.created_at)}</td>
                           <td style={{ padding: '10px 16px', font: '400 13px var(--font-ui)', color: 'var(--ink)' }}>{entry.target_email ?? '—'}</td>
                           <td style={{ padding: '10px 16px', font: '500 12px var(--font-mono)', color: PLAN_COLOR[(entry.payload?.plan as Plan) ?? 'free'], letterSpacing: '0.05em', textTransform: 'uppercase' }}>{entry.payload?.plan ?? '—'}</td>
-                          <td style={{ padding: '10px 16px', font: '400 12px var(--font-mono)', color: 'var(--ink-2)' }}>{entry.payload ? `${entry.payload.amount} ${entry.payload.currency}` : '—'}</td>
+                          <td style={{ padding: '10px 16px', font: '400 12px var(--font-mono)', color: 'var(--ink-2)' }}>{entry.payload ? `${entry.payload.amount} ${entry.payload.currency ?? '₽'}` : '—'}</td>
                           <td style={{ padding: '10px 16px', font: '400 11px var(--font-mono)', color: 'var(--ink-4)' }}>{entry.payload?.payment_id ?? '—'}</td>
                         </tr>
                       ))}
@@ -624,6 +642,7 @@ export default function Admin() {
                   </th>
                   <th scope="col" style={thStyle()}>План</th>
                   <th scope="col" style={thStyle()}>+7д</th>
+                  <th scope="col" style={thStyle()}>Тест</th>
                   <th scope="col" style={thStyle()}>Статус</th>
                 </tr>
               </thead>
@@ -677,6 +696,16 @@ export default function Admin() {
                         style={{ font: '400 11px var(--font-mono)', color: 'oklch(0.62 0.18 270)', background: 'none', border: '1px solid oklch(0.62 0.18 270 / 0.4)', borderRadius: 4, padding: '2px 7px', cursor: extending === u.id ? 'wait' : 'pointer', opacity: extending === u.id ? 0.5 : 1 }}
                       >
                         +7д
+                      </button>
+                    </td>
+                    <td style={{ padding: '8px 16px' }}>
+                      <button
+                        onClick={() => handleMarkTest(u)}
+                        disabled={markingTest === u.id}
+                        title={u.is_test ? 'Снять метку тестового' : 'Пометить как тестовый'}
+                        style={{ font: '500 10px var(--font-mono)', letterSpacing: '0.06em', color: u.is_test ? 'oklch(0.62 0.14 50)' : 'var(--ink-4)', background: u.is_test ? 'oklch(0.62 0.14 50 / 0.10)' : 'none', border: `1px solid ${u.is_test ? 'oklch(0.62 0.14 50 / 0.5)' : 'var(--border-soft)'}`, borderRadius: 4, padding: '2px 7px', cursor: markingTest === u.id ? 'wait' : 'pointer', opacity: markingTest === u.id ? 0.5 : 1 }}
+                      >
+                        {u.is_test ? 'TEST' : 'test'}
                       </button>
                     </td>
                     <td style={{ padding: '8px 16px' }}>
