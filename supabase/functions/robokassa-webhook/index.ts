@@ -83,7 +83,9 @@ Deno.serve(async (req) => {
   const shpPlan = params.get('Shp_plan') ?? '';
   const shpUserId = params.get('Shp_user_id') ?? '';
 
-  const isTest = params.get('IsTest') === '1';
+  // IsTest определяется только из env, а не из тела запроса — иначе атакующий
+  // может подставить тестовый пароль для тестовых транзакций в продакшн.
+  const isTest = Deno.env.get('ROBOKASSA_IS_TEST') === 'true';
   const activePassword2 = isTest ? testPassword2 : password2;
   if (!activePassword2) {
     console.error('[robokassa-webhook] missing password2 for isTest=' + isTest);
@@ -140,7 +142,17 @@ Deno.serve(async (req) => {
 
   } else if (shpPlan === 'pro' || shpPlan === 'pro_annual') {
     const daysToAdd = shpPlan === 'pro_annual' ? 365 : 31;
-    const expiresAt = new Date();
+
+    // Продлеваем от текущей даты окончания если подписка ещё активна
+    const { data: existing } = await db
+      .from('profiles')
+      .select('plan_expires_at')
+      .eq('user_id', shpUserId)
+      .single();
+    const now = new Date();
+    const currentExpiry = existing?.plan_expires_at ? new Date(existing.plan_expires_at) : null;
+    const baseDate = (currentExpiry && currentExpiry > now) ? currentExpiry : now;
+    const expiresAt = new Date(baseDate);
     expiresAt.setDate(expiresAt.getDate() + daysToAdd);
 
     const grandfatheringEndsAt = Deno.env.get('GRANDFATHERING_ENDS_AT');

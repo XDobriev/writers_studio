@@ -223,12 +223,15 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
 
   useEffect(() => {
     if (!user) return;
+    let mounted = true;
     getProfile(user.id).then((profile) => {
+      if (!mounted) return;
       if (profile?.plan) setPlan(profile.plan as Plan);
       if (profile?.plan_expires_at) setPlanExpiresAt(profile.plan_expires_at);
       if (profile?.grandfathered) setGrandfathered(true);
       setPlanLoaded(true);
     });
+    return () => { mounted = false; };
   }, [user]);
 
   const handleTheme = (next: Theme) => {
@@ -248,12 +251,13 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
   }, []);
 
   useEffect(() => {
+    if (!open) return;
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
     const firstFocusable = dialogRef.current?.querySelector<HTMLElement>('button, input, a[href]');
     firstFocusable?.focus();
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [open, onClose]);
 
   useEffect(() => {
     if (!user || activeTab !== 'subscription') return;
@@ -388,8 +392,10 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
             {TABS.map(t => (
               <button
                 key={t.key}
+                id={`sm-tab-${t.key}`}
                 role="tab"
                 aria-selected={activeTab === t.key}
+                aria-controls={`sm-panel-${t.key}`}
                 onClick={() => setActiveTab(t.key)}
                 style={{
                   font: activeTab === t.key ? '500 13px var(--font-ui)' : '400 13px var(--font-ui)',
@@ -410,7 +416,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
           <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
 
             {activeTab === 'profile' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div id="sm-panel-profile" role="tabpanel" aria-labelledby="sm-tab-profile" tabIndex={0} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={FG}>
                   <label htmlFor="settings-name" style={FL}>Имя</label>
                   <div style={ROW}>
@@ -483,7 +489,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
             )}
 
             {activeTab === 'interface' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div id="sm-panel-interface" role="tabpanel" aria-labelledby="sm-tab-interface" tabIndex={0} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
                     <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 2 }}>Тема</div>
@@ -559,7 +565,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
             )}
 
             {activeTab === 'subscription' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div id="sm-panel-subscription" role="tabpanel" aria-labelledby="sm-tab-subscription" tabIndex={0} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '14px 16px' }}>
                   {!planLoaded
                     ? <div style={{ height: 52, borderRadius: 6, background: 'var(--surface-2)' }} />

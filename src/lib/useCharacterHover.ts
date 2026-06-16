@@ -88,11 +88,14 @@ export function useCharacterHover(
   const moveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cardActiveRef = useRef(false);
+  // Ref вместо dep в useEffect — не переустанавливает слушатель при каждом ре-рендере списка
+  const charactersRef = useRef(characters);
+  useEffect(() => { charactersRef.current = characters; }, [characters]);
 
   const dismissAll = useCallback(() => setShown(null), []);
 
   useEffect(() => {
-    if (!editorEl || !characters.length) return;
+    if (!editorEl) return;
 
     const handleMove = (e: MouseEvent) => {
       if (cardActiveRef.current) return;
@@ -102,7 +105,7 @@ export function useCharacterHover(
       }
       if (moveTimerRef.current) clearTimeout(moveTimerRef.current);
       moveTimerRef.current = setTimeout(() => {
-        const c = findCharacterAtPoint(e.clientX, e.clientY, characters, editorEl);
+        const c = findCharacterAtPoint(e.clientX, e.clientY, charactersRef.current, editorEl);
         setShown(c ? { character: c, x: e.clientX, y: e.clientY } : null);
       }, 500);
     };
@@ -121,7 +124,7 @@ export function useCharacterHover(
       if (moveTimerRef.current) clearTimeout(moveTimerRef.current);
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
-  }, [editorEl, characters, dismissAll]);
+  }, [editorEl, dismissAll]);
 
   const onCardEnter = useCallback(() => {
     cardActiveRef.current = true;

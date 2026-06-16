@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { Icon } from './Icon';
@@ -158,7 +159,11 @@ export function RichEditor({
     };
     editor.on('selectionUpdate', check);
     editor.on('blur', check);
-    return () => { editor.off('selectionUpdate', check); editor.off('blur', check); };
+    return () => {
+      editor.off('selectionUpdate', check);
+      editor.off('blur', check);
+      if (bubbleTimerRef.current) { clearTimeout(bubbleTimerRef.current); bubbleTimerRef.current = null; }
+    };
   }, [editor]);
 
   const [spellPopup, setSpellPopup] = useState<{
@@ -301,7 +306,7 @@ export function RichEditor({
         </BubbleMenu>
       )}
       <EditorContent editor={editor} className={className} style={style} />
-      {spellPopup && (
+      {spellPopup && createPortal(
         <div
           className="spell-popup"
           style={{ left: spellPopup.x, top: spellPopup.y }}
@@ -326,7 +331,8 @@ export function RichEditor({
               </button>
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

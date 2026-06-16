@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import DOMPurify from 'dompurify';
 import type { Book } from './supabase';
 import type { Chapter } from './chapters';
 import {
@@ -191,7 +192,8 @@ export async function buildEpubBlob(book: Book, chapters: Chapter[], opts: Build
   }
   for (const c of chs) {
     const nHtml = opts.includeNotes ? notesBlockHtml(chapterNotes(opts.notes, c.chapterId)) : '';
-    const content = opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(c.content) : c.content;
+    const rawContent = opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(c.content) : c.content;
+    const content = DOMPurify.sanitize(rawContent, { USE_PROFILES: { html: true } });
     zip.file(`OEBPS/${c.href}`, chapterXhtml(c.title, content, lang, opts.includeChapterTitles, nHtml));
   }
 

@@ -257,9 +257,13 @@ export default function Admin() {
 
   const handleExportCsv = () => {
     if (!users) return;
+    const csvEscape = (v: string) => {
+      const s = String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
     const header = ['email', 'created_at', 'plan', 'last_active'].join(',');
     const rows = users.map((u) =>
-      [u.email, u.created_at, u.plan, u.last_active ?? ''].join(',')
+      [u.email, u.created_at, u.plan, u.last_active ?? ''].map(csvEscape).join(',')
     );
     const csv = [header, ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

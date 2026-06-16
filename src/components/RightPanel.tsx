@@ -274,9 +274,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
               </div>
             )}
           </>
-          </div>
-        )}
-        {activeTab === 'notes' && notes.map((n) => (
+          {notes.map((n) => (
           <div key={n.id} className={'mn' + (n.kind !== 'idea' ? ' mn--' + n.kind : '')}>
             {editingId === n.id ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -367,7 +365,9 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
               </>
             )}
           </div>
-        ))}
+          ))}
+          </div>
+        )}
       </div>
 
       <ConfirmDialog

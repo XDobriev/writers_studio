@@ -98,6 +98,7 @@ export function VersionModal({
   const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
   const [showDiff, setShowDiff] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -142,8 +143,9 @@ export function VersionModal({
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
       onRestored(content);
       onClose();
-    } catch {
+    } catch (e) {
       setRestoring(false);
+      setRestoreError(e instanceof Error ? e.message : 'Не удалось восстановить версию');
     }
   }
 
@@ -272,6 +274,11 @@ export function VersionModal({
             })()}
           </div>
 
+          {restoreError && (
+            <div style={{ padding: '6px 18px', background: 'oklch(0.65 0.18 25 / 0.10)', borderTop: '1px solid oklch(0.65 0.18 25 / 0.2)', color: 'var(--danger)', fontSize: 12 }}>
+              {restoreError}
+            </div>
+          )}
           <div style={{
             padding: '12px 18px', borderTop: '1px solid var(--border-soft)',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,

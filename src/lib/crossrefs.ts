@@ -133,18 +133,20 @@ export async function syncBacklinks(
   }
 
   if (foundRows.length > 0) {
-    await supabase
+    const { error: upsertErr } = await supabase
       .from('chapter_characters')
       .upsert(foundRows, { onConflict: 'chapter_id,character_id', ignoreDuplicates: true });
+    if (upsertErr) throw upsertErr;
   }
 
   if (notFoundIds.length > 0) {
-    await supabase
+    const { error: deleteErr } = await supabase
       .from('chapter_characters')
       .delete()
       .eq('chapter_id', chapterId)
       .in('character_id', notFoundIds)
       .eq('auto_detected', true)
       .eq('is_pov', false);
+    if (deleteErr) throw deleteErr;
   }
 }

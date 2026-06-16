@@ -26,7 +26,7 @@ export interface Profile {
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered')
+    .select('user_id, plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered')
     .eq('user_id', userId)
     .single();
   if (error) console.error('[profiles] getProfile failed:', error.message);

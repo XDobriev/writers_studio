@@ -12,7 +12,9 @@ export default function PaymentSuccess() {
   const { user } = useAuth();
   const navigate  = useNavigate();
   const [searchParams] = useSearchParams();
-  const planParam = searchParams.get('Shp_plan') ?? searchParams.get('plan') ?? 'pro';
+  // pro_annual хранится в БД как 'pro' — нормализуем для сравнения
+  const rawPlanParam = searchParams.get('Shp_plan') ?? searchParams.get('plan') ?? 'pro';
+  const planParam = rawPlanParam === 'pro_annual' ? 'pro' : rawPlanParam;
 
   const [polling, setPolling]   = useState(true);
   const [timedOut, setTimedOut] = useState(false);

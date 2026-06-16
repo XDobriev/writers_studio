@@ -112,16 +112,16 @@ export function useRelationships(bookId: string | undefined) {
 }
 
 const WRITING_HISTORY_DAYS = 366;
-const SNAPSHOTS_FROM = (() => {
+function getSnapshotsFrom(): string {
   const d = new Date();
   d.setDate(d.getDate() - WRITING_HISTORY_DAYS);
   return d.toISOString().slice(0, 10);
-})();
+}
 
 export function useWritingSnapshots(bookId: string | undefined) {
   return useQuery(makeQuery(
     bookId ? QUERY_KEYS.writingSnapshots(bookId) : ['writing-snapshots', null],
-    () => listWritingSnapshots(bookId!, SNAPSHOTS_FROM),
+    () => listWritingSnapshots(bookId!, getSnapshotsFrom()),
     5 * 60_000,
   ));
 }

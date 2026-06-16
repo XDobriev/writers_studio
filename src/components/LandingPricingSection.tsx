@@ -90,6 +90,7 @@ export function LandingPricing() {
     },
   ];
 
+  // null = загружается; 0 = слоты кончились → скрываем Lifetime
   const visibleTiers = lifetimeSlots === 0 ? tiers.filter(t => t.name !== 'Lifetime') : tiers;
 
   return (
@@ -132,11 +133,11 @@ export function LandingPricing() {
               </ul>
               <button
                 onClick={() => void handleCtaClick(t.planKey)}
-                disabled={loadingPlan !== null}
+                disabled={loadingPlan !== null || (t.planKey === 'lifetime' && lifetimeSlots === null)}
                 className={t.accent ? 'btn btn--primary' : 'btn'}
                 style={{ height: 42, fontSize: 14, justifyContent: 'center', width: '100%', display: 'flex', alignItems: 'center' }}
               >
-                {loadingPlan === t.planKey ? 'Подождите…' : t.cta}
+                {loadingPlan !== null && loadingPlan === t.planKey ? 'Подождите…' : t.cta}
               </button>
               {t.name !== 'Free' && (
                 <p style={{ margin: '10px 0 0', fontSize: 11, color: 'var(--ink-4)', textAlign: 'center', lineHeight: 1.5 }}>

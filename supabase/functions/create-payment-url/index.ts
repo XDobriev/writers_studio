@@ -112,6 +112,8 @@ Deno.serve(async (req) => {
   const receiptEncoded = encodeURIComponent(receiptJson);
 
   // Порядок подписи: MerchantLogin:OutSum:InvId:Receipt:ResultUrl2:Password1:Shp_...
+  // ResultUrl2 включается между Receipt и Password1 (по доке Robokassa, раздел ResultUrl2).
+  // StepByStep не передаём (двухэтапная оплата не используется), поэтому его нет.
   const sigString = `${merchantLogin}:${outSum}:${invId}:${receiptEncoded}:${result2Url}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
   const signature = md5hex(sigString);
 

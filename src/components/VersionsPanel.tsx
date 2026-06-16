@@ -230,27 +230,25 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
   const chip = isNamed ? null : triggerChip(version.trigger, isPro);
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label={`Открыть версию: ${title}`}
-      onClick={() => onOpen(version)}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(version); } }}
-      className={`version-card${isNamed ? ' version-card--named' : ''}`}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{
-          fontSize: 12,
-          color: isNamed ? 'var(--accent)' : 'var(--ink)',
-          fontWeight: isNamed ? 500 : 400,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
-        }}>
-          {title}
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+    <div className={`version-card${isNamed ? ' version-card--named' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <button
+        aria-label={`Открыть версию: ${title}`}
+        onClick={() => onOpen(version)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(version); } }}
+        style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, minWidth: 0 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            fontSize: 12,
+            color: isNamed ? 'var(--accent)' : 'var(--ink)',
+            fontWeight: isNamed ? 500 : 400,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+          }}>
+            {title}
+          </span>
           {chip && (
             <span style={{
-              display: 'inline-flex', alignItems: 'center',
+              display: 'inline-flex', alignItems: 'center', flexShrink: 0,
               height: 16, padding: '0 6px', borderRadius: 999,
               border: '1px solid var(--border)',
               font: '400 9.5px var(--font-mono)', color: 'var(--ink-4)',
@@ -259,24 +257,24 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
               {chip}
             </span>
           )}
-          {isPro && (
-            <button
-              title="Удалить"
-              aria-label="Удалить версию"
-              onClick={(e) => void onDelete(version.id, e)}
-              style={{
-                background: 'none', border: 'none', color: 'var(--ink-4)',
-                cursor: 'pointer', fontSize: 13, padding: '0 2px', lineHeight: 1,
-              }}
-            >
-              ×
-            </button>
-          )}
         </div>
-      </div>
-      <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4)' }}>
-        {version.word_count ?? 0} сл.{isNamed ? ` · ${formatDateShort(version.created_at)}` : ''}
-      </div>
+        <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4)' }}>
+          {version.word_count ?? 0} сл.{isNamed ? ` · ${formatDateShort(version.created_at)}` : ''}
+        </div>
+      </button>
+      {isPro && (
+        <button
+          title="Удалить"
+          aria-label="Удалить версию"
+          onClick={(e) => void onDelete(version.id, e)}
+          style={{
+            background: 'none', border: 'none', color: 'var(--ink-4)',
+            cursor: 'pointer', fontSize: 13, padding: '0 2px', lineHeight: 1, flexShrink: 0,
+          }}
+        >
+          ×
+        </button>
+      )}
     </div>
   );
 }

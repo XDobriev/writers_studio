@@ -31,13 +31,14 @@ export function useChapterVersioning({
   const lastVersionContentRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
+    let mounted = true;
     supabase.auth.getSession().then(({ data }) => {
-      sessionTokenRef.current = data.session?.access_token ?? null;
+      if (mounted) sessionTokenRef.current = data.session?.access_token ?? null;
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       sessionTokenRef.current = session?.access_token ?? null;
     });
-    return () => subscription.unsubscribe();
+    return () => { mounted = false; subscription.unsubscribe(); };
   }, []);
 
   useEffect(() => {
