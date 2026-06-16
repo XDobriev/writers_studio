@@ -7,7 +7,7 @@ import { useProfile } from '../lib/queries';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { Icon } from '../components/Icon';
 import { isImageUrl } from '../components/CoverPicker';
-import { getBook } from '../lib/books';
+import { getBook, updateBook } from '../lib/books';
 import { listChapters, listChaptersMeta, type ChapterMeta } from '../lib/chapters';
 import { fetchNotes, type Note } from '../lib/notes';
 import { listLocations, type Location } from '../lib/locations';
@@ -181,6 +181,9 @@ export default function Export() {
       } else {
         downloadText(buildTextDoc(bookWithAuthor, chaptersWithContent, opts), 'text/plain', filename);
       }
+      try {
+        await updateBook(bookId, { author: authorName.trim() || null });
+      } catch { /* silent */ }
     } catch (e) {
       setError((e as Error).message);
     } finally {
