@@ -101,6 +101,11 @@ export function VersionModal({
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [showDiff, setShowDiff] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) dialogRef.current?.focus();
+  }, [open]);
 
   const diff = useMemo(
     () => (!loading && content !== null ? computeDiff(content, currentContent) : null),
@@ -176,9 +181,11 @@ export function VersionModal({
           onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
         >
           <motion.div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-label="Версия главы"
+            tabIndex={-1}
             variants={modalPanelVariants}
             style={{
               background: 'var(--bg)', border: '1px solid var(--border)',
@@ -338,7 +345,7 @@ function formatDateFull(iso: string): string {
 
 function triggerLabel(t: string): string {
   const map: Record<string, string> = {
-    beforeunload: 'при закрытии вкладки',
+    beforeunload: 'при закрытии',
     chapter_switch: 'смена главы',
     timer: 'авто',
     manual: 'вручную',

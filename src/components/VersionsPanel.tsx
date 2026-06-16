@@ -3,6 +3,7 @@ import { useVersionMutations } from '../lib/useVersionMutations';
 import { type ChapterVersionMeta } from '../lib/versions';
 import { useChapterVersions } from '../lib/queries';
 import { VersionModal } from './VersionModal';
+import { ConfirmDialog } from './ConfirmDialog';
 import { useErrorState } from '../lib/useErrorState';
 
 interface VersionsPanelProps {
@@ -23,6 +24,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
   const [saving, setSaving] = useState(false);
   const [labelInput, setLabelInput] = useState('');
   const [showLabelForm, setShowLabelForm] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const named = versions.filter((v) => v.label !== null);
   const auto = versions.filter((v) => v.label === null);
@@ -42,8 +44,15 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
     }
   }
 
-  async function handleDelete(id: string, e: React.MouseEvent) {
+  function handleDelete(id: string, e: React.MouseEvent) {
     e.stopPropagation();
+    setDeletingId(id);
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deletingId) return;
+    const id = deletingId;
+    setDeletingId(null);
     try {
       await remove(id);
     } catch (e) {
@@ -80,14 +89,26 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
           <button onClick={clearVersionError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 13, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
         </div>
       )}
-      {isPro && named.length > 0 && (
-        <>
-          <SectionLabel>Именованные вехи</SectionLabel>
-          {named.map((v) => (
-            <VersionCard key={v.id} version={v} isPro={isPro} onOpen={setSelected} onDelete={handleDelete} />
-          ))}
-        </>
-      )}
+
+      <>
+        <SectionLabel>Именованные версии</SectionLabel>
+        {isPro ? (
+          named.length > 0 ? (
+            named.map((v) => (
+              <VersionCard key={v.id} version={v} isPro={isPro} onOpen={setSelected} onDelete={handleDelete} />
+            ))
+          ) : (
+            <div style={{ fontSize: 11.5, color: 'var(--ink-4)', lineHeight: 1.5, paddingBottom: 2 }}>
+              Нажмите «+ Сохранить текущую версию», чтобы создать именованную версию.
+            </div>
+          )
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 2 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--ink-3)', opacity: 0.55 }}>Именованные версии</span>
+            <span className="chip chip--accent" style={{ fontSize: 10 }}>Pro</span>
+          </div>
+        )}
+      </>
 
       {Object.entries(grouped).map(([day, dayVersions]) => (
         <div key={day}>
@@ -104,7 +125,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
         </div>
       )}
 
-      <div style={{ font: '400 9.5px var(--font-mono)', color: 'var(--ink-4)', lineHeight: 1.6, marginTop: 8, textAlign: 'center' }}>
+      <div style={{ font: '400 10.5px var(--font-mono)', color: 'var(--ink-4)', lineHeight: 1.6, marginTop: 8, textAlign: 'center' }}>
         {isPro ? 'Авто: каждые 30 мин · смена главы · закрытие' : 'Авто: каждые 2 ч · смена главы · закрытие'}
       </div>
 
@@ -117,20 +138,13 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
           marginTop: 8,
         }}>
           Хранятся последние 10 копий.<br />
-          Именованные вехи и 30 дней истории —{' '}
+          Именованные снимки и 30 дней истории —{' '}
           <span style={{ color: 'var(--accent)', fontWeight: 500 }}>Pro</span>.
         </div>
       )}
 
       {isPro && !showLabelForm && (
-        <div style={{
-          position: 'sticky',
-          bottom: 0,
-          background: 'linear-gradient(to top, oklch(0.165 0.012 50) 60%, oklch(0.165 0.012 50 / 0))',
-          paddingTop: 18,
-          paddingBottom: 2,
-          marginBottom: -2,
-        }}>
+        <div className="vc-save-fade">
           <button
             onClick={() => setShowLabelForm(true)}
             style={{
@@ -147,15 +161,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
       )}
 
       {isPro && showLabelForm && (
-        <div style={{
-          position: 'sticky',
-          bottom: 0,
-          background: 'linear-gradient(to top, oklch(0.165 0.012 50) 60%, oklch(0.165 0.012 50 / 0))',
-          paddingTop: 18,
-          paddingBottom: 2,
-          marginBottom: -2,
-          display: 'flex', flexDirection: 'column', gap: 6,
-        }}>
+        <div className="vc-save-fade" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <input
             className="input"
             style={{ fontSize: 12, height: 32 }}
@@ -201,6 +207,13 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
         onClose={() => setSelected(null)}
         onRestored={(restoredContent) => { onRestoreContent?.(restoredContent); setSelected(null); }}
       />
+
+      <ConfirmDialog
+        open={deletingId !== null}
+        message="Снимок будет удалён без возможности восстановления."
+        onConfirm={() => void handleDeleteConfirm()}
+        onCancel={() => setDeletingId(null)}
+      />
     </>
   );
 }
@@ -209,7 +222,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       padding: '10px 0 4px',
-      font: '500 9.5px var(--font-mono)',
+      font: '500 10.5px var(--font-mono)',
       letterSpacing: '0.14em',
       textTransform: 'uppercase',
       color: 'var(--ink-4)',
@@ -230,7 +243,7 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
   const chip = isNamed ? null : triggerChip(version.trigger, isPro);
 
   return (
-    <div className={`version-card${isNamed ? ' version-card--named' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+    <div className={`version-card${isNamed ? ' version-card--named' : ''}`}>
       <button
         aria-label={`Открыть версию: ${title}`}
         onClick={() => onOpen(version)}
@@ -251,29 +264,31 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
               display: 'inline-flex', alignItems: 'center', flexShrink: 0,
               height: 16, padding: '0 6px', borderRadius: 999,
               border: '1px solid var(--border)',
-              font: '400 9.5px var(--font-mono)', color: 'var(--ink-4)',
+              font: '400 10.5px var(--font-mono)', color: 'var(--ink-4)',
               whiteSpace: 'nowrap',
             }}>
               {chip}
             </span>
           )}
         </div>
-        <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4)' }}>
+        <div style={{ font: '400 11.5px var(--font-mono)', color: 'var(--ink-3)' }}>
           {version.word_count ?? 0} сл.{isNamed ? ` · ${formatDateShort(version.created_at)}` : ''}
         </div>
       </button>
       {isPro && (
-        <button
-          title="Удалить"
-          aria-label="Удалить версию"
-          onClick={(e) => void onDelete(version.id, e)}
-          style={{
-            background: 'none', border: 'none', color: 'var(--ink-4)',
-            cursor: 'pointer', fontSize: 13, padding: '0 2px', lineHeight: 1, flexShrink: 0,
-          }}
-        >
-          ×
-        </button>
+        <div className="vc-actions">
+          <button
+            title="Удалить"
+            aria-label="Удалить версию"
+            onClick={(e) => void onDelete(version.id, e)}
+            style={{
+              background: 'none', border: 'none', color: 'var(--ink-4)',
+              cursor: 'pointer', fontSize: 13, padding: '0 2px', lineHeight: 1, flexShrink: 0,
+            }}
+          >
+            ×
+          </button>
+        </div>
       )}
     </div>
   );
@@ -306,7 +321,7 @@ function formatDateShort(iso: string): string {
 
 function triggerChip(t: string, isPro: boolean): string {
   const map: Record<string, string> = {
-    beforeunload: 'закрытие',
+    beforeunload: 'при закрытии',
     chapter_switch: 'смена главы',
     timer: isPro ? 'каждые 30 мин' : 'каждые 2 ч',
     manual: 'вручную',
