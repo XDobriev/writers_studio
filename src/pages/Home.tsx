@@ -40,6 +40,7 @@ export default function Home() {
   const [editGenres, setEditGenres] = useState<string[]>([]);
   const [editGoal, setEditGoal] = useState(0);
   const [editCover, setEditCover] = useState(COVERS[0]);
+  const [editAuthor, setEditAuthor] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const { error: editError, setError: setEditError, clearError: clearEditError } = useErrorState();
 
@@ -100,6 +101,7 @@ export default function Home() {
     setEditGenres(b.genres ?? []);
     setEditGoal(b.goal);
     setEditCover(b.cover ?? COVERS[0]);
+    setEditAuthor(b.author ?? '');
     clearEditError();
   };
 
@@ -108,7 +110,7 @@ export default function Home() {
     setEditSaving(true);
     clearEditError();
     try {
-      const data = await updateBook(editBook.id, { title: editTitle.trim(), genres: editGenres, goal: Math.max(0, editGoal), cover: editCover });
+      const data = await updateBook(editBook.id, { title: editTitle.trim(), genres: editGenres, goal: Math.max(0, editGoal), cover: editCover, author: editAuthor.trim() || null });
       queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => prev?.map((b) => b.id === editBook.id ? data : b));
       setEditBook(null);
     } catch (e) {
@@ -277,6 +279,18 @@ export default function Home() {
                 />
               </div>
               <GenrePicker value={editGenres} onChange={setEditGenres} />
+              <div>
+                <label htmlFor="edit-book-author" className="label">Автор</label>
+                <input
+                  id="edit-book-author"
+                  className="input"
+                  value={editAuthor}
+                  onChange={(e) => setEditAuthor(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Escape') setEditBook(null); }}
+                  placeholder="Из профиля"
+                  maxLength={120}
+                />
+              </div>
               <div>
                 <label htmlFor="edit-book-goal" className="label">Цель по словам</label>
                 <input
