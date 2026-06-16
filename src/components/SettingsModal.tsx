@@ -96,6 +96,7 @@ function UpgradeModal({ onClose, skipPro = false }: { onClose: () => void; skipP
             <button
               className="tb-btn"
               onClick={onClose}
+              aria-label="Закрыть"
               style={{ fontSize: 20, lineHeight: 1, padding: '0 6px', color: 'var(--ink-4)', flexShrink: 0 }}
             >
               ×
@@ -376,13 +377,19 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
           </div>
 
           {/* Tab bar */}
-          <div style={{
-            display: 'flex', padding: '12px 24px 0',
-            borderBottom: '1px solid var(--border-soft)', flexShrink: 0,
-          }}>
+          <div
+            role="tablist"
+            aria-label="Разделы настроек"
+            style={{
+              display: 'flex', padding: '12px 24px 0',
+              borderBottom: '1px solid var(--border-soft)', flexShrink: 0,
+            }}
+          >
             {TABS.map(t => (
               <button
                 key={t.key}
+                role="tab"
+                aria-selected={activeTab === t.key}
                 onClick={() => setActiveTab(t.key)}
                 style={{
                   font: activeTab === t.key ? '500 13px var(--font-ui)' : '400 13px var(--font-ui)',
@@ -413,6 +420,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
                       value={name}
                       onChange={(e) => { setName(e.target.value); setNameSaved(false); }}
                       placeholder="Ваше имя"
+                      maxLength={100}
                       style={{ flex: 1, fontSize: 13, height: H }}
                     />
                     <button
@@ -484,6 +492,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button
                       onClick={() => handleTheme('dark')}
+                      aria-pressed={theme === 'dark'}
                       className={'btn' + (theme === 'dark' ? ' btn--primary' : ' btn--ghost')}
                       style={{ fontSize: 12, gap: 5 }}
                     >
@@ -491,6 +500,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
                     </button>
                     <button
                       onClick={() => handleTheme('light')}
+                      aria-pressed={theme === 'light'}
                       className={'btn' + (theme === 'light' ? ' btn--primary' : ' btn--ghost')}
                       style={{ fontSize: 12, gap: 5 }}
                     >
@@ -511,6 +521,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
                       <button
                         key={f.id}
                         onClick={() => handleFont(f.id)}
+                        aria-pressed={activeFont === f.id}
                         style={{
                           fontFamily: f.family,
                           fontSize: 13,
@@ -646,6 +657,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
           <div style={{ borderTop: '1px solid var(--border-soft)', padding: '0 24px', flexShrink: 0 }}>
             <button
               onClick={() => setHelpOpen(v => !v)}
+              aria-expanded={helpOpen}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 background: 'none', border: 'none', cursor: 'pointer',

@@ -560,8 +560,8 @@ export default function Dashboard() {
                             return (
                               <div
                                 key={cell.date}
-                                title={!isMobile && !cell.future ? `${new Date(cell.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}: +${fmtNumber(cell.delta)} ${plural(cell.delta, 'слово', 'слова', 'слов')}` : undefined}
-                                aria-label={isMobile && !cell.future ? `${new Date(cell.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}: +${fmtNumber(cell.delta)} ${plural(cell.delta, 'слово', 'слова', 'слов')}` : undefined}
+                                title={!cell.future ? `${new Date(cell.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}: +${fmtNumber(cell.delta)} ${plural(cell.delta, 'слово', 'слова', 'слов')}` : undefined}
+                                aria-label={!cell.future ? `${new Date(cell.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}: +${fmtNumber(cell.delta)} ${plural(cell.delta, 'слово', 'слова', 'слов')}` : undefined}
                                 style={{ width: '100%', aspectRatio: '1', borderRadius: 2, background: bg }}
                               />
                             );

@@ -154,7 +154,7 @@ export default function AdminUserDetail() {
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-soft)' }}>
                       {(['Название', 'Глав', 'Слов'] as const).map((h) => (
-                        <th key={h} style={thStyle}>{h}</th>
+                        <th key={h} scope="col" style={thStyle}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -182,7 +182,7 @@ export default function AdminUserDetail() {
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-soft)' }}>
                       {(['Дата', 'Действие', 'Детали'] as const).map((h) => (
-                        <th key={h} style={thStyle}>{h}</th>
+                        <th key={h} scope="col" style={thStyle}>{h}</th>
                       ))}
                     </tr>
                   </thead>

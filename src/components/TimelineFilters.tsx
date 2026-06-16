@@ -13,6 +13,7 @@ export function TimelineFilters({ variant, filter, onFilter }: {
             key={f.value}
             className={'sb-item' + (filter === f.value ? ' sb-item--on' : '')}
             onClick={() => onFilter(f.value)}
+            aria-pressed={filter === f.value}
             style={{ width: '100%', textAlign: 'left' }}
           >
             <span
@@ -48,6 +49,7 @@ export function TimelineFilters({ variant, filter, onFilter }: {
           key={f.value}
           className={'sb-tab' + (filter === f.value ? ' sb-tab--on' : '')}
           onClick={() => onFilter(f.value)}
+          aria-pressed={filter === f.value}
           style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}
         >
           {f.value !== 'all' && (

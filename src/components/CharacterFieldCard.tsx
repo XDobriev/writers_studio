@@ -34,6 +34,7 @@ export function CharacterFieldCard({ label, value, onChange, warn, hint }: Chara
         onChange={(e) => { setLocal(e.target.value); onChange(e.target.value); }}
         rows={5}
         placeholder="—"
+        aria-label={label}
       />
     </div>
   );

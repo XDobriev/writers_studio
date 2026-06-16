@@ -115,9 +115,11 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
 
   return (
     <aside className="rp">
-      <div className="rp-head">
+      <div className="rp-head" role="tablist" aria-label="Панели редактора">
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'notes'}
           className={'rp-tab' + (activeTab === 'notes' ? ' rp-tab--on' : '')}
           onClick={() => setActiveTab('notes')}
         >
@@ -125,6 +127,8 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'versions'}
           className={'rp-tab' + (activeTab === 'versions' ? ' rp-tab--on' : '')}
           onClick={() => setActiveTab('versions')}
         >
@@ -192,6 +196,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                     <button
                       key={k}
                       type="button"
+                      aria-pressed={formKind === k}
                       onClick={() => setFormKind(k)}
                       style={{
                         fontSize: 10.5, padding: '2.5px 7px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
@@ -205,6 +210,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   <span style={{ width: 1, height: 12, background: 'var(--border)', flexShrink: 0, margin: '0 1px' }} />
                   <button
                     type="button"
+                    aria-pressed={formKind === 'custom'}
                     onClick={() => setFormKind('custom')}
                     style={{
                       fontSize: 10.5, padding: '2.5px 7px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
@@ -229,6 +235,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   className="input"
                   rows={3}
                   placeholder="Текст заметки…"
+                  aria-label="Текст заметки"
                   value={formText}
                   onChange={(e) => setFormText(e.target.value)}
                   style={{ fontSize: 12, resize: 'vertical' }}

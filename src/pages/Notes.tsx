@@ -405,6 +405,7 @@ export default function Notes() {
               {(['all', ...BASE_KINDS, 'custom'] as Array<NoteKind | 'all'>).map((k) => (
                 <button
                   key={k}
+                  aria-pressed={filterKind === k}
                   className={'btn btn--ghost' + (filterKind === k ? ' btn--active' : '')}
                   style={{ fontSize: 12, padding: '3px 10px', opacity: filterKind === k ? 1 : 0.6 }}
                   onClick={() => setFilterKind(k)}
@@ -486,8 +487,9 @@ export default function Notes() {
 
             {filtered.length === 0 && !showForm && (
               filterKind !== 'all' ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-4)', fontSize: 13, paddingTop: 48 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'var(--ink-4)', fontSize: 13, paddingTop: 48 }}>
                   {`Нет заметок типа «${KIND_LABELS[filterKind]}».`}
+                  <button className="btn btn--ghost" style={{ fontSize: 12 }} onClick={() => setFilterKind('all')}>Сбросить фильтр</button>
                 </div>
               ) : activeChapterId ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
@@ -619,6 +621,7 @@ export default function Notes() {
                       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void handleModalSave(); }
                       if (e.key === 'Escape') setModalEditing(false);
                     }}
+                    aria-label="Текст заметки"
                     style={{ fontSize: 13, resize: 'vertical', flex: 1 }}
                     autoFocus
                   />

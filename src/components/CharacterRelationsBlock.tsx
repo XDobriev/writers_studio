@@ -102,6 +102,7 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, o
                 value={labelMine}
                 onChange={(e) => setLabelMine(e.target.value)}
                 placeholder="наставник, спутник, сестра…"
+                aria-label="Как вы видите их"
                 onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setAdding(false); }}
                 autoFocus
                 className="input input--sm"
@@ -113,6 +114,7 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, o
                 value={labelTheirs}
                 onChange={(e) => setLabelTheirs(e.target.value)}
                 placeholder="ученик, хозяин…"
+                aria-label="Как они видят вас"
                 onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setAdding(false); }}
                 className="input input--sm"
               />
@@ -204,6 +206,7 @@ function RelationRow({ relId, partner, labelMine, labelTheirs, onDelete, onLabel
               value={mine}
               onChange={onMineChange}
               placeholder="кем приходятся"
+              aria-label="Вы видите их"
               style={{ width: '100%', font: '400 12px var(--font-ui)', color: 'var(--ink-2)', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-soft)', outline: 'none', padding: '2px 0' }}
             />
           </div>
@@ -213,6 +216,7 @@ function RelationRow({ relId, partner, labelMine, labelTheirs, onDelete, onLabel
               value={theirs}
               onChange={onTheirsChange}
               placeholder={symmetric ? '(взаимная)' : 'кем вы им приходитесь'}
+              aria-label="Они видят вас"
               style={{ width: '100%', font: '400 12px var(--font-ui)', color: symmetric ? 'var(--ink-4)' : 'var(--ink-2)', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-soft)', outline: 'none', padding: '2px 0' }}
             />
           </div>

@@ -231,7 +231,11 @@ function VersionCard({ version, isPro, onOpen, onDelete }: {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Открыть версию: ${title}`}
       onClick={() => onOpen(version)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(version); } }}
       className={`version-card${isNamed ? ' version-card--named' : ''}`}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>

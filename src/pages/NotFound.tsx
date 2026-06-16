@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function NotFound() {
   const navigate = useNavigate();
+  const canGoBack = (window.history.state?.idx ?? 0) > 0;
 
   return (
     <div
@@ -52,12 +53,14 @@ export default function NotFound() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 28 }}>
-        <button
-          className="btn btn--ghost"
-          onClick={() => navigate(-1)}
-        >
-          ← Назад
-        </button>
+        {canGoBack && (
+          <button
+            className="btn btn--ghost"
+            onClick={() => navigate(-1)}
+          >
+            ← Назад
+          </button>
+        )}
         <button
           className="btn btn--primary"
           onClick={() => navigate('/books', { replace: true })}

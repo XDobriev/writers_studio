@@ -101,7 +101,7 @@ export default function ShareBook() {
       <div style={{ flex: 1, display: 'flex', maxWidth: 1040, margin: '0 auto', width: '100%', padding: '0 24px 48px', gap: 32 }}>
         {/* Chapter list */}
         {chapters.length > 1 && (
-          <nav style={{ flexShrink: 0, width: 200, paddingTop: 32 }}>
+          <nav aria-label="Главы книги" style={{ flexShrink: 0, width: 200, paddingTop: 32 }}>
             <div style={{ position: 'sticky', top: 72, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ font: '500 10px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-4)', padding: '0 8px 8px' }}>
                 Главы
@@ -110,6 +110,7 @@ export default function ShareBook() {
                 <button
                   key={c.id}
                   type="button"
+                  aria-current={activeId === c.id ? true : undefined}
                   onClick={() => setActiveId(c.id)}
                   style={{
                     display: 'flex', alignItems: 'baseline', gap: 8, padding: '5px 8px',

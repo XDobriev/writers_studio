@@ -79,6 +79,8 @@ function BulkPovButton({
         className="btn"
         disabled={applying || chapters.length === 0}
         onClick={() => setOpen((v) => !v)}
+        aria-haspopup="true"
+        aria-expanded={open}
         title="Применить один POV ко всем главам"
       >
         {applying ? 'Применяем…' : 'POV для всех'}
@@ -186,6 +188,9 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
           ref={triggerRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
+          aria-haspopup="true"
+          aria-expanded={open}
+          aria-label="Добавить POV-персонажа"
           style={{
             display: 'flex', alignItems: 'center',
             height: 22, padding: '0 8px', borderRadius: 999,
@@ -201,6 +206,9 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
           ref={triggerRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
+          aria-haspopup="true"
+          aria-expanded={open}
+          aria-label={`POV: ${povEntries[0].character_name}`}
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
             height: 22, padding: '0 8px 0 4px', borderRadius: 999,
@@ -230,6 +238,9 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
           ref={triggerRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
+          aria-haspopup="true"
+          aria-expanded={open}
+          aria-label={`POV: ${povEntries.map(e => e.character_name).join(', ')}`}
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
             height: 22, padding: '0 8px 0 4px', borderRadius: 999,
@@ -424,6 +435,7 @@ function SortableChapterRow({
               if (e.key === 'Enter') commitRename();
               if (e.key === 'Escape') setRenameFor(null);
             }}
+            aria-label="Название главы"
             style={{
               flex: 1, font: '500 15px var(--font-serif)', color: 'var(--ink)',
               background: 'var(--bg-deep)', border: '1px solid var(--accent)',
@@ -456,7 +468,10 @@ function SortableChapterRow({
           <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 4 }}>
             {c.words.toLocaleString('ru')} сл
           </span>
-          <span style={{ width: 6, height: 6, borderRadius: 999, marginTop: 8, background: STATUS_COLOR[c.status] }} />
+          <span
+            aria-label={c.status === 'done' ? 'Готово' : c.status === 'progress' ? 'В работе' : 'Черновик'}
+            style={{ width: 6, height: 6, borderRadius: 999, marginTop: 8, background: STATUS_COLOR[c.status] }}
+          />
         </Link>
       )}
 

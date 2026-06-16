@@ -383,7 +383,7 @@ export default function Timeline() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexDirection: 'column',
-                      gap: 8,
+                      gap: 12,
                       color: 'var(--ink-3)',
                       padding: '48px 0',
                     }}
@@ -391,6 +391,13 @@ export default function Timeline() {
                     <div style={{ font: '500 14px var(--font-ui)' }}>
                       Нет событий в этом слое
                     </div>
+                    <button
+                      className="btn btn--ghost"
+                      style={{ fontSize: 12 }}
+                      onClick={() => setFilter('all')}
+                    >
+                      Сбросить фильтр
+                    </button>
                   </div>
                 )
               ) : (

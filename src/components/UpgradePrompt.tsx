@@ -28,6 +28,7 @@ export function UpgradePrompt({ open, feature, onClose }: { open: boolean; featu
 
   useEffect(() => {
     if (!open) return;
+    closeRef.current?.focus();
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);

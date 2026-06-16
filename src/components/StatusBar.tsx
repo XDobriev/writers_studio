@@ -319,6 +319,9 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
           <button
             onClick={() => setFontOpen(o => !o)}
             title="Шрифт редактора"
+            aria-label="Шрифт редактора"
+            aria-expanded={fontOpen}
+            aria-haspopup="listbox"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -419,6 +422,7 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
                   <button
                     key={s.id}
                     onClick={() => selectSound(s.id)}
+                    aria-pressed={activeSound === s.id}
                     style={{
                       font: '400 12px var(--font-ui)',
                       padding: '3px 10px',
@@ -436,6 +440,7 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: isPlaying ? 8 : 0 }}>
                 <input
                   type="range"
+                  aria-label="Громкость"
                   min={0}
                   max={1}
                   step={0.01}

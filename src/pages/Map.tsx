@@ -446,6 +446,7 @@ export default function MapScreen() {
                 return (
                   <button
                     key={t.id}
+                    aria-pressed={active}
                     onClick={() => {
                       void onTemplateChange(t.id);
                       setBgModalOpen(false);

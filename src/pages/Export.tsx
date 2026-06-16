@@ -317,6 +317,9 @@ export default function Export() {
               <button
                 ref={langBtnRef}
                 type="button"
+                aria-haspopup="listbox"
+                aria-expanded={langOpen}
+                aria-label="Язык документа"
                 onClick={() => {
                   if (langOpen) { setLangOpen(false); return; }
                   const r = langBtnRef.current!.getBoundingClientRect();
@@ -438,11 +441,13 @@ export default function Export() {
       <UpgradePrompt open={showUpgrade} feature="export" onClose={() => setShowUpgrade(false)} />
       {langOpen && <div onClick={() => setLangOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />}
       {langOpen && (
-        <div style={{ position: 'fixed', top: langPos.top, left: langPos.left, width: langPos.width, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, zIndex: 9999, boxShadow: '0 8px 24px oklch(0 0 0 / 0.5)', overflow: 'hidden' }}>
+        <div role="listbox" aria-label="Язык документа" style={{ position: 'fixed', top: langPos.top, left: langPos.left, width: langPos.width, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, zIndex: 9999, boxShadow: '0 8px 24px oklch(0 0 0 / 0.5)', overflow: 'hidden' }}>
           {LANGUAGES.map(l => (
             <button
               key={l.value}
               type="button"
+              role="option"
+              aria-selected={language === l.value}
               onClick={() => { setLanguage(l.value); setLangOpen(false); }}
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13.5, background: language === l.value ? 'var(--surface-2, oklch(0.22 0.01 50))' : 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontFamily: 'inherit' }}
             >

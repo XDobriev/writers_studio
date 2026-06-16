@@ -96,6 +96,7 @@ export function TimelineEventCard({
             <button
               key={t}
               onClick={() => onTypeChange(t)}
+              aria-pressed={event.type === t}
               className={'chip' + (event.type === t ? ' chip--accent' : '')}
               style={{ cursor: 'pointer', border: 'none' }}
             >
@@ -118,6 +119,7 @@ export function TimelineEventCard({
           value={title}
           onChange={onTitleChange}
           placeholder="Название события"
+          aria-label="Название события"
           style={{
             width: '100%',
             font: '500 17px var(--font-serif)',
@@ -134,6 +136,7 @@ export function TimelineEventCard({
           value={description}
           onChange={onDescChange}
           placeholder="Что произошло"
+          aria-label="Описание события"
           rows={2}
           style={{
             width: '100%',

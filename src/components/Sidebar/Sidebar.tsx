@@ -102,9 +102,9 @@ export function Sidebar({
           <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
         </Link>
         {bid ? (
-          <Link to={`/books/${bid}`} className="sb-book-title" style={{ textDecoration: 'none' }}>{book?.title ?? NOVEL.title}</Link>
+          <Link to={`/books/${bid}`} className="sb-book-title" title={book?.title ?? NOVEL.title} style={{ textDecoration: 'none' }}>{book?.title ?? NOVEL.title}</Link>
         ) : (
-          <div className="sb-book-title">{book?.title ?? NOVEL.title}</div>
+          <div className="sb-book-title" title={book?.title ?? NOVEL.title}>{book?.title ?? NOVEL.title}</div>
         )}
         <div className="sb-book-author">
           {subtitle ?? (book ? [book.author, book.genres?.length ? book.genres.join(', ') : book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`)}
@@ -181,7 +181,7 @@ export function Sidebar({
                   style={{ flex: 1, width: '100%', textAlign: 'left', cursor: 'pointer' }}
                 >
                   <span className="sb-item-num">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="sb-item-title">{c.title || 'Без названия'}</span>
+                  <span className="sb-item-title" title={c.title || 'Без названия'}>{c.title || 'Без названия'}</span>
                 </button>
                 <div style={{ position: 'relative', flexShrink: 0, marginRight: 10 }}>
                   <button

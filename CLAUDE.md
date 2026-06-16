@@ -342,6 +342,7 @@ npm run preview    # превью продакшен-сборки
 - [docs/features/maps.md](docs/features/maps.md) — карта мира.
 - [docs/features/export.md](docs/features/export.md) — экспорт.
 - [docs/features/notes.md](docs/features/notes.md) — заметки книги.
+- [docs/features/payments.md](docs/features/payments.md) — оплата (Робокасса), РобоЧеки СМЗ, фискализация, Secrets.
 - [docs/learning-plan.md](docs/learning-plan.md) — план изучения TypeScript/React (в .gitignore, личный).
 - [docs/email-onboarding.md](docs/email-onboarding.md) — blueprint email-цепочки онбординга (7 писем, тексты, стек). Реализовывать после §2 Робокасса.
 - [docs/acquisition.md](docs/acquisition.md) — план привлечения первых пользователей: фазы, площадки, шаблоны сообщений, трекинг.

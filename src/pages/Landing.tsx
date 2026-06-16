@@ -348,11 +348,15 @@ function FAQItem({ q, a, index, defaultOpen = false }: { q: string; a: string; i
     if (open) setHeight('auto');
   };
 
+  const panelId = `faq-panel-${index}`;
+
   return (
     <div style={{ borderTop: '1px solid var(--border-soft)', padding: '13px 0' }}>
       <button
         onClick={toggle}
         className="faq-trigger"
+        aria-expanded={open}
+        aria-controls={panelId}
         style={{ display: 'flex', width: '100%', background: 'none', border: 'none', padding: '11px 0', cursor: 'pointer', textAlign: 'left', alignItems: 'flex-start', gap: 16 }}
       >
         <span style={{ font: '500 13px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em', marginTop: 4, flexShrink: 0 }}>
@@ -364,6 +368,7 @@ function FAQItem({ q, a, index, defaultOpen = false }: { q: string; a: string; i
         </span>
       </button>
       <div
+        id={panelId}
         ref={bodyRef}
         className="faq-body"
         style={{ overflow: 'hidden', height }}

@@ -590,6 +590,7 @@ export function WorldMap({
             <input
               value={editName}
               onChange={e => { setEditName(e.target.value); scheduleUpdate(selected.id, { name: e.target.value.trim() || 'Без названия' }); }}
+              aria-label="Название локации"
               style={{ width: '100%', height: 34, padding: '0 9px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--ink)', font: '500 14px var(--font-serif)', outline: 'none', marginBottom: 7 }}
             />
             <select
@@ -606,6 +607,7 @@ export function WorldMap({
               value={editRole}
               onChange={e => { setEditRole(e.target.value); scheduleUpdate(selected.id, { role: e.target.value }); }}
               placeholder="Роль в сюжете…"
+              aria-label="Роль локации в сюжете"
               style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-soft)', color: 'var(--ink-3)', padding: '3px 0 5px', font: '400 11px var(--font-mono)', outline: 'none', marginBottom: 9, letterSpacing: '0.02em' }}
             />
             <textarea
@@ -617,6 +619,7 @@ export function WorldMap({
               }}
               ref={el => { if (el) autoResize(el); }}
               placeholder="Описание локации…"
+              aria-label="Описание локации"
               style={{ width: '100%', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 6, color: 'var(--ink-3)', padding: '6px 8px', font: '400 11px/1.55 var(--font-serif)', outline: 'none', resize: 'none', minHeight: 32, overflowY: 'hidden', marginBottom: 10, scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-soft)', paddingTop: 8 }}>
@@ -671,6 +674,7 @@ export function WorldMap({
                   scheduleConnUpdate(conn.id, { label: e.target.value });
                 }}
                 placeholder="Название связи…"
+                aria-label="Название связи"
                 style={{ width: 120, background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 4, color: 'var(--ink-2)', padding: '3px 7px', font: '400 11px var(--font-ui)', outline: 'none' }}
               />
               <select
@@ -750,6 +754,7 @@ export function WorldMap({
           <input
             value={editName}
             onChange={e => { setEditName(e.target.value); scheduleUpdate(selected.id, { name: e.target.value.trim() || 'Без названия' }); }}
+            aria-label="Название локации"
             style={{ width: '100%', height: 36, padding: '0 10px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--ink)', font: '500 14px var(--font-serif)', outline: 'none', marginBottom: 8 }}
           />
           <select
@@ -766,6 +771,7 @@ export function WorldMap({
             value={editRole}
             onChange={e => { setEditRole(e.target.value); scheduleUpdate(selected.id, { role: e.target.value }); }}
             placeholder="Роль в сюжете…"
+            aria-label="Роль локации в сюжете"
             style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-soft)', color: 'var(--ink-3)', padding: '3px 0 5px', font: '400 11px var(--font-mono)', outline: 'none', marginBottom: 9 }}
           />
           <textarea
@@ -777,6 +783,7 @@ export function WorldMap({
             }}
             ref={el => { if (el) autoResize(el); }}
             placeholder="Описание локации…"
+            aria-label="Описание локации"
             style={{ width: '100%', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 6, color: 'var(--ink-3)', padding: '7px 9px', font: '400 12px/1.55 var(--font-serif)', outline: 'none', resize: 'none', minHeight: 36, overflowY: 'hidden', marginBottom: 12 }}
           />
           <div style={{ display: 'flex', gap: 8 }}>
@@ -803,6 +810,7 @@ export function WorldMap({
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc.name}</span>
               <button
                 onClick={() => { setPendingPlaceId(loc.id); setUnmappedSheetOpen(false); }}
+                aria-label={`Разместить на карте: ${loc.name}`}
                 style={{ background: 'var(--accent-soft)', border: '1px solid oklch(0.63 0.16 30 / 0.3)', borderRadius: 5, color: 'var(--accent)', font: '400 11px var(--font-ui)', padding: '3px 10px', cursor: 'pointer' }}
               >
                 Разместить

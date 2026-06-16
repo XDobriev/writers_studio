@@ -28,6 +28,7 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
       <Link
         to={`/books/${b.id}`}
         className="book-card__link"
+        aria-label={b.title}
       >
         <div style={{
           height: 180,
@@ -76,8 +77,8 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
       </Link>
       <button
         onClick={onEdit}
-        title="Редактировать книгу"
-        aria-label="Редактировать книгу"
+        title={`Редактировать: ${b.title}`}
+        aria-label={`Редактировать: ${b.title}`}
         className="book-card__edit"
         style={{
           position: 'absolute', top: 10, right: 10, zIndex: 1,

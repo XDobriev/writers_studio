@@ -55,23 +55,32 @@ export default function PaymentSuccess() {
       padding: 24,
       background: 'var(--bg)',
     }}>
-      <div style={{
-        width: '100%',
-        maxWidth: 400,
-        textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 16,
-      }}>
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        style={{
+          width: '100%',
+          maxWidth: 400,
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 16,
+        }}
+      >
         {state === 'checking' && (
           <>
-            <div style={{
-              width: 48, height: 48, borderRadius: '50%',
-              border: '3px solid var(--border)',
-              borderTopColor: 'var(--accent)',
-              animation: 'spin 0.9s linear infinite',
-            }} />
+            <div
+              role="img"
+              aria-label="Активируем подписку…"
+              style={{
+                width: 48, height: 48, borderRadius: '50%',
+                border: '3px solid var(--border)',
+                borderTopColor: 'var(--accent)',
+                animation: 'spin 0.9s linear infinite',
+              }}
+            />
             <p style={{ font: '500 15px var(--font-ui)', color: 'var(--ink-2)', margin: 0 }}>
               Активируем подписку {planLabel}…
             </p>

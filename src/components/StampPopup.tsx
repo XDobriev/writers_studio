@@ -36,6 +36,8 @@ export function StampPopup({ stamp, position, onUpdate, onDelete, onClose }: Sta
             type="button"
             onClick={() => onUpdate({ type })}
             title={STAMP_LABELS[type]}
+            aria-label={STAMP_LABELS[type]}
+            aria-pressed={stamp.type === type}
             style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
               padding: '4px 2px', borderRadius: 5, cursor: 'pointer', border: '1px solid',
@@ -63,6 +65,7 @@ export function StampPopup({ stamp, position, onUpdate, onDelete, onClose }: Sta
         min={0.5} max={3.0} step={0.1}
         value={stamp.size}
         onChange={e => onUpdate({ size: parseFloat(e.target.value) })}
+        aria-label={`Размер штампа: ${stamp.size.toFixed(1)}×`}
         style={{ width: '100%', marginBottom: 12 }}
       />
 

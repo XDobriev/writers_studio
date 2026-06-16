@@ -46,6 +46,7 @@ export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
           to={href(segment)}
           title={label}
           aria-label={label}
+          aria-current={k === active ? 'page' : undefined}
           className={'tb-btn' + (k === active ? ' tb-btn--on' : '')}
           style={{ width: 36, height: 36, borderRadius: 8 }}
         >

@@ -350,10 +350,12 @@ export default function Admin() {
 
         <h1 style={{ font: '600 28px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 20 }}>Панель администратора</h1>
 
-        <div style={{ display: 'flex', gap: 0, marginBottom: 32, borderBottom: '1px solid var(--border-soft)' }}>
+        <div role="tablist" aria-label="Разделы панели администратора" style={{ display: 'flex', gap: 0, marginBottom: 32, borderBottom: '1px solid var(--border-soft)' }}>
           {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
             <button
               key={t}
+              role="tab"
+              aria-selected={tab === t}
               onClick={() => handleTabChange(t)}
               style={{
                 padding: '10px 20px',
@@ -387,10 +389,10 @@ export default function Admin() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-soft)' }}>
-                      <th style={thStyle()}>Дата</th>
-                      <th style={thStyle()}>Действие</th>
-                      <th style={thStyle()}>Пользователь</th>
-                      <th style={thStyle()}>Детали</th>
+                      <th scope="col" style={thStyle()}>Дата</th>
+                      <th scope="col" style={thStyle()}>Действие</th>
+                      <th scope="col" style={thStyle()}>Пользователь</th>
+                      <th scope="col" style={thStyle()}>Детали</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -441,11 +443,11 @@ export default function Admin() {
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-soft)' }}>
-                        <th style={thStyle()}>Дата</th>
-                        <th style={thStyle()}>Пользователь</th>
-                        <th style={thStyle()}>План</th>
-                        <th style={thStyle()}>Сумма</th>
-                        <th style={thStyle()}>Payment ID</th>
+                        <th scope="col" style={thStyle()}>Дата</th>
+                        <th scope="col" style={thStyle()}>Пользователь</th>
+                        <th scope="col" style={thStyle()}>План</th>
+                        <th scope="col" style={thStyle()}>Сумма</th>
+                        <th scope="col" style={thStyle()}>Payment ID</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -495,8 +497,8 @@ export default function Admin() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-soft)' }}>
-                      <th style={thStyle()}>Ключ</th>
-                      <th style={thStyle()}>Статус</th>
+                      <th scope="col" style={thStyle()}>Ключ</th>
+                      <th scope="col" style={thStyle()}>Статус</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -605,20 +607,20 @@ export default function Admin() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-soft)' }}>
-                  <th style={thStyle()}>Email</th>
-                  <th style={thStyle('created_at')} onClick={() => handleSort('created_at')}>
+                  <th scope="col" style={thStyle()}>Email</th>
+                  <th scope="col" style={thStyle('created_at')} aria-sort={sortKey === 'created_at' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} onClick={() => handleSort('created_at')}>
                     Зарегистрирован <SortIcon active={sortKey === 'created_at'} dir={sortDir} />
                   </th>
-                  <th style={thStyle()}>Книг</th>
-                  <th style={thStyle('words_total')} onClick={() => handleSort('words_total')}>
+                  <th scope="col" style={thStyle()}>Книг</th>
+                  <th scope="col" style={thStyle('words_total')} aria-sort={sortKey === 'words_total' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} onClick={() => handleSort('words_total')}>
                     Слов <SortIcon active={sortKey === 'words_total'} dir={sortDir} />
                   </th>
-                  <th style={thStyle('last_active')} onClick={() => handleSort('last_active')}>
+                  <th scope="col" style={thStyle('last_active')} aria-sort={sortKey === 'last_active' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} onClick={() => handleSort('last_active')}>
                     Последняя активность <SortIcon active={sortKey === 'last_active'} dir={sortDir} />
                   </th>
-                  <th style={thStyle()}>План</th>
-                  <th style={thStyle()}>+7д</th>
-                  <th style={thStyle()}>Статус</th>
+                  <th scope="col" style={thStyle()}>План</th>
+                  <th scope="col" style={thStyle()}>+7д</th>
+                  <th scope="col" style={thStyle()}>Статус</th>
                 </tr>
               </thead>
               <tbody>

@@ -169,6 +169,7 @@ function SortableCorkCard({
             onChange={(e) => setSynopsisValue(e.target.value)}
             onBlur={commitSynopsis}
             onKeyDown={handleSynopsisKeyDown}
+            aria-label={`Краткое содержание: ${c.title || 'Без названия'}`}
             placeholder="Напишите о чём эта глава…"
             style={{
               width: '100%',
@@ -219,6 +220,8 @@ function SortableCorkCard({
             ref={menuRef}
             type="button"
             onClick={() => setMenuOpen((o) => !o)}
+            aria-haspopup="true"
+            aria-expanded={menuOpen}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, margin: -4, background: menuOpen ? 'var(--bg-deep)' : 'transparent', border: 'none', cursor: 'pointer', borderRadius: 4, color: 'var(--ink-3)' }}
             title="Изменить статус"
             aria-label="Изменить статус"
@@ -228,12 +231,14 @@ function SortableCorkCard({
           {menuOpen && (
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onMouseDown={() => { setMenuOpen(false); setDeleteConfirm(false); }} />
-              {dropdownStyle && <div style={{ ...dropdownStyle, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px oklch(0 0 0 / 0.18)' }}>
+              {dropdownStyle && <div role="menu" aria-label="Статус главы" style={{ ...dropdownStyle, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px oklch(0 0 0 / 0.18)' }}>
               <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px 6px' }}>Статус</div>
               {STATUS_ORDER.map((s) => (
                 <button
                   key={s}
                   type="button"
+                  role="menuitemradio"
+                  aria-checked={c.status === s}
                   onClick={() => { onStatusChange(c.id, s); setMenuOpen(false); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: c.status === s ? 'var(--bg-deep)' : 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--ink)', border: 'none', textAlign: 'left' }}
                 >

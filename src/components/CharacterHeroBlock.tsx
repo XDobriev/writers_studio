@@ -203,6 +203,8 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError }: {
           value={name}
           onChange={onNameChange}
           placeholder="Имя персонажа"
+          aria-label="Имя персонажа"
+          maxLength={100}
           style={{ width: '100%', font: '600 44px var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 6, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', padding: '4px 0' }}
         />
 

@@ -469,7 +469,14 @@ export default function Characters() {
     </WithMode>
 
     {mutationError && (
-      <div className="toast toast--error" onClick={clearError} onPointerDown={clearError}>
+      <div
+        role="alert"
+        tabIndex={0}
+        className="toast toast--error"
+        onClick={clearError}
+        onPointerDown={clearError}
+        onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'Enter') clearError(); }}
+      >
         {mutationError}
       </div>
     )}
