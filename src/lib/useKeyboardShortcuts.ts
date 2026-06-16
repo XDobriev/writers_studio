@@ -25,7 +25,7 @@ export function useKeyboardShortcuts({
   setMode,
   openMobileRight,
 }: UseKeyboardShortcutsParams) {
-  const [openNoteAt, setOpenNoteAt] = useState(0);
+  const [showNoteForm, setShowNoteForm] = useState(false);
 
   const onSaveRef = useRef(onSave);
   useEffect(() => { onSaveRef.current = onSave; }, [onSave]);
@@ -78,7 +78,7 @@ export function useKeyboardShortcuts({
         } else if (e.code === 'KeyM' && e.shiftKey && !e.altKey) {
           e.preventDefault();
           if (isMobileRef.current) openMobileRight();
-          setOpenNoteAt((prev) => prev + 1);
+          setShowNoteForm(true);
         }
       }
     };
@@ -87,5 +87,7 @@ export function useKeyboardShortcuts({
     return () => document.removeEventListener('keydown', handler);
   }, [setMode, openMobileRight]);
 
-  return { openNoteAt };
+  const resetShowNoteForm = () => setShowNoteForm(false);
+
+  return { showNoteForm, resetShowNoteForm };
 }

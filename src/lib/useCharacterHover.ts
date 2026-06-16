@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Character } from './characters';
+import { matchesAlias } from './characterMatching';
 
 function findCharacterAtPoint(
   x: number,
@@ -35,7 +36,6 @@ function findCharacterAtPoint(
   }
   if (!found) return null;
 
-  const normalize = (s: string) => s.toLowerCase().replace(/ё/g, 'е');
   const isLetter = (i: number) => i >= 0 && i < fullText.length && /\p{L}/u.test(fullText[i]);
 
   // Extract the word under cursor (handle end-of-word position)
@@ -47,29 +47,12 @@ function findCharacterAtPoint(
   let wordEnd = checkAt + 1;
   while (wordEnd < fullText.length && isLetter(wordEnd)) wordEnd++;
 
-  const normWord = normalize(fullText.slice(wordStart, wordEnd));
+  const word = fullText.slice(wordStart, wordEnd);
 
   for (const char of characters) {
     const aliases = [char.name, ...(char.aliases ?? [])].filter(Boolean);
     aliases.sort((a, b) => b.length - a.length);
-
-    for (const alias of aliases) {
-      const t = alias.trim();
-      if (t.length < 2) continue;
-      const normAlias = normalize(t);
-
-      // Exact match (nominative case)
-      if (normWord === normAlias) return char;
-
-      // Stem prefix match for names ≥ 5 chars — covers Russian declensions.
-      // Stem = first (length-2) chars; allow up to 4 extra chars for endings.
-      if (t.length >= 5) {
-        const stem = normalize(t.slice(0, t.length - 2));
-        if (normWord.startsWith(stem) && normWord.length - stem.length <= 4) {
-          return char;
-        }
-      }
-    }
+    if (aliases.some((alias) => matchesAlias(word, alias))) return char;
   }
   return null;
 }

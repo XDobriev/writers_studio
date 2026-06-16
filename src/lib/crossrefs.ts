@@ -1,20 +1,13 @@
 import { supabase } from './supabase';
 import type { Character } from './characters';
 import { htmlToText } from './htmlUtils';
+import { makeAliasPattern } from './characterMatching';
 
 export function extractCharacterMentions(content: string, aliases: string[]): boolean {
   const text = htmlToText(content);
   for (const alias of aliases) {
-    const trimmed = alias.trim();
-    if (!trimmed) continue;
-    try {
-      const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      // \b не работает для кириллицы — используем Unicode-границы через lookaround
-      const pattern = new RegExp(`(?<![\\p{L}\\p{N}_])${escaped}(?![\\p{L}\\p{N}_])`, 'vi');
-      if (pattern.test(text)) return true;
-    } catch {
-      // skip invalid pattern
-    }
+    const pattern = makeAliasPattern(alias);
+    if (pattern && pattern.test(text)) return true;
   }
   return false;
 }

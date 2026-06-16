@@ -5,6 +5,44 @@ import {
   deleteCharacter,
   type Character,
 } from './characters';
+
+// ─── InfiniteData helpers ────────────────────────────────────────────────────
+// Чистые функции: единственное место, знающее о структуре InfiniteData<Character[]>.
+
+export function charInfiniteUpdate(
+  prev: InfiniteData<Character[]> | undefined,
+  id: string,
+  patch: Partial<Character>,
+): InfiniteData<Character[]> | undefined {
+  if (!prev) return prev;
+  return { ...prev, pages: prev.pages.map((page) => page.map((c) => (c.id === id ? { ...c, ...patch } as Character : c))) };
+}
+
+export function charInfiniteConfirm(
+  prev: InfiniteData<Character[]> | undefined,
+  updated: Character,
+): InfiniteData<Character[]> | undefined {
+  if (!prev) return prev;
+  return { ...prev, pages: prev.pages.map((page) => page.map((c) => (c.id === updated.id ? updated : c))) };
+}
+
+export function charInfiniteAppend(
+  prev: InfiniteData<Character[]> | undefined,
+  created: Character,
+): InfiniteData<Character[]> {
+  if (!prev) return { pages: [[created]], pageParams: [0] };
+  const pages = [...prev.pages];
+  pages[pages.length - 1] = [...pages[pages.length - 1], created];
+  return { ...prev, pages };
+}
+
+export function charInfiniteRemove(
+  prev: InfiniteData<Character[]> | undefined,
+  id: string,
+): InfiniteData<Character[]> | undefined {
+  if (!prev) return prev;
+  return { ...prev, pages: prev.pages.map((page) => page.filter((c) => c.id !== id)) };
+}
 import {
   createRelationship,
   deleteRelationship,
@@ -47,12 +85,9 @@ export function useCharacterMutations({
         role: 'protagonist',
         position,
       });
-      queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) => {
-        if (!prev) return { pages: [[created]], pageParams: [0] };
-        const pages = [...prev.pages];
-        pages[pages.length - 1] = [...pages[pages.length - 1], created];
-        return { ...prev, pages };
-      });
+      queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) =>
+        charInfiniteAppend(prev, created),
+      );
       if (!localStorage.getItem('as_checklist_char')) {
         localStorage.setItem('as_checklist_char', '1');
       }
@@ -70,10 +105,9 @@ export function useCharacterMutations({
     try {
       await deleteCharacter(characterId);
       const remaining = characters.filter((c) => c.id !== characterId);
-      queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) => {
-        if (!prev) return prev;
-        return { ...prev, pages: prev.pages.map((page) => page.filter((c) => c.id !== characterId)) };
-      });
+      queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) =>
+        charInfiniteRemove(prev, characterId),
+      );
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) =>
         prev ? prev.filter((r) => r.char_a_id !== characterId && r.char_b_id !== characterId) : prev
       );

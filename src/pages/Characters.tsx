@@ -27,7 +27,7 @@ import { syncCharacterAcrossAllChapters } from '../lib/crossrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { useCharacterNavigation } from '../lib/useCharacterNavigation';
-import { useCharacterMutations } from '../lib/useCharacterMutations';
+import { useCharacterMutations, charInfiniteUpdate, charInfiniteConfirm } from '../lib/useCharacterMutations';
 import { CharacterHeroBlock } from '../components/CharacterHeroBlock';
 import { CharacterRelationsBlock } from '../components/CharacterRelationsBlock';
 import { CharacterChaptersTab } from '../components/CharacterChaptersTab';
@@ -87,12 +87,13 @@ export default function Characters() {
     async (id, patch) => {
       if (!bookId) return;
       setSaveState('saving');
+      // Snapshot для rollback: если API упадёт, восстановим кеш
+      const snapshot = queryClient.getQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId));
       try {
         const updated = await updateCharacter(id, patch);
-        queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) => {
-          if (!prev) return prev;
-          return { ...prev, pages: prev.pages.map((page) => page.map((c) => (c.id === id ? updated : c))) };
-        });
+        queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) =>
+          charInfiniteConfirm(prev, updated),
+        );
         setSaveState('saved');
         if (patch.name !== undefined || patch.aliases !== undefined) {
           void syncCharacterAcrossAllChapters(updated, bookId)
@@ -100,6 +101,8 @@ export default function Characters() {
             .catch(() => { /* non-critical */ });
         }
       } catch (e) {
+        // Восстанавливаем кеш до оптимистичного обновления
+        queryClient.setQueryData(QUERY_KEYS.characters(bookId), snapshot);
         setSaveState('error');
         setError((e as Error).message);
         throw e;
@@ -110,10 +113,9 @@ export default function Characters() {
 
   const scheduleSave = useCallback((id: string, patch: CharacterPatch) => {
     if (bookId) {
-      queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) => {
-        if (!prev) return prev;
-        return { ...prev, pages: prev.pages.map((page) => page.map((c) => (c.id === id ? { ...c, ...patch } as Character : c))) };
-      });
+      queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) =>
+        charInfiniteUpdate(prev, id, patch),
+      );
     }
     setSaveState('saving');
     debouncedSave(id, patch);

@@ -155,7 +155,7 @@ export function EditorHybrid({
     await addWordToDictionary(user.id, w);
   }, [user, queryClient]);
 
-  const { openNoteAt } = useKeyboardShortcuts({
+  const { showNoteForm, resetShowNoteForm } = useKeyboardShortcuts({
     onSave,
     chapterActions,
     chapters,
@@ -354,7 +354,8 @@ export function EditorHybrid({
             currentContent={activeContent}
             isPro={isPro}
             onRestoreContent={restoreContent}
-            openNoteAt={openNoteAt}
+            showNoteForm={showNoteForm}
+            onNoteFormClose={resetShowNoteForm}
           />
         </div>
       )}
@@ -416,7 +417,8 @@ export function EditorHybrid({
               currentContent={activeContent}
               isPro={isPro}
               onRestoreContent={restoreContent}
-              openNoteAt={openNoteAt}
+              showNoteForm={showNoteForm}
+            onNoteFormClose={resetShowNoteForm}
             />
           </div>
         </>

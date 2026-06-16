@@ -17,11 +17,12 @@ interface RightPanelProps {
   currentContent?: string;
   isPro?: boolean;
   onRestoreContent?: (content: string) => void;
-  /** Инкрементируется из EditorHybrid по Ctrl+Shift+N → открывает форму заметки */
-  openNoteAt?: number;
+  /** Ctrl+Shift+M из EditorHybrid — переключает панель на заметки и открывает форму */
+  showNoteForm?: boolean;
+  onNoteFormClose?: () => void;
 }
 
-export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, openNoteAt }: RightPanelProps) {
+export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, showNoteForm, onNoteFormClose }: RightPanelProps) {
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно', custom: 'Прочее' };
   const KIND_COLORS: Record<string, string> = {
     idea: 'var(--note-idea)', question: 'var(--note-question)',
@@ -48,12 +49,11 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   const [editCustomLabel, setEditCustomLabel] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; text: string } | null>(null);
 
-  // Ctrl+Shift+N из EditorHybrid — открыть вкладку заметок и показать форму
   useEffect(() => {
-    if (!openNoteAt) return;
+    if (!showNoteForm) return;
     setActiveTab('notes');
     setShowForm(true);
-  }, [openNoteAt]);
+  }, [showNoteForm]);
 
   const invalidate = () => {
     if (bookId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(bookId) });
@@ -71,6 +71,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
       setFormCustomLabel('');
       setFormKind('idea');
       setShowForm(false);
+      onNoteFormClose?.();
     } catch (e) {
       setNoteError(e instanceof Error ? e.message : 'Не удалось сохранить заметку');
     } finally {
@@ -254,7 +255,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   <button
                     className="btn btn--ghost"
                     style={{ fontSize: 12, padding: '4px 10px' }}
-                    onClick={() => { setShowForm(false); setFormText(''); setFormCustomLabel(''); setFormKind('idea'); }}
+                    onClick={() => { setShowForm(false); setFormText(''); setFormCustomLabel(''); setFormKind('idea'); onNoteFormClose?.(); }}
                   >Отмена</button>
                   <button
                     className="btn btn--primary"
