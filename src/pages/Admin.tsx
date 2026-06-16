@@ -654,7 +654,7 @@ export default function Admin() {
                     </td>
                   </tr>
                 ) : filtered.map((u, i) => (
-                  <tr key={u.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border-soft)' : 'none', background: i % 2 === 0 ? 'transparent' : 'oklch(0.96 0.002 50 / 0.4)' }}>
+                  <tr key={u.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border-soft)' : 'none' }}>
                     <td style={{ padding: '10px 16px', font: '400 13px var(--font-ui)' }}>
                       <Link to={`/admin/users/${u.id}`} style={{ color: 'var(--ink)', textDecoration: 'none' }}>
                         {displayEmail(u.email)}
