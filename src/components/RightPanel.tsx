@@ -118,8 +118,10 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
       <div className="rp-head" role="tablist" aria-label="Панели редактора">
         <button
           type="button"
+          id="rp-tab-notes"
           role="tab"
           aria-selected={activeTab === 'notes'}
+          aria-controls="rp-panel-notes"
           className={'rp-tab' + (activeTab === 'notes' ? ' rp-tab--on' : '')}
           onClick={() => setActiveTab('notes')}
         >
@@ -127,8 +129,10 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
         </button>
         <button
           type="button"
+          id="rp-tab-versions"
           role="tab"
           aria-selected={activeTab === 'versions'}
+          aria-controls="rp-panel-versions"
           className={'rp-tab' + (activeTab === 'versions' ? ' rp-tab--on' : '')}
           onClick={() => setActiveTab('versions')}
         >
@@ -148,46 +152,51 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
             <button onClick={clearNoteError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 14, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
           </div>
         )}
-        {activeTab === 'versions' && chapterId && bookId && userId && (
-          <Suspense fallback={<div style={{ padding: 24, color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>Загрузка…</div>}>
-          <VersionsPanel
-            chapterId={chapterId}
-            chapterTitle={chapterTitle}
-            bookId={bookId}
-            userId={userId}
-            currentContent={currentContent ?? ''}
-            isPro={isPro ?? false}
-            onRestoreContent={onRestoreContent}
-          />
-          </Suspense>
-        )}
-        {activeTab === 'versions' && !chapterId && (
-          <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>
-            Выберите главу
-          </div>
-        )}
-        {activeTab === 'notes' && chapterId && chapterMembers.length > 0 && (
-          <div className="rp-members">
-            <div className="rp-members-head">Персонажи главы</div>
-            {chapterMembers.map((m) => {
-              const name = m.characters?.name ?? '?';
-              const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-              const color = getCharacterColor(m.characters?.position ?? 0);
-              return (
-                <div key={m.character_id} className="rp-member">
-                  <div className="rp-member-av" style={{ background: color }}>
-                    {m.characters?.avatar_url
-                      ? <img src={m.characters.avatar_url} alt={name} className="rp-member-img" />
-                      : initials}
-                  </div>
-                  <span className="rp-member-name">{name}</span>
-                  {m.is_pov && <span className="rp-member-pov">POV</span>}
-                </div>
-              );
-            })}
+        {activeTab === 'versions' && (
+          <div id="rp-panel-versions" role="tabpanel" aria-labelledby="rp-tab-versions" tabIndex={0}>
+            {chapterId && bookId && userId && (
+              <Suspense fallback={<div style={{ padding: 24, color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>Загрузка…</div>}>
+              <VersionsPanel
+                chapterId={chapterId}
+                chapterTitle={chapterTitle}
+                bookId={bookId}
+                userId={userId}
+                currentContent={currentContent ?? ''}
+                isPro={isPro ?? false}
+                onRestoreContent={onRestoreContent}
+              />
+              </Suspense>
+            )}
+            {!chapterId && (
+              <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>
+                Выберите главу
+              </div>
+            )}
           </div>
         )}
         {activeTab === 'notes' && (
+          <div id="rp-panel-notes" role="tabpanel" aria-labelledby="rp-tab-notes" tabIndex={0}>
+            {chapterId && chapterMembers.length > 0 && (
+              <div className="rp-members">
+                <div className="rp-members-head">Персонажи главы</div>
+                {chapterMembers.map((m) => {
+                  const name = m.characters?.name ?? '?';
+                  const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                  const color = getCharacterColor(m.characters?.position ?? 0);
+                  return (
+                    <div key={m.character_id} className="rp-member">
+                      <div className="rp-member-av" style={{ background: color }}>
+                        {m.characters?.avatar_url
+                          ? <img src={m.characters.avatar_url} alt={name} className="rp-member-img" />
+                          : initials}
+                      </div>
+                      <span className="rp-member-name">{name}</span>
+                      {m.is_pov && <span className="rp-member-pov">POV</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           <>
             {showForm && (
               <div style={{ padding: '12px 14px 14px', borderBottom: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -265,6 +274,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
               </div>
             )}
           </>
+          </div>
         )}
         {activeTab === 'notes' && notes.map((n) => (
           <div key={n.id} className={'mn' + (n.kind !== 'idea' ? ' mn--' + n.kind : '')}>
