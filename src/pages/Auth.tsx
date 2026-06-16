@@ -12,7 +12,7 @@ type Tab = 'signin' | 'signup';
 type Flow = 'auth' | 'reset-request' | 'reset-sent';
 
 const SUPABASE_ERRORS: Record<string, string> = {
-  'Invalid login credentials': 'Неверная почта или пароль.',
+  'Invalid login credentials': 'Неверная почта или пароль. Проверьте раскладку и регистр.',
   'Email not confirmed': 'Почта не подтверждена. Проверьте входящие письма.',
   'User already registered': 'Пользователь с этой почтой уже зарегистрирован.',
   'Password should be at least 6 characters.': 'Пароль должен содержать не менее 6 символов.',
@@ -69,7 +69,7 @@ declare global {
 }
 
 export default function Auth() {
-  const { session, signIn, signUp, signInWithGoogle, signInWithTelegram, signInWithVk, resetPasswordForEmail } = useAuth();
+  const { session, signIn, signUp, signInWithTelegram, signInWithVk, resetPasswordForEmail } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>(() =>
@@ -81,7 +81,7 @@ export default function Auth() {
   const [busy, setBusy] = useState(false);
   const [consent, setConsent] = useState(false);
   const [consentMarketing, setConsentMarketing] = useState(false);
-  const [oauthBusy, setOauthBusy] = useState<'google' | 'telegram' | 'vk' | null>(null);
+  const [oauthBusy, setOauthBusy] = useState<'telegram' | 'vk' | null>(null);
   const [redirectingToPay, setRedirectingToPay] = useState(false);
   const { error: err, setError: setErr, clearError: clearErr } = useErrorState();
   const [info, setInfo] = useState<string | null>(null);
@@ -187,9 +187,19 @@ export default function Auth() {
   useEffect(() => {
     if (!session) return;
     const params = new URLSearchParams(location.search);
-    const plan = (params.get('plan') ?? sessionStorage.getItem('pending_plan')) as 'pro' | 'lifetime' | null;
-    if (plan === 'pro' || plan === 'lifetime') {
+    const urlPlan = params.get('plan');
+    const storedPlan = sessionStorage.getItem('pending_plan');
+    const rawPlan = urlPlan ?? storedPlan;
+    const plan = rawPlan === 'pro' || rawPlan === 'lifetime' ? rawPlan : null;
+
+    if (plan) {
+      // Очищаем оба источника ДО редиректа — иначе Back-кнопка из Робокассы
+      // вернёт пользователя на /login?plan=pro и запустит цикл заново.
       sessionStorage.removeItem('pending_plan');
+      if (urlPlan) {
+        params.delete('plan');
+        navigate({ search: params.toString() }, { replace: true });
+      }
       setRedirectingToPay(true);
       void (async () => {
         try {
@@ -231,13 +241,7 @@ export default function Auth() {
     if (tab === 'signin') {
       const { error } = await signIn(email, password);
       if (error) {
-        if (error === 'Invalid login credentials') {
-          setTab('signup');
-          setConsent(false);
-          setInfo('Аккаунт с такой почтой не найден — завершите регистрацию.');
-        } else {
-          setErr(te(error));
-        }
+        setErr(te(error));
       }
     } else {
       const { error } = await signUp(email, password);
@@ -248,17 +252,6 @@ export default function Auth() {
       }
     }
     setBusy(false);
-  };
-
-  const onGoogle = async () => {
-    clearErr();
-    setOauthBusy('google');
-    const { error } = await signInWithGoogle();
-    if (error) {
-      setErr('Ошибка подключения. Попробуйте войти по почте или повторите попытку позже.');
-      setOauthBusy(null);
-    }
-    // при успехе редирект уходит на Google — стейт busy не сбрасываем
   };
 
   if (redirectingToPay) {
@@ -419,7 +412,7 @@ export default function Auth() {
                 {tab === 'signin' ? 'С возвращением.' : 'Откройте студию.'}
               </h2>
               <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 24 }}>
-                {tab === 'signin' ? 'Войдите по почте или через соцсети.' : 'Минимальная регистрация — или один клик через соцсети.'}
+                {tab === 'signin' ? 'Войдите по почте или через Telegram / VK.' : 'Минимальная регистрация — или один клик через Telegram / VK.'}
               </p>
 
               {!supabaseConfigured && (
@@ -429,17 +422,6 @@ export default function Auth() {
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
-                <button
-                  type="button"
-                  onClick={onGoogle}
-                  disabled={oauthBusy !== null || !supabaseConfigured || (tab === 'signup' && !consent)}
-                  className="btn"
-                  style={{ width: '100%', height: 42, justifyContent: 'center', gap: 10 }}
-                >
-                  <GoogleGlyph />
-                  <span>{oauthBusy === 'google' ? 'Переход к Google…' : (tab === 'signin' ? 'Войти через Google' : 'Зарегистрироваться через Google')}</span>
-                </button>
-
                 {TG_BOT_USERNAME && (
                   <div
                     className="auth-oauth-wrap"
@@ -610,17 +592,6 @@ function TelegramGlyph() {
   return (
     <svg width={16} height={16} viewBox="0 0 24 24" aria-hidden fill="currentColor">
       <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-    </svg>
-  );
-}
-
-function GoogleGlyph() {
-  return (
-    <svg width={16} height={16} viewBox="0 0 48 48" aria-hidden>
-      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.2 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z" />
-      <path fill="#FF3D00" d="M6.3 14.1l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.2 29.5 4 24 4 16.3 4 9.7 8.4 6.3 14.1z" />
-      <path fill="#4CAF50" d="M24 44c5.4 0 10.3-2.1 14-5.4l-6.5-5.5C29.3 34.6 26.8 35.5 24 35.5c-5.2 0-9.6-3.3-11.2-8L6.2 32C9.6 37.6 16.3 44 24 44z" />
-      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.6l6.5 5.5C41.6 35.8 44 30.2 44 24c0-1.2-.1-2.4-.4-3.5z" />
     </svg>
   );
 }

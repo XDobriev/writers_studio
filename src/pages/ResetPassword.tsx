@@ -28,8 +28,17 @@ export default function ResetPassword() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // Событие PASSWORD_RECOVERY может сработать до монтирования компонента —
+    // в этом случае сессия уже установлена, просто переходим в ready.
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        setState('ready');
+      }
+    });
+
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         if (timerRef.current) clearTimeout(timerRef.current);
         setState('ready');
       }
@@ -37,7 +46,7 @@ export default function ResetPassword() {
 
     timerRef.current = setTimeout(() => {
       setState((s) => s === 'waiting' ? 'expired' : s);
-    }, 4000);
+    }, 12000);
 
     return () => {
       sub.subscription.unsubscribe();
