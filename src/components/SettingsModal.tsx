@@ -211,6 +211,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
   const [plan, setPlan] = useState<Plan>('free');
   const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
   const [grandfathered, setGrandfathered] = useState(false);
+  const [hasRecurring, setHasRecurring] = useState(false);
   const [planLoaded, setPlanLoaded] = useState(false);
   type LastPayment = { id: string; paid_at: string };
   const [lastProPayment, setLastProPayment] = useState<LastPayment | null>(null);
@@ -229,6 +230,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
       if (profile?.plan) setPlan(profile.plan as Plan);
       if (profile?.plan_expires_at) setPlanExpiresAt(profile.plan_expires_at);
       if (profile?.grandfathered) setGrandfathered(true);
+      if (profile?.recurring_inv_id) setHasRecurring(true);
       setPlanLoaded(true);
     });
     return () => { mounted = false; };
@@ -577,7 +579,8 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
                             <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{PLAN_META[plan].desc}</div>
                             {plan === 'pro' && planExpiresAt && (
                               <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginTop: 5 }}>
-                                Активна до {new Date(planExpiresAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                {hasRecurring ? 'Следующее списание' : 'Активна до'}{' '}
+                                {new Date(planExpiresAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
                               </div>
                             )}
                             {plan === 'pro' && grandfathered && (

@@ -117,6 +117,8 @@ Deno.serve(async (req) => {
   const sigString = `${merchantLogin}:${outSum}:${invId}:${receiptEncoded}:${result2Url}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
   const signature = md5hex(sigString);
 
+  const isRecurringPlan = plan === 'pro' || plan === 'pro_annual';
+
   const params = new URLSearchParams({
     MerchantLogin:  merchantLogin,
     OutSum:         outSum,
@@ -127,6 +129,7 @@ Deno.serve(async (req) => {
     ResultUrl2:     result2Url,
     Shp_plan:       shpPlan,
     Shp_user_id:    shpUserId,
+    ...(isRecurringPlan ? { Recurring: 'true' } : {}),
   });
 
   // Receipt добавляем вручную — encodeURIComponent, не двойное кодирование через URLSearchParams

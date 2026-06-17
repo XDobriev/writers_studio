@@ -1,0 +1,156 @@
+// supabase/functions/billing-scheduler/index.ts
+//
+// Ежедневный планировщик рекуррентных платежей.
+// Вызывается pg_cron каждый день в 06:00 UTC.
+// Находит Pro-пользователей с plan_expires_at <= now() + 3 дня,
+// инициирует повторное списание через Robokassa Recurring API.
+//
+// Подпись child-платежа: MD5(MerchantLogin:OutSum:InvId:Password1)
+// PreviousInvoiceID в подпись НЕ входит (по документации Robokassa).
+//
+// Secrets:
+//   ROBOKASSA_MERCHANT_LOGIN, ROBOKASSA_PASSWORD1, ROBOKASSA_IS_TEST,
+//   ROBOKASSA_TEST_PASSWORD1 (для тест-режима)
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { Md5 } from 'https://esm.sh/ts-md5@1.3.1';
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+const PRO_PRICE_BASE        = '399.00';
+const PRO_PRICE_GRANDFATHERED = '290.00';
+const RECURRING_URL = 'https://auth.robokassa.ru/Merchant/Recurring';
+
+function json(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS, 'Content-Type': 'application/json' },
+  });
+}
+
+function md5hex(input: string): string {
+  return Md5.hashStr(input) as string;
+}
+
+type Profile = {
+  user_id: string;
+  plan_expires_at: string;
+  recurring_inv_id: string;
+  grandfathered: boolean;
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
+
+  const merchantLogin = Deno.env.get('ROBOKASSA_MERCHANT_LOGIN');
+  const supabaseUrl   = Deno.env.get('SUPABASE_URL');
+  const serviceKey    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const isTestMode    = Deno.env.get('ROBOKASSA_IS_TEST') === 'true';
+  const password1     = isTestMode
+    ? Deno.env.get('ROBOKASSA_TEST_PASSWORD1')?.trim()
+    : Deno.env.get('ROBOKASSA_PASSWORD1')?.trim();
+
+  if (!merchantLogin || !supabaseUrl || !serviceKey || !password1) {
+    console.error('[billing-scheduler] missing env');
+    return json(500, { error: 'server misconfigured' });
+  }
+
+  // Только service role может вызвать этот endpoint
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ') || authHeader.slice(7) !== serviceKey) {
+    return json(401, { error: 'unauthorized' });
+  }
+
+  const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
+  // Находим Pro-пользователей, у которых подписка истекает в течение 3 дней,
+  // не отменена и есть сохранённый recurring_inv_id для повторного списания
+  const renewalCutoff = new Date();
+  renewalCutoff.setDate(renewalCutoff.getDate() + 3);
+
+  const { data: profiles, error: fetchErr } = await db
+    .from('profiles')
+    .select('user_id, plan_expires_at, recurring_inv_id, grandfathered')
+    .eq('plan', 'pro')
+    .eq('cancel_at_period_end', false)
+    .not('recurring_inv_id', 'is', null)
+    .lte('plan_expires_at', renewalCutoff.toISOString());
+
+  if (fetchErr) {
+    console.error('[billing-scheduler] fetch profiles failed:', fetchErr.message);
+    return json(500, { error: 'db error' });
+  }
+
+  const rows = (profiles ?? []) as Profile[];
+  console.log(`[billing-scheduler] found ${rows.length} profiles for renewal`);
+
+  const results: { user_id: string; inv_id?: string; error?: string }[] = [];
+
+  for (const profile of rows) {
+    const outSum  = profile.grandfathered ? PRO_PRICE_GRANDFATHERED : PRO_PRICE_BASE;
+    const newInvId = String(Date.now()) + Math.floor(Math.random() * 1000);
+    const sigString = `${merchantLogin}:${outSum}:${newInvId}:${password1}`;
+    const signature = md5hex(sigString);
+
+    const body = new URLSearchParams({
+      MerchantLogin:     merchantLogin,
+      InvId:             newInvId,
+      OutSum:            outSum,
+      PreviousInvoiceID: profile.recurring_inv_id,
+      SignatureValue:    signature,
+      IsTest:            isTestMode ? '1' : '0',
+    });
+
+    try {
+      const resp = await fetch(RECURRING_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+      });
+      const respText = await resp.text();
+      console.log(`[billing-scheduler] recurring for ${profile.user_id}: ${respText}`);
+
+      if (!resp.ok || !respText.startsWith('OK')) {
+        results.push({ user_id: profile.user_id, error: respText });
+        await db.from('admin_audit_log').insert({
+          admin_id:       '00000000-0000-0000-0000-000000000000',
+          admin_email:    'system',
+          action:         'recurring_charge_failed',
+          target_user_id: profile.user_id,
+          payload:        { inv_id: newInvId, response: respText },
+        });
+        continue;
+      }
+
+      // Логируем попытку в payments (pending — webhook подтвердит)
+      await db.from('payments').insert({
+        inv_id:  newInvId,
+        user_id: profile.user_id,
+        amount:  parseFloat(outSum),
+        plan:    'pro',
+        paid_at: new Date().toISOString(),
+      }).onConflict('inv_id').ignore();
+
+      await db.from('admin_audit_log').insert({
+        admin_id:       '00000000-0000-0000-0000-000000000000',
+        admin_email:    'system',
+        action:         'recurring_charge_initiated',
+        target_user_id: profile.user_id,
+        payload:        { inv_id: newInvId, amount: outSum, previous_inv_id: profile.recurring_inv_id },
+      });
+
+      results.push({ user_id: profile.user_id, inv_id: newInvId });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('[billing-scheduler] fetch error for', profile.user_id, msg);
+      results.push({ user_id: profile.user_id, error: msg });
+    }
+  }
+
+  return json(200, { processed: rows.length, results });
+});

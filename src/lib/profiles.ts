@@ -21,12 +21,14 @@ export interface Profile {
   onboarded_at: string | null;
   user_dictionary: string[];
   grandfathered: boolean;
+  recurring_inv_id: string | null;
+  cancel_at_period_end: boolean;
 }
 
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('user_id, plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered')
+    .select('user_id, plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered, recurring_inv_id, cancel_at_period_end')
     .eq('user_id', userId)
     .single();
   if (error) console.error('[profiles] getProfile failed:', error.message);

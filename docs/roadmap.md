@@ -91,47 +91,24 @@ _Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест ✅, life
 ---
 
 
-### 1.7. Рекуррентные платежи — автоматическое продление Pro
+### 1.7. Рекуррентные платежи — автоматическое продление Pro ✅ (2026-06-17)
 
-**Что это:** ежемесячное автоматическое списание для Pro-подписчиков через Robokassa Recurring API. Без этого пользователь платит один раз и остаётся Pro вечно — модель подписки сломана.
+**Реализовано:**
+- ✅ Миграция `0042_recurring_payments.sql`: колонки `recurring_inv_id text` + `cancel_at_period_end boolean` в `profiles` (применена)
+- ✅ `create-payment-url`: `Recurring=true` для `pro`/`pro_annual`; Lifetime — без флага
+- ✅ `robokassa-webhook`: при первом Pro-платеже сохраняет `recurring_inv_id = invId`, сбрасывает `cancel_at_period_end = false`
+- ✅ Edge Function `billing-scheduler` (задеплоена): находит Pro-пользователей с `plan_expires_at <= now() + 3 дня`, POST на Robokassa Recurring API, логирует в `payments` и `admin_audit_log`
+- ✅ GitHub Actions cron `.github/workflows/billing-scheduler.yml` (каждый день 06:05 UTC)
+- ✅ `SettingsModal`: «Следующее списание [дата]» для рекуррентных подписчиков
 
-**Как работает Robokassa Recurring:**
-- Первый платёж: в URL добавляется `Recurring=true` → Robokassa сохраняет карту
-- Повторные платежи: мы инициируем `POST https://auth.robokassa.ru/Merchant/Recurring` с `PreviousInvoiceID` = InvId первого платежа
-- Ответ `OK+InvoiceId` = операция создана, **не гарантирует списание** — результат приходит через тот же ResultURL (webhook)
-- Подпись child-платежа: `MD5(MerchantLogin:OutSum:InvoiceID:Password1)` — `PreviousInvoiceID` в подпись **не входит**
-- Sandbox недоступен — тестировать на реальных 1 ₽
-- Требует предварительного соглашения с Robokassa на подключение рекуррентного сервиса
+**Что осталось (одно ручное действие):**
+- ⏳ Добавить `SUPABASE_SERVICE_ROLE_KEY` в GitHub Secrets репозитория (нужен для cron-вызова billing-scheduler)
+  - [Settings → Secrets and variables → Actions](https://github.com/XDobriev/writers_studio/settings/secrets/actions) → New secret
+  - Значение: Supabase Dashboard → Settings → API → service_role key
 
-**Что нужно сделать:**
+**Dunning-цепочка при сбое → §5** (email-триггеры, реализовать вместе с retention)
 
-1. **Миграция** — добавить в `profiles`:
-   - `recurring_inv_id bigint` — InvId первого платежа (PreviousInvoiceID для будущих списаний)
-   - `plan_expires_at` уже есть ✅ (дата следующего списания)
-
-2. **`create-payment-url`** — добавить `Recurring=true` только для плана `pro`; Lifetime — разовый, не трогать
-
-3. **`robokassa-webhook`** — при успешном Pro-платеже:
-   - Если `recurring_inv_id IS NULL` — первичный платёж: сохранить `InvId` в `recurring_inv_id`, установить `plan_expires_at = now() + interval '30 days'`
-   - Если `recurring_inv_id IS NOT NULL` — продление: только обновить `plan_expires_at += 30 days`
-
-4. **Новая Edge Function `billing-scheduler`** (pg_cron, раз в сутки):
-   - Находит Pro-пользователей: `plan_expires_at <= now() + interval '3 days'` И `cancel_at_period_end = false` И `recurring_inv_id IS NOT NULL`
-   - Для каждого: генерирует новый уникальный `InvoiceID`, POST на Recurring endpoint
-   - Логирует попытку в `payments` (из §1.6)
-
-5. **Dunning-цепочка при сбое** (через UniSender Go, связано с §4/§5):
-   - Day −3: «Скоро продление — убедитесь, что карта активна»
-   - Day 0 (сбой webhook): «Платёж не прошёл — обновите карту» + ссылка в SettingsModal
-   - Day +3: «Доступ будет ограничен через 4 дня»
-   - Day +7: downgrade `plan = 'free'`, письмо «Перешли на Free»
-   - `billing-scheduler` определяет просроченных по `plan_expires_at < now()`
-
-6. **`SettingsModal`** — показывать «Следующее списание: [дата]» для Pro-пользователей с `plan_expires_at`
-
-**Файлы:** `supabase/migrations/` (колонка `recurring_inv_id`), `supabase/functions/create-payment-url/index.ts`, `supabase/functions/robokassa-webhook/index.ts`, новая `supabase/functions/billing-scheduler/index.ts`, `src/components/SettingsModal.tsx`  
-**Проверить:** Pro-платёж 1 ₽ с `Recurring=true` → `recurring_inv_id` заполнен → `billing-scheduler` создаёт child-платёж → webhook подтверждает → `plan_expires_at` продлился на 30 дней  
-**Deps:** §1.6 (таблица `payments` уже хранит `inv_id`); соглашение с Robokassa на рекуррентные
+**Deps:** соглашение с Robokassa на рекуррентные платежи (подать заявку в поддержку перед первым реальным рекуррентным списанием)
 
 ---
 

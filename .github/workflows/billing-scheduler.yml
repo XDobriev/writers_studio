@@ -1,0 +1,26 @@
+name: Billing Scheduler
+
+on:
+  schedule:
+    # Каждый день в 06:05 UTC — немного сдвинуто чтобы не пересекаться с другими джобами
+    - cron: '5 6 * * *'
+  # Ручной запуск для тестирования
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call billing-scheduler
+        run: |
+          STATUS=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            "https://joaxeoavjvlqmtlepkrr.supabase.co/functions/v1/billing-scheduler")
+          cat /tmp/resp.json
+          echo ""
+          if [ "$STATUS" != "200" ]; then
+            echo "billing-scheduler returned HTTP $STATUS"
+            exit 1
+          fi

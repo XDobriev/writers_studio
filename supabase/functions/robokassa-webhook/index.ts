@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
     // Продлеваем от текущей даты окончания если подписка ещё активна
     const { data: existing } = await db
       .from('profiles')
-      .select('plan_expires_at')
+      .select('plan_expires_at, recurring_inv_id')
       .eq('user_id', shpUserId)
       .single();
     const now = new Date();
@@ -164,8 +164,11 @@ Deno.serve(async (req) => {
     const updateData: Record<string, unknown> = {
       plan: 'pro',
       plan_expires_at: expiresAtIso,
+      cancel_at_period_end: false,
     };
     if (isGrandfathering) updateData.grandfathered = true;
+    // Первый платёж — сохраняем InvId для будущих рекуррентных списаний
+    if (!existing?.recurring_inv_id) updateData.recurring_inv_id = invId;
 
     const { data: updatedPro, error } = await db
       .from('profiles')
