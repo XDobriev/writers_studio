@@ -47,22 +47,22 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
 
-  const merchantLogin = Deno.env.get('ROBOKASSA_MERCHANT_LOGIN');
-  const supabaseUrl   = Deno.env.get('SUPABASE_URL');
-  const serviceKey    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const isTestMode    = Deno.env.get('ROBOKASSA_IS_TEST') === 'true';
-  const password1     = isTestMode
+  const merchantLogin    = Deno.env.get('ROBOKASSA_MERCHANT_LOGIN');
+  const supabaseUrl      = Deno.env.get('SUPABASE_URL');
+  const serviceKey       = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const schedulerSecret  = Deno.env.get('SCHEDULER_SECRET');
+  const isTestMode       = Deno.env.get('ROBOKASSA_IS_TEST') === 'true';
+  const password1        = isTestMode
     ? Deno.env.get('ROBOKASSA_TEST_PASSWORD1')?.trim()
     : Deno.env.get('ROBOKASSA_PASSWORD1')?.trim();
 
-  if (!merchantLogin || !supabaseUrl || !serviceKey || !password1) {
+  if (!merchantLogin || !supabaseUrl || !serviceKey || !password1 || !schedulerSecret) {
     console.error('[billing-scheduler] missing env');
     return json(500, { error: 'server misconfigured' });
   }
 
-  // Только service role может вызвать этот endpoint
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ') || authHeader.slice(7) !== serviceKey) {
+  if (!authHeader?.startsWith('Bearer ') || authHeader.slice(7) !== schedulerSecret) {
     return json(401, { error: 'unauthorized' });
   }
 

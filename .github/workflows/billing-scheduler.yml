@@ -16,7 +16,7 @@ jobs:
           STATUS=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
             -X POST \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SCHEDULER_SECRET }}" \
             "https://joaxeoavjvlqmtlepkrr.supabase.co/functions/v1/billing-scheduler")
           cat /tmp/resp.json
           echo ""
