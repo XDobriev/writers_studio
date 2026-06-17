@@ -102,13 +102,11 @@ _Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест ✅, life
 - ✅ `SettingsModal`: «Следующее списание [дата]» для рекуррентных подписчиков
 
 **Что осталось (одно ручное действие):**
-- ⏳ Добавить `SUPABASE_SERVICE_ROLE_KEY` в GitHub Secrets репозитория (нужен для cron-вызова billing-scheduler)
-  - [Settings → Secrets and variables → Actions](https://github.com/XDobriev/writers_studio/settings/secrets/actions) → New secret
-  - Значение: Supabase Dashboard → Settings → API → service_role key
+- ⏳ **Подать заявку в Robokassa на периодические платежи** — без этого `Recurring=true` в первом платеже игнорируется и карта не сохраняется
+  - Написать на `partners@robokassa.ru`: «Прошу подключить сервис периодических (рекуррентных) платежей для магазина AvtorStudio. Используем для ежемесячных подписок на SaaS-сервис.»
+  - Документация: https://docs.robokassa.ru/recurring/ — услуга по предварительному согласованию
 
 **Dunning-цепочка при сбое → §5** (email-триггеры, реализовать вместе с retention)
-
-**Deps:** соглашение с Robokassa на рекуррентные платежи (подать заявку в поддержку перед первым реальным рекуррентным списанием)
 
 ---
 
