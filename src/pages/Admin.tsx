@@ -478,7 +478,7 @@ export default function Admin() {
                           <td style={{ padding: '10px 16px', font: '400 12px var(--font-mono)', color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>{fmtDate(entry.created_at)}</td>
                           <td style={{ padding: '10px 16px', font: '400 13px var(--font-ui)', color: 'var(--ink)' }}>{entry.target_email ?? '—'}</td>
                           <td style={{ padding: '10px 16px', font: '500 12px var(--font-mono)', color: PLAN_COLOR[(entry.payload?.plan as Plan) ?? 'free'], letterSpacing: '0.05em', textTransform: 'uppercase' }}>{entry.payload?.plan ?? '—'}</td>
-                          <td style={{ padding: '10px 16px', font: '400 12px var(--font-mono)', color: 'var(--ink-2)' }}>{entry.payload ? `${entry.payload.amount} ${entry.payload.currency ?? '₽'}` : '—'}</td>
+                          <td style={{ padding: '10px 16px', font: '400 12px var(--font-mono)', color: 'var(--ink-2)' }}>{entry.payload ? `${Number(entry.payload.amount).toLocaleString('ru-RU')} ${entry.payload.currency ?? '₽'}` : '—'}</td>
                           <td style={{ padding: '10px 16px', font: '400 11px var(--font-mono)', color: 'var(--ink-4)' }}>{entry.payload?.payment_id ?? '—'}</td>
                         </tr>
                       ))}
