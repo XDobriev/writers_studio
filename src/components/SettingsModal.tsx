@@ -137,9 +137,9 @@ function UpgradeModal({ onClose, skipPro = false, grandfathered = false }: { onC
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
                   <input
                     type="checkbox"
+                    className="as-checkbox"
                     checked={recurringConsent}
                     onChange={(e) => setRecurringConsent(e.target.checked)}
-                    style={{ marginTop: 2, flexShrink: 0, cursor: 'pointer' }}
                   />
                   <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.5 }}>
                     Согласен на автоматические ежемесячные списания согласно{' '}
