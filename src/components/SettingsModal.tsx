@@ -28,16 +28,23 @@ const PRO_FEATURES = [
   'Приоритетная поддержка',
 ];
 
-function UpgradeModal({ onClose, skipPro = false }: { onClose: () => void; skipPro?: boolean }) {
+function UpgradeModal({ onClose, skipPro = false, grandfathered = false }: { onClose: () => void; skipPro?: boolean; grandfathered?: boolean }) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [recurringConsent, setRecurringConsent] = useState(false);
 
   async function handlePurchase(plan: 'pro' | 'lifetime') {
     setIsLoading(true);
     setPurchaseError(null);
     try {
+      if (plan === 'pro') {
+        await supabase.from('recurring_consents').insert({
+          plan,
+          user_agent: navigator.userAgent,
+        });
+      }
       const { data, error } = await supabase.functions.invoke('create-payment-url', {
         body: { plan },
       });
@@ -119,16 +126,33 @@ function UpgradeModal({ onClose, skipPro = false }: { onClose: () => void; skipP
                 padding: '12px 14px', marginBottom: 16,
                 display: 'flex', alignItems: 'baseline', gap: 6,
               }}>
-                <span style={{ font: '700 26px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.03em' }}>290 ₽</span>
+                <span style={{ font: '700 26px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.03em' }}>{grandfathered ? '290 ₽' : '399 ₽'}</span>
                 <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-4)' }}>/ месяц</span>
+                {grandfathered && (
+                  <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ok)', marginLeft: 2 }}>· ранняя цена навсегда</span>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={recurringConsent}
+                    onChange={(e) => setRecurringConsent(e.target.checked)}
+                    style={{ marginTop: 2, flexShrink: 0, cursor: 'pointer' }}
+                  />
+                  <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                    Согласен на автоматические ежемесячные списания согласно{' '}
+                    <a href="/offer" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
+                      условиям оферты
+                    </a>
+                  </span>
+                </label>
                 <button
                   className="btn btn--primary"
                   style={{ justifyContent: 'center', fontSize: 13, height: 38 }}
                   onClick={() => handlePurchase('pro')}
-                  disabled={isLoading}
+                  disabled={isLoading || !recurringConsent}
                 >
                   {isLoading ? 'Переход к оплате…' : 'Оформить подписку'}
                 </button>
@@ -711,7 +735,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
         onConfirm={handleRefund}
         onCancel={() => { setRefundConfirmOpen(false); setRefundError(null); }}
       />
-      {upgradeOpen && <UpgradeModal onClose={() => setUpgradeOpen(false)} skipPro={plan === 'pro'} />}
+      {upgradeOpen && <UpgradeModal onClose={() => setUpgradeOpen(false)} skipPro={plan === 'pro'} grandfathered={grandfathered} />}
     </>
   );
 }

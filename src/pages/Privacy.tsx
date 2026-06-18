@@ -15,8 +15,13 @@ export default function Privacy() {
         <h1 style={{ font: '600 36px/1.1 var(--font-serif)', letterSpacing: '-0.02em', marginBottom: 8 }}>
           Политика обработки персональных данных
         </h1>
-        <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 48 }}>
-          Дата вступления в силу: 19 мая 2026 г.
+        <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 24 }}>
+          Дата вступления в силу: 19 мая 2026 г. Редакция от 17 июня 2026 г.
+        </p>
+        <p style={{ font: '400 14px/1.7 var(--font-ui)', color: 'var(--ink-2)', marginBottom: 48, padding: '14px 16px', background: 'var(--surface)', borderRadius: 10 }}>
+          Регистрируясь в сервисе «Авторская студия» или продолжая его использование, вы подтверждаете,
+          что ознакомились с настоящей политикой, и даёте своё согласие на обработку персональных данных
+          в объёме и на условиях, изложенных ниже.
         </p>
 
         <Section title="1. Оператор данных">
@@ -82,9 +87,15 @@ export default function Privacy() {
                 Политика конфиденциальности Sentry
               </a>.
             </li>
+            <li>
+              <strong>Робокасса</strong> (robokassa.ru) — приём платежей и формирование фискальных
+              чеков. При оплате подписки Робокасса получает адрес электронной почты для отправки
+              электронного чека (ФЗ-54).{' '}
+              <a href="https://robokassa.com/privacy-policy/" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
+                Политика конфиденциальности Робокассы
+              </a>.
+            </li>
           </ul>
-          <p>
-          </p>
         </Section>
 
         <Section title="7. Права пользователя">

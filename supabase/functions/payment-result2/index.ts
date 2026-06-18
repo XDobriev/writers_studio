@@ -1,11 +1,12 @@
 // supabase/functions/payment-result2/index.ts
 //
 // Принимает JWS уведомление от Robokassa (ResultUrl2).
-// Верифицирует подпись публичным ключом Robokassa (RS256).
+// Верифицирует RS256-подпись через jose (importSPKI + jwtVerify).
 // Сохраняет OpKey и InvId в таблицу payments.
 //
 // Автоматические Supabase Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { importSPKI, jwtVerify } from 'https://esm.sh/jose@5.6.3';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -24,46 +25,12 @@ zDYrXRBTnVJ4ValUtSQj4Pxq+2XX46qm4AZUGHatHDf2UI73LZZ2ffeqLWW3Kaf5
 sQIDAQAB
 -----END PUBLIC KEY-----`;
 
-let cachedPubKey: CryptoKey | null = null;
+let cachedPubKey: Awaited<ReturnType<typeof importSPKI>> | null = null;
 
-async function getRobokassaKey(): Promise<CryptoKey> {
+async function getRobokassaKey() {
   if (cachedPubKey) return cachedPubKey;
-  const b64 = ROBOKASSA_PEM.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
-  const binary = atob(b64);
-  const spki = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) spki[i] = binary.charCodeAt(i);
-  cachedPubKey = await crypto.subtle.importKey(
-    'spki',
-    spki.buffer,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['verify'],
-  );
+  cachedPubKey = await importSPKI(ROBOKASSA_PEM, 'RS256');
   return cachedPubKey;
-}
-
-function b64urlToBytes(s: string): Uint8Array {
-  const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
-  const binary = atob(padded);
-  const buf = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
-  return buf;
-}
-
-async function verifyJws(jws: string): Promise<Record<string, unknown>> {
-  const parts = jws.trim().split('.');
-  if (parts.length !== 3) throw new Error(`invalid JWS: ${parts.length} parts`);
-  const [headerB64, payloadB64, sigB64] = parts;
-
-  const signingInput = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
-  const sig = b64urlToBytes(sigB64);
-
-  const pubKey = await getRobokassaKey();
-  const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', pubKey, sig, signingInput);
-  if (!valid) throw new Error('JWS signature invalid');
-
-  return JSON.parse(new TextDecoder().decode(b64urlToBytes(payloadB64)));
 }
 
 Deno.serve(async (req) => {
@@ -77,20 +44,36 @@ Deno.serve(async (req) => {
     return new Response('env error', { status: 500 });
   }
 
-  let jws: string;
+  let rawBody: string;
   try {
-    jws = await req.text();
-    if (!jws) throw new Error('empty body');
+    rawBody = await req.text();
+    if (!rawBody) throw new Error('empty body');
   } catch (e) {
     console.error('[payment-result2] cannot read body:', e);
     return new Response('bad body', { status: 400 });
   }
 
+  const contentType = req.headers.get('content-type') ?? 'not set';
+  console.log(`[payment-result2] content-type="${contentType}" body[0:300]="${rawBody.slice(0, 300)}"`);
+
+  // Robokassa может прислать JWS как raw-строку или как form-urlencoded jws=<token>
+  let jws = rawBody.trim();
+  if (!jws.includes('.') || jws.startsWith('jws=') || jws.startsWith('body=')) {
+    const params = new URLSearchParams(jws);
+    const candidate = params.get('jws') ?? params.get('body') ?? '';
+    if (candidate) {
+      console.log('[payment-result2] detected form-encoded body, extracted jws param');
+      jws = candidate.trim();
+    }
+  }
+
   let payload: Record<string, unknown>;
   try {
-    payload = await verifyJws(jws);
+    const pubKey = await getRobokassaKey();
+    const result = await jwtVerify(jws, pubKey, { algorithms: ['RS256'] });
+    payload = result.payload as Record<string, unknown>;
   } catch (e) {
-    console.error('[payment-result2] JWS verify failed:', e, '| raw:', jws.slice(0, 200));
+    console.error('[payment-result2] JWS verify failed:', e, '| jws[0:200]:', jws.slice(0, 200));
     return new Response('bad jws', { status: 400 });
   }
 

@@ -1,10 +1,10 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест ✅, lifetime_test удалена, VK auth guard, Pro→Lifetime upgrade. §1.5 выполнен: лендинг сохраняет выбранный тариф через регистрацию → авто-редирект на Robokassa.
+_Обновлён: 2026-06-18_ — Сессия: E2E боевых платежей, отладка ResultUrl2 / payment-result2. Фискальный чек ФЗ-54 работает (номенклатура в ЛК Робокассы). ResultUrl2 перестал вызываться после серии 400-ответов — отправлен запрос в поддержку Robokassa. Рекуррентные §1.7 задеплоены, ожидают одобрения заявки от Robokassa.
 
 История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
-**Сейчас:** _(не задана — заполнить в начале сессии)_
+**Сейчас:** E2E возвраты заблокированы — ResultUrl2 не вызывается (поддержка Robokassa оповещена). После ответа поддержки: получить OpKey → протестировать refund-flow.
 
 ---
 
@@ -56,17 +56,24 @@ _Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест ✅, life
 2. ✅ ~~Тестовый боевой платёж 1 ₽ (Pro)~~ — пройден 2026-06-15, webhook отработал, `profiles.plan` обновился
 3. ✅ ~~E2E Lifetime~~ — пройден 2026-06-15: `plan='lifetime'`, `plan_expires_at=null`, `lifetime_slots_remaining=49`; кнопка `lifetime_test` удалена
 4. ✅ ~~Проверить возвраты~~ — Robokassa ЛК делает возврат без webhook; план остаётся (ожидаемое поведение). **Автоматические возвраты реализованы (§1.6 ✅ 2026-06-15)**
-5. ⏳ **E2E-тест возвратов** — выполнить после получения Password3 из Robokassa ЛК:
+5. ⏳ **E2E-тест возвратов** — **ЗАБЛОКИРОВАН: ResultUrl2 не вызывается Robokassa**
+   
+   **Что произошло (2026-06-18):**
+   - `payment-result2` возвращал 400 из-за ошибки верификации JWS (crypto.subtle vs jose). Исправлено: функция задеплоена с `jose` (`importSPKI` + `jwtVerify`, RS256).
+   - После серии 400-ответов Robokassa перестала вызывать ResultUrl2 вообще (подтверждено по логам уведомлений — только `robokassa-webhook` вызывается).
+   - Отправлен запрос в поддержку Robokassa: объяснены причины 400, описана ситуация, запрошено восстановление вызовов ResultUrl2.
+   - Локальный файл `supabase/functions/payment-result2/index.ts` синхронизирован с задеплоенной v10 (jose).
+   
+   **Что осталось (выполнить после ответа поддержки):**
    - Сгенерировать Password3 в Robokassa ЛК → Настройки магазина → Пароль #3
    - Добавить Secrets в Supabase: `ROBOKASSA_PASSWORD3`, `ROBOKASSA_TEST_PASSWORD3`
-   - Тестовый платёж Pro (IsTest=true) → проверить `payments` содержит строку с `inv_id` и `user_id`
-   - Подождать 10–30 сек → `SELECT op_key FROM payments ORDER BY paid_at DESC LIMIT 1` — должен быть NOT NULL
-   - Если op_key NULL — проверить логи `payment-result2` в Supabase Edge Functions → Logs
-   - Настройки → Подписка → кнопка «Запросить возврат · ещё 14 дней» видна
-   - Нажать → ConfirmDialog → подтвердить → SettingsModal показывает «Бесплатный план»
-   - SQL: `SELECT plan, refunded_at, refund_request_id FROM payments ORDER BY paid_at DESC LIMIT 1` — refunded_at NOT NULL
+   - Тестовый платёж (IsTest=true) → `SELECT op_key FROM payments ORDER BY paid_at DESC LIMIT 1` — NOT NULL
+   - Настройки → Подписка → кнопка «Запросить возврат · ещё 14 дней» видна → подтвердить
+   - SQL: `SELECT plan, refunded_at FROM payments ORDER BY paid_at DESC LIMIT 1` — refunded_at NOT NULL
    - SQL: `SELECT plan FROM profiles WHERE user_id = '<id>'` — plan = 'free'
-   - Повторный вызов curl process-refund → `{"error":"refund_not_eligible"}` (422)
+   - Повторный вызов → `{"error":"refund_not_eligible"}` (422)
+   
+   **Также после первых реальных платежей:** вернуть e2e-аккаунту 399₽ (списано при тестировании). Если на балансе магазина не хватает средств для возврата — выставить счёт самому себе через Robokassa ЛК (подтверждено поддержкой).
 
 **Рекуррентные → §1.7** (отдельная фаза после первых платящих пользователей)
 
@@ -95,14 +102,14 @@ _Обновлён: 2026-06-15_ — Сессия: E2E Lifetime тест ✅, life
 
 **Реализовано:**
 - ✅ Миграция `0042_recurring_payments.sql`: колонки `recurring_inv_id text` + `cancel_at_period_end boolean` в `profiles` (применена)
-- ✅ `create-payment-url`: `Recurring=true` для `pro`/`pro_annual`; Lifetime — без флага
+- ⚠️ `create-payment-url`: `Recurring=true` **временно убран** (v25, 2026-06-17) — Robokassa возвращала Error 34 до одобрения магазина. Вернуть после одобрения.
 - ✅ `robokassa-webhook`: при первом Pro-платеже сохраняет `recurring_inv_id = invId`, сбрасывает `cancel_at_period_end = false`
 - ✅ Edge Function `billing-scheduler` (задеплоена): находит Pro-пользователей с `plan_expires_at <= now() + 3 дня`, POST на Robokassa Recurring API, логирует в `payments` и `admin_audit_log`
 - ✅ GitHub Actions cron `.github/workflows/billing-scheduler.yml` (каждый день 06:05 UTC)
 - ✅ `SettingsModal`: «Следующее списание [дата]» для рекуррентных подписчиков
 
 **Что осталось (одно ручное действие):**
-- ⏳ **Подать заявку в Robokassa на периодические платежи** — без этого `Recurring=true` в первом платеже игнорируется и карта не сохраняется
+- ⏳ **Подать заявку в Robokassa на периодические платежи** — после одобрения вернуть `Recurring: 'true'` в `create-payment-url` (строка ~120) и передеплоить
   - Написать на `partners@robokassa.ru`: «Прошу подключить сервис периодических (рекуррентных) платежей для магазина AvtorStudio. Используем для ежемесячных подписок на SaaS-сервис.»
   - Документация: https://docs.robokassa.ru/recurring/ — услуга по предварительному согласованию
 

@@ -9,7 +9,7 @@ const CORS = {
 };
 
 const BASE_PRICES: Record<string, string> = {
-  pro:        '399.00',
+  pro:        '1.00', // E2E test — вернуть 399.00 после прогона
   pro_annual: '3490.00',
   lifetime:   '4990.00',
 };
@@ -94,9 +94,10 @@ Deno.serve(async (req) => {
   const shpUserId   = user.id;
   const result2Url  = `${supabaseUrl}/functions/v1/payment-result2`;
 
-  // Receipt с номенклатурой (обязателен по ФЗ-54)
-  // tax: 'none' — без НДС (СМЗ/УСН). Если ОСНО → менять на 'vat20'.
-  // email — куда Robokassa отправит электронный чек покупателю.
+  // Receipt (ФЗ-54): номенклатура для фискального чека.
+  // В строку подписи входит как raw минифицированный JSON (не URL-encoded).
+  // В URL параметр — URL-encoded.
+  // Порядок подписи: MerchantLogin:OutSum:InvId:ReceiptJSON:ResultUrl2:Password1:Shp_...
   const receipt: Record<string, unknown> = {
     items: [{
       name: DESCRIPTIONS[plan],
@@ -108,17 +109,13 @@ Deno.serve(async (req) => {
     }],
   };
   if (user.email) receipt['email'] = user.email;
-  const receiptJson    = JSON.stringify(receipt);
-  const receiptEncoded = encodeURIComponent(receiptJson);
+  const receiptJson    = JSON.stringify(receipt);          // raw JSON — для подписи
+  const receiptEncoded = encodeURIComponent(receiptJson);  // URL-encoded — для параметра
 
-  // Порядок подписи: MerchantLogin:OutSum:InvId:Receipt:ResultUrl2:Password1:Shp_...
-  // ResultUrl2 включается между Receipt и Password1 (по доке Robokassa, раздел ResultUrl2).
-  // StepByStep не передаём (двухэтапная оплата не используется), поэтому его нет.
-  const sigString = `${merchantLogin}:${outSum}:${invId}:${receiptEncoded}:${result2Url}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
+  const sigString = `${merchantLogin}:${outSum}:${invId}:${receiptJson}:${result2Url}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
   const signature = md5hex(sigString);
 
-  const isRecurringPlan = plan === 'pro' || plan === 'pro_annual';
-
+  // Recurring: 'true' добавляем только после одобрения Robokassa (§1.7)
   const params = new URLSearchParams({
     MerchantLogin:  merchantLogin,
     OutSum:         outSum,
@@ -126,10 +123,10 @@ Deno.serve(async (req) => {
     Description:    DESCRIPTIONS[plan],
     SignatureValue: signature,
     IsTest:         isTestMode ? '1' : '0',
+    Culture:        'ru',
     ResultUrl2:     result2Url,
     Shp_plan:       shpPlan,
     Shp_user_id:    shpUserId,
-    ...(isRecurringPlan ? { Recurring: 'true' } : {}),
   });
 
   // Receipt добавляем вручную — encodeURIComponent, не двойное кодирование через URLSearchParams
