@@ -22,10 +22,10 @@ const PLAN_META: Record<Plan, { name: string; desc: string }> = {
 
 const PRO_FEATURES = [
   'Безлимитное количество книг',
-  'Полный экспорт (PDF, DOCX, ePub)',
+  'Экспорт DOCX, ePub и FB2',
   'Хронология и карта мира',
-  'Соавторство с редактором',
-  'Приоритетная поддержка',
+  'История версий без лимита',
+  'Приоритетная поддержка и закрытый чат',
 ];
 
 function UpgradeModal({ onClose, skipPro = false, grandfathered = false }: { onClose: () => void; skipPro?: boolean; grandfathered?: boolean }) {
@@ -156,7 +156,7 @@ function UpgradeModal({ onClose, skipPro = false, grandfathered = false }: { onC
                 >
                   {isLoading ? 'Переход к оплате…' : 'Оформить подписку'}
                 </button>
-                <button className="btn btn--ghost" onClick={onClose} style={{ fontSize: 13, height: 38 }}>
+                <button className="btn btn--ghost" onClick={onClose} style={{ fontSize: 13, height: 38, width: 'fit-content', alignSelf: 'center', paddingInline: 24 }}>
                   Позже
                 </button>
                 {purchaseError && (
@@ -640,7 +640,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
                         {plan === 'pro' && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             <button
-                              className="btn btn--primary"
+                              className="btn btn--ghost"
                               onClick={() => setUpgradeOpen(true)}
                               style={{ fontSize: 13, height: H }}
                             >
@@ -649,7 +649,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
                             <a
                               href={`mailto:support@avtorskaya-studiya.ru?subject=Отмена подписки&body=Прошу отменить мою подписку Pro. Email аккаунта: ${user?.email ?? ''}`}
                               className="btn btn--ghost"
-                              style={{ fontSize: 12, padding: '5px 12px', textDecoration: 'none', color: 'var(--ink-3)' }}
+                              style={{ fontSize: 13, padding: '6px 12px', textDecoration: 'none', color: 'var(--ink-3)' }}
                             >
                               Отменить подписку
                             </a>

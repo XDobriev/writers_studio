@@ -65,8 +65,8 @@ _Обновлён: 2026-06-18_ — Сессия: E2E боевых платеже
    - Локальный файл `supabase/functions/payment-result2/index.ts` синхронизирован с задеплоенной v10 (jose).
    
    **Что осталось (выполнить после ответа поддержки):**
-   - Сгенерировать Password3 в Robokassa ЛК → Настройки магазина → Пароль #3
-   - Добавить Secrets в Supabase: `ROBOKASSA_PASSWORD3`, `ROBOKASSA_TEST_PASSWORD3`
+   - ✅ Password3 сгенерирован в Robokassa ЛК
+   - ✅ Secrets `ROBOKASSA_PASSWORD3`, `ROBOKASSA_TEST_PASSWORD3` добавлены в Supabase
    - Тестовый платёж (IsTest=true) → `SELECT op_key FROM payments ORDER BY paid_at DESC LIMIT 1` — NOT NULL
    - Настройки → Подписка → кнопка «Запросить возврат · ещё 14 дней» видна → подтвердить
    - SQL: `SELECT plan, refunded_at FROM payments ORDER BY paid_at DESC LIMIT 1` — refunded_at NOT NULL
@@ -114,6 +114,24 @@ _Обновлён: 2026-06-18_ — Сессия: E2E боевых платеже
   - Документация: https://docs.robokassa.ru/recurring/ — услуга по предварительному согласованию
 
 **Dunning-цепочка при сбое → §5** (email-триггеры, реализовать вместе с retention)
+
+---
+
+### §1.8. UX-фиксы подписки (critique 2026-06-18)
+
+**Три задачи в двух сессиях. Всё в `src/components/SettingsModal.tsx` и `design-system.css`.**
+
+#### ~~Сессия A~~ — выполнено 2026-06-18
+
+#### Сессия B — ~30 мин (P1 checkbox)
+
+- [ ] **P1: Кастомный чекбокс рекуррентного согласия** (строки 138–143): добавить класс `.as-checkbox` в `design-system.css` (appearance: none, 16px, border-radius: 4px, accent fill при checked + SVG checkmark). Заменить inline-style на `className="as-checkbox"`. Тёмный фон UpgradeModal требует белого checkmark и чёткого border в unchecked-состоянии.
+
+#### Сессия C — in-app отмена → §7
+
+**Файлы:** `src/components/SettingsModal.tsx`, `src/styles/design-system.css`
+**Проверить A:** Pro-аккаунт → вкладка Подписка → нет красной primary; PRO_FEATURES совпадают с Offer.tsx §2.
+**Проверить B:** тёмная тема → чекбокс: border видна без клика, accent fill + checkmark при клике.
 
 ---
 
