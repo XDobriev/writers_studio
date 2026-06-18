@@ -92,9 +92,29 @@ Deno.serve(async (req) => {
   const results: { user_id: string; inv_id?: string; error?: string }[] = [];
 
   for (const profile of rows) {
-    const outSum  = profile.grandfathered ? PRO_PRICE_GRANDFATHERED : PRO_PRICE_BASE;
+    const outSum   = profile.grandfathered ? PRO_PRICE_GRANDFATHERED : PRO_PRICE_BASE;
     const newInvId = String(Date.now()) + Math.floor(Math.random() * 1000);
-    const sigString = `${merchantLogin}:${outSum}:${newInvId}:${password1}`;
+
+    // Получаем email для чека (ФЗ-54 / РобоЧеки СМЗ)
+    const { data: { user: authUser } } = await db.auth.admin.getUserById(profile.user_id);
+    const userEmail = authUser?.email;
+
+    const receiptObj: Record<string, unknown> = {
+      items: [{
+        name:            'Подписка Pro — Авторская студия',
+        quantity:        1,
+        sum:             parseFloat(outSum),
+        payment_method:  'full_payment',
+        payment_object:  'service',
+        tax:             'none',
+      }],
+    };
+    if (userEmail) receiptObj['email'] = userEmail;
+    const receiptJson    = JSON.stringify(receiptObj);
+    const receiptEncoded = encodeURIComponent(receiptJson);
+
+    // При наличии Receipt подпись: MerchantLogin:OutSum:InvId:ReceiptJSON:Password1
+    const sigString = `${merchantLogin}:${outSum}:${newInvId}:${receiptJson}:${password1}`;
     const signature = md5hex(sigString);
 
     const body = new URLSearchParams({
@@ -105,12 +125,14 @@ Deno.serve(async (req) => {
       SignatureValue:    signature,
       IsTest:            isTestMode ? '1' : '0',
     });
+    // Receipt добавляем вручную — encodeURIComponent, без двойного кодирования
+    const bodyStr = `${body.toString()}&Receipt=${receiptEncoded}`;
 
     try {
       const resp = await fetch(RECURRING_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString(),
+        body: bodyStr,
       });
       const respText = await resp.text();
       console.log(`[billing-scheduler] recurring for ${profile.user_id}: ${respText}`);
@@ -141,7 +163,7 @@ Deno.serve(async (req) => {
         admin_email:    'system',
         action:         'recurring_charge_initiated',
         target_user_id: profile.user_id,
-        payload:        { inv_id: newInvId, amount: outSum, previous_inv_id: profile.recurring_inv_id },
+        payload:        { inv_id: newInvId, amount: outSum, previous_inv_id: profile.recurring_inv_id, has_receipt: true },
       });
 
       results.push({ user_id: profile.user_id, inv_id: newInvId });
