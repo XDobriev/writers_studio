@@ -4,7 +4,7 @@ _Обновлён: 2026-06-19_ — Сессия: аудит интеграции
 
 История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
-**Сейчас:** передеплоить `create-payment-url` + `billing-scheduler` → проверить Receipt-подпись боевым платежом с чеком (IsTest=0). E2E возвраты заблокированы вдвойне: ResultUrl2 не вызывается (поддержка оповещена) + `process-refund` требует переписки на Operation API.
+**Сейчас:** `create-payment-url` + `billing-scheduler` задеплоены (2026-06-19) → осталось проверить Receipt-подпись боевым платежом с чеком (IsTest=0). E2E возвраты заблокированы вдвойне: ResultUrl2 не вызывается (поддержка оповещена) + `process-refund` требует переписки на Operation API.
 
 ---
 
