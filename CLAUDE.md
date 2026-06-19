@@ -64,6 +64,7 @@ npm run preview    # превью продакшен-сборки
 - `src/components/CharacterFieldCard.tsx` — именованная карточка-поле (label + textarea + warn-состояние); используется в детальном виде персонажа.
 - `src/components/CharacterHeroBlock.tsx` — блок героя детальной карточки персонажа: аватар, имя, псевдонимы, цитата, смена роли.
 - `src/components/CharacterRelationsBlock.tsx` — блок связей персонажа: форма добавления, пресеты, список строк RelationRow (приватная).
+- `src/components/ActivityHeatmap.tsx` — карточка «История активности» дашборда (heatmap по дням, столбцы недель, легенда, накопленный объём). Принимает `activityData` из `computeActivityData`. Вынесена из Dashboard.tsx.
 - `src/components/CharacterAvatar.tsx` — круглый аватар-инициал персонажа: `{ name, color, size? }`; размер шрифта выводится из диаметра. Канонический способ показать аватар-кружок (Outline, POV-бейджи).
 - `src/components/ConsentCheckbox.tsx` — чекбокс согласия с подписью-ссылкой: `{ checked, onChange, children }`. Используется в форме регистрации Auth.
 - `src/components/CharacterChaptersTab.tsx` — вкладка «Главы» детальной карточки: POV-главы и упоминания персонажа по главам.

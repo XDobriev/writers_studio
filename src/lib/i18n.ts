@@ -10,3 +10,8 @@ export function plural(n: number, one: string, few: string, many: string): strin
 export function pluralDays(n: number): string {
   return plural(n, 'день', 'дня', 'дней');
 }
+
+// Форматирует число с пробелами-разделителями тысяч (ru): 12345 → "12 345".
+export function fmtNumber(n: number): string {
+  return n.toLocaleString('ru-RU').replace(/,/g, ' ');
+}
