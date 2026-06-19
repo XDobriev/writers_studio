@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useResponsive } from '../lib/useResponsive';
-import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
+import { useCreateOnMount } from '../lib/useCreateOnMount';
 import { useErrorState } from '../lib/useErrorState';
+import { ErrorBanner } from '../components/ErrorBanner';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -164,12 +166,7 @@ export default function Notes() {
 
   // Форма создания
   const [showForm, setShowForm] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
-  useEffect(() => {
-    if (searchParams.get('create') !== 'true') return;
-    setSearchParams({}, { replace: true });
-    setShowForm(true);
-  }, [searchParams, setSearchParams]);
+  useCreateOnMount(() => setShowForm(true));
   const [formKind, setFormKind] = useState<NoteKind>('idea');
   const [formText, setFormText] = useState('');
   const [formCustomLabel, setFormCustomLabel] = useState('');
@@ -427,10 +424,7 @@ export default function Notes() {
 
           <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
             {error && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, padding: '8px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 13 }}>
-                <span>{error}</span>
-                <button onClick={clearError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 16, lineHeight: 1, padding: '4px 8px', flexShrink: 0, minHeight: 32 }} title="Закрыть" aria-label="Закрыть">×</button>
-              </div>
+              <ErrorBanner message={error} onDismiss={clearError} style={{ marginBottom: 12 }} />
             )}
             {showForm && (
               <div style={{

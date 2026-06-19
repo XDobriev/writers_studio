@@ -1,5 +1,5 @@
 // src/pages/PaymentSuccess.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../lib/auth';
@@ -27,11 +27,26 @@ export default function PaymentSuccess() {
     refetchInterval: polling ? 2000 : false,
   });
 
+  // Снимок плана при первой загрузке — чтобы отличить продление от «план уже был».
+  const initialRef = useRef<{ plan: string; expires: string | null } | null>(null);
   useEffect(() => {
-    if (profile?.plan && profile.plan === planParam) {
-      setPolling(false);
+    if (profile && initialRef.current === null) {
+      initialRef.current = { plan: profile.plan, expires: profile.plan_expires_at };
     }
-  }, [profile?.plan, planParam]);
+  }, [profile]);
+
+  // Успех = план стал целевым ИЛИ (тот же план, но дата окончания продвинулась = продление).
+  const isUpgraded = (() => {
+    const base = initialRef.current;
+    if (!profile || !base) return false;
+    if (profile.plan !== planParam) return false;
+    if (base.plan !== planParam) return true;
+    return !!profile.plan_expires_at && profile.plan_expires_at !== base.expires;
+  })();
+
+  useEffect(() => {
+    if (isUpgraded) setPolling(false);
+  }, [isUpgraded]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -42,7 +57,7 @@ export default function PaymentSuccess() {
   }, []);
 
   const state: ViewState =
-    profile?.plan && profile.plan === planParam ? 'success'
+    isUpgraded ? 'success'
     : timedOut ? 'timeout'
     : 'checking';
 

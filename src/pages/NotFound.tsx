@@ -1,8 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../lib/auth';
 
 export default function NotFound() {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const canGoBack = (window.history.state?.idx ?? 0) > 0;
+  const homePath = session ? '/books' : '/';
 
   return (
     <div
@@ -63,7 +66,7 @@ export default function NotFound() {
         )}
         <button
           className="btn btn--primary"
-          onClick={() => navigate('/books', { replace: true })}
+          onClick={() => navigate(homePath, { replace: true })}
         >
           На главную
         </button>

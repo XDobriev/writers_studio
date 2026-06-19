@@ -5,6 +5,7 @@ import { useChapterVersions } from '../lib/queries';
 import { VersionModal } from './VersionModal';
 import { ConfirmDialog } from './ConfirmDialog';
 import { useErrorState } from '../lib/useErrorState';
+import { ErrorBanner } from './ErrorBanner';
 
 interface VersionsPanelProps {
   chapterId: string;
@@ -84,10 +85,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
       )}
 
       {versionError && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 8, padding: '5px 8px', borderRadius: 5, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 11 }}>
-          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{versionError}</span>
-          <button type="button" onClick={clearVersionError} className="icon-close-btn" style={{ color: 'var(--danger)', fontSize: 13, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
-        </div>
+        <ErrorBanner message={versionError} onDismiss={clearVersionError} size="sm" style={{ marginBottom: 8 }} />
       )}
 
       <>

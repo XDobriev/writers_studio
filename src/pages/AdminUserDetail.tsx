@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { LogoMark } from '../components/LogoMark';
 import { useErrorState } from '../lib/useErrorState';
+import { ErrorBanner } from '../components/ErrorBanner';
 
 function displayEmail(email: string): string {
   const m = email.match(/^vk-(\d+)@vk\.local$/);
@@ -119,9 +120,7 @@ export default function AdminUserDetail() {
 
       <div style={{ padding: '36px 40px', maxWidth: 900 }}>
         {error && (
-          <div style={{ marginBottom: 20, padding: '10px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', color: 'var(--danger)', fontSize: 13 }}>
-            {error}
-          </div>
+          <ErrorBanner message={error} style={{ marginBottom: 20 }} />
         )}
 
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 32 }}>

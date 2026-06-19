@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useDropdownPosition } from '../lib/useDropdownPosition';
 import { useErrorState } from '../lib/useErrorState';
+import { ErrorBanner } from '../components/ErrorBanner';
 import { motion } from 'framer-motion';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useCreateOnMount } from '../lib/useCreateOnMount';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -26,6 +28,7 @@ import { createChapter, deleteChapter, reorderChapters, updateChapter, type Chap
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useChapterPovMap } from '../lib/queries';
 import { getCharacterColor, setPovCharacter, removePovCharacter, setPovForAllChapters } from '../lib/pov';
 import { plural } from '../lib/i18n';
+import { CharacterAvatar } from '../components/CharacterAvatar';
 
 const STATUS_COLOR: Record<ChapterStatus, string> = {
   draft: 'var(--ink-4)',
@@ -114,13 +117,7 @@ function BulkPovButton({
                     className="ctx-item"
                     style={{ padding: '5px 6px', borderRadius: 5, gap: 7 }}
                   >
-                    <span style={{
-                      width: 18, height: 18, borderRadius: '50%', background: color,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9, color: 'oklch(0.98 0 0)', fontWeight: 600, flexShrink: 0,
-                    }}>
-                      {char.name[0]?.toUpperCase() ?? '?'}
-                    </span>
+                    <CharacterAvatar name={char.name} color={color} />
                     <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-2)', flex: 1 }}>
                       {char.name}
                     </span>
@@ -215,14 +212,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
             cursor: 'pointer', maxWidth: 140, minWidth: 0,
           }}
         >
-          <span style={{
-            width: 16, height: 16, borderRadius: '50%',
-            background: getCharacterColor(povEntries[0].character_index),
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 8, color: 'oklch(0.98 0 0)', fontWeight: 600, flexShrink: 0,
-          }}>
-            {povEntries[0].character_name[0]?.toUpperCase() ?? '?'}
-          </span>
+          <CharacterAvatar name={povEntries[0].character_name} color={getCharacterColor(povEntries[0].character_index)} size={16} />
           <span style={{
             font: '500 10px var(--font-mono)', letterSpacing: '0.03em',
             color: getCharacterColor(povEntries[0].character_index),
@@ -297,13 +287,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
                   ...(isPov ? { background: `color-mix(in oklch, ${color} 12%, transparent)` } : {}),
                 }}
               >
-                <span style={{
-                  width: 18, height: 18, borderRadius: '50%', background: color,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 9, color: 'oklch(0.98 0 0)', fontWeight: 600, flexShrink: 0,
-                }}>
-                  {char.name[0]?.toUpperCase() ?? '?'}
-                </span>
+                <CharacterAvatar name={char.name} color={color} />
                 <span style={{ font: '400 12px var(--font-ui)', color: isPov ? color : 'var(--ink-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                   {char.name}
                 </span>
@@ -648,12 +632,7 @@ export default function Outline() {
     }
   }, [bookId, user, chapters, queryClient, navigate, setError]);
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  useEffect(() => {
-    if (searchParams.get('create') !== 'true') return;
-    setSearchParams({}, { replace: true });
-    void onCreate();
-  }, [searchParams, setSearchParams, onCreate]);
+  useCreateOnMount(() => void onCreate());
 
   const onRename = async (id: string, title: string) => {
     if (!bookId) return;
@@ -727,9 +706,7 @@ export default function Outline() {
 
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '28px 40px' }}>
             {error && (
-              <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', color: 'var(--danger)', fontSize: 13 }}>
-                {error}
-              </div>
+              <ErrorBanner message={error} style={{ marginBottom: 16 }} />
             )}
 
             {!chapters && !error && <div style={{ color: 'var(--ink-3)' }}>Загрузка…</div>}

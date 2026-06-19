@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useErrorState } from '../lib/useErrorState';
+import { ErrorBanner } from '../components/ErrorBanner';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
@@ -150,9 +151,7 @@ export default function AdminAnalytics({ topUsers }: Props) {
   return (
     <div>
       {err && (
-        <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', color: 'var(--danger)', fontSize: 13 }}>
-          {err}
-        </div>
+        <ErrorBanner message={err} style={{ marginBottom: 16 }} />
       )}
 
       <SectionTitle first>Тренд активности (30 дней)</SectionTitle>

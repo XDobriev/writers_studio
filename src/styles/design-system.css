@@ -1076,7 +1076,7 @@ select.input {
 .char-card__del {
   position: absolute;
   top: 6px; right: 6px;
-  width: 22px; height: 22px;
+  width: 28px; height: 28px;
   border-radius: 6px;
   background: color-mix(in oklch, var(--danger) 12%, transparent);
   color: var(--danger);
@@ -1175,10 +1175,20 @@ select.input {
 
 /* ── error banner ── */
 .error-banner {
-  padding: 10px 14px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 14px; border-radius: 8px;
   background: oklch(0.65 0.18 25 / 0.10);
+  border: 1px solid oklch(0.65 0.18 25 / 0.25);
   color: var(--danger); font-size: 13px;
 }
+.error-banner--sm { gap: 8px; padding: 6px 10px; border-radius: 6px; font-size: 12px; }
+.error-banner__msg { min-width: 0; }
+.error-banner__close {
+  background: none; border: none; cursor: pointer;
+  color: var(--danger); font-size: 16px; line-height: 1;
+  padding: 0 2px; flex-shrink: 0;
+}
+.error-banner--sm .error-banner__close { font-size: 14px; }
 
 /* ── Toolbar search ── */
 .tb-search {

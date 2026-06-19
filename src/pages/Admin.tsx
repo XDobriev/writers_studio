@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useErrorState } from '../lib/useErrorState';
+import { ErrorBanner } from '../components/ErrorBanner';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { LogoMark } from '../components/LogoMark';
@@ -365,9 +366,7 @@ export default function Admin() {
 
       <div style={{ padding: '36px 40px', maxWidth: 1200 }}>
         {err && (
-          <div style={{ marginBottom: 20, padding: '10px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', color: 'var(--danger)', fontSize: 13 }}>
-            {err}
-          </div>
+          <ErrorBanner message={err} style={{ marginBottom: 20 }} />
         )}
 
         <h1 style={{ font: '600 28px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 20 }}>Панель администратора</h1>

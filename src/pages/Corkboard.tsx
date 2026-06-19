@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDropdownPosition } from '../lib/useDropdownPosition';
 import { useErrorState } from '../lib/useErrorState';
+import { ErrorBanner } from '../components/ErrorBanner';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -453,9 +454,7 @@ export default function Corkboard() {
 
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '28px 32px', background: 'repeating-linear-gradient(45deg, var(--bg) 0 24px, var(--bg-deep) 24px 25px)' }}>
             {error && (
-              <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', color: 'var(--danger)', fontSize: 13 }}>
-                {error}
-              </div>
+              <ErrorBanner message={error} style={{ marginBottom: 16 }} />
             )}
 
             {!chapters && !error && <div style={{ color: 'var(--ink-3)' }}>Загрузка…</div>}

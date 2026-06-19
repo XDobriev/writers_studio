@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useErrorState } from '../lib/useErrorState';
+import { ErrorBanner } from '../components/ErrorBanner';
 import { useResponsive } from '../lib/useResponsive';
-import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
+import { useCreateOnMount } from '../lib/useCreateOnMount';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -115,12 +117,7 @@ export default function Timeline() {
     }
   }, [events?.length, limits.maxTimelineEvents, onCreate]);
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  useEffect(() => {
-    if (searchParams.get('create') !== 'true') return;
-    setSearchParams({}, { replace: true });
-    handleCreate();
-  }, [searchParams, setSearchParams, handleCreate]);
+  useCreateOnMount(handleCreate);
 
   const onUpdate = useCallback(
     async (id: string, patch: TimelineEventPatch) => {
@@ -351,10 +348,7 @@ export default function Timeline() {
           )}
 
           {mutationError && (
-            <div style={{ margin: '8px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 13, flexShrink: 0 }}>
-              <span>{mutationError}</span>
-              <button type="button" onClick={clearError} className="icon-close-btn" style={{ color: 'var(--danger)', fontSize: 16, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
-            </div>
+            <ErrorBanner message={mutationError} onDismiss={clearError} style={{ margin: '8px 24px 0', flexShrink: 0 }} />
           )}
           {/* Content */}
           {showLane ? (

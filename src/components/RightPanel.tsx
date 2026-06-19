@@ -8,6 +8,7 @@ import { getCharacterColor } from '../lib/pov';
 
 const VersionsPanel = lazy(() => import('./VersionsPanel').then(m => ({ default: m.VersionsPanel })));
 import { useErrorState } from '../lib/useErrorState';
+import { ErrorBanner } from './ErrorBanner';
 
 interface RightPanelProps {
   bookId?: string;
@@ -148,10 +149,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
       </div>
       <div className="rp-body">
         {noteError && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '8px 10px 0', padding: '6px 10px', borderRadius: 6, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 12 }}>
-            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{noteError}</span>
-            <button type="button" onClick={clearNoteError} className="icon-close-btn" style={{ color: 'var(--danger)', fontSize: 14, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
-          </div>
+          <ErrorBanner message={noteError} onDismiss={clearNoteError} size="sm" style={{ margin: '8px 10px 0' }} />
         )}
         {activeTab === 'versions' && (
           <div id="rp-panel-versions" role="tabpanel" aria-labelledby="rp-tab-versions" tabIndex={0}>

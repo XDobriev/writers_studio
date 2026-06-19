@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, type TelegramAuthData } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
 import { PasswordInput } from '../components/PasswordInput';
+import { ConsentCheckbox } from '../components/ConsentCheckbox';
 import { supabase, supabaseConfigured } from '../lib/supabase';
 import { useRegistrationOpen } from '../lib/queries';
 
@@ -477,33 +478,17 @@ export default function Auth() {
 
               {tab === 'signup' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '4px 0 18px' }}>
-                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={consent}
-                      onChange={(e) => setConsent(e.target.checked)}
-                      style={{ marginTop: 3, flexShrink: 0, accentColor: 'var(--accent)', width: 14, height: 14 }}
-                    />
-                    <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.55 }}>
-                      Я даю согласие на обработку персональных данных в соответствии с{' '}
-                      <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
-                        Политикой конфиденциальности
-                      </a>.{' '}
-                      <span style={{ color: 'var(--danger)', fontSize: 11 }}>обязательно</span>
-                    </span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={consentMarketing}
-                      onChange={(e) => setConsentMarketing(e.target.checked)}
-                      style={{ marginTop: 3, flexShrink: 0, accentColor: 'var(--accent)', width: 14, height: 14 }}
-                    />
-                    <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.55 }}>
-                      Согласен получать письма с советами по работе со студией.{' '}
-                      <span style={{ color: 'var(--ink-4)', fontSize: 11 }}>необязательно</span>
-                    </span>
-                  </label>
+                  <ConsentCheckbox checked={consent} onChange={setConsent}>
+                    Я даю согласие на обработку персональных данных в соответствии с{' '}
+                    <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
+                      Политикой конфиденциальности
+                    </a>.{' '}
+                    <span style={{ color: 'var(--danger)', fontSize: 11 }}>обязательно</span>
+                  </ConsentCheckbox>
+                  <ConsentCheckbox checked={consentMarketing} onChange={setConsentMarketing}>
+                    Согласен получать письма с советами по работе со студией.{' '}
+                    <span style={{ color: 'var(--ink-4)', fontSize: 11 }}>необязательно</span>
+                  </ConsentCheckbox>
                 </div>
               )}
 

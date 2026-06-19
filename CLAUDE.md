@@ -49,6 +49,7 @@ npm run preview    # превью продакшен-сборки
 - `src/components/EditorHybrid.tsx` — главный редактор, 4 режима (studio/left/right/page).
 - `src/components/CharacterHoverCard.tsx` — портальная hover-карточка персонажа в редакторе: аватар, имя, роль, snippet, навигация в Characters.
 - `src/components/MapStampsLayer.tsx` — SVG-слой штампов карты: рендер всех штампов с drag-состоянием и selection ring; получает stamps[], selectedId, dragPos.
+- `src/components/MapStyleModal.tsx` — модал «Стиль карты»: пикер шаблона + свой фон. Полный a11y (role/aria/Escape/focus/Tab-trap по образцу ConfirmDialog). Вынесен из Map.tsx.
 - `src/components/StampPopup.tsx` — попап редактирования штампа: пикер типа (5×2 grid), слайдер размера, удаление; закрывается по Escape и клику за пределами.
 - `src/components/RichEditor.tsx` — TipTap wrapper.
 - `src/components/EditorToolbar.tsx` — полноценный тулбар TipTap.
@@ -63,6 +64,8 @@ npm run preview    # превью продакшен-сборки
 - `src/components/CharacterFieldCard.tsx` — именованная карточка-поле (label + textarea + warn-состояние); используется в детальном виде персонажа.
 - `src/components/CharacterHeroBlock.tsx` — блок героя детальной карточки персонажа: аватар, имя, псевдонимы, цитата, смена роли.
 - `src/components/CharacterRelationsBlock.tsx` — блок связей персонажа: форма добавления, пресеты, список строк RelationRow (приватная).
+- `src/components/CharacterAvatar.tsx` — круглый аватар-инициал персонажа: `{ name, color, size? }`; размер шрифта выводится из диаметра. Канонический способ показать аватар-кружок (Outline, POV-бейджи).
+- `src/components/ConsentCheckbox.tsx` — чекбокс согласия с подписью-ссылкой: `{ checked, onChange, children }`. Используется в форме регистрации Auth.
 - `src/components/CharacterChaptersTab.tsx` — вкладка «Главы» детальной карточки: POV-главы и упоминания персонажа по главам.
 - `src/components/TimelineEventCard.tsx` — карточка события хронологии: редактирование типа, названия, описания, эпохи, главы.
 - `src/components/TimelineFilters.tsx` — фильтры хронологии по слоям; `variant="sidebar"|"mobile"` унифицирует два варианта рендера.
@@ -77,6 +80,7 @@ npm run preview    # превью продакшен-сборки
 - `src/components/LandingPricingSection.tsx` — секция «Цены»: тарифные карточки Free/Pro/Lifetime с динамическим счётчиком слотов.
 - `src/components/AuthGuard.tsx` — защита роутов.
 - `src/components/ErrorBoundary.tsx` — перехват краша компонентов, fallback UI.
+- `src/components/ErrorBanner.tsx` — баннер ошибки на базе `.error-banner`: `{ message, onDismiss?, size?: 'sm', style? }`. Канонический способ показать mutation-ошибку; `style` — только для layout (отступы). Заменяет инлайн-копии на страницах/панелях.
 - `src/components/CookieBanner.tsx` — GDPR-баннер куки: Принять / Отклонить, сохраняет выбор (`accepted`|`rejected`) в `localStorage` под ключом `cookie_consent_v1`.
 - `src/components/OnboardingChecklist.tsx` — прогресс-чеклист онбординга: 4 шага (книга, слова, персонаж, экспорт), прогресс-бар, автоскрытие при завершении; используется на Home.tsx.
 - `src/styles/design-system.css` — CSS-переменные (oklch), классы `.as`, `.sb`, `.tb`, `.sheet`, `.btn`, `.input`, `.label`.
@@ -121,6 +125,8 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/editorFont.ts` — `EDITOR_FONTS`, `applyEditorFont`, `getStoredEditorFont`; CSS var `--font-editor`; dispatches `as-editor-font` CustomEvent для синхронизации SettingsModal ↔ StatusBar.
 - `src/lib/i18n.ts` — `plural(n, one, few, many)` и `pluralDays(n)`: канонические функции русской числовой морфологии.
 - `src/lib/dates.ts` — `toLocalISODate(date)`, `todayLocalISODate()`: дата YYYY-MM-DD в локальной таймзоне. Канонический способ получить «сегодня» — НЕ использовать `toISOString().slice(0,10)` (даёт UTC, сдвигает границу суток).
+- `src/lib/activity.ts` — `computeActivityData(snapshots, today?)`: чистая функция расчёта heatmap-активности дашборда (cells/weeks/streak/cumulativeLine). Локальные даты, параметр `today` для тестов. Покрыта `activity.test.ts`.
+- `src/lib/useCreateOnMount.ts` — `useCreateOnMount(action)`: если в URL `?create=true` — один раз вызывает action и убирает параметр. Используется в Timeline/Notes/Outline для «создать сразу при переходе».
 - `src/lib/useVersionMutations.ts` — `createNamed(content, label)` и `remove(id)`: мутации версий с инвалидацией кеша; скрывает `QUERY_KEYS` и `queryClient` от `VersionsPanel`.
 - `src/lib/mapTemplates.ts` — 4 шаблона карты (`parchment`, `sea`, `paper`, `dark`): метаданные для пикера + `renderTemplateBgSvg` для off-screen экспорта.
 - `src/lib/mapExport.ts` — `generateMapPngBuffer` (SVG→canvas→PNG) и `triggerMapDownload`; используется из Map.tsx и Export.tsx.

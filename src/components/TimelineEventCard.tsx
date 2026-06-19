@@ -111,7 +111,7 @@ export function TimelineEventCard({
             title="Удалить событие"
             aria-label="Удалить событие"
             className="btn-danger-hover"
-            style={{ padding: '4px 6px', font: '400 16px var(--font-ui)', lineHeight: 1, borderRadius: 4 }}
+            style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', font: '400 16px var(--font-ui)', lineHeight: 1, borderRadius: 4 }}
           >
             ×
           </button>

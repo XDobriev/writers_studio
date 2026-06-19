@@ -14,6 +14,7 @@ import { type Chapter } from '../lib/chapters';
 import { pluralDays, plural } from '../lib/i18n';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useWritingSnapshots } from '../lib/queries';
 import { useResponsive } from '../lib/useResponsive';
+import { computeActivityData, HEATMAP_WEEKS } from '../lib/activity';
 
 const STATUS_LABEL: Record<Chapter['status'], string> = {
   draft: 'черновик',
@@ -25,8 +26,6 @@ const STATUS_DOT: Record<Chapter['status'], string> = {
   progress: 'var(--accent-2)',
   done: 'var(--ok)',
 };
-
-const HEATMAP_WEEKS = 52;
 
 const QUICK_ACTIONS: Array<{ title: string; dest: string; icon: 'tree' | 'char' | 'note' | 'clock'; path: string }> = [
   { title: 'Новая глава',    dest: 'Структура →',  icon: 'tree',  path: '/outline?create=true'    },
@@ -103,95 +102,10 @@ export default function Dashboard() {
     return { done, progress, draft, daysActive, goalPct };
   }, [book, chapters, characters]);
 
-  const activityData = useMemo(() => {
-    if (snapshots === undefined) return null;
-    const snap: Record<string, number> = {};
-    for (const row of snapshots) snap[row.date] = row.words;
-
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
-
-    // Start = Monday of the week 25 weeks before the current week
-    const dow = today.getDay();
-    const daysFromMon = dow === 0 ? 6 : dow - 1;
-    const startDate = new Date(today);
-    startDate.setDate(today.getDate() - daysFromMon - (HEATMAP_WEEKS - 1) * 7);
-
-    type Cell = { date: string; delta: number; future: boolean; weekIdx: number };
-    const cells: Cell[] = [];
-    for (let i = 0; i < HEATMAP_WEEKS * 7; i++) {
-      const d = new Date(startDate);
-      d.setDate(d.getDate() + i);
-      const ds = d.toISOString().slice(0, 10);
-      const future = ds > todayStr;
-      const prev = new Date(d);
-      prev.setDate(prev.getDate() - 1);
-      const prevStr = prev.toISOString().slice(0, 10);
-      const delta = future ? 0 : Math.max(0, (snap[ds] ?? 0) - (snap[prevStr] ?? 0));
-      cells.push({ date: ds, delta, future, weekIdx: Math.floor(i / 7) });
-    }
-
-    const weeks: number[] = Array.from({ length: HEATMAP_WEEKS }, (_, w) =>
-      cells.slice(w * 7, w * 7 + 7).reduce((s, c) => s + c.delta, 0)
-    );
-
-    const maxDelta = Math.max(1, ...cells.map(c => c.delta));
-    const maxWeek = Math.max(1, ...weeks);
-
-    const cellByDate: Record<string, Cell> = {};
-    for (const c of cells) cellByDate[c.date] = c;
-
-    let streak = 0;
-    const streakStart = new Date(today);
-    if ((cellByDate[todayStr]?.delta ?? 0) === 0) streakStart.setDate(streakStart.getDate() - 1);
-    const cur = new Date(streakStart);
-    for (let i = 0; i < 366; i++) {
-      const ds = cur.toISOString().slice(0, 10);
-      if ((cellByDate[ds]?.delta ?? 0) > 0) {
-        streak++;
-        cur.setDate(cur.getDate() - 1);
-      } else {
-        break;
-      }
-    }
-
-    const todayWords = cellByDate[todayStr]?.delta ?? 0;
-
-    const monthLabels: Array<{ col: number; label: string }> = [];
-    let lastMonth = -1;
-    for (let w = 0; w < 52; w++) {
-      const d = new Date(startDate);
-      d.setDate(d.getDate() + w * 7);
-      const m = d.getMonth();
-      if (m !== lastMonth) {
-        monthLabels.push({ col: w, label: d.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', '') });
-        lastMonth = m;
-      }
-    }
-
-    const cumulativeLine: Array<{ date: string; words: number }> = [];
-    let lastKnownWords = 0;
-    let hasCumData = false;
-    for (let w = 0; w < 52; w++) {
-      const weekPastCells = cells.slice(w * 7, w * 7 + 7).filter(c => !c.future);
-      if (weekPastCells.length === 0) continue;
-      for (const c of weekPastCells) {
-        if (snap[c.date] !== undefined) {
-          lastKnownWords = snap[c.date];
-          hasCumData = true;
-        }
-      }
-      if (hasCumData) {
-        cumulativeLine.push({ date: weekPastCells[weekPastCells.length - 1].date, words: lastKnownWords });
-      }
-    }
-
-    const last7 = cells.filter(c => !c.future).slice(-7);
-    const avg7 = last7.reduce((s, c) => s + c.delta, 0) / 7;
-    const lastWeekWords = weeks[50] ?? 0;
-
-    return { cells, weeks, maxDelta, maxWeek, todayWords, streak, monthLabels, cumulativeLine, avg7, lastWeekWords };
-  }, [snapshots]);
+  const activityData = useMemo(
+    () => (snapshots === undefined ? null : computeActivityData(snapshots)),
+    [snapshots],
+  );
 
   useEffect(() => {
     if (!activityData || activityData.lastWeekWords <= 0) return;
@@ -386,7 +300,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? 10 : 16, marginBottom: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: isMobile ? 10 : 16, marginBottom: 20 }}>
                 {statCards.map((s) => (
                   <div key={s.l} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 20px' }}>
                     <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>{s.l}</div>
@@ -401,7 +315,7 @@ export default function Dashboard() {
             <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 10, marginTop: 4 }}>
               Быстрые действия
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 20 }}>
               {QUICK_ACTIONS.map(({ title, dest, icon, path }) => (
                 <Link
                   key={title}
@@ -422,7 +336,7 @@ export default function Dashboard() {
                     <Icon name={icon} size={15} />
                   </div>
                   <div style={{ font: '500 12.5px var(--font-ui)', color: 'var(--ink)' }}>{title}</div>
-                  <div style={{ font: '400 10.5px var(--font-mono)', letterSpacing: '0.06em', color: 'var(--ink-4)', marginTop: 'auto' }}>{dest}</div>
+                  <div style={{ font: '400 10.5px var(--font-mono)', letterSpacing: '0.06em', color: 'var(--ink-3)', marginTop: 'auto' }}>{dest}</div>
                 </Link>
               ))}
             </div>
