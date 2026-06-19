@@ -315,6 +315,7 @@ export default function Notes() {
   const colorSwatch = (color: BaseKind, selected: string, onSelect: (c: BaseKind) => void) => (
     <button
       key={color}
+      type="button"
       onClick={() => onSelect(color)}
       aria-label={KIND_LABELS[color]}
       title={KIND_LABELS[color]}
@@ -341,26 +342,26 @@ export default function Notes() {
         {BASE_KINDS.map((k) => (
           <button
             key={k}
+            type="button"
             onClick={() => onSelect(k)}
+            className="note-kind-chip"
             style={{
-              fontSize: fs, padding: pad, borderRadius: 20,
+              fontSize: fs, padding: pad,
               border: `1px solid ${activeKind === k ? KIND_COLORS[k] : 'var(--border)'}`,
-              background: activeKind === k ? KIND_COLORS_SOFT[k] : 'transparent',
-              color: activeKind === k ? KIND_COLORS[k] : 'var(--ink-3)',
-              cursor: 'pointer',
+              ...(activeKind === k ? { background: KIND_COLORS_SOFT[k], color: KIND_COLORS[k] } : { color: 'var(--ink-3)' }),
             }}
           >
             {KIND_LABELS[k]}
           </button>
         ))}
         <button
+          type="button"
           onClick={() => onSelect('custom')}
+          className="note-kind-chip"
           style={{
-            fontSize: fs, padding: pad, borderRadius: 20,
+            fontSize: fs, padding: pad,
             border: `1px solid ${activeKind === 'custom' ? 'var(--ink-3)' : 'var(--border)'}`,
-            background: activeKind === 'custom' ? 'var(--surface)' : 'transparent',
-            color: activeKind === 'custom' ? 'var(--ink)' : 'var(--ink-3)',
-            cursor: 'pointer',
+            ...(activeKind === 'custom' ? { background: 'var(--surface)', color: 'var(--ink)' } : { color: 'var(--ink-3)' }),
           }}
         >
           + Тип
@@ -394,7 +395,7 @@ export default function Notes() {
                 <span>{activeChapter.title || 'Без названия'}</span>
                 <button
                   onClick={() => setActiveChapterId(null)}
-                  style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: '0 2px', fontSize: 14, lineHeight: 1 }}
+                  style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: '3px 5px', fontSize: 14, lineHeight: 1, minHeight: 24 }}
                   aria-label="Сбросить фильтр"
                   title="Сбросить фильтр"
                 >×</button>
@@ -428,7 +429,7 @@ export default function Notes() {
             {error && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, padding: '8px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 13 }}>
                 <span>{error}</span>
-                <button onClick={clearError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 16, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
+                <button onClick={clearError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 16, lineHeight: 1, padding: '4px 8px', flexShrink: 0, minHeight: 32 }} title="Закрыть" aria-label="Закрыть">×</button>
               </div>
             )}
             {showForm && (

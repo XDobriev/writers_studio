@@ -26,6 +26,8 @@
 
 Подпись: `MD5(MerchantLogin:OutSum:InvId:Receipt:ResultUrl2:Password1:Shp_plan=…:Shp_user_id=…)`
 
+> **Receipt в подписи — URL-encoded.** Robokassa требует URL-кодировать `Receipt` *до* включения в строку подписи; одна и та же encoded-строка идёт и в MD5, и в параметр URL ([docs.robokassa.ru/ru/fiscalization](https://docs.robokassa.ru/ru/fiscalization)). То же в `billing-scheduler` (рекуррент). Проверять только реальным платежом — тестовые чеки не фискализируются.
+
 ### `robokassa-webhook` (ResultUrl1)
 Основной вебхук — активирует план пользователя:
 1. Проверяет подпись (Password2 для боевых, TEST_PASSWORD2 для тестовых)
@@ -42,6 +44,8 @@
 
 ### `process-refund`
 Возвраты через Робокассу по `op_key`. Требует Bearer-токен (вызывается только из Admin-панели).
+
+> ⚠️ **НЕ соответствует актуальному API Robokassa — требует переписи.** Текущий код бьёт в `services.robokassa.ru/RefundService/Refund/Create` с JWT (Password3) и ждёт `requestId`. Актуальный Operation API ([docs.robokassa.ru/partner-api](https://docs.robokassa.ru/partner-api/MethodDescription/RefundOperation/)): эндпоинт `services.robokassa.ru/PartnerRegisterService/api/Operation/RefundOperation`, авторизация **HTTP Basic** (`Base64(login:password)`, не JWT/Password3), тело JSON `{ RoboxPartnerId, OpKey, RefundSum }`, ответ `{ success, error, resultCode }` (без `requestId` — поллинг `GetState` неприменим).
 
 ## Таблицы БД
 

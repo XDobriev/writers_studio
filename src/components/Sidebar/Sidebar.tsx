@@ -189,6 +189,7 @@ export function Sidebar({
                     type="button"
                     onClick={() => setStatusMenuFor(statusMenuFor === c.id ? null : c.id)}
                     title={`Статус: ${SB_STATUS_LABEL[c.status]}`}
+                    aria-label={`Статус главы: ${SB_STATUS_LABEL[c.status]}`}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, margin: -4, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4 }}
                   >
                     <span style={{ width: 6, height: 6, borderRadius: 999, background: SB_STATUS_COLOR[c.status], display: 'block' }} />
@@ -206,7 +207,8 @@ export function Sidebar({
                           key={s}
                           type="button"
                           onClick={() => { onStatusChange?.(c.id, s); setStatusMenuFor(null); }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: c.status === s ? 'var(--bg-deep)' : 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--ink)', border: 'none', textAlign: 'left' }}
+                          className="ctx-item"
+                          style={c.status === s ? { background: 'var(--bg-deep)' } : undefined}
                         >
                           <span style={{ width: 6, height: 6, borderRadius: 999, background: SB_STATUS_COLOR[s], flexShrink: 0 }} />
                           {SB_STATUS_LABEL[s]}
@@ -243,7 +245,7 @@ export function Sidebar({
                               setStatusMenuFor(null);
                             }
                           }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--danger)', border: 'none', textAlign: 'left' }}
+                          className="ctx-item ctx-item--danger"
                         >
                           Удалить главу
                         </button>

@@ -92,9 +92,9 @@ export default function ShareBook() {
               <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginTop: 1 }}>{meta}</div>
             )}
           </div>
-          <a href="/" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', whiteSpace: 'nowrap', textDecoration: 'none', border: '1px solid var(--border-soft)', borderRadius: 6, padding: '4px 10px' }}>
+          <Link to="/" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', whiteSpace: 'nowrap', textDecoration: 'none', border: '1px solid var(--border-soft)', borderRadius: 6, padding: '4px 10px' }}>
             Открыть студию
-          </a>
+          </Link>
         </div>
       </header>
 
@@ -186,7 +186,7 @@ export default function ShareBook() {
       <footer style={{ borderTop: '1px solid var(--border-soft)', padding: '16px 24px', textAlign: 'center' }}>
         <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)' }}>
           Создано в{' '}
-          <a href="/" style={{ color: 'var(--ink-3)', textDecoration: 'underline' }}>Авторской студии</a>
+          <Link to="/" style={{ color: 'var(--ink-3)', textDecoration: 'underline' }}>Авторской студии</Link>
         </span>
       </footer>
     </div>

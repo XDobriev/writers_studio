@@ -704,6 +704,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .chip--accent { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .chip--ok { border-color: oklch(0.72 0.14 145 / 0.5); color: var(--ok); background: oklch(0.72 0.14 145 / 0.12); }
 .chip--sm { font-size: 10px; height: 18px; padding: 0 6px; }
+button.chip:not(.chip--accent):hover { background: var(--surface-2); }
 
 .btn {
   height: 30px; padding: 0 12px;
@@ -941,8 +942,13 @@ select.input {
 
 /* book card — карточка книги на Home */
 .book-card { position: relative; }
-.book-card__edit { display: none; }
+.book-card__edit {
+  display: none;
+  background: oklch(0.12 0.01 50 / 0.70);
+  transition: background var(--dur-hover);
+}
 .book-card:hover .book-card__edit { display: flex; }
+.book-card__edit:hover { background: oklch(0.28 0.01 50 / 0.88); }
 @media (hover: none) { .book-card__edit { display: flex; } }
 .book-card__link {
   background: var(--surface); border-radius: 12px;
@@ -958,6 +964,14 @@ select.input {
 @media (max-width: 639px) {
   .hide-sm { display: none !important; }
 }
+
+/* ── Note kind-selector chip button ── */
+.note-kind-chip {
+  border-radius: 20px; cursor: pointer;
+  background: none;
+  transition: background var(--dur-hover);
+}
+.note-kind-chip:hover { background: var(--surface-2); }
 
 /* ── Note cards ── */
 .note-card {
@@ -1193,7 +1207,9 @@ select.input {
   color: var(--ink-3); background: transparent; border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer; margin-bottom: -1px;
+  transition: color var(--dur-hover), background var(--dur-hover);
 }
+.char-tab:not(.char-tab--on):hover { color: var(--ink-2); background: var(--surface-2); }
 .char-tab--on { color: var(--ink); border-bottom-color: var(--accent); }
 
 /* ── Toast notifications (fixed bottom) ── */
@@ -1291,6 +1307,26 @@ select.input {
   background: linear-gradient(to top, var(--bg) 60%, transparent);
   padding-top: 18px; padding-bottom: 2px; margin-bottom: -2px;
 }
+.vc-save-btn {
+  background: none; cursor: pointer;
+  transition: background var(--dur-hover), border-color var(--dur-hover);
+}
+.vc-save-btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
+
+/* ── Toolbar icon/text button with border (link popover, color reset) ── */
+.tb-icon-btn {
+  display: flex; align-items: center; justify-content: center;
+  background: none; cursor: pointer;
+  transition: background var(--dur-hover), border-color var(--dur-hover), color var(--dur-hover);
+}
+.tb-icon-btn:hover { background: var(--surface-2); border-color: var(--border-strong); color: var(--ink); }
+
+/* ── POV pill trigger button (empty "+POV" and multi-POV stacked) ── */
+.pov-pill {
+  background: none; cursor: pointer;
+  transition: background var(--dur-hover), border-color var(--dur-hover);
+}
+.pov-pill:hover { background: var(--surface-2); border-color: var(--border-strong); }
 
 /* ── Map stamp-type strip button ── */
 .map-strip-btn {
@@ -1316,6 +1352,74 @@ select.input {
   transition: color var(--dur-hover);
 }
 .map-popup-del:hover { color: var(--danger); }
+
+/* ── Export format selection cards and strip buttons ── */
+.export-fmt-card {
+  background: var(--surface);
+  transition: background var(--dur-hover);
+}
+.export-fmt-card:not([aria-pressed="true"]):hover { background: var(--surface-2); }
+.export-fmt-card[aria-pressed="true"] { background: var(--accent-soft); }
+
+.export-fmt-btn {
+  background: var(--surface);
+  transition: background var(--dur-hover), color var(--dur-hover);
+}
+.export-fmt-btn:not([aria-pressed="true"]):hover { background: var(--surface-2); color: var(--ink-2); }
+.export-fmt-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); }
+
+/* ── Generic icon-only dismiss / close button ── */
+.icon-close-btn {
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer;
+  border-radius: 4px; line-height: 1; color: var(--ink-4);
+  transition: color var(--dur-hover), background var(--dur-hover);
+}
+.icon-close-btn:hover { color: var(--ink-2); background: var(--surface-2); }
+.icon-close-btn--round {
+  width: 30px; height: 30px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--ink-3); font-size: 18px;
+}
+.icon-close-btn--round:hover { border-color: var(--border-strong); }
+.map-popup-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 2px 4px; line-height: 1; border-radius: 3px;
+  color: var(--ink-4); font: 400 10px var(--font-ui);
+  transition: color var(--dur-hover), background var(--dur-hover);
+}
+.map-popup-btn:hover { color: var(--ink-2); background: var(--surface-2); }
+.map-loc-btn {
+  flex: 1; height: 36px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px;
+  color: var(--ink-3); font: 400 12px var(--font-ui); cursor: pointer;
+  transition: background var(--dur-hover), color var(--dur-hover);
+}
+.map-loc-btn:hover { background: var(--surface); color: var(--ink-2); }
+.map-loc-btn--danger { background: transparent; color: var(--ink-4); }
+.map-loc-btn--danger:hover { background: color-mix(in oklch, var(--danger) 8%, var(--surface-2)); color: var(--danger); }
+
+/* ── Dropdown/context-menu item button ── */
+.ctx-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; width: 100%; border-radius: 4px;
+  background: transparent; border: none; cursor: pointer;
+  font: 400 12px var(--font-ui); color: var(--ink); text-align: left;
+  transition: background var(--dur-hover);
+}
+.ctx-item:hover { background: var(--surface-2); }
+.ctx-item--danger { color: var(--danger); }
+.ctx-item--danger:hover { background: color-mix(in oklch, var(--danger) 8%, var(--surface-2)); }
+
+/* ── Listbox option (language picker, any portal dropdown) ── */
+.listbox-option {
+  display: block; width: 100%; text-align: left;
+  padding: 8px 12px; border: none; cursor: pointer;
+  color: var(--ink); font-family: var(--font-ui);
+  background: none;
+  transition: background var(--dur-hover);
+}
+.listbox-option:hover { background: var(--surface-2); }
+.listbox-option[aria-selected="true"] { background: var(--surface-3); }
 
 /* ── Dashboard quick-action card ── */
 .dash-quick-action {

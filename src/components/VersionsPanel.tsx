@@ -86,7 +86,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
       {versionError && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 8, padding: '5px 8px', borderRadius: 5, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 11 }}>
           <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{versionError}</span>
-          <button onClick={clearVersionError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 13, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
+          <button type="button" onClick={clearVersionError} className="icon-close-btn" style={{ color: 'var(--danger)', fontSize: 13, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
         </div>
       )}
 
@@ -145,12 +145,13 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
       {isPro && !showLabelForm && (
         <div className="vc-save-fade">
           <button
+            type="button"
             onClick={() => setShowLabelForm(true)}
+            className="vc-save-btn"
             style={{
               width: '100%', height: 30,
               border: '1px dashed var(--border)', borderRadius: 'var(--r-2)',
               font: '400 12px var(--font-ui)', color: 'var(--ink-3)',
-              background: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >

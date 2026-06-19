@@ -113,14 +113,16 @@ Deno.serve(async (req) => {
     const receiptJson    = JSON.stringify(receiptObj);
     const receiptEncoded = encodeURIComponent(receiptJson);
 
-    // При наличии Receipt подпись: MerchantLogin:OutSum:InvId:ReceiptJSON:Password1
-    const sigString = `${merchantLogin}:${outSum}:${newInvId}:${receiptJson}:${password1}`;
+    // При наличии Receipt подпись: MerchantLogin:OutSum:InvId:Receipt:Password1
+    // Receipt входит в подпись в URL-encoded виде (как и в боевой ссылке).
+    const sigString = `${merchantLogin}:${outSum}:${newInvId}:${receiptEncoded}:${password1}`;
     const signature = md5hex(sigString);
 
     const body = new URLSearchParams({
       MerchantLogin:     merchantLogin,
       InvId:             newInvId,
       OutSum:            outSum,
+      Description:       'Подписка Pro — Авторская студия',
       PreviousInvoiceID: profile.recurring_inv_id,
       SignatureValue:    signature,
       IsTest:            isTestMode ? '1' : '0',
@@ -150,13 +152,13 @@ Deno.serve(async (req) => {
       }
 
       // Логируем попытку в payments (pending — webhook подтвердит)
-      await db.from('payments').insert({
+      await db.from('payments').upsert({
         inv_id:  newInvId,
         user_id: profile.user_id,
         amount:  parseFloat(outSum),
         plan:    'pro',
         paid_at: new Date().toISOString(),
-      }).onConflict('inv_id').ignore();
+      }, { onConflict: 'inv_id', ignoreDuplicates: true });
 
       await db.from('admin_audit_log').insert({
         admin_id:       '00000000-0000-0000-0000-000000000000',

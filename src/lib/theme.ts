@@ -3,7 +3,8 @@ export type Theme = 'dark' | 'light';
 const STORAGE_KEY = 'as-theme';
 
 export function getStoredTheme(): Theme {
-  return (localStorage.getItem(STORAGE_KEY) as Theme) ?? 'dark';
+  const raw = localStorage.getItem(STORAGE_KEY);
+  return raw === 'light' || raw === 'dark' ? raw : 'dark';
 }
 
 export function applyTheme(theme: Theme) {

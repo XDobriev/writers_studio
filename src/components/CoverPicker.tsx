@@ -68,7 +68,7 @@ export function CoverPicker({
                 background: 'oklch(0 0 0 / 0.35)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <span style={{ color: 'white', fontSize: 15, fontWeight: 700 }}>✓</span>
+                <span style={{ color: 'oklch(0.98 0 0)', fontSize: 15, fontWeight: 700 }}>✓</span>
               </div>
             )}
             <input

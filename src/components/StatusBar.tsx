@@ -421,16 +421,16 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
                 {SOUNDS.map(s => (
                   <button
                     key={s.id}
+                    type="button"
                     onClick={() => selectSound(s.id)}
                     aria-pressed={activeSound === s.id}
+                    className="note-kind-chip"
                     style={{
                       font: '400 12px var(--font-ui)',
                       padding: '3px 10px',
                       borderRadius: 999,
                       border: activeSound === s.id ? '1.5px solid var(--accent)' : '1px solid var(--border-soft)',
-                      background: 'transparent',
                       color: activeSound === s.id ? 'var(--ink)' : 'var(--ink-3)',
-                      cursor: 'pointer',
                     }}
                   >
                     {s.label}
@@ -459,16 +459,16 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
               </div>
               {isPlaying && (
                 <button
+                  type="button"
                   onClick={stopAll}
+                  className="vc-save-btn"
                   style={{
                     width: '100%',
                     font: '400 12px var(--font-ui)',
                     padding: '4px 0',
                     border: '1px solid var(--border-soft)',
                     borderRadius: 4,
-                    background: 'transparent',
                     color: 'var(--ink-3)',
-                    cursor: 'pointer',
                   }}
                 >
                   × Стоп

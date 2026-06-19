@@ -225,7 +225,7 @@ export default function Export() {
               {book.title} · {totalWords.toLocaleString('ru-RU')} {plural(totalWords, 'слово', 'слова', 'слов')}
             </h2>
           </div>
-          <button type="button" onClick={close} aria-label="Закрыть" title="Закрыть" style={{ width: 30, height: 30, borderRadius: 999, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 18, lineHeight: 1 }}>×</button>
+          <button type="button" onClick={close} aria-label="Закрыть" title="Закрыть" className="icon-close-btn icon-close-btn--round">×</button>
         </div>
 
         <div style={{ padding: '20px 28px 8px' }}>
@@ -239,12 +239,13 @@ export default function Export() {
               return (
                 <button
                   key={o.value}
+                  type="button"
                   onClick={() => locked ? setShowUpgrade(true) : setFormat(o.value)}
                   aria-pressed={active}
+                  className="export-fmt-card"
                   style={{
                     padding: '14px 16px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
                     border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
-                    background: active ? 'var(--accent-soft)' : 'var(--surface)',
                     position: 'relative', overflow: 'hidden',
                   }}
                 >
@@ -275,12 +276,13 @@ export default function Export() {
               return (
                 <button
                   key={o.value}
+                  type="button"
                   onClick={() => setFormat(o.value)}
                   aria-pressed={active}
+                  className="export-fmt-btn"
                   style={{
                     padding: '4px 12px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
                     border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
-                    background: active ? 'var(--accent-soft)' : 'var(--surface)',
                     color: active ? 'var(--ink)' : 'var(--ink-3)',
                     font: '500 12px var(--font-mono)',
                   }}
@@ -395,12 +397,13 @@ export default function Export() {
                   return (
                     <button
                       key={s.value}
+                      type="button"
                       onClick={() => { setParagraphStyle(s.value); localStorage.setItem('export-paragraph-style', s.value); }}
                       aria-pressed={active}
+                      className="export-fmt-card"
                       style={{
                         padding: '6px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
                         border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
-                        background: active ? 'var(--accent-soft)' : 'var(--surface)',
                       }}
                     >
                       <div style={{ font: '500 12.5px var(--font-sans)', color: active ? 'var(--ink)' : 'var(--ink-2)' }}>{s.label}</div>
@@ -452,7 +455,8 @@ export default function Export() {
               role="option"
               aria-selected={language === l.value}
               onClick={() => { setLanguage(l.value); setLangOpen(false); }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13.5, background: language === l.value ? 'var(--surface-2, oklch(0.22 0.01 50))' : 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontFamily: 'inherit' }}
+              className="listbox-option"
+              style={{ fontSize: 13.5 }}
             >
               {l.label}
             </button>

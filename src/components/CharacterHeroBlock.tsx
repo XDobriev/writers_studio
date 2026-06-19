@@ -166,7 +166,7 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError }: {
           </div>
         )}
         {(avatarHovered || avatarUploading || avatarDeleting) && (
-          <div style={{ position: 'absolute', inset: 0, background: 'oklch(0 0 0 / 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 6, color: 'white' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'oklch(0 0 0 / 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 6, color: 'oklch(0.98 0 0)' }}>
             {(avatarUploading || avatarDeleting)
               ? <span style={{ font: '400 11px var(--font-ui)' }}>{avatarDeleting ? 'Удаление…' : 'Загрузка…'}</span>
               : <><Icon name="camera" size={20} /><span style={{ font: '400 10px var(--font-ui)', letterSpacing: '0.04em' }}>{character.avatar_url ? 'Сменить' : 'Загрузить'}</span></>
@@ -178,7 +178,7 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError }: {
             onClick={(e) => { e.stopPropagation(); void onAvatarDelete(); }}
             title="Удалить портрет"
             aria-label="Удалить портрет"
-            style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 4, background: 'oklch(0.35 0.18 20 / 0.85)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', zIndex: 2, padding: 0 }}
+            style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 4, background: 'oklch(0.35 0.18 20 / 0.85)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(0.98 0 0)', zIndex: 2, padding: 0 }}
           >
             <Icon name="trash" size={11} />
           </button>

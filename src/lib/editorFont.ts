@@ -20,7 +20,8 @@ export const EDITOR_FONT_EVENT = 'as-editor-font';
 const DEFAULT_ID: EditorFontId = 'source-serif-4';
 
 export function getStoredEditorFont(): EditorFontId {
-  return (localStorage.getItem(STORAGE_KEY) as EditorFontId | null) ?? DEFAULT_ID;
+  const raw = localStorage.getItem(STORAGE_KEY);
+  return EDITOR_FONTS.some(f => f.id === raw) ? (raw as EditorFontId) : DEFAULT_ID;
 }
 
 export function applyEditorFont(id: EditorFontId): void {

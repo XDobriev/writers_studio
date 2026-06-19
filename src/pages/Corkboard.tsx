@@ -240,7 +240,8 @@ function SortableCorkCard({
                   role="menuitemradio"
                   aria-checked={c.status === s}
                   onClick={() => { onStatusChange(c.id, s); setMenuOpen(false); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: c.status === s ? 'var(--bg-deep)' : 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--ink)', border: 'none', textAlign: 'left' }}
+                  className="ctx-item"
+                  style={c.status === s ? { background: 'var(--bg-deep)' } : undefined}
                 >
                   <span style={{ width: 6, height: 6, borderRadius: 999, background: STATUS_COLOR[s], flexShrink: 0 }} />
                   {STATUS_LABEL[s]}
@@ -277,7 +278,7 @@ function SortableCorkCard({
                       setMenuOpen(false);
                     }
                   }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', width: '100%', borderRadius: 4, background: 'transparent', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--danger)', border: 'none', textAlign: 'left' }}
+                  className="ctx-item ctx-item--danger"
                 >
                   Удалить главу
                 </button>

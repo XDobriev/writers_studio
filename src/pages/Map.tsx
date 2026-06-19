@@ -359,7 +359,7 @@ export default function MapScreen() {
           {mutationError && (
             <div style={{ margin: '8px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 13, flexShrink: 0 }}>
               <span>{mutationError}</span>
-              <button onClick={clearError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 16, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
+              <button type="button" onClick={clearError} title="Закрыть" aria-label="Закрыть" className="icon-close-btn" style={{ color: 'var(--danger)', fontSize: 16, padding: '0 2px', flexShrink: 0 }}>×</button>
             </div>
           )}
           {/* Canvas */}
@@ -435,7 +435,7 @@ export default function MapScreen() {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <span style={{ font: '500 14px var(--font-ui)', color: 'var(--ink)' }}>Стиль карты</span>
-              <button onClick={() => setBgModalOpen(false)} aria-label="Закрыть" title="Закрыть" style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '20px var(--font-ui)', lineHeight: 1, padding: '0 2px' }}>×</button>
+              <button type="button" onClick={() => setBgModalOpen(false)} aria-label="Закрыть" title="Закрыть" className="icon-close-btn" style={{ fontSize: 20, padding: '0 2px' }}>×</button>
             </div>
 
             {/* Template picker */}

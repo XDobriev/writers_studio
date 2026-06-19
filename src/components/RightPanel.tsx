@@ -150,7 +150,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
         {noteError && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '8px 10px 0', padding: '6px 10px', borderRadius: 6, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 12 }}>
             <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{noteError}</span>
-            <button onClick={clearNoteError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 14, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
+            <button type="button" onClick={clearNoteError} className="icon-close-btn" style={{ color: 'var(--danger)', fontSize: 14, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
           </div>
         )}
         {activeTab === 'versions' && (
@@ -208,10 +208,11 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                       type="button"
                       aria-pressed={formKind === k}
                       onClick={() => setFormKind(k)}
+                      className="note-kind-chip"
                       style={{
-                        fontSize: 10.5, padding: '2.5px 7px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
+                        fontSize: 10.5, padding: '2.5px 7px', flexShrink: 0,
                         border: `1px solid ${formKind === k ? KIND_COLORS[k] : 'var(--border)'}`,
-                        background: formKind === k ? KIND_COLORS_SOFT[k] : 'transparent',
+                        ...(formKind === k ? { background: KIND_COLORS_SOFT[k] } : {}),
                         color: formKind === k ? KIND_COLORS[k] : 'var(--ink-3)',
                         transition: 'color 0.12s, border-color 0.12s, background 0.12s',
                       }}
@@ -222,10 +223,11 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                     type="button"
                     aria-pressed={formKind === 'custom'}
                     onClick={() => setFormKind('custom')}
+                    className="note-kind-chip"
                     style={{
-                      fontSize: 10.5, padding: '2.5px 7px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
+                      fontSize: 10.5, padding: '2.5px 7px', flexShrink: 0,
                       border: `1px solid ${formKind === 'custom' ? 'var(--border-strong)' : 'var(--border)'}`,
-                      background: formKind === 'custom' ? 'var(--surface-2)' : 'transparent',
+                      ...(formKind === 'custom' ? { background: 'var(--surface-2)' } : {}),
                       color: formKind === 'custom' ? 'var(--ink)' : 'var(--ink-3)',
                       transition: 'color 0.12s, border-color 0.12s, background 0.12s',
                     }}
@@ -285,10 +287,11 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                       key={k}
                       type="button"
                       onClick={() => setEditKind(k)}
+                      className="note-kind-chip"
                       style={{
-                        fontSize: 10.5, padding: '2.5px 7px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
+                        fontSize: 10.5, padding: '2.5px 7px', flexShrink: 0,
                         border: `1px solid ${editKind === k ? KIND_COLORS[k] : 'var(--border)'}`,
-                        background: editKind === k ? KIND_COLORS_SOFT[k] : 'transparent',
+                        ...(editKind === k ? { background: KIND_COLORS_SOFT[k] } : {}),
                         color: editKind === k ? KIND_COLORS[k] : 'var(--ink-3)',
                         transition: 'color 0.12s, border-color 0.12s, background 0.12s',
                       }}
@@ -298,10 +301,11 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   <button
                     type="button"
                     onClick={() => setEditKind('custom')}
+                    className="note-kind-chip"
                     style={{
-                      fontSize: 10.5, padding: '2.5px 7px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
+                      fontSize: 10.5, padding: '2.5px 7px', flexShrink: 0,
                       border: `1px solid ${editKind === 'custom' ? 'var(--border-strong)' : 'var(--border)'}`,
-                      background: editKind === 'custom' ? 'var(--surface-2)' : 'transparent',
+                      ...(editKind === 'custom' ? { background: 'var(--surface-2)' } : {}),
                       color: editKind === 'custom' ? 'var(--ink)' : 'var(--ink-3)',
                       transition: 'color 0.12s, border-color 0.12s, background 0.12s',
                     }}

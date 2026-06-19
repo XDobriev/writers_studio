@@ -257,10 +257,10 @@ function ColorPopover({ editor, kind }: ColorPopoverProps) {
               type="button"
               title={kind === 'text' ? 'По умолчанию' : 'Снять выделение'}
               onMouseDown={apply('')}
+              className="tb-icon-btn"
               style={{
                 height: 22, borderRadius: 5, padding: '0 8px',
                 border: '1px solid var(--border-soft)',
-                background: 'transparent', cursor: 'pointer',
                 fontSize: 11, color: 'var(--ink-3)',
               }}
             >
@@ -406,11 +406,8 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
                 title="Открыть ссылку"
                 aria-label="Открыть ссылку"
                 onMouseDown={openHref}
-                style={{
-                  width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-soft)',
-                  background: 'transparent', cursor: 'pointer', color: 'var(--ink-2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
+                className="tb-icon-btn"
+                style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-soft)', color: 'var(--ink-2)' }}
               ><Icon name="eye" size={13} /></button>
             )}
             {active && (
@@ -419,11 +416,8 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
                 title="Убрать ссылку"
                 aria-label="Убрать ссылку"
                 onMouseDown={remove}
-                style={{
-                  width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-soft)',
-                  background: 'transparent', cursor: 'pointer', color: 'var(--ink-2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
+                className="tb-icon-btn"
+                style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-soft)', color: 'var(--ink-2)' }}
               ><Icon name="unlink" size={13} /></button>
             )}
           </div>

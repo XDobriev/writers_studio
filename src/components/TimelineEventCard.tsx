@@ -95,6 +95,7 @@ export function TimelineEventCard({
           {(['plot', 'character', 'world', 'other'] as const).map((t) => (
             <button
               key={t}
+              type="button"
               onClick={() => onTypeChange(t)}
               aria-pressed={event.type === t}
               className={'chip' + (event.type === t ? ' chip--accent' : '')}
@@ -105,6 +106,7 @@ export function TimelineEventCard({
           ))}
           <div style={{ flex: 1 }} />
           <button
+            type="button"
             onClick={onDelete}
             title="Удалить событие"
             aria-label="Удалить событие"

@@ -20,10 +20,18 @@ export function useDebouncedSave<P extends object>(
     try {
       await onFlushRef.current(id, patch);
     } catch {
-      // merge: new changes (arrived during await) take precedence over stale patch
-      pendingPatchRef.current = { ...patch, ...(pendingPatchRef.current ?? {}) } as P;
+      // Возврат патча только если глава не сменилась за время запроса.
+      // Иначе патч принадлежит старой главе — подмешивать его в патч новой нельзя
+      // (это записало бы чужой контент). Падший патч старой главы теряется,
+      // но его страхует beforeunload-keepalive при закрытии вкладки.
+      if (targetIdRef.current === id) {
+        pendingPatchRef.current = { ...patch, ...(pendingPatchRef.current ?? {}) } as P;
+        if (!timerRef.current) {
+          timerRef.current = setTimeout(() => { void flush(); }, delay);
+        }
+      }
     }
-  }, []);
+  }, [delay]);
 
   const cancel = useCallback(() => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
@@ -32,6 +40,11 @@ export function useDebouncedSave<P extends object>(
   }, []);
 
   const scheduleSave = useCallback((id: string, patch: P) => {
+    // Смена главы при незаписанном патче: сбросить старый патч немедленно,
+    // не подмешивая его в патч новой главы (защита от записи чужого контента).
+    if (pendingPatchRef.current && targetIdRef.current && targetIdRef.current !== id) {
+      void flush();
+    }
     targetIdRef.current = id;
     pendingPatchRef.current = { ...(pendingPatchRef.current ?? {}), ...patch } as P;
     if (timerRef.current) clearTimeout(timerRef.current);

@@ -95,9 +95,9 @@ Deno.serve(async (req) => {
   const result2Url  = `${supabaseUrl}/functions/v1/payment-result2`;
 
   // Receipt (ФЗ-54): номенклатура для фискального чека.
-  // В строку подписи входит как raw минифицированный JSON (не URL-encoded).
-  // В URL параметр — URL-encoded.
-  // Порядок подписи: MerchantLogin:OutSum:InvId:ReceiptJSON:ResultUrl2:Password1:Shp_...
+  // Robokassa требует URL-кодировать Receipt ПЕРЕД включением в подпись:
+  // одна и та же encoded-строка идёт и в подпись, и в параметр URL.
+  // Порядок подписи: MerchantLogin:OutSum:InvId:Receipt:ResultUrl2:Password1:Shp_...
   const receipt: Record<string, unknown> = {
     items: [{
       name: DESCRIPTIONS[plan],
@@ -109,10 +109,10 @@ Deno.serve(async (req) => {
     }],
   };
   if (user.email) receipt['email'] = user.email;
-  const receiptJson    = JSON.stringify(receipt);          // raw JSON — для подписи
-  const receiptEncoded = encodeURIComponent(receiptJson);  // URL-encoded — для параметра
+  const receiptJson    = JSON.stringify(receipt);          // минифицированный JSON
+  const receiptEncoded = encodeURIComponent(receiptJson);  // URL-encoded — в подпись И в параметр
 
-  const sigString = `${merchantLogin}:${outSum}:${invId}:${receiptJson}:${result2Url}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
+  const sigString = `${merchantLogin}:${outSum}:${invId}:${receiptEncoded}:${result2Url}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
   const signature = md5hex(sigString);
 
   // Recurring: 'true' добавляем только после одобрения Robokassa (§1.7)

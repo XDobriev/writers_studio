@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useSearchParams, Navigate } from 'react-router-dom';
+import { useParams, useSearchParams, Navigate, Link } from 'react-router-dom';
 import { useErrorState } from '../lib/useErrorState';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { useQueryClient } from '@tanstack/react-query';
@@ -291,7 +291,7 @@ export default function Editor() {
     return (
       <div className="as page-fill--error">
         <div style={{ color: 'var(--danger)' }}>Ошибка: {error}</div>
-        <a href="/books" style={{ color: 'var(--accent)', fontSize: 13 }}>← К книгам</a>
+        <Link to="/books" style={{ color: 'var(--accent)', fontSize: 13 }}>← К книгам</Link>
       </div>
     );
   }

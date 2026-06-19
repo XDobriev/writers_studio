@@ -76,6 +76,7 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
         </div>
       </Link>
       <button
+        type="button"
         onClick={onEdit}
         title={`Редактировать: ${b.title}`}
         aria-label={`Редактировать: ${b.title}`}
@@ -83,7 +84,6 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
         style={{
           position: 'absolute', top: 10, right: 10, zIndex: 1,
           width: 28, height: 28, borderRadius: 6,
-          background: 'oklch(0.12 0.01 50 / 0.70)',
           border: '1px solid oklch(1 0 0 / 0.12)',
           backdropFilter: 'blur(6px)',
           cursor: 'pointer',

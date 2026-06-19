@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { todayLocalISODate } from './dates';
 
 interface Params {
   todayWords: number;
@@ -17,7 +18,7 @@ export function useGoalToast({ todayWords, dailyGoal }: Params): Result {
     const prev = prevTodayWords.current;
     prevTodayWords.current = todayWords;
     if (!dailyGoal || todayWords === prev) return;
-    const todayKey = `goal-toast-${new Date().toISOString().slice(0, 10)}`;
+    const todayKey = `goal-toast-${todayLocalISODate()}`;
     if (localStorage.getItem(todayKey)) return;
     if (prev < dailyGoal && todayWords >= dailyGoal) {
       const kind = todayWords >= dailyGoal * 1.5 ? 'exceeded' : 'reached';

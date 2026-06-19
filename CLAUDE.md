@@ -120,6 +120,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/profiles.ts` — `getProfile(userId)`, `getLifetimeSlotsRemaining()`, `getRegistrationOpen()` (читают `app_settings`), `markOnboarded`, `addWordToDictionary`.
 - `src/lib/editorFont.ts` — `EDITOR_FONTS`, `applyEditorFont`, `getStoredEditorFont`; CSS var `--font-editor`; dispatches `as-editor-font` CustomEvent для синхронизации SettingsModal ↔ StatusBar.
 - `src/lib/i18n.ts` — `plural(n, one, few, many)` и `pluralDays(n)`: канонические функции русской числовой морфологии.
+- `src/lib/dates.ts` — `toLocalISODate(date)`, `todayLocalISODate()`: дата YYYY-MM-DD в локальной таймзоне. Канонический способ получить «сегодня» — НЕ использовать `toISOString().slice(0,10)` (даёт UTC, сдвигает границу суток).
 - `src/lib/useVersionMutations.ts` — `createNamed(content, label)` и `remove(id)`: мутации версий с инвалидацией кеша; скрывает `QUERY_KEYS` и `queryClient` от `VersionsPanel`.
 - `src/lib/mapTemplates.ts` — 4 шаблона карты (`parchment`, `sea`, `paper`, `dark`): метаданные для пикера + `renderTemplateBgSvg` для off-screen экспорта.
 - `src/lib/mapExport.ts` — `generateMapPngBuffer` (SVG→canvas→PNG) и `triggerMapDownload`; используется из Map.tsx и Export.tsx.

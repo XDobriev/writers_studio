@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
+import { toLocalISODate } from './dates';
 
 export interface WritingStats {
   todayWords: number;
@@ -9,7 +10,7 @@ export interface WritingStats {
 
 function computeStats(data: Array<{ date: string; words: number }>): WritingStats {
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = toLocalISODate(today);
   const snap: Record<string, number> = {};
   for (const row of data) snap[row.date] = row.words;
 
@@ -20,10 +21,10 @@ function computeStats(data: Array<{ date: string; words: number }>): WritingStat
   let streak = 0;
   const cur = new Date(today);
   for (let i = 0; i < 31; i++) {
-    const curStr = cur.toISOString().slice(0, 10);
+    const curStr = toLocalISODate(cur);
     const prev = new Date(cur);
     prev.setDate(prev.getDate() - 1);
-    const prevStr = prev.toISOString().slice(0, 10);
+    const prevStr = toLocalISODate(prev);
     if ((snap[curStr] ?? 0) > (snap[prevStr] ?? 0)) {
       streak++;
       cur.setDate(cur.getDate() - 1);
@@ -44,7 +45,7 @@ export function useWritingStats(bookId: string | undefined): WritingStats & { re
       const today = new Date();
       const from = new Date(today);
       from.setDate(from.getDate() - 31);
-      const fromStr = from.toISOString().slice(0, 10);
+      const fromStr = toLocalISODate(from);
 
       const { data, error } = await supabase
         .from('writing_snapshots')

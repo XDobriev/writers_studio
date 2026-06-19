@@ -1,0 +1,4 @@
+# Robokassa вызывает ResultURL без Bearer token (JWT) — верификация отключена.
+# Аутентификация запроса — по MD5-подписи (Password2) внутри функции.
+[functions.robokassa-webhook]
+verify_jwt = false

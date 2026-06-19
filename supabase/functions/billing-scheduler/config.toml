@@ -1,0 +1,4 @@
+# Вызывается GitHub Actions cron с Bearer = SCHEDULER_SECRET (не Supabase-JWT) —
+# проверка JWT отключена, авторизация по SCHEDULER_SECRET внутри функции.
+[functions.billing-scheduler]
+verify_jwt = false

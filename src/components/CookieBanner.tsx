@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const KEY = 'cookie_consent_v1';
 
@@ -46,9 +47,9 @@ export function CookieBanner() {
     >
       <span style={{ flex: 1, lineHeight: 1.5 }}>
         Мы используем куки для авторизации и аналитики.{' '}
-        <a href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+        <Link to="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
           Политика&nbsp;конфиденциальности
-        </a>
+        </Link>
       </span>
       <button
         onClick={reject}

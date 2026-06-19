@@ -353,7 +353,7 @@ export default function Timeline() {
           {mutationError && (
             <div style={{ margin: '8px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 14px', borderRadius: 8, background: 'oklch(0.65 0.18 25 / 0.10)', border: '1px solid oklch(0.65 0.18 25 / 0.25)', color: 'var(--danger)', fontSize: 13, flexShrink: 0 }}>
               <span>{mutationError}</span>
-              <button onClick={clearError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 16, lineHeight: 1, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
+              <button type="button" onClick={clearError} className="icon-close-btn" style={{ color: 'var(--danger)', fontSize: 16, padding: '0 2px', flexShrink: 0 }} title="Закрыть" aria-label="Закрыть">×</button>
             </div>
           )}
           {/* Content */}
@@ -943,17 +943,12 @@ function EventDetailPanel({
           />
           <span style={{ font: '500 13px var(--font-ui)', flex: 1 }}>Детали события</span>
           <button
+            type="button"
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--ink-4)',
-              padding: '4px 8px',
-              font: '400 18px var(--font-ui)',
-              lineHeight: 1,
-              borderRadius: 4,
-            }}
+            className="icon-close-btn"
+            title="Закрыть"
+            aria-label="Закрыть"
+            style={{ color: 'var(--ink-4)', padding: '4px 8px', fontSize: 18, lineHeight: 1 }}
           >
             ×
           </button>

@@ -111,16 +111,13 @@ function BulkPovButton({
                     key={char.id}
                     type="button"
                     onClick={() => void handleApplyAll(char.id)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 7,
-                      width: '100%', padding: '5px 6px', borderRadius: 5,
-                      background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
-                    }}
+                    className="ctx-item"
+                    style={{ padding: '5px 6px', borderRadius: 5, gap: 7 }}
                   >
                     <span style={{
                       width: 18, height: 18, borderRadius: '50%', background: color,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9, color: 'white', fontWeight: 600, flexShrink: 0,
+                      fontSize: 9, color: 'oklch(0.98 0 0)', fontWeight: 600, flexShrink: 0,
                     }}>
                       {char.name[0]?.toUpperCase() ?? '?'}
                     </span>
@@ -191,11 +188,12 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
           aria-haspopup="true"
           aria-expanded={open}
           aria-label="Добавить POV-персонажа"
+          className="pov-pill"
           style={{
             display: 'flex', alignItems: 'center',
             height: 22, padding: '0 8px', borderRadius: 999,
-            border: '1px dashed var(--border)', background: 'transparent',
-            cursor: 'pointer', font: '500 10px var(--font-mono)',
+            border: '1px dashed var(--border)',
+            font: '500 10px var(--font-mono)',
             color: 'var(--ink-4)', letterSpacing: '0.08em',
           }}
         >
@@ -221,7 +219,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
             width: 16, height: 16, borderRadius: '50%',
             background: getCharacterColor(povEntries[0].character_index),
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 8, color: 'white', fontWeight: 600, flexShrink: 0,
+            fontSize: 8, color: 'oklch(0.98 0 0)', fontWeight: 600, flexShrink: 0,
           }}>
             {povEntries[0].character_name[0]?.toUpperCase() ?? '?'}
           </span>
@@ -241,11 +239,11 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
           aria-haspopup="true"
           aria-expanded={open}
           aria-label={`POV: ${povEntries.map(e => e.character_name).join(', ')}`}
+          className="pov-pill"
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
             height: 22, padding: '0 8px 0 4px', borderRadius: 999,
-            border: '1px solid var(--border)', background: 'transparent',
-            cursor: 'pointer',
+            border: '1px solid var(--border)',
           }}
         >
           <div style={{ display: 'flex' }}>
@@ -254,7 +252,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
                 width: 18, height: 18, borderRadius: '50%',
                 background: getCharacterColor(e.character_index),
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 8, color: 'white', fontWeight: 600, flexShrink: 0,
+                fontSize: 8, color: 'oklch(0.98 0 0)', fontWeight: 600, flexShrink: 0,
                 marginLeft: idx > 0 ? -5 : 0,
                 border: '2px solid var(--bg-deep)',
               }}>
@@ -293,17 +291,16 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
                 key={char.id}
                 type="button"
                 onClick={() => isPov ? handleRemove(char.id) : handleSet(char.id)}
+                className="ctx-item"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 7,
-                  width: '100%', padding: '5px 6px', borderRadius: 5,
-                  background: isPov ? `color-mix(in oklch, ${color} 12%, transparent)` : 'transparent',
-                  border: 'none', cursor: 'pointer', textAlign: 'left',
+                  padding: '5px 6px', borderRadius: 5, gap: 7,
+                  ...(isPov ? { background: `color-mix(in oklch, ${color} 12%, transparent)` } : {}),
                 }}
               >
                 <span style={{
                   width: 18, height: 18, borderRadius: '50%', background: color,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 9, color: 'white', fontWeight: 600, flexShrink: 0,
+                  fontSize: 9, color: 'oklch(0.98 0 0)', fontWeight: 600, flexShrink: 0,
                 }}>
                   {char.name[0]?.toUpperCase() ?? '?'}
                 </span>
@@ -344,12 +341,6 @@ interface RowProps {
   onPovChanged: () => void;
 }
 
-const MENU_ITEM: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 8,
-  padding: '6px 8px', width: '100%', borderRadius: 4,
-  background: 'transparent', cursor: 'pointer',
-  font: '400 12px var(--font-ui)', border: 'none', textAlign: 'left',
-};
 
 function SortableChapterRow({
   chapter: c,
@@ -535,7 +526,7 @@ function SortableChapterRow({
                 <button
                   type="button"
                   onClick={() => { setRenameFor(c.id); setMenuFor(null); }}
-                  style={{ ...MENU_ITEM, color: 'var(--ink)' }}
+                  className="ctx-item"
                 >
                   Переименовать
                 </button>
@@ -546,7 +537,7 @@ function SortableChapterRow({
                     if (c.words > 0) setDeleteConfirmFor(c.id);
                     else void onDelete(c.id);
                   }}
-                  style={{ ...MENU_ITEM, color: 'var(--danger)' }}
+                  className="ctx-item ctx-item--danger"
                 >
                   Удалить главу
                 </button>

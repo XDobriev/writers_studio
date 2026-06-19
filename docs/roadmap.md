@@ -35,6 +35,13 @@ _Обновлён: 2026-06-18_ — Сессия: E2E боевых платеже
 **Файлы:** `supabase/functions/create-payment-url/index.ts:119`
 **Проверить:** после оплаты → редирект на `/payment-success?Shp_plan=pro`; после отмены → `/books`
 
+### `process-refund` обращается к несуществующему Refund API Robokassa
+**Симптом:** Запрос возврата из Admin-панели всегда падает — функция бьёт в устаревший/несуществующий эндпоинт.
+**Причина:** код использует `services.robokassa.ru/RefundService/Refund/Create` + JWT(Password3) + поллинг `GetState` по `requestId`. Актуальный Operation API: `services.robokassa.ru/PartnerRegisterService/api/Operation/RefundOperation`, **HTTP Basic** (`Base64(login:password)`), тело JSON `{ RoboxPartnerId, OpKey, RefundSum }`, ответ `{ success, error, resultCode }` (без `requestId`). Дока: [partner-api/RefundOperation](https://docs.robokassa.ru/partner-api/MethodDescription/RefundOperation/), [partner-api/Authorization](https://docs.robokassa.ru/partner-api/Authorization/).
+**Файлы:** `supabase/functions/process-refund/index.ts`
+**Перед фиксом уточнить:** что является `RoboxPartnerId` и какой login/password идёт в Basic Auth (Secrets: вместо `ROBOKASSA_PASSWORD3` нужны credentials Operation API).
+**Проверить:** реальный платёж → возврат из Admin → `payments.refunded_at` NOT NULL, `profiles.plan = 'free'`.
+
 ---
 
 ## Задачи — критический путь
@@ -105,6 +112,7 @@ _Обновлён: 2026-06-18_ — Сессия: E2E боевых платеже
 - ✅ Pro → Lifetime: кнопка «Перейти на Lifetime» добавлена в SettingsModal для Pro-пользователей; `UpgradeModal` получил `skipPro` prop (2026-06-15)
 - ✅ §1.5 — лендинг сохраняет выбранный тариф через регистрацию → авто-редирект на Robokassa (2026-06-15): `LandingPricingSection` запускает оплату напрямую; `Auth.tsx` читает `plan` из URL / `sessionStorage.pending_plan` после входа
 - ✅ Чек ФЗ-54 в `create-payment-url` (2026-06-15): параметр `Receipt` с номенклатурой (`tax: none`, УСН) включён в MD5-подпись; требует деплоя Edge Function
+- ⚠️ **Receipt в подписи был raw JSON — исправлено на URL-encoded** (по [docs.robokassa.ru/ru/fiscalization](https://docs.robokassa.ru/ru/fiscalization)): теперь одна encoded-строка в MD5 и в URL. То же в `billing-scheduler`. **Требует деплоя + проверки реальным платежом с чеком** (тестовые чеки не фискализируются, подпись с Receipt боевым платежом ещё не проверялась)
 
 **Файлы:** `supabase/functions/robokassa-webhook/index.ts`, `supabase/functions/create-payment-url/index.ts`, `src/components/SettingsModal.tsx`
 **Проверить:** тестовый платёж → `profiles.plan = 'pro'` → SettingsModal показывает Pro; Lifetime → `lifetime_slots_remaining` убывает; чек на email

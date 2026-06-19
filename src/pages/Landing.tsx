@@ -497,7 +497,7 @@ function LandingFooter() {
             ]],
             ['Авторам', [
               { label: 'Войти', href: '/login' },
-              { label: 'Создать книгу', href: '/login?mode=register' },
+              { label: 'Создать книгу', href: '/login?tab=signup' },
             ]],
             ['Сообщество', [
               { label: 'Telegram', href: 'https://t.me/avtorstudio_app', icon: <TgIcon /> },

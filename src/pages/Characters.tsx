@@ -366,6 +366,7 @@ export default function Characters() {
                 {(['info', 'chapters'] as const).map((tab) => (
                   <button
                     key={tab}
+                    type="button"
                     onClick={() => setDetailTab(tab)}
                     className={`char-tab${detailTab === tab ? ' char-tab--on' : ''}`}
                   >

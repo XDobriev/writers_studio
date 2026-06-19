@@ -623,7 +623,7 @@ export function WorldMap({
               style={{ width: '100%', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 6, color: 'var(--ink-3)', padding: '6px 8px', font: '400 11px/1.55 var(--font-serif)', outline: 'none', resize: 'none', minHeight: 32, overflowY: 'hidden', marginBottom: 10, scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-soft)', paddingTop: 8 }}>
-              <button onClick={() => { onUpdate(selected.id, { x: null, y: null }); setSelectedId(null); }} style={{ font: '400 10px var(--font-ui)', color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <button type="button" className="map-popup-btn" onClick={() => { onUpdate(selected.id, { x: null, y: null }); setSelectedId(null); }}>
                 Снять с карты
               </button>
               <button
@@ -787,10 +787,10 @@ export function WorldMap({
             style={{ width: '100%', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 6, color: 'var(--ink-3)', padding: '7px 9px', font: '400 12px/1.55 var(--font-serif)', outline: 'none', resize: 'none', minHeight: 36, overflowY: 'hidden', marginBottom: 12 }}
           />
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => { onUpdate(selected.id, { x: null, y: null }); setSelectedId(null); }} style={{ flex: 1, height: 36, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 7, color: 'var(--ink-3)', font: '400 12px var(--font-ui)', cursor: 'pointer' }}>
+            <button type="button" className="map-loc-btn" onClick={() => { onUpdate(selected.id, { x: null, y: null }); setSelectedId(null); }}>
               Снять с карты
             </button>
-            <button onClick={() => { setSelectedId(null); onDelete(selected.id); }} style={{ flex: 1, height: 36, background: 'transparent', border: '1px solid var(--border)', borderRadius: 7, color: 'var(--ink-4)', font: '400 12px var(--font-ui)', cursor: 'pointer' }}>
+            <button type="button" className="map-loc-btn map-loc-btn--danger" onClick={() => { setSelectedId(null); onDelete(selected.id); }}>
               Удалить
             </button>
           </div>
