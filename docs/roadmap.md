@@ -1,10 +1,10 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-18_ — Сессия: E2E боевых платежей, отладка ResultUrl2 / payment-result2. Фискальный чек ФЗ-54 работает (номенклатура в ЛК Робокассы). ResultUrl2 перестал вызываться после серии 400-ответов — отправлен запрос в поддержку Robokassa. Рекуррентные §1.7 задеплоены, ожидают одобрения заявки от Robokassa.
+_Обновлён: 2026-06-19_ — Сессия: аудит интеграции Robokassa по документации. Исправлено: Receipt входил в MD5-подпись как raw JSON → теперь URL-encoded (`create-payment-url` + `billing-scheduler`); добавлен обязательный `Description` в рекуррентный запрос; `.insert().onConflict()` → `upsert`; добавлены `config.toml` (`verify_jwt=false`) для `billing-scheduler` и `robokassa-webhook`. Найден баг: `process-refund` бьёт в устаревший Refund API — нужна переписка на Operation API + Basic Auth. Требует деплоя + боевого платежа с чеком (IsTest=0). Ранее: E2E боевых платежей, отладка ResultUrl2 / payment-result2; ResultUrl2 перестал вызываться после серии 400; рекуррентные §1.7 ожидают одобрения заявки Robokassa.
 
 История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
-**Сейчас:** E2E возвраты заблокированы — ResultUrl2 не вызывается (поддержка Robokassa оповещена). После ответа поддержки: получить OpKey → протестировать refund-flow.
+**Сейчас:** передеплоить `create-payment-url` + `billing-scheduler` → проверить Receipt-подпись боевым платежом с чеком (IsTest=0). E2E возвраты заблокированы вдвойне: ResultUrl2 не вызывается (поддержка оповещена) + `process-refund` требует переписки на Operation API.
 
 ---
 
