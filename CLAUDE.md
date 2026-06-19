@@ -54,10 +54,14 @@ npm run preview    # превью продакшен-сборки
 - `src/components/RichEditor.tsx` — TipTap wrapper.
 - `src/components/EditorToolbar.tsx` — полноценный тулбар TipTap.
 - `src/components/RightPanel.tsx` — правая панель редактора: версии, персонажи главы, POV.
-- `src/components/SettingsModal.tsx` — настройки пользователя: тема, цель по словам, план.
+- `src/components/SettingsModal.tsx` — тонкий tab-shell настроек: переключение вкладок (profile/interface/subscription), focus-trap, секция помощи с горячими клавишами.
+- `src/components/SettingsProfileTab.tsx` — вкладка «Профиль»: имя, аккаунт, смена пароля, выход; самодостаточна, использует `useAuth()` внутри.
+- `src/components/SettingsInterfaceTab.tsx` — вкладка «Интерфейс»: тема (dark/light) и шрифт редактора с живым предпросмотром; управляет собственным состоянием.
+- `src/components/SettingsSubscriptionTab.tsx` — вкладка «Подписка»: план, возврат, апгрейд; использует `useSubscription`, монтирует `UpgradeModal` и `ConfirmDialog`.
 - `src/components/StatusBar.tsx` — статус-бар: ambient sounds, темп письма, автосохранение.
 - `src/components/ConfirmDialog.tsx` — диалог подтверждения (заменяет `window.confirm`).
 - `src/components/UpgradePrompt.tsx` — модальный пейволл: замок + текст + кнопка «Перейти на Pro» → `/offer`. Принимает `feature` (`characters`|`timeline`|`export`|`books`) и `onClose`.
+- `src/components/UpgradeModal.tsx` — полный флоу покупки Pro/Lifetime: список фичей, цена, чекбокс согласия на рекуррентные списания, кнопка оплаты через `create-payment-url`.
 - `src/components/GenrePicker.tsx` — мультиселект жанров (`genres text[]`).
 - `src/components/Skeleton.tsx` — скелетон-загрузка для async-состояний.
 - `src/components/VersionsPanel.tsx` + `VersionModal.tsx` — UI снапшотов/версий.
@@ -129,6 +133,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/activity.ts` — `computeActivityData(snapshots, today?)`: чистая функция расчёта heatmap-активности дашборда (cells/weeks/streak/cumulativeLine). Локальные даты, параметр `today` для тестов. Покрыта `activity.test.ts`.
 - `src/lib/useCreateOnMount.ts` — `useCreateOnMount(action)`: если в URL `?create=true` — один раз вызывает action и убирает параметр. Используется в Timeline/Notes/Outline для «создать сразу при переходе».
 - `src/lib/useVersionMutations.ts` — `createNamed(content, label)` и `remove(id)`: мутации версий с инвалидацией кеша; скрывает `QUERY_KEYS` и `queryClient` от `VersionsPanel`.
+- `src/lib/useSubscription.ts` — хук `useSubscription(userId, fetchPayments)`: загрузка плана из профиля, последний Pro-платёж, логика возврата через `process-refund`; экспортирует тип `Plan`.
 - `src/lib/mapTemplates.ts` — 4 шаблона карты (`parchment`, `sea`, `paper`, `dark`): метаданные для пикера + `renderTemplateBgSvg` для off-screen экспорта.
 - `src/lib/mapExport.ts` — `generateMapPngBuffer` (SVG→canvas→PNG) и `triggerMapDownload`; используется из Map.tsx и Export.tsx.
 - `src/lib/mapStamps.ts` — `StampType`, `MapStamp`, `STAMP_SVG` (10 типов), `STAMP_LABELS`, `STAMP_BASE_SCALE`; CRUD через `createRepository`; используется в MapStampsLayer, StampPopup, mapExport.
