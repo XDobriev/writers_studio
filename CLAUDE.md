@@ -74,6 +74,8 @@ npm run preview    # превью продакшен-сборки
 - `src/components/CharacterChaptersTab.tsx` — вкладка «Главы» детальной карточки: POV-главы и упоминания персонажа по главам.
 - `src/components/TimelineEventCard.tsx` — карточка события хронологии: редактирование типа, названия, описания, эпохи, главы.
 - `src/components/TimelineFilters.tsx` — фильтры хронологии по слоям; `variant="sidebar"|"mobile"` унифицирует два варианта рендера.
+- `src/components/TimelineLane.tsx` — горизонтальная лента хронологии: LANE_* константы, SortableNode, DragCard, DnD-контекст; вынесена из Timeline.tsx.
+- `src/components/EventDetailPanel.tsx` — боковая панель деталей события хронологии: полный a11y (role/aria-modal/tabIndex/focus/Escape/Tab-trap); вынесена из Timeline.tsx.
 - `src/components/PasswordInput.tsx` — поле пароля с toggle-глазом; управляет своим show-состоянием сам.
 - `src/components/AccountMenu.tsx` — переиспользуемый дропдаун аккаунта (Настройки + Выйти); render-prop `children` для кастомного триггера; `placement="above"|"below"`.
 - `src/components/PageMotion.tsx` — обёртка `motion.div` для анимации переходов между страницами (fade via `pageVariants`); используется в `App.tsx` на каждом маршруте.
