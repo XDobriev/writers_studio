@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import type { CSSProperties } from 'react';
 import {
   DndContext,
@@ -25,6 +26,7 @@ const LANE_DOT_D = 12;
 const LANE_NODE_W = 168;
 const LANE_NODE_H = LANE_ZONE_H * 2 + LANE_CONN_H * 2 + LANE_DOT_D;
 const LANE_AXIS_Y = LANE_ZONE_H + LANE_CONN_H + LANE_DOT_D / 2;
+const ROW_H = LANE_NODE_H + 54; // row label ~20px + connector gap ~34px
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
   return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
@@ -72,6 +74,15 @@ export function TimelineLane({
   const eventsPerRow = containerWidth > 0 ? Math.max(3, Math.floor((containerWidth - 80) / LANE_NODE_W)) : 0;
   const rows = eventsPerRow > 0 ? chunkArray(events, eventsPerRow) : [];
 
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => ROW_H,
+    paddingStart: 24,
+    paddingEnd: 24,
+    overscan: 2,
+  });
+
   return (
     <div
       ref={containerRef}
@@ -108,11 +119,23 @@ export function TimelineLane({
           onDragCancel={handleDragCancel}
         >
           <SortableContext items={events.map((e) => e.id)} strategy={rectSortingStrategy}>
-            <div style={{ padding: '24px 40px' }}>
-              {rows.map((rowEvents, rowIndex) => {
+            <div style={{ position: 'relative', height: rowVirtualizer.getTotalSize() }}>
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const rowIndex = virtualRow.index;
+                const rowEvents = rows[rowIndex];
                 const isLastRow = rowIndex === rows.length - 1;
                 return (
-                  <div key={rowIndex}>
+                  <div
+                    key={virtualRow.key}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      transform: `translateY(${virtualRow.start}px)`,
+                      padding: '0 40px',
+                    }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <span
                         style={{
