@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useParams } from 'react-router-dom';
 import { useCreateOnMount } from '../lib/useCreateOnMount';
@@ -286,6 +286,12 @@ export default function Notes() {
     setConfirmDelete({ id, text: note?.text ?? '' });
   };
 
+  const chapterMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (chapters ?? []).forEach(c => m.set(c.id, c.title || 'Глава'));
+    return m;
+  }, [chapters]);
+
   if (!bookId) return <Navigate to="/books" replace />;
 
   if (queryError) {
@@ -305,9 +311,9 @@ export default function Notes() {
     );
   }
 
-  const chapterFiltered = activeChapterId ? (notes ?? []).filter(n => n.chapter_id === activeChapterId) : (notes ?? []);
+  const chapterFiltered = activeChapterId ? notes.filter(n => n.chapter_id === activeChapterId) : notes;
   const filtered = filterKind === 'all' ? chapterFiltered : chapterFiltered.filter((n) => n.kind === filterKind);
-  const activeChapter = chapters?.find(c => c.id === activeChapterId) ?? null;
+  const activeChapterTitle = activeChapterId ? (chapterMap.get(activeChapterId) ?? 'Без названия') : null;
 
   const colorSwatch = (color: BaseKind, selected: string, onSelect: (c: BaseKind) => void) => (
     <button
@@ -387,9 +393,9 @@ export default function Notes() {
           }}>
             <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Заметки</span>
             <span className="chip">{filtered.length}</span>
-            {activeChapter && (
+            {activeChapterTitle && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px 3px 10px', borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-2)' }}>
-                <span>{activeChapter.title || 'Без названия'}</span>
+                <span>{activeChapterTitle}</span>
                 <button
                   onClick={() => setActiveChapterId(null)}
                   style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: '3px 5px', fontSize: 14, lineHeight: 1, minHeight: 24 }}
