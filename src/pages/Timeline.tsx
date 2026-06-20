@@ -111,6 +111,8 @@ export default function Timeline() {
     [bookId, queryClient, setError]
   );
 
+  const handleCloseDetail = useCallback(() => setActiveEventId(null), []);
+
   const handleDelete = useCallback((id: string) => {
     setConfirmDeleteId(id);
   }, []);
@@ -400,7 +402,7 @@ export default function Timeline() {
           chapters={chapters}
           onUpdate={(patch) => handleUpdate(activeEvent.id, patch)}
           onDelete={() => handleDelete(activeEvent.id)}
-          onClose={() => setActiveEventId(null)}
+          onClose={handleCloseDetail}
         />
       )}
 

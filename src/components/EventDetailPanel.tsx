@@ -19,8 +19,9 @@ export function EventDetailPanel({
   const panelRef = useRef<HTMLDivElement>(null);
   const color = TYPE_COLORS[event.type];
 
+  useEffect(() => { panelRef.current?.focus(); }, []);
+
   useEffect(() => {
-    panelRef.current?.focus();
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); onClose(); }
     };
