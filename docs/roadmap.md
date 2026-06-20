@@ -1,10 +1,10 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-21_ — §7 отмена подписки: `cancel-subscription` Edge Function задеплоена, `cancel_at_period_end` flow проверен E2E (cancel + resume, оба состояния). `billing-scheduler` даунгрейдит истёкшие отменённые планы. `process-refund` требует переписки под актуальный Operation API (JWT+Password3 в v5 — устаревший подход). Ранее: устранена ошибка 29 Робокассы (Receipt в подписи raw JSON, не URL-encoded); боевой платёж 1₽ прошёл; ResultUrl2 не вызывается Robokassa — поддержка оповещена.
+_Обновлён: 2026-06-21_ — §1.7 рекуррентные платежи: `billing-scheduler` задеплоен и проверен E2E (processed: 1, Robokassa получила запрос); цена Pro возвращена на 399₽. Ранее: §7 отмена подписки (`cancel-subscription`), `billing-scheduler` даунгрейд истёкших планов. `process-refund` требует переписки под актуальный Operation API.
 
 История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
-**Сейчас:** E2E возвраты заблокированы: ResultUrl2 не вызывается Robokassa (поддержка оповещена) → `op_key` NULL → `process-refund` неработоспособен. `process-refund` v5 (JWT+Password3, `RefundService/Refund/Create`) — **устаревший API, требует полной переписки** под Operation API (HTTP Basic, эндпоинт `PartnerRegisterService/api/Operation/RefundOperation`). ⚠️ `create-payment-url`: цена Pro = `'1.00'` (тестовое значение) — сбросить на `399.00` перед боевым использованием.
+**Сейчас:** E2E возвраты заблокированы: ResultUrl2 не вызывается Robokassa (поддержка оповещена) → `op_key` NULL → `process-refund` неработоспособен. `process-refund` v5 (JWT+Password3, `RefundService/Refund/Create`) — **устаревший API, требует полной переписки** под Operation API (HTTP Basic, эндпоинт `PartnerRegisterService/api/Operation/RefundOperation`).
 
 ---
 
@@ -111,11 +111,7 @@ _Обновлён: 2026-06-21_ — §7 отмена подписки: `cancel-su
 - ✅ GitHub Actions cron `.github/workflows/billing-scheduler.yml` (06:05 UTC, `workflow_dispatch` для ручного запуска)
 - ✅ Рекуррентные платежи активированы поддержкой Робокассы (2026-06-20)
 
-**Что осталось (ручные действия — 15 минут):**
-- ⏳ Сгенерировать `SCHEDULER_SECRET`: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-- ⏳ Supabase Secrets: https://supabase.com/dashboard/project/joaxeoavjvlqmtlepkrr/settings/functions — добавить `ROBOKASSA_RECURRING_ENABLED=true` + `SCHEDULER_SECRET=<значение>`
-- ⏳ GitHub Secrets: https://github.com/XDobriev/writers_studio/settings/secrets/actions — добавить `SCHEDULER_SECRET=<то же значение>`
-- ⏳ Проверить ручной запуск: Actions → billing-scheduler → Run workflow → ожидаем HTTP 200 + `processed: 0`
+**E2E-проверка (2026-06-21):** симуляция с тестовым аккаунтом — `processed: 1`, запрос до Robokassa дошёл, ответ `Recurring: Internal ERROR` ожидаем (тестовый режим не видит боевой `PreviousInvoiceID`). Логика планировщика верна.
 
 **Dunning-цепочка при сбое → §5** (email-триггеры, реализовать вместе с retention)
 
