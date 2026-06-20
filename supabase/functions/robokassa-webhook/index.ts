@@ -167,8 +167,11 @@ Deno.serve(async (req) => {
       cancel_at_period_end: false,
     };
     if (isGrandfathering) updateData.grandfathered = true;
-    // Первый платёж — сохраняем InvId для будущих рекуррентных списаний
-    if (!existing?.recurring_inv_id) updateData.recurring_inv_id = invId;
+    // Первый платёж — сохраняем InvId и тип интервала для рекуррентного планировщика
+    if (!existing?.recurring_inv_id) {
+      updateData.recurring_inv_id = invId;
+      updateData.plan_interval = shpPlan === 'pro_annual' ? 'annual' : 'monthly';
+    }
 
     const { data: updatedPro, error } = await db
       .from('profiles')
