@@ -107,8 +107,10 @@ function BulkPovButton({
               }}>
                 Применить POV ко всем главам
               </div>
+              <div style={{ overflowY: 'auto', maxHeight: 240 }}>
               {characters.map((char, idx) => {
                 const color = getCharacterColor(idx);
+                const displayName = char.name || 'Без имени';
                 return (
                   <button
                     key={char.id}
@@ -117,13 +119,14 @@ function BulkPovButton({
                     className="ctx-item"
                     style={{ padding: '5px 6px', borderRadius: 5, gap: 7 }}
                   >
-                    <CharacterAvatar name={char.name} color={color} />
+                    <CharacterAvatar name={displayName} color={color} />
                     <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-2)', flex: 1 }}>
-                      {char.name}
+                      {displayName}
                     </span>
                   </button>
                 );
               })}
+              </div>
             </div>
           )}
         </>
@@ -273,9 +276,11 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
           }}>
             POV персонаж
           </div>
+          <div style={{ overflowY: 'auto', maxHeight: 240 }}>
           {allCharacters.map((char, idx) => {
             const isPov = povEntries.some((e) => e.character_id === char.id);
             const color = getCharacterColor(idx);
+            const displayName = char.name || 'Без имени';
             return (
               <button
                 key={char.id}
@@ -287,9 +292,9 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
                   ...(isPov ? { background: `color-mix(in oklch, ${color} 12%, transparent)` } : {}),
                 }}
               >
-                <CharacterAvatar name={char.name} color={color} />
+                <CharacterAvatar name={displayName} color={color} />
                 <span style={{ font: '400 12px var(--font-ui)', color: isPov ? color : 'var(--ink-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-                  {char.name}
+                  {displayName}
                 </span>
                 {isPov && (
                   <span style={{ font: '400 10px var(--font-ui)', color: 'var(--ink-4)' }}>✕</span>
@@ -297,6 +302,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
               </button>
             );
           })}
+          </div>
           </div>}
         </>
       )}
