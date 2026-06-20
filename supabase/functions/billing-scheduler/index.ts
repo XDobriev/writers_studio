@@ -21,8 +21,14 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const PRO_PRICE_BASE        = '399.00';
-const PRO_PRICE_GRANDFATHERED = '290.00';
+const PRICES = {
+  monthly: { base: '399.00', grandfathered: '290.00' },
+  annual:  { base: '3490.00', grandfathered: '2900.00' },
+};
+const DESCRIPTIONS: Record<string, string> = {
+  monthly: 'Подписка Pro — Авторская студия',
+  annual:  'Подписка Pro (год) — Авторская студия',
+};
 const RECURRING_URL = 'https://auth.robokassa.ru/Merchant/Recurring';
 
 function json(status: number, body: unknown): Response {
@@ -41,6 +47,7 @@ type Profile = {
   plan_expires_at: string;
   recurring_inv_id: string;
   grandfathered: boolean;
+  plan_interval: 'monthly' | 'annual';
 };
 
 Deno.serve(async (req) => {
@@ -75,7 +82,7 @@ Deno.serve(async (req) => {
 
   const { data: profiles, error: fetchErr } = await db
     .from('profiles')
-    .select('user_id, plan_expires_at, recurring_inv_id, grandfathered')
+    .select('user_id, plan_expires_at, recurring_inv_id, grandfathered, plan_interval')
     .eq('plan', 'pro')
     .eq('cancel_at_period_end', false)
     .not('recurring_inv_id', 'is', null)
@@ -92,8 +99,11 @@ Deno.serve(async (req) => {
   const results: { user_id: string; inv_id?: string; error?: string }[] = [];
 
   for (const profile of rows) {
-    const outSum   = profile.grandfathered ? PRO_PRICE_GRANDFATHERED : PRO_PRICE_BASE;
-    const newInvId = String(Date.now()) + Math.floor(Math.random() * 1000);
+    const interval    = profile.plan_interval ?? 'monthly';
+    const outSum      = profile.grandfathered ? PRICES[interval].grandfathered : PRICES[interval].base;
+    const description = DESCRIPTIONS[interval];
+    const shpPlan     = interval === 'annual' ? 'pro_annual' : 'pro';
+    const newInvId    = String(Date.now()) + Math.floor(Math.random() * 1000);
 
     // Получаем email для чека (ФЗ-54 / РобоЧеки СМЗ)
     const { data: { user: authUser } } = await db.auth.admin.getUserById(profile.user_id);
@@ -101,7 +111,7 @@ Deno.serve(async (req) => {
 
     const receiptObj: Record<string, unknown> = {
       items: [{
-        name:            'Подписка Pro — Авторская студия',
+        name:            description,
         quantity:        1,
         sum:             parseFloat(outSum),
         payment_method:  'full_payment',
@@ -113,21 +123,25 @@ Deno.serve(async (req) => {
     const receiptJson    = JSON.stringify(receiptObj);
     const receiptEncoded = encodeURIComponent(receiptJson);
 
-    // При наличии Receipt подпись: MerchantLogin:OutSum:InvId:Receipt:Password1
-    // Receipt входит в подпись в URL-encoded виде (как и в боевой ссылке).
-    const sigString = `${merchantLogin}:${outSum}:${newInvId}:${receiptEncoded}:${password1}`;
+    // Подпись дочернего платежа: MerchantLogin:OutSum:InvId:Receipt(raw JSON):Password1:Shp_plan=...:Shp_user_id=...
+    // Receipt в подписи — raw minimized JSON (не URL-encoded) — docs.robokassa.ru/ru/pay-interface
+    // PreviousInvoiceID в подпись НЕ входит — docs.robokassa.ru/ru/recurring-payments
+    // Shp_* — алфавитный порядок: Shp_plan < Shp_user_id
+    const sigString = `${merchantLogin}:${outSum}:${newInvId}:${receiptJson}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${profile.user_id}`;
     const signature = md5hex(sigString);
 
     const body = new URLSearchParams({
       MerchantLogin:     merchantLogin,
       InvId:             newInvId,
       OutSum:            outSum,
-      Description:       'Подписка Pro — Авторская студия',
+      Description:       description,
       PreviousInvoiceID: profile.recurring_inv_id,
       SignatureValue:    signature,
       IsTest:            isTestMode ? '1' : '0',
+      Shp_plan:          shpPlan,
+      Shp_user_id:       profile.user_id,
     });
-    // Receipt добавляем вручную — encodeURIComponent, без двойного кодирования
+    // Receipt добавляем вручную — encodeURIComponent, без двойного кодирования URLSearchParams
     const bodyStr = `${body.toString()}&Receipt=${receiptEncoded}`;
 
     try {
@@ -165,7 +179,7 @@ Deno.serve(async (req) => {
         admin_email:    'system',
         action:         'recurring_charge_initiated',
         target_user_id: profile.user_id,
-        payload:        { inv_id: newInvId, amount: outSum, previous_inv_id: profile.recurring_inv_id, has_receipt: true },
+        payload:        { inv_id: newInvId, amount: outSum, previous_inv_id: profile.recurring_inv_id, has_receipt: true, plan_interval: interval },
       });
 
       results.push({ user_id: profile.user_id, inv_id: newInvId });
