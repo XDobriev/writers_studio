@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './auth';
 import { supabase } from './supabase';
+import { getProfile } from './profiles';
 
 export function usePostAuthRedirect() {
   const { session } = useAuth();
@@ -28,6 +29,12 @@ export function usePostAuthRedirect() {
       setRedirectingToPay(true);
       void (async () => {
         try {
+          const profile = await getProfile(session.user.id);
+          if (profile && (profile.plan === 'pro' || profile.plan === 'pro_annual' || profile.plan === 'lifetime')) {
+            setRedirectingToPay(false);
+            navigate('/books', { replace: true });
+            return;
+          }
           const { data, error } = await supabase.functions.invoke('create-payment-url', {
             body: { plan },
           });

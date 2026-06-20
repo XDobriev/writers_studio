@@ -2,9 +2,10 @@
 //
 // Авторизованный endpoint: пользователь запрашивает возврат Pro-подписки.
 // Условие: plan=pro, paid_at ≤ 14 дней назад, refunded_at IS NULL, op_key IS NOT NULL.
-// Вызывает Robokassa Refund API (JWT + Password3), обновляет profiles и payments.
+// Вызывает Robokassa Refund API: POST /RefundService/Refund/Create (JWT, подпись Password3).
+// Статус поллится через GET /RefundService/Refund/GetState?id=<requestId>.
 //
-// Обязательные Secrets: ROBOKASSA_PASSWORD3, ROBOKASSA_TEST_PASSWORD3
+// Обязательные Secrets: ROBOKASSA_PASSWORD3
 // Автоматические: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
@@ -21,42 +22,38 @@ function json(status: number, body: unknown): Response {
   });
 }
 
-function base64url(buf: ArrayBuffer | Uint8Array): string {
-  const bytes = buf instanceof ArrayBuffer ? new Uint8Array(buf) : buf;
-  const b64 = btoa(String.fromCharCode(...bytes));
-  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+function base64url(data: Uint8Array): string {
+  return btoa(String.fromCharCode(...data))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 async function buildJwt(payload: Record<string, unknown>, secret: string): Promise<string> {
-  const header  = base64url(new TextEncoder().encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
-  const body    = base64url(new TextEncoder().encode(JSON.stringify(payload)));
-  const signing = `${header}.${body}`;
+  const enc = new TextEncoder();
+  const header = base64url(enc.encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
+  const body   = base64url(enc.encode(JSON.stringify(payload)));
   const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
+    'raw', enc.encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
+    false, ['sign'],
   );
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signing));
-  return `${signing}.${base64url(sig)}`;
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(`${header}.${body}`));
+  return `${header}.${body}.${base64url(new Uint8Array(sig))}`;
 }
 
-type RefundStatus = 'finished' | 'processing' | 'canceled';
-
-async function pollStatus(requestId: string): Promise<RefundStatus> {
-  const url = `https://services.robokassa.ru/RefundService/Refund/GetState?id=${encodeURIComponent(requestId)}`;
-  for (let i = 0; i < 5; i++) {
-    if (i > 0) await new Promise((r) => setTimeout(r, 2000));
+async function pollStatus(requestId: string): Promise<'finished' | 'canceled' | 'processing'> {
+  for (let i = 0; i < 10; i++) {
+    await new Promise(r => setTimeout(r, 2000));
     try {
-      const res = await fetch(url);
-      if (!res.ok) continue;
-      const data = await res.json() as { label?: string };
-      if (data.label === 'finished') return 'finished';
-      if (data.label === 'canceled') return 'canceled';
-    } catch (e) {
-      console.warn('[process-refund] poll error:', e);
-    }
+      const res = await fetch(
+        `https://services.robokassa.ru/RefundService/Refund/GetState?id=${requestId}`,
+      );
+      if (res.ok) {
+        const data = await res.json() as { label?: string };
+        if (data.label === 'finished' || data.label === 'canceled') {
+          return data.label as 'finished' | 'canceled';
+        }
+      }
+    } catch { /* retry */ }
   }
   return 'processing';
 }
@@ -67,13 +64,10 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const isTestMode  = Deno.env.get('ROBOKASSA_IS_TEST') === 'true';
-  const password3   = isTestMode
-    ? Deno.env.get('ROBOKASSA_TEST_PASSWORD3')?.trim()
-    : Deno.env.get('ROBOKASSA_PASSWORD3')?.trim();
+  const password3   = Deno.env.get('ROBOKASSA_PASSWORD3')?.trim();
 
   if (!supabaseUrl || !serviceKey || !password3) {
-    console.error('[process-refund] missing env');
+    console.error('[process-refund] missing env:', { supabaseUrl: !!supabaseUrl, serviceKey: !!serviceKey, password3: !!password3 });
     return json(500, { error: 'server misconfigured' });
   }
 
@@ -86,7 +80,7 @@ Deno.serve(async (req) => {
   const { data: { user }, error: userError } = await db.auth.getUser(token);
   if (userError || !user) return json(401, { error: 'invalid token' });
 
-  // Проверить текущий план — Lifetime не возвращается
+  // Lifetime не возвращается
   const { data: profile } = await db
     .from('profiles')
     .select('plan')
@@ -96,7 +90,7 @@ Deno.serve(async (req) => {
     return json(403, { error: 'lifetime_non_refundable' });
   }
 
-  // Найти последний Pro-платёж в 14-дневном окне
+  // Последний Pro-платёж в 14-дневном окне
   const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const { data: payment, error: payErr } = await db
     .from('payments')
@@ -116,21 +110,21 @@ Deno.serve(async (req) => {
   if (!payment) return json(422, { error: 'refund_not_eligible' });
   if (!payment.op_key) return json(422, { error: 'op_key_missing' });
 
-  // Построить JWT для Robokassa Refund API
-  const jwtPayload = { OpKey: payment.op_key, RefundSum: Number(payment.amount) };
-  const jwt = await buildJwt(jwtPayload, password3);
-
-  // Вызвать Robokassa Refund API
+  // Robokassa Refund API — JWT подписан Password3
   let requestId: string;
   try {
+    const jwt = await buildJwt(
+      { OpKey: payment.op_key, RefundSum: Number(payment.amount) },
+      password3,
+    );
     const res = await fetch('https://services.robokassa.ru/RefundService/Refund/Create', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: jwt,
     });
     const data = await res.json() as { success?: boolean; message?: string; requestId?: string };
     if (!data.success || !data.requestId) {
-      console.error('[process-refund] Robokassa rejected refund:', JSON.stringify(data));
+      console.error('[process-refund] Robokassa rejected:', JSON.stringify(data));
       return json(502, { error: 'robokassa_error', message: data.message ?? 'rejected' });
     }
     requestId = data.requestId;
@@ -139,24 +133,22 @@ Deno.serve(async (req) => {
     return json(502, { error: 'robokassa_unreachable' });
   }
 
-  console.log(`[process-refund] requestId=${requestId} userId=${user.id} opKey=${payment.op_key}`);
-
-  // Поллинг статуса — ждём до 10 сек
-  const status = await pollStatus(requestId);
-  if (status === 'canceled') {
-    console.error('[process-refund] refund canceled by Robokassa, requestId:', requestId);
+  const label = await pollStatus(requestId);
+  if (label === 'canceled') {
+    console.error(`[process-refund] refund canceled requestId=${requestId}`);
     return json(502, { error: 'refund_canceled' });
   }
 
-  // finished или processing (таймаут) — оптимистично обновляем БД
+  console.log(`[process-refund] refund ok userId=${user.id} opKey=${payment.op_key} status=${label}`);
+
   const now = new Date().toISOString();
   const [profileUpdate, paymentUpdate] = await Promise.all([
     db.from('profiles').update({ plan: 'free', plan_expires_at: null }).eq('user_id', user.id),
-    db.from('payments').update({ refunded_at: now, refund_request_id: requestId }).eq('id', payment.id),
+    db.from('payments').update({ refunded_at: now }).eq('id', payment.id),
   ]);
 
   if (profileUpdate.error) console.error('[process-refund] profile update failed:', profileUpdate.error.message);
   if (paymentUpdate.error) console.error('[process-refund] payment update failed:', paymentUpdate.error.message);
 
-  return json(200, { success: true, status });
+  return json(200, { success: true });
 });

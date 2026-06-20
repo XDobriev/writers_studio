@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
   const invId       = String(Date.now());
   const shpPlan     = plan;
   const shpUserId   = user.id;
+  const appUrl      = (Deno.env.get('APP_URL') ?? 'https://avtorstudio.com').replace(/\/$/, '');
   const result2Url  = `${supabaseUrl}/functions/v1/payment-result2`;
 
   // Receipt (ФЗ-54): номенклатура для фискального чека.
@@ -125,6 +126,8 @@ Deno.serve(async (req) => {
     IsTest:         isTestMode ? '1' : '0',
     Culture:        'ru',
     ResultUrl2:     result2Url,
+    SuccessUrl:     `${appUrl}/payment-success`,
+    FailUrl:        `${appUrl}/books`,
     Shp_plan:       shpPlan,
     Shp_user_id:    shpUserId,
   });

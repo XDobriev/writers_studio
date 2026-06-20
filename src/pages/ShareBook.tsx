@@ -66,8 +66,12 @@ export default function ShareBook() {
 
   if (state === 'error') {
     return (
-      <div className="as" style={{ height: '100vh', display: 'grid', placeItems: 'center', background: 'var(--bg-deep)' }}>
-        <span style={{ font: '400 0.875rem var(--font-ui)', color: 'var(--ink-3)' }}>Ошибка загрузки</span>
+      <div className="as" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, background: 'var(--bg-deep)' }}>
+        <div style={{ font: '300 6rem/1 var(--font-serif)', color: 'var(--ink-4)' }}>!</div>
+        <div style={{ font: '400 1rem var(--font-serif)', color: 'var(--ink-2)', marginTop: 16 }}>Не удалось загрузить книгу</div>
+        <Link to="/" style={{ marginTop: 24, font: '400 0.8125rem var(--font-ui)', color: 'var(--ink-3)', textDecoration: 'underline' }}>
+          На главную
+        </Link>
       </div>
     );
   }

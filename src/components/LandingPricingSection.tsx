@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { revealVariants } from '../lib/motion';
 import { AnimatedPricingCard } from './AnimatedPricingCard';
-import { getLifetimeSlotsRemaining } from '../lib/profiles';
+import { getLifetimeSlotsRemaining, getProfile } from '../lib/profiles';
 import { SectionLabel } from './LandingSectionLabel';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -32,6 +32,11 @@ export function LandingPricing() {
     }
     setLoadingPlan(planKey);
     try {
+      const profile = await getProfile(session.user.id);
+      if (profile && (profile.plan === 'pro' || profile.plan === 'pro_annual' || profile.plan === 'lifetime')) {
+        navigate('/books');
+        return;
+      }
       const { data, error } = await supabase.functions.invoke('create-payment-url', {
         body: { plan: planKey },
       });
