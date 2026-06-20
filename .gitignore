@@ -32,6 +32,7 @@ fix-*.png
 fix-*.json
 iter*.png
 loop*.png
+loop-shots/
 landing-*.png
 report.html
 report.json
