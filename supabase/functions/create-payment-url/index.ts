@@ -9,7 +9,7 @@ const CORS = {
 };
 
 const BASE_PRICES: Record<string, string> = {
-  pro:        '1.00', // E2E test — вернуть 399.00 после прогона
+  pro:        '1.00', // временно для боевого прогона — вернуть 399.00
   pro_annual: '3490.00',
   lifetime:   '4990.00',
 };
@@ -92,13 +92,11 @@ Deno.serve(async (req) => {
   const invId       = String(Date.now());
   const shpPlan     = plan;
   const shpUserId   = user.id;
-  const appUrl      = (Deno.env.get('APP_URL') ?? 'https://avtorstudio.com').replace(/\/$/, '');
   const result2Url  = `${supabaseUrl}/functions/v1/payment-result2`;
 
-  // Receipt (ФЗ-54): номенклатура для фискального чека.
-  // Robokassa требует URL-кодировать Receipt ПЕРЕД включением в подпись:
-  // одна и та же encoded-строка идёт и в подпись, и в параметр URL.
-  // Порядок подписи: MerchantLogin:OutSum:InvId:Receipt:ResultUrl2:Password1:Shp_...
+  // Receipt с номенклатурой (обязателен по ФЗ-54)
+  // tax: 'none' — без НДС (СМЗ/УСН). Если ОСНО → менять на 'vat20'.
+  // email — куда Robokassa отправит электронный чек покупателю.
   const receipt: Record<string, unknown> = {
     items: [{
       name: DESCRIPTIONS[plan],
@@ -110,13 +108,20 @@ Deno.serve(async (req) => {
     }],
   };
   if (user.email) receipt['email'] = user.email;
-  const receiptJson    = JSON.stringify(receipt);          // минифицированный JSON
-  const receiptEncoded = encodeURIComponent(receiptJson);  // URL-encoded — в подпись И в параметр
+  const receiptJson    = JSON.stringify(receipt);
+  const receiptEncoded = encodeURIComponent(receiptJson);
 
-  const sigString = `${merchantLogin}:${outSum}:${invId}:${receiptEncoded}:${result2Url}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
+  // Подпись: MerchantLogin:OutSum:InvId:ReceiptJSON:ResultUrl2:Password1:Shp_...
+  // В подпись входит RAW JSON (не URL-encoded) — подтверждено рабочими платежами 17-18.06.2026.
+  // В URL-параметр Receipt идёт receiptEncoded. Два разных представления одного JSON.
+  const sigString = `${merchantLogin}:${outSum}:${invId}:${receiptJson}:${result2Url}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
   const signature = md5hex(sigString);
 
-  // Recurring: 'true' добавляем только после одобрения Robokassa (§1.7)
+  // Recurring отправляем ТОЛЬКО при ROBOKASSA_RECURRING_ENABLED=true.
+  // Диагностика ошибки 29: по умолчанию off → точная рабочая конфигурация без Recurring.
+  const recurringEnabled = Deno.env.get('ROBOKASSA_RECURRING_ENABLED') === 'true';
+  const sendRecurring = (plan === 'pro' || plan === 'pro_annual') && recurringEnabled;
+
   const params = new URLSearchParams({
     MerchantLogin:  merchantLogin,
     OutSum:         outSum,
@@ -124,16 +129,14 @@ Deno.serve(async (req) => {
     Description:    DESCRIPTIONS[plan],
     SignatureValue: signature,
     IsTest:         isTestMode ? '1' : '0',
-    Culture:        'ru',
     ResultUrl2:     result2Url,
-    SuccessUrl:     `${appUrl}/payment-success`,
-    FailUrl:        `${appUrl}/books`,
     Shp_plan:       shpPlan,
     Shp_user_id:    shpUserId,
+    ...(sendRecurring ? { Recurring: 'true' } : {}),
   });
 
   // Receipt добавляем вручную — encodeURIComponent, не двойное кодирование через URLSearchParams
   const url = `https://auth.robokassa.ru/Merchant/Index.aspx?${params.toString()}&Receipt=${receiptEncoded}`;
-  console.log(`[create-payment-url] plan=${plan} invId=${invId} userId=${user.id} isTest=${isTestMode}`);
+  console.log(`[create-payment-url] plan=${plan} invId=${invId} userId=${user.id} isTest=${isTestMode} recurring=${sendRecurring}`);
   return json(200, { url });
 });
