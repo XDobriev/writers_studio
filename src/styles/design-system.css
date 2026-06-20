@@ -1655,3 +1655,55 @@ select.input {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* --- admin tables --- */
+.admin-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.admin-table thead tr {
+  border-bottom: 1px solid var(--border-soft);
+}
+.admin-table tbody tr:not(:last-child) {
+  border-bottom: 1px solid var(--border-soft);
+}
+.admin-table--striped tbody tr:nth-child(even) {
+  background: oklch(0.96 0.002 50 / 0.4);
+}
+.admin-th {
+  padding: 10px 16px;
+  text-align: left;
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.admin-th--sort {
+  cursor: pointer;
+  user-select: none;
+}
+.admin-td {
+  padding: 10px 16px;
+}
+.admin-td--mono {
+  font: 400 12px var(--font-mono);
+  color: var(--ink-2);
+}
+.admin-td--mono-sm {
+  font: 400 11px var(--font-mono);
+  color: var(--ink-4);
+}
+.admin-td--ui {
+  font: 400 13px var(--font-ui);
+  color: var(--ink);
+}
+.admin-td--nowrap {
+  white-space: nowrap;
+}
