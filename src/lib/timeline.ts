@@ -73,8 +73,6 @@ export const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
 
 export async function reorderTimelineEvents(updates: { id: string; position: number }[]): Promise<void> {
   if (updates.length === 0) return;
-  const { error } = await supabase
-    .from('timeline_events')
-    .upsert(updates, { onConflict: 'id' });
+  const { error } = await supabase.rpc('reorder_timeline_events', { updates });
   if (error) throw error;
 }
