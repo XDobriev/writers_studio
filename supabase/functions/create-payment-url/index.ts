@@ -9,7 +9,7 @@ const CORS = {
 };
 
 const BASE_PRICES: Record<string, string> = {
-  pro:        '1.00', // временно для боевого прогона — вернуть 399.00
+  pro:        '399.00',
   pro_annual: '3490.00',
   lifetime:   '4990.00',
 };
