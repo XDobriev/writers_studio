@@ -1,10 +1,10 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-20_ — Сессия: устранена ошибка 29 Робокассы. Корень: Receipt в подписи был URL-encoded вместо raw JSON — это ломало MD5. Рабочая формула (v45): `MerchantLogin:OutSum:InvId:receiptJson:ResultUrl2:Password1:Shp_*`, Receipt в URL-параметр — URL-encoded. Боевой платёж 1₽ прошёл, `profiles.plan` обновился. Ранее: исправлен `process-refund` (JWT+Password3 → RefundService); `billing-scheduler` и `robokassa-webhook` задеплоены; ResultUrl2 не вызывается Robokassa — поддержка оповещена; рекуррентные §1.7 ожидают одобрения.
+_Обновлён: 2026-06-21_ — §7 отмена подписки: `cancel-subscription` Edge Function задеплоена, `cancel_at_period_end` flow проверен E2E (cancel + resume, оба состояния). `billing-scheduler` даунгрейдит истёкшие отменённые планы. `process-refund` требует переписки под актуальный Operation API (JWT+Password3 в v5 — устаревший подход). Ранее: устранена ошибка 29 Робокассы (Receipt в подписи raw JSON, не URL-encoded); боевой платёж 1₽ прошёл; ResultUrl2 не вызывается Robokassa — поддержка оповещена.
 
 История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
-**Сейчас:** `create-payment-url` + `billing-scheduler` задеплоены (2026-06-19) → осталось проверить Receipt-подпись боевым платежом с чеком (IsTest=0). E2E возвраты заблокированы: ResultUrl2 не вызывается Robokassa (поддержка оповещена) → `op_key` NULL → `process-refund` возвращает 422. Сам `process-refund` исправлен и задеплоен v5 (JWT+Password3, `RefundService/Refund/Create`).
+**Сейчас:** E2E возвраты заблокированы: ResultUrl2 не вызывается Robokassa (поддержка оповещена) → `op_key` NULL → `process-refund` неработоспособен. `process-refund` v5 (JWT+Password3, `RefundService/Refund/Create`) — **устаревший API, требует полной переписки** под Operation API (HTTP Basic, эндпоинт `PartnerRegisterService/api/Operation/RefundOperation`). ⚠️ `create-payment-url`: цена Pro = `'1.00'` (тестовое значение) — сбросить на `399.00` перед боевым использованием.
 
 ---
 
@@ -67,7 +67,7 @@ _Обновлён: 2026-06-20_ — Сессия: устранена ошибка
    **Что осталось (выполнить после ответа поддержки):**
    - ✅ Password3 сгенерирован в Robokassa ЛК (тестового варианта нет)
    - ✅ Secret `ROBOKASSA_PASSWORD3` добавлен в Supabase
-   - ✅ `process-refund` исправлен: JWT+Password3 → `RefundService/Refund/Create` (v5, задеплоен 2026-06-20)
+   - ⏳ **`process-refund` требует переписки** под актуальный Operation API: эндпоинт `PartnerRegisterService/api/Operation/RefundOperation`, авторизация HTTP Basic, тело `{ RoboxPartnerId, OpKey, RefundSum }`. Инструкция в отдельной сессии.
    - Тестовый платёж (IsTest=true) → `SELECT op_key FROM payments ORDER BY paid_at DESC LIMIT 1` — NOT NULL
    - Настройки → Подписка → кнопка «Запросить возврат · ещё 14 дней» видна → подтвердить
    - SQL: `SELECT plan, refunded_at FROM payments ORDER BY paid_at DESC LIMIT 1` — refunded_at NOT NULL
@@ -100,20 +100,22 @@ _Обновлён: 2026-06-20_ — Сессия: устранена ошибка
 ---
 
 
-### 1.7. Рекуррентные платежи — автоматическое продление Pro ✅ (2026-06-17)
+### 1.7. Рекуррентные платежи — автоматическое продление Pro ✅ (2026-06-21)
 
 **Реализовано:**
-- ✅ Миграция `0042_recurring_payments.sql`: колонки `recurring_inv_id text` + `cancel_at_period_end boolean` в `profiles` (применена)
-- ⚠️ `create-payment-url`: `Recurring=true` **временно убран** (v25, 2026-06-17) — Robokassa возвращала Error 34 до одобрения магазина. Вернуть после одобрения.
-- ✅ `robokassa-webhook`: при первом Pro-платеже сохраняет `recurring_inv_id = invId`, сбрасывает `cancel_at_period_end = false`
-- ✅ Edge Function `billing-scheduler` (задеплоена): находит Pro-пользователей с `plan_expires_at <= now() + 3 дня`, POST на Robokassa Recurring API, логирует в `payments` и `admin_audit_log`
-- ✅ GitHub Actions cron `.github/workflows/billing-scheduler.yml` (каждый день 06:05 UTC)
-- ✅ `SettingsModal`: «Следующее списание [дата]» для рекуррентных подписчиков
+- ✅ Миграция `0042_recurring_payments.sql`: колонки `recurring_inv_id text` + `cancel_at_period_end boolean` в `profiles`
+- ✅ Миграция `0045_plan_interval.sql`: колонка `plan_interval text ('monthly'|'annual')` в `profiles` — планировщик применяет нужную цену
+- ✅ `create-payment-url`: `Recurring=true` для `pro`/`pro_annual` при `ROBOKASSA_RECURRING_ENABLED=true`
+- ✅ `robokassa-webhook`: при первом Pro-платеже сохраняет `recurring_inv_id = invId` + `plan_interval`
+- ✅ `billing-scheduler` (задеплоен 2026-06-21, баги исправлены): подпись raw JSON, `Shp_plan`/`Shp_user_id` в теле и подписи, матрица цен monthly/annual × base/grandfathered
+- ✅ GitHub Actions cron `.github/workflows/billing-scheduler.yml` (06:05 UTC, `workflow_dispatch` для ручного запуска)
+- ✅ Рекуррентные платежи активированы поддержкой Робокассы (2026-06-20)
 
-**Что осталось (одно ручное действие):**
-- ⏳ **Подать заявку в Robokassa на периодические платежи** — после одобрения вернуть `Recurring: 'true'` в `create-payment-url` (строка ~120) и передеплоить
-  - Написать на `partners@robokassa.ru`: «Прошу подключить сервис периодических (рекуррентных) платежей для магазина AvtorStudio. Используем для ежемесячных подписок на SaaS-сервис.»
-  - Документация: https://docs.robokassa.ru/recurring/ — услуга по предварительному согласованию
+**Что осталось (ручные действия — 15 минут):**
+- ⏳ Сгенерировать `SCHEDULER_SECRET`: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+- ⏳ Supabase Secrets: https://supabase.com/dashboard/project/joaxeoavjvlqmtlepkrr/settings/functions — добавить `ROBOKASSA_RECURRING_ENABLED=true` + `SCHEDULER_SECRET=<значение>`
+- ⏳ GitHub Secrets: https://github.com/XDobriev/writers_studio/settings/secrets/actions — добавить `SCHEDULER_SECRET=<то же значение>`
+- ⏳ Проверить ручной запуск: Actions → billing-scheduler → Run workflow → ожидаем HTTP 200 + `processed: 0`
 
 **Dunning-цепочка при сбое → §5** (email-триггеры, реализовать вместе с retention)
 
@@ -250,8 +252,6 @@ _Обновлён: 2026-06-20_ — Сессия: устранена ошибка
 - ✅ `billing-scheduler`: добавлен шаг даунгрейда истёкших отменённых планов (`plan = 'free'` когда `cancel_at_period_end = true && plan_expires_at < now()`)
 - ✅ `useSubscription.ts`: `cancelAtPeriodEnd`, `handleCancel`, `handleResume`, `cancelLoading`, `cancelError`, `cancelConfirmOpen`
 - ✅ `SettingsSubscriptionTab.tsx`: кнопка «Отменить подписку» (только для рекуррентных) → ConfirmDialog → `cancel-subscription`; баннер «Отменена · доступ до [дата]»; кнопка «Возобновить подписку»
-
-**Деплой:** `npx supabase functions deploy cancel-subscription --project-ref joaxeoavjvlqmtlepkrr`
 
 **Что осталось (после первых пользователей):**
 - Exit-интервью: 5 причин отмены → сохранять в `profiles.cancel_reason text` (новая колонка)

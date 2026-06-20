@@ -43,6 +43,17 @@
 ### `payment-result2` (ResultUrl2)
 Получает JWS-уведомление от Робокассы, сохраняет `op_key` в `payments.op_key`. Нужен для автоматических возвратов (`process-refund`).
 
+### `billing-scheduler`
+Ежедневный планировщик рекуррентных списаний (GitHub Actions, 06:05 UTC).
+- Находит Pro-пользователей с `plan_expires_at ≤ now()+3d`, `cancel_at_period_end=false`, `recurring_inv_id IS NOT NULL`
+- Инициирует дочерний платёж через `POST https://auth.robokassa.ru/Merchant/Recurring`
+- Подпись: `MerchantLogin:OutSum:InvId:Receipt(raw JSON):Password1:Shp_plan=...:Shp_user_id=...`
+- `PreviousInvoiceID` в подпись не входит (по документации Robokassa)
+- `Shp_plan` и `Shp_user_id` передаются и в подпись, и в тело запроса — иначе `robokassa-webhook` упадёт с «missing params»
+- Цена определяется по `profile.plan_interval` × `profile.grandfathered`: monthly/annual × base/grandfathered
+- После успешного списания `robokassa-webhook` продлевает `plan_expires_at`
+- Управляется Secret `ROBOKASSA_RECURRING_ENABLED=true`; вызывается через `SCHEDULER_SECRET` Bearer
+
 ### `cancel-subscription`
 Отмена и возобновление рекуррентной Pro-подписки пользователем.
 - `POST /cancel-subscription` → `cancel_at_period_end = true` (доступ сохраняется до `plan_expires_at`)
@@ -74,9 +85,12 @@ RLS: пользователь видит только свои строки (SEL
 
 ### `profiles` (поля плана)
 ```
-plan text           -- 'free' | 'pro' | 'lifetime'
-plan_expires_at     -- для pro; null = бессрочно
-grandfathered bool  -- грандфазерская скидка (290₽/2900₽ навсегда)
+plan text              -- 'free' | 'pro' | 'lifetime'
+plan_expires_at        -- для pro; null = бессрочно
+grandfathered bool     -- грандфазерская скидка (290₽/2900₽ навсегда)
+recurring_inv_id text  -- InvId первого Pro-платежа; NULL = нет рекуррентной подписки
+plan_interval text     -- 'monthly' | 'annual'; DEFAULT 'monthly'; для billing-scheduler
+cancel_at_period_end bool -- true = не продлевать; billing-scheduler даунгрейдит по истечении
 ```
 
 ## Цены
