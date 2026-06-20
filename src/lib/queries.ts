@@ -4,7 +4,7 @@ import { getBook, listBooks, listWritingSnapshots } from './books';
 import { getProfile, getRegistrationOpen, type Profile } from './profiles';
 import type { Book } from './supabase';
 import { listChaptersMeta, getChapterContent, type ChapterMeta } from './chapters';
-import { listCharactersPage, searchCharactersServer, type Character, type CharacterRole } from './characters';
+import { listCharactersPage, type Character } from './characters';
 import { listRelationships, type CharacterRelationship } from './relationships';
 import { fetchNotes, type Note } from './notes';
 import { listLocations, type Location } from './locations';
@@ -37,8 +37,6 @@ export const QUERY_KEYS = {
   chapterMembers: (chapterId: string) => ['chapter-members', chapterId] as const,
   chapterPovMap: (bookId: string) => ['chapter-pov-map', bookId] as const,
   registrationOpen: () => ['registration-open'] as const,
-  characterSearch: (bookId: string, query: string, role: string) =>
-    ['character-search', bookId, query, role] as const,
 };
 
 function makeQuery<T>(key: readonly unknown[], fn: () => Promise<T>, staleTime: number) {
@@ -216,18 +214,3 @@ export function useChapterPovMap(bookId: string | undefined) {
   ));
 }
 
-export function useCharacterSearch(
-  bookId: string | undefined,
-  query: string,
-  role: CharacterRole | 'all',
-) {
-  const isActive = query.trim() !== '' || role !== 'all';
-  return useQuery<Character[]>({
-    queryKey: bookId && isActive
-      ? QUERY_KEYS.characterSearch(bookId, query, role)
-      : ['character-search', null],
-    queryFn: () => searchCharactersServer(bookId!, query, role),
-    enabled: !!bookId && isActive,
-    staleTime: 30_000,
-  });
-}
