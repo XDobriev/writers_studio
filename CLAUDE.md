@@ -85,12 +85,18 @@ npm run preview    # превью продакшен-сборки
 - `src/components/LandingFeaturesSection.tsx` — секция «Возможности»: 4 FeatureRow с браузерными моками (редактор, пробковая доска, карта, дашборд).
 - `src/components/LandingProcessSection.tsx` — секция «Процесс»: 4 шага от пустого листа до экспорта.
 - `src/components/LandingPricingSection.tsx` — секция «Цены»: тарифные карточки Free/Pro/Lifetime с динамическим счётчиком слотов.
+- `src/components/AuthForm.tsx` — форма авторизации (signin/signup/сброс пароля): вызывает useTelegramAuth/useVkAuth, агрегирует ошибки OAuth + формы; полностью самодостаточна (не требует пропов).
 - `src/components/AuthGuard.tsx` — защита роутов.
 - `src/components/ErrorBoundary.tsx` — перехват краша компонентов, fallback UI.
 - `src/components/ErrorBanner.tsx` — баннер ошибки на базе `.error-banner`: `{ message, onDismiss?, size?: 'sm', style? }`. Канонический способ показать mutation-ошибку; `style` — только для layout (отступы). Заменяет инлайн-копии на страницах/панелях.
 - `src/components/CookieBanner.tsx` — GDPR-баннер куки: Принять / Отклонить, сохраняет выбор (`accepted`|`rejected`) в `localStorage` под ключом `cookie_consent_v1`.
 - `src/components/OnboardingChecklist.tsx` — прогресс-чеклист онбординга: 4 шага (книга, слова, персонаж, экспорт), прогресс-бар, автоскрытие при завершении; используется на Home.tsx.
-- `src/styles/design-system.css` — CSS-переменные (oklch), классы `.as`, `.sb`, `.tb`, `.sheet`, `.btn`, `.input`, `.label`.
+- `src/components/admin/AuditLogTable.tsx` — таблица журнала действий администратора: рендер `AuditEntry[]` + форматирование payload по типу действия.
+- `src/components/admin/PaymentsTable.tsx` — таблица платежей: фильтрует `AuditEntry[]` по `action === 'payment_received'`, отображает план/сумму/payment_id.
+- `src/components/admin/FinancesPanel.tsx` — панель Revenue-метрик: StatCard-сетка с MRR/ARR/Pro/Lifetime/Churn из `AdminRevenue`.
+- `src/components/admin/FlagsTable.tsx` — таблица feature flags: toggle-кнопка ON/OFF с optimistic update через `onToggle`.
+- `src/components/admin/UsersPanel.tsx` — панель пользователей: статистика, lifetime-слоты, поиск/сортировка, CSV-экспорт, управление планом/suspend/тест-меткой. Хранит локальный search/sort/slots state.
+- `src/styles/design-system.css` — CSS-переменные (oklch), классы `.as`, `.sb`, `.tb`, `.sheet`, `.btn`, `.input`, `.label`, `.admin-table*` (admin table primitives).
 
 ### Страницы
 - `src/pages/Home.tsx` — список книг пользователя.
@@ -113,7 +119,7 @@ npm run preview    # превью продакшен-сборки
 ### lib/
 - `src/lib/repository.ts` — фабрика `createRepository<T>(table, defaults, orderBy)` → `{ list, create, update, delete }` с единой обработкой ошибок; используется в characters, locations, timeline, connections, notes.
 - `src/lib/supabase.ts` — Supabase клиент.
-- `src/lib/auth.tsx` — `AuthProvider`, `useAuth`.
+- `src/lib/auth.tsx` — `AuthProvider`, `useAuth`, `translateAuthError` (перевод Supabase-ошибок на русский).
 - `src/lib/queries.ts` — централизованные React Query хуки (books, chapters, characters, notes…).
 - `src/lib/useDebouncedSave.ts` — debounced автосохранение глав.
 - `src/lib/useDropdownPosition.ts` — позиционирование дропдаунов (backdrop-паттерн).
@@ -135,6 +141,8 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/activity.ts` — `computeActivityData(snapshots, today?)`: чистая функция расчёта heatmap-активности дашборда (cells/weeks/streak/cumulativeLine). Локальные даты, параметр `today` для тестов. Покрыта `activity.test.ts`.
 - `src/lib/useCreateOnMount.ts` — `useCreateOnMount(action)`: если в URL `?create=true` — один раз вызывает action и убирает параметр. Используется в Timeline/Notes/Outline для «создать сразу при переходе».
 - `src/lib/useVersionMutations.ts` — `createNamed(content, label)` и `remove(id)`: мутации версий с инвалидацией кеша; скрывает `QUERY_KEYS` и `queryClient` от `VersionsPanel`.
+- `src/lib/admin.ts` — единственная точка приведения RPC-ответов admin-панели: типы (`AdminStats`, `AdminUser`, `AuditEntry`, `AdminRevenue`, `FeatureFlag`), `AdminRpcError`, типизированные обёртки RPC (`fetchAdminStats`, `rpcSetUserPlan`…), форматтеры (`fmtNum`, `fmtDate`, `fmtWords`, `displayEmail`), константы `PLAN_COLOR`/`TAB_LABELS`. `as T` разрешён только здесь.
+- `src/lib/useAdminData.ts` — хук `useAdminData(user)`: все состояния и мутации admin-панели; lazy-загрузка audit/revenue/flags через `loadAuditLog`/`loadRevenue`/`loadFlags`; возвращает `handlePlanChange`, `handleSuspend`, `handleExtendPlan`, `handleSaveSlots`, `handleToggleFlag`, `handleMarkTest`.
 - `src/lib/useSubscription.ts` — хук `useSubscription(userId, fetchPayments)`: загрузка плана из профиля, последний Pro-платёж, логика возврата через `process-refund`; экспортирует тип `Plan`.
 - `src/lib/mapTemplates.ts` — 4 шаблона карты (`parchment`, `sea`, `paper`, `dark`): метаданные для пикера + `renderTemplateBgSvg` для off-screen экспорта.
 - `src/lib/mapExport.ts` — `generateMapPngBuffer` (SVG→canvas→PNG) и `triggerMapDownload`; используется из Map.tsx и Export.tsx.
@@ -143,7 +151,10 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/exportDocx.ts` — DOCX builder: `collectRuns`, `parseBlockEl`, `parseHtmlToParagraphs`, `buildDocxBlob`.
 - `src/lib/exportFb2.ts` — FB2 builder: `inlineToFb2`, `blockToFb2`, `htmlToFb2Content`, `buildFb2Doc`.
 - `src/lib/exportEpub.ts` — EPUB builder: `buildEpubBlob`, ZIP-сборка через JSZip.
-- `src/lib/config.ts` — централизованные env-константы: `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
+- `src/lib/config.ts` — централизованные env-константы: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VK_APP_ID`, `VK_REDIRECT_URL`.
+- `src/lib/useTelegramAuth.ts` — хук OAuth Telegram: инициализация виджета, MutationObserver iframe, возвращает `{ tgSlotRef, busy, error, clearError }`.
+- `src/lib/useVkAuth.ts` — хук OAuth VK ID: загрузка SDK, OneTap setup, возвращает `{ vkSlotRef, vkHasClickedRef, sdkFailed, busy, error, clearError }`.
+- `src/lib/usePostAuthRedirect.ts` — хук редиректа после авторизации: `pending_plan` → payment URL, fallback `/books`; возвращает `{ redirectingToPay }`.
 - `src/lib/characterMatching.ts` — единая логика сопоставления токена с псевдонимом персонажа: `normalizeAlias`, `matchesAlias` (одно слово vs псевдоним), `makeAliasPattern` (regex для full-text поиска с учётом падежных окончаний).
 - `src/lib/useCharacterFilter.ts` — хук фильтрации персонажей по роли и поисковому запросу; экспортирует тип `RoleFilter`.
 - `src/lib/motion.ts` — реестр Framer Motion вариантов и переходов: overlay, modalPanel, page, toast, dropdown, card, hero, feat, reveal.

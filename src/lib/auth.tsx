@@ -2,6 +2,21 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
+const SUPABASE_ERRORS: Record<string, string> = {
+  'Invalid login credentials': 'Неверная почта или пароль. Проверьте раскладку и регистр.',
+  'Email not confirmed': 'Почта не подтверждена. Проверьте входящие письма.',
+  'User already registered': 'Пользователь с этой почтой уже зарегистрирован.',
+  'Password should be at least 6 characters.': 'Пароль должен содержать не менее 6 символов.',
+  'Signup requires a valid password': 'Необходимо задать пароль.',
+  'Email rate limit exceeded': 'Слишком много попыток. Повторите позже.',
+  'For security purposes, you can only request this once every 60 seconds': 'По соображениям безопасности — не чаще одного запроса в 60 секунд.',
+  'Unable to validate email address: invalid format': 'Неверный формат адреса электронной почты.',
+};
+
+export function translateAuthError(msg: string): string {
+  return SUPABASE_ERRORS[msg] ?? msg;
+}
+
 export interface TelegramAuthData {
   id: number;
   first_name?: string;
