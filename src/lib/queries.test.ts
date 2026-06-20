@@ -74,6 +74,12 @@ describe('QUERY_KEYS — структура', () => {
   it('registrationOpen — фиксированный ключ', () => {
     expect(QUERY_KEYS.registrationOpen()).toEqual(['registration-open']);
   });
+
+  it('characterSearch включает bookId, query, role', () => {
+    expect(QUERY_KEYS.characterSearch('b1', 'Анна', 'protagonist')).toEqual([
+      'character-search', 'b1', 'Анна', 'protagonist',
+    ]);
+  });
 });
 
 describe('QUERY_KEYS — детерминированность', () => {

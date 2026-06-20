@@ -87,6 +87,25 @@ export async function deleteCharacterAvatar(characterId: string, avatarUrl: stri
   await updateCharacter(characterId, { avatar_url: null });
 }
 
+export async function searchCharactersServer(
+  bookId: string,
+  query: string,
+  role: CharacterRole | 'all',
+): Promise<Character[]> {
+  let q = supabase
+    .from('characters')
+    .select('*')
+    .eq('book_id', bookId)
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true })
+    .limit(200);
+  if (role !== 'all') q = q.eq('role', role);
+  if (query.trim()) q = q.ilike('name', `%${query.trim()}%`);
+  const { data, error } = await q;
+  if (error) throw new DbError(error.message, error.code, 'characters');
+  return (data ?? []) as Character[];
+}
+
 export function initialsFromName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '··';

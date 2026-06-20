@@ -22,7 +22,7 @@ import {
   type Character,
   type CharacterPatch,
 } from '../lib/characters';
-import { QUERY_KEYS, useBook, useCharacters, useRelationships } from '../lib/queries';
+import { QUERY_KEYS, useBook, useCharacters, useRelationships, useCharacterSearch } from '../lib/queries';
 import { syncCharacterAcrossAllChapters } from '../lib/crossrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
@@ -70,7 +70,17 @@ export default function Characters() {
   const [detailTab, setDetailTab] = useState<DetailTab>('info');
   const { isMobile } = useResponsive();
 
-  const filtered = useCharacterFilter(characters, roleFilter, query);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  const isSearchActive = debouncedQuery.trim() !== '' || roleFilter !== 'all';
+  const isTyping = query !== debouncedQuery;
+  const { data: searchResults } = useCharacterSearch(bookId, debouncedQuery, roleFilter);
+  const clientFiltered = useCharacterFilter(characters, roleFilter, query);
+  const filtered = isSearchActive && !isTyping ? (searchResults ?? clientFiltered) : clientFiltered;
 
   const { activeId, search, setSearch, viewMode, setViewMode, selectCharacter, goToGrid, clearCharacter } = useCharacterNavigation({
     isMobile,

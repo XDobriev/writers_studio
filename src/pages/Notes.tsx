@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useParams } from 'react-router-dom';
 import { useCreateOnMount } from '../lib/useCreateOnMount';
@@ -95,7 +96,7 @@ function SortableNoteCard({ note, chapterTitle, color, colorSoft, label, onOpen 
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
-        height: 160,
+        height: NOTE_CARD_HEIGHT,
         overflow: 'hidden',
         cursor: 'pointer',
         position: 'relative',
@@ -149,6 +150,81 @@ function SortableNoteCard({ note, chapterTitle, color, colorSoft, label, onOpen 
       <span style={{ fontSize: 11, color: 'var(--ink-4)', flexShrink: 0 }}>
         {new Date(note.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
       </span>
+    </div>
+  );
+}
+
+const NOTE_CARD_HEIGHT = 160;
+const NOTE_GRID_GAP = 12;
+const NOTE_CARD_MIN_WIDTH = 260;
+const NOTE_GRID_PADDING = 24;
+
+function NotesGrid({ notes, chapterMap, onOpen }: {
+  notes: Note[];
+  chapterMap: Map<string, string>;
+  onOpen: (n: Note) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const columnCount = containerWidth > 0
+    ? Math.max(1, Math.floor((containerWidth + NOTE_GRID_GAP) / (NOTE_CARD_MIN_WIDTH + NOTE_GRID_GAP)))
+    : 3;
+  const rowCount = Math.ceil(notes.length / columnCount);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => NOTE_CARD_HEIGHT + NOTE_GRID_GAP,
+    overscan: 2,
+  });
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px ${NOTE_GRID_PADDING}px 28px` }}
+    >
+      <SortableContext items={notes.map(n => n.id)} strategy={rectSortingStrategy}>
+        <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
+          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            const startIdx = virtualRow.index * columnCount;
+            const rowNotes = notes.slice(startIdx, startIdx + columnCount);
+            return (
+              <div
+                key={virtualRow.key}
+                style={{
+                  position: 'absolute', top: 0, left: 0, right: 0,
+                  height: NOTE_CARD_HEIGHT,
+                  transform: `translateY(${virtualRow.start}px)`,
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
+                  gap: NOTE_GRID_GAP,
+                }}
+              >
+                {rowNotes.map(n => (
+                  <SortableNoteCard
+                    key={n.id}
+                    note={n}
+                    chapterTitle={n.chapter_id ? (chapterMap.get(n.chapter_id) ?? 'Глава') : null}
+                    color={noteColor(n)}
+                    colorSoft={noteColorSoft(n)}
+                    label={noteLabel(n)}
+                    onOpen={onOpen}
+                  />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </SortableContext>
     </div>
   );
 }
@@ -428,67 +504,73 @@ export default function Notes() {
             </button>
           </div>
 
-          <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
-            {error && (
-              <ErrorBanner message={error} onDismiss={clearError} style={{ marginBottom: 12 }} />
-            )}
-            {showForm && (
-              <div style={{
-                background: 'var(--surface)', border: '1px solid var(--border)',
-                borderRadius: 10, padding: '16px', marginBottom: 16,
-                display: 'flex', flexDirection: 'column', gap: 12,
-              }}>
-                {kindChips(formKind, setFormKind)}
-                {formKind === 'custom' && (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <input
-                      className="input"
-                      placeholder="Название типа…"
-                      value={formCustomLabel}
-                      onChange={(e) => setFormCustomLabel(e.target.value)}
-                      style={{ fontSize: 12, flex: 1, padding: '5px 10px' }}
-                      maxLength={32}
-                    />
-                    <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                      {BASE_KINDS.map((c) => colorSwatch(c, formCustomColor, setFormCustomColor))}
+          {/* статичная область: ошибки + форма */}
+          {(error || showForm) && (
+            <div style={{ flexShrink: 0, padding: '16px 24px 0' }}>
+              {error && (
+                <ErrorBanner message={error} onDismiss={clearError} style={{ marginBottom: 12 }} />
+              )}
+              {showForm && (
+                <div style={{
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  borderRadius: 10, padding: '16px',
+                  display: 'flex', flexDirection: 'column', gap: 12,
+                }}>
+                  {kindChips(formKind, setFormKind)}
+                  {formKind === 'custom' && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        className="input"
+                        placeholder="Название типа…"
+                        value={formCustomLabel}
+                        onChange={(e) => setFormCustomLabel(e.target.value)}
+                        style={{ fontSize: 12, flex: 1, padding: '5px 10px' }}
+                        maxLength={32}
+                      />
+                      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                        {BASE_KINDS.map((c) => colorSwatch(c, formCustomColor, setFormCustomColor))}
+                      </div>
                     </div>
+                  )}
+                  <textarea
+                    className="input"
+                    rows={3}
+                    placeholder="Текст заметки…"
+                    value={formText}
+                    onChange={(e) => setFormText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void handleAdd(); }
+                      if (e.key === 'Escape') { setShowForm(false); setFormText(''); setFormCustomLabel(''); setFormCustomColor('idea'); setFormKind('idea'); }
+                    }}
+                    style={{ fontSize: 13, resize: 'vertical' }}
+                    autoFocus
+                  />
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button
+                      className="btn btn--ghost"
+                      style={{ fontSize: 12, padding: '5px 14px' }}
+                      onClick={() => { setShowForm(false); setFormText(''); setFormCustomLabel(''); setFormCustomColor('idea'); setFormKind('idea'); }}
+                    >Отмена</button>
+                    <button
+                      className="btn btn--primary"
+                      style={{ fontSize: 12, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
+                      onClick={handleAdd}
+                      disabled={saving || !formText.trim()}
+                    >
+                      {saving && <span className="btn-spinner" style={{ width: 11, height: 11 }} />}
+                      {saving ? 'Сохраняем…' : 'Сохранить'}
+                    </button>
                   </div>
-                )}
-                <textarea
-                  className="input"
-                  rows={3}
-                  placeholder="Текст заметки…"
-                  value={formText}
-                  onChange={(e) => setFormText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void handleAdd(); }
-                    if (e.key === 'Escape') { setShowForm(false); setFormText(''); setFormCustomLabel(''); setFormCustomColor('idea'); setFormKind('idea'); }
-                  }}
-                  style={{ fontSize: 13, resize: 'vertical' }}
-                  autoFocus
-                />
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <button
-                    className="btn btn--ghost"
-                    style={{ fontSize: 12, padding: '5px 14px' }}
-                    onClick={() => { setShowForm(false); setFormText(''); setFormCustomLabel(''); setFormCustomColor('idea'); setFormKind('idea'); }}
-                  >Отмена</button>
-                  <button
-                    className="btn btn--primary"
-                    style={{ fontSize: 12, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
-                    onClick={handleAdd}
-                    disabled={saving || !formText.trim()}
-                  >
-                    {saving && <span className="btn-spinner" style={{ width: 11, height: 11 }} />}
-                    {saving ? 'Сохраняем…' : 'Сохранить'}
-                  </button>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          )}
 
-            {filtered.length === 0 && !showForm && (
-              filterKind !== 'all' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'var(--ink-4)', fontSize: 13, paddingTop: 48 }}>
+          {/* основной контент: заглушка пустого состояния или виртуализированная сетка */}
+          {filtered.length === 0 && !showForm ? (
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {filterKind !== 'all' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'var(--ink-4)', fontSize: 13 }}>
                   {`Нет заметок типа «${KIND_LABELS[filterKind]}».`}
                   <button className="btn btn--ghost" style={{ fontSize: 12 }} onClick={() => setFilterKind('all')}>Сбросить фильтр</button>
                 </div>
@@ -518,28 +600,13 @@ export default function Notes() {
                     <Icon name="plus" size={13} /> Добавить заметку
                   </button>
                 </div>
-              )
-            )}
-
-            {/* Карточки заметок */}
+              )}
+            </div>
+          ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-              <SortableContext items={filtered.map((n) => n.id)} strategy={rectSortingStrategy}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
-                  {filtered.map((n) => (
-                    <SortableNoteCard
-                      key={n.id}
-                      note={n}
-                      chapterTitle={n.chapter_id ? (chapters?.find(c => c.id === n.chapter_id)?.title || 'Глава') : null}
-                      color={noteColor(n)}
-                      colorSoft={noteColorSoft(n)}
-                      label={noteLabel(n)}
-                      onOpen={openModal}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
+              <NotesGrid notes={filtered} chapterMap={chapterMap} onOpen={openModal} />
             </DndContext>
-          </div>
+          )}
         </main>
 
         {/* Модальное окно заметки */}
@@ -661,7 +728,7 @@ export default function Notes() {
                   }}>
                     {modalNote.chapter_id && (
                       <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>
-                        {chapters?.find(c => c.id === modalNote.chapter_id)?.title || 'Глава'}
+                        {chapterMap.get(modalNote.chapter_id) ?? 'Глава'}
                       </span>
                     )}
                     <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>
