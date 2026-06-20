@@ -1,10 +1,10 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-19_ — Сессия: аудит интеграции Robokassa по документации. Исправлено: Receipt входил в MD5-подпись как raw JSON → теперь URL-encoded (`create-payment-url` + `billing-scheduler`); добавлен обязательный `Description` в рекуррентный запрос; `.insert().onConflict()` → `upsert`; добавлены `config.toml` (`verify_jwt=false`) для `billing-scheduler` и `robokassa-webhook`. Найден баг: `process-refund` бьёт в устаревший Refund API — нужна переписка на Operation API + Basic Auth. Требует деплоя + боевого платежа с чеком (IsTest=0). Ранее: E2E боевых платежей, отладка ResultUrl2 / payment-result2; ResultUrl2 перестал вызываться после серии 400; рекуррентные §1.7 ожидают одобрения заявки Robokassa.
+_Обновлён: 2026-06-20_ — Сессия: устранена ошибка 29 Робокассы. Корень: Receipt в подписи был URL-encoded вместо raw JSON — это ломало MD5. Рабочая формула (v45): `MerchantLogin:OutSum:InvId:receiptJson:ResultUrl2:Password1:Shp_*`, Receipt в URL-параметр — URL-encoded. Боевой платёж 1₽ прошёл, `profiles.plan` обновился. Ранее: исправлен `process-refund` (JWT+Password3 → RefundService); `billing-scheduler` и `robokassa-webhook` задеплоены; ResultUrl2 не вызывается Robokassa — поддержка оповещена; рекуррентные §1.7 ожидают одобрения.
 
 История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
-**Сейчас:** `create-payment-url` + `billing-scheduler` задеплоены (2026-06-19) → осталось проверить Receipt-подпись боевым платежом с чеком (IsTest=0). E2E возвраты заблокированы вдвойне: ResultUrl2 не вызывается (поддержка оповещена) + `process-refund` требует переписки на Operation API.
+**Сейчас:** `create-payment-url` + `billing-scheduler` задеплоены (2026-06-19) → осталось проверить Receipt-подпись боевым платежом с чеком (IsTest=0). E2E возвраты заблокированы: ResultUrl2 не вызывается Robokassa (поддержка оповещена) → `op_key` NULL → `process-refund` возвращает 422. Сам `process-refund` исправлен и задеплоен v5 (JWT+Password3, `RefundService/Refund/Create`).
 
 ---
 
@@ -65,8 +65,9 @@ _Обновлён: 2026-06-19_ — Сессия: аудит интеграции
    - Локальный файл `supabase/functions/payment-result2/index.ts` синхронизирован с задеплоенной v10 (jose).
    
    **Что осталось (выполнить после ответа поддержки):**
-   - ✅ Password3 сгенерирован в Robokassa ЛК
-   - ✅ Secrets `ROBOKASSA_PASSWORD3`, `ROBOKASSA_TEST_PASSWORD3` добавлены в Supabase
+   - ✅ Password3 сгенерирован в Robokassa ЛК (тестового варианта нет)
+   - ✅ Secret `ROBOKASSA_PASSWORD3` добавлен в Supabase
+   - ✅ `process-refund` исправлен: JWT+Password3 → `RefundService/Refund/Create` (v5, задеплоен 2026-06-20)
    - Тестовый платёж (IsTest=true) → `SELECT op_key FROM payments ORDER BY paid_at DESC LIMIT 1` — NOT NULL
    - Настройки → Подписка → кнопка «Запросить возврат · ещё 14 дней» видна → подтвердить
    - SQL: `SELECT plan, refunded_at FROM payments ORDER BY paid_at DESC LIMIT 1` — refunded_at NOT NULL
@@ -91,7 +92,7 @@ _Обновлён: 2026-06-19_ — Сессия: аудит интеграции
 - ✅ Pro → Lifetime: кнопка «Перейти на Lifetime» добавлена в SettingsModal для Pro-пользователей; `UpgradeModal` получил `skipPro` prop (2026-06-15)
 - ✅ §1.5 — лендинг сохраняет выбранный тариф через регистрацию → авто-редирект на Robokassa (2026-06-15): `LandingPricingSection` запускает оплату напрямую; `Auth.tsx` читает `plan` из URL / `sessionStorage.pending_plan` после входа
 - ✅ Чек ФЗ-54 в `create-payment-url` (2026-06-15): параметр `Receipt` с номенклатурой (`tax: none`, УСН) включён в MD5-подпись; требует деплоя Edge Function
-- ⚠️ **Receipt в подписи был raw JSON — исправлено на URL-encoded** (по [docs.robokassa.ru/ru/fiscalization](https://docs.robokassa.ru/ru/fiscalization)): теперь одна encoded-строка в MD5 и в URL. То же в `billing-scheduler`. **Требует деплоя + проверки реальным платежом с чеком** (тестовые чеки не фискализируются, подпись с Receipt боевым платежом ещё не проверялась)
+- ✅ **Receipt в подписи — raw JSON** (не URL-encoded). В URL-параметр идёт URL-encoded. Формула верифицирована боевыми платежами 17/18/20.06.2026 (create-payment-url v45)
 
 **Файлы:** `supabase/functions/robokassa-webhook/index.ts`, `supabase/functions/create-payment-url/index.ts`, `src/components/SettingsModal.tsx`
 **Проверить:** тестовый платёж → `profiles.plan = 'pro'` → SettingsModal показывает Pro; Lifetime → `lifetime_slots_remaining` убывает; чек на email
@@ -242,35 +243,21 @@ _Обновлён: 2026-06-19_ — Сессия: аудит интеграции
 
 ---
 
-### 7. Отмена подписки
+### 7. Отмена подписки ✅ MVP (2026-06-20)
 
-**Что это:** механизм самостоятельной отмены Pro-подписки без участия поддержки. Сейчас — `mailto:`-ссылка, нужна полноценная in-app отмена.
+**Реализовано:**
+- ✅ Edge Function `cancel-subscription` (задеплоить): POST → `cancel_at_period_end = true`; `?resume=true` → `false`; логирует в `admin_audit_log`
+- ✅ `billing-scheduler`: добавлен шаг даунгрейда истёкших отменённых планов (`plan = 'free'` когда `cancel_at_period_end = true && plan_expires_at < now()`)
+- ✅ `useSubscription.ts`: `cancelAtPeriodEnd`, `handleCancel`, `handleResume`, `cancelLoading`, `cancelError`, `cancelConfirmOpen`
+- ✅ `SettingsSubscriptionTab.tsx`: кнопка «Отменить подписку» (только для рекуррентных) → ConfirmDialog → `cancel-subscription`; баннер «Отменена · доступ до [дата]»; кнопка «Возобновить подписку»
 
-**Ключевые решения:**
-- Добавить колонку `cancel_at_period_end boolean default false` в `profiles`
-- При нажатии «Отменить подписку» → подтверждение → `cancel_at_period_end = true` (доступ сохраняется до `plan_expires_at`)
-- Планировщик рекуррентных платежей (§1) проверяет флаг — если `true`, не выставляет следующий счёт, а сбрасывает `plan = 'free'` и `cancel_at_period_end = false` после истечения
-- В настройках вместо «Активна до ...» показывать баннер: «Отменена · доступ до [дата]» + кнопка «Возобновить»
+**Деплой:** `npx supabase functions deploy cancel-subscription --project-ref joaxeoavjvlqmtlepkrr`
 
-**Cancel flow — структура (приоритет):**
-1. Кнопка «Отменить» → 1 вопрос: причина (5 вариантов) → сохранить в `profiles.cancel_reason text`
-2. Offer на основе причины: **пауза 1–3 мес** (сезонный писатель) / скидка 20% на 2 мес (цена) / ничего (книга дописана)
-3. Если отклонил → подтверждение с датой окончания доступа
-4. Email-уведомление об отмене через UniSender Go
-
-**Причины для exit-опроса:**
-- Дописал книгу, пока не нужно → предложить паузу
-- Слишком дорого → скидка 20% на 2 месяца
-- Не хватает функции → показать roadmap
-- Временно не пишу → предложить паузу
-- Другое (текстовое поле)
-
-**Что продумать до реализации:**
-- Пауза 1–3 мес: добавить `plan_paused_until timestamptz` в `profiles`; по истечении — автовозобновление с уведомлением за 3 дня
-
-**Файлы:** `supabase/migrations/` (колонка `cancel_at_period_end`), `src/components/SettingsModal.tsx` (таб «Подписка»), `supabase/functions/robokassa-webhook/` (планировщик рекуррентных)
-**Проверить:** Pro-пользователь → «Отменить» → подтверждение → баннер «доступ до [дата]»; после `plan_expires_at` → `plan = 'free'`; кнопка «Возобновить» сбрасывает флаг
-**Deps:** §1.7 (рекуррентные платежи, `cancel_at_period_end` проверяется в `billing-scheduler`)
+**Что осталось (после первых пользователей):**
+- Exit-интервью: 5 причин отмены → сохранять в `profiles.cancel_reason text` (новая колонка)
+- Retention-офферы: пауза 1–3 мес / скидка 20% на 2 мес на основе причины
+- Email-уведомление об отмене через UniSender Go
+- Пауза: `plan_paused_until timestamptz` в `profiles`; автовозобновление с письмом за 3 дня
 
 ---
 

@@ -176,5 +176,39 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Даунгрейд истёкших отменённых планов:
+  // Pro-пользователи с cancel_at_period_end=true у которых plan_expires_at уже прошёл.
+  const { data: expiredCancelled, error: expiredErr } = await db
+    .from('profiles')
+    .select('user_id, plan_expires_at')
+    .eq('plan', 'pro')
+    .eq('cancel_at_period_end', true)
+    .lt('plan_expires_at', new Date().toISOString());
+
+  if (expiredErr) {
+    console.error('[billing-scheduler] expired-cancelled query failed:', expiredErr.message);
+  } else {
+    const expired = expiredCancelled ?? [];
+    console.log(`[billing-scheduler] expiring ${expired.length} cancelled plans`);
+    for (const p of expired) {
+      const { error: downgradeErr } = await db
+        .from('profiles')
+        .update({ plan: 'free', plan_expires_at: null, cancel_at_period_end: false })
+        .eq('user_id', p.user_id);
+      if (downgradeErr) {
+        console.error(`[billing-scheduler] downgrade failed for ${p.user_id}:`, downgradeErr.message);
+        continue;
+      }
+      await db.from('admin_audit_log').insert({
+        admin_id:       '00000000-0000-0000-0000-000000000000',
+        admin_email:    'system',
+        action:         'subscription_expired',
+        target_user_id: p.user_id,
+        payload:        { plan_expires_at: p.plan_expires_at },
+      });
+      console.log(`[billing-scheduler] downgraded userId=${p.user_id} (cancelled plan expired)`);
+    }
+  }
+
   return json(200, { processed: rows.length, results });
 });

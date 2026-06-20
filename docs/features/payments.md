@@ -24,9 +24,10 @@
 - `ResultUrl2` — для получения `op_key` (нужен при возврате)
 - `Shp_plan`, `Shp_user_id` — передаются в вебхук для активации плана
 
-Подпись: `MD5(MerchantLogin:OutSum:InvId:Receipt:ResultUrl2:Password1:Shp_plan=…:Shp_user_id=…)`
+Подпись: `MD5(MerchantLogin:OutSum:InvId:ReceiptJSON:ResultUrl2:Password1:Shp_plan=…:Shp_user_id=…)`
+> **ResultUrl2 входит в подпись** — подтверждено рабочими платежами 17-18.06.2026.
 
-> **Receipt в подписи — URL-encoded.** Robokassa требует URL-кодировать `Receipt` *до* включения в строку подписи; одна и та же encoded-строка идёт и в MD5, и в параметр URL ([docs.robokassa.ru/ru/fiscalization](https://docs.robokassa.ru/ru/fiscalization)). То же в `billing-scheduler` (рекуррент). Проверять только реальным платежом — тестовые чеки не фискализируются.
+> **Receipt в подписи — raw JSON (не URL-encoded).** В URL-параметр `Receipt` идёт `encodeURIComponent(receiptJson)`, но в строку MD5-подписи — тот же JSON без кодирования. Это два разных представления одного объекта. Проверять только реальным платежом — тестовые чеки не фискализируются.
 
 ### `robokassa-webhook` (ResultUrl1)
 Основной вебхук — активирует план пользователя:
@@ -42,8 +43,16 @@
 ### `payment-result2` (ResultUrl2)
 Получает JWS-уведомление от Робокассы, сохраняет `op_key` в `payments.op_key`. Нужен для автоматических возвратов (`process-refund`).
 
+### `cancel-subscription`
+Отмена и возобновление рекуррентной Pro-подписки пользователем.
+- `POST /cancel-subscription` → `cancel_at_period_end = true` (доступ сохраняется до `plan_expires_at`)
+- `POST /cancel-subscription?resume=true` → `cancel_at_period_end = false`
+- Условие: `plan = 'pro'` + `recurring_inv_id IS NOT NULL`.
+- Логирует в `admin_audit_log` (`subscription_cancelled` / `subscription_resumed`).
+- `billing-scheduler` пропускает отменённых при продлении и даунгрейдит план до `free` когда `plan_expires_at` истекает.
+
 ### `process-refund`
-Возвраты через Робокассу по `op_key`. Требует Bearer-токен (вызывается только из Admin-панели).
+Возвраты через Робокассу по `op_key`. Требует Bearer-токен (пользователь, не admin).
 
 > ⚠️ **НЕ соответствует актуальному API Robokassa — требует переписи.** Текущий код бьёт в `services.robokassa.ru/RefundService/Refund/Create` с JWT (Password3) и ждёт `requestId`. Актуальный Operation API ([docs.robokassa.ru/partner-api](https://docs.robokassa.ru/partner-api/MethodDescription/RefundOperation/)): эндпоинт `services.robokassa.ru/PartnerRegisterService/api/Operation/RefundOperation`, авторизация **HTTP Basic** (`Base64(login:password)`, не JWT/Password3), тело JSON `{ RoboxPartnerId, OpKey, RefundSum }`, ответ `{ success, error, resultCode }` (без `requestId` — поллинг `GetState` неприменим).
 

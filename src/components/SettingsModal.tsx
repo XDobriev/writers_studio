@@ -119,7 +119,6 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
               {activeTab === 'subscription' && (
                 <SettingsSubscriptionTab
                   userId={user?.id}
-                  userEmail={user?.email}
                   isActive={activeTab === 'subscription'}
                 />
               )}

@@ -12,17 +12,22 @@ const PLAN_META: Record<Plan, { name: string; desc: string }> = {
 
 interface Props {
   userId: string | undefined;
-  userEmail: string | undefined;
   isActive: boolean;
 }
 
-export function SettingsSubscriptionTab({ userId, userEmail, isActive }: Props) {
+export function SettingsSubscriptionTab({ userId, isActive }: Props) {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const {
-    plan, planExpiresAt, grandfathered, hasRecurring, planLoaded,
+    plan, planExpiresAt, grandfathered, hasRecurring, cancelAtPeriodEnd, planLoaded,
     lastProPayment, refundLoading, refundError, refundDone,
     refundConfirmOpen, setRefundConfirmOpen, handleRefund,
+    cancelLoading, cancelError, cancelConfirmOpen, setCancelConfirmOpen,
+    handleCancel, handleResume,
   } = useSubscription(userId, isActive);
+
+  const expiresFormatted = planExpiresAt
+    ? new Date(planExpiresAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
 
   return (
     <>
@@ -36,13 +41,15 @@ export function SettingsSubscriptionTab({ userId, userEmail, isActive }: Props) 
                   <div>
                     <div style={{ font: '600 14px var(--font-ui)', color: 'var(--ink)', marginBottom: 3 }}>{PLAN_META[plan].name}</div>
                     <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{PLAN_META[plan].desc}</div>
-                    {plan === 'pro' && planExpiresAt && (
-                      <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginTop: 5 }}>
-                        {hasRecurring ? 'Следующее списание' : 'Активна до'}{' '}
-                        {new Date(planExpiresAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {plan === 'pro' && expiresFormatted && (
+                      <div style={{ font: '400 11px var(--font-ui)', color: cancelAtPeriodEnd ? 'var(--danger)' : 'var(--ink-4)', marginTop: 5 }}>
+                        {cancelAtPeriodEnd
+                          ? `Отменена · доступ до ${expiresFormatted}`
+                          : `${hasRecurring ? 'Следующее списание' : 'Активна до'} ${expiresFormatted}`
+                        }
                       </div>
                     )}
-                    {plan === 'pro' && grandfathered && (
+                    {plan === 'pro' && grandfathered && !cancelAtPeriodEnd && (
                       <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ok)', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span>✦</span>
                         <span>Ранняя цена · 290 ₽/мес навсегда</span>
@@ -74,20 +81,54 @@ export function SettingsSubscriptionTab({ userId, userEmail, isActive }: Props) 
 
                 {plan === 'pro' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <button
-                      className="btn btn--ghost"
-                      onClick={() => setUpgradeOpen(true)}
-                      style={{ fontSize: 13, height: 38 }}
-                    >
-                      Перейти на Lifetime
-                    </button>
-                    <a
-                      href={`mailto:support@avtorskaya-studiya.ru?subject=Отмена подписки&body=Прошу отменить мою подписку Pro. Email аккаунта: ${userEmail ?? ''}`}
-                      className="btn btn--ghost"
-                      style={{ fontSize: 13, padding: '6px 12px', textDecoration: 'none', color: 'var(--ink-3)' }}
-                    >
-                      Отменить подписку
-                    </a>
+                    {!cancelAtPeriodEnd && (
+                      <button
+                        className="btn btn--ghost"
+                        onClick={() => setUpgradeOpen(true)}
+                        style={{ fontSize: 13, height: 38 }}
+                      >
+                        Перейти на Lifetime
+                      </button>
+                    )}
+
+                    {/* Отмена / Возобновление — только для рекуррентных подписчиков */}
+                    {hasRecurring && (
+                      cancelAtPeriodEnd ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <button
+                            className="btn btn--ghost"
+                            style={{ fontSize: 13, height: 38 }}
+                            onClick={handleResume}
+                            disabled={cancelLoading}
+                          >
+                            {cancelLoading ? 'Возобновляем…' : 'Возобновить подписку'}
+                          </button>
+                          {cancelError && (
+                            <p style={{ font: '400 11px var(--font-ui)', color: 'var(--danger)', margin: '2px 0 0', textAlign: 'center' }}>
+                              {cancelError}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <button
+                            className="btn btn--ghost"
+                            style={{ fontSize: 13, height: 38, color: 'var(--ink-3)' }}
+                            onClick={() => setCancelConfirmOpen(true)}
+                            disabled={cancelLoading}
+                          >
+                            Отменить подписку
+                          </button>
+                          {cancelError && (
+                            <p style={{ font: '400 11px var(--font-ui)', color: 'var(--danger)', margin: '2px 0 0', textAlign: 'center' }}>
+                              {cancelError}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    )}
+
+                    {/* Возврат — только в течение 14 дней с покупки */}
                     {!refundDone && lastProPayment && (() => {
                       const daysLeft = Math.ceil(
                         (new Date(lastProPayment.paid_at).getTime() + 14 * 86400_000 - Date.now()) / 86400_000
@@ -126,6 +167,14 @@ export function SettingsSubscriptionTab({ userId, userEmail, isActive }: Props) 
           grandfathered={grandfathered}
         />
       )}
+
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        message={`После ${expiresFormatted ?? 'окончания периода'} подписка Pro не продлится автоматически. До этой даты вы сохраняете полный доступ.`}
+        confirmLabel="Отменить подписку"
+        onConfirm={handleCancel}
+        onCancel={() => setCancelConfirmOpen(false)}
+      />
 
       <ConfirmDialog
         open={refundConfirmOpen}
