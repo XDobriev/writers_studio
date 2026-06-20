@@ -117,23 +117,6 @@ _Обновлён: 2026-06-21_ — §1.7 рекуррентные платежи
 
 ---
 
-### §1.8. UX-фиксы подписки (critique 2026-06-18)
-
-**Три задачи в двух сессиях. Всё в `src/components/SettingsModal.tsx` и `design-system.css`.**
-
-#### ~~Сессия A~~ — выполнено 2026-06-18
-
-#### Сессия B — ~30 мин (P1 checkbox)
-
-- [ ] **P1: Кастомный чекбокс рекуррентного согласия** (строки 138–143): добавить класс `.as-checkbox` в `design-system.css` (appearance: none, 16px, border-radius: 4px, accent fill при checked + SVG checkmark). Заменить inline-style на `className="as-checkbox"`. Тёмный фон UpgradeModal требует белого checkmark и чёткого border в unchecked-состоянии.
-
-#### Сессия C — in-app отмена → §7
-
-**Файлы:** `src/components/SettingsModal.tsx`, `src/styles/design-system.css`
-**Проверить A:** Pro-аккаунт → вкладка Подписка → нет красной primary; PRO_FEATURES совпадают с Offer.tsx §2.
-**Проверить B:** тёмная тема → чекбокс: border видна без клика, accent fill + checkmark при клике.
-
----
 
 ### 2. Ручное тестирование перед публичным запуском
 
@@ -283,7 +266,6 @@ _Обновлён: 2026-06-21_ — §1.7 рекуррентные платежи
 2. Судьба Vercel после §9: переключить на self-hosted Supabase (через публичный доменный прокси) или отключить.
 3. Удалить отставшие ветки `vercel-preview` и `dev` (10+ коммитов позади) — или оживить `dev` под staging (вариант C).
 4. e2e в `ci.yml`: гонять против Vercel preview URL (реальный деплой) вместо localhost.
-5. `deploy-timeweb.yml`: убрать повторный `check` джоб (уже прошёл в `ci.yml`) — заменить на `workflow_run` с условием success.
 
 ---
 
