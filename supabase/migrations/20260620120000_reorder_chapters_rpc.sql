@@ -39,5 +39,8 @@ BEGIN
 END;
 $$;
 
+-- Supabase выдаёт EXECUTE роли anon напрямую (через default privileges),
+-- поэтому REVOKE FROM PUBLIC недостаточно — снимаем доступ у anon явно.
 REVOKE ALL ON FUNCTION reorder_chapters(jsonb) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION reorder_chapters(jsonb) FROM anon;
 GRANT EXECUTE ON FUNCTION reorder_chapters(jsonb) TO authenticated;
