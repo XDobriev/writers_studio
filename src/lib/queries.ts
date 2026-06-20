@@ -4,7 +4,7 @@ import { getBook, listBooks, listWritingSnapshots } from './books';
 import { getProfile, getRegistrationOpen, type Profile } from './profiles';
 import type { Book } from './supabase';
 import { listChaptersMeta, getChapterContent, type ChapterMeta } from './chapters';
-import { listCharactersPage, type Character } from './characters';
+import { listCharactersPage, searchCharactersServer, type Character, type CharacterRole } from './characters';
 import { listRelationships, type CharacterRelationship } from './relationships';
 import { fetchNotes, type Note } from './notes';
 import { listLocations, type Location } from './locations';
