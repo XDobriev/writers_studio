@@ -274,6 +274,7 @@ function ColorPopover({ editor, kind }: ColorPopoverProps) {
                   key={c.value}
                   type="button"
                   title={c.label}
+                  aria-label={c.label}
                   onMouseDown={apply(c.value)}
                   style={{
                     width: 22, height: 22, borderRadius: 5,

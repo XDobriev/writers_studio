@@ -29,8 +29,7 @@ export function CookieBanner() {
         transform: 'translateX(-50%)',
         zIndex: 9990,
         background: 'oklch(0.18 0.014 50 / 0.92)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+
         border: '1px solid var(--border)',
         borderRadius: 'var(--r-3)',
         padding: '10px 12px 10px 16px',

@@ -71,7 +71,7 @@
   --dur-page:    0.2s;
 
   /* Motion: easing */
-  --ease-spring:    cubic-bezier(0.22, 0.68, 0, 1.2);
+  --ease-spring:    cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -1674,7 +1674,7 @@ select.input {
   border-bottom: 1px solid var(--border-soft);
 }
 .admin-table--striped tbody tr:nth-child(even) {
-  background: oklch(0.96 0.002 50 / 0.4);
+  background: color-mix(in oklch, var(--ink) 3%, var(--surface));
 }
 .admin-th {
   padding: 10px 16px;

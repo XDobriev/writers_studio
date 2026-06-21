@@ -148,7 +148,7 @@ export function Sidebar({
 
       <SidebarNav bookId={bid} />
 
-      <div className="sb-body">
+      <nav className="sb-body" aria-label="Разделы книги">
       {isReal ? (
         <>
           <div className="sb-section">
@@ -291,7 +291,7 @@ export function Sidebar({
         </div>
       )}
 
-      </div>{/* /sb-body */}
+      </nav>{/* /sb-body */}
 
       <SidebarFoot />
     </aside>
