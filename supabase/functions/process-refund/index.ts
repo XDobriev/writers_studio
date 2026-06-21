@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
   const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const { data: payment, error: payErr } = await db
     .from('payments')
-    .select('id, op_key, amount')
+    .select('id, op_key')
     .eq('user_id', user.id)
     .in('plan', ['pro', 'pro_annual'])
     .is('refunded_at', null)
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
   let requestId: string;
   try {
     const jwt = await buildJwt(
-      { OpKey: payment.op_key, RefundSum: Number(payment.amount) },
+      { OpKey: payment.op_key },
       password3,
     );
     const res = await fetch('https://services.robokassa.ru/RefundService/Refund/Create', {
@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
   const now = new Date().toISOString();
   const [profileUpdate, paymentUpdate] = await Promise.all([
     db.from('profiles').update({ plan: 'free', plan_expires_at: null }).eq('user_id', user.id),
-    db.from('payments').update({ refunded_at: now }).eq('id', payment.id),
+    db.from('payments').update({ refunded_at: now, refund_request_id: requestId }).eq('id', payment.id),
   ]);
 
   if (profileUpdate.error) console.error('[process-refund] profile update failed:', profileUpdate.error.message);

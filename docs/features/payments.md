@@ -65,7 +65,9 @@
 ### `process-refund`
 Возвраты через Робокассу по `op_key`. Требует Bearer-токен (пользователь, не admin).
 
-> ⚠️ **НЕ соответствует актуальному API Robokassa — требует переписи.** Текущий код бьёт в `services.robokassa.ru/RefundService/Refund/Create` с JWT (Password3) и ждёт `requestId`. Актуальный Operation API ([docs.robokassa.ru/partner-api](https://docs.robokassa.ru/partner-api/MethodDescription/RefundOperation/)): эндпоинт `services.robokassa.ru/PartnerRegisterService/api/Operation/RefundOperation`, авторизация **HTTP Basic** (`Base64(login:password)`, не JWT/Password3), тело JSON `{ RoboxPartnerId, OpKey, RefundSum }`, ответ `{ success, error, resultCode }` (без `requestId` — поллинг `GetState` неприменим).
+Использует стандартный merchant Refund API: `POST services.robokassa.ru/RefundService/Refund/Create` с JWT, подписанным Password3. Ответ содержит `requestId` — статус поллится через `GetState` (до 20 сек). Partner API (`PartnerRegisterService/api/Operation/RefundOperation`) — только для реселлеров Робокассы, для обычного магазина недоступен (подтверждено поддержкой 21.06.2026).
+
+> ⚠️ **Открытый вопрос:** нужно ли передавать `InvoiceItems` для аннуляции РобоЧека СМЗ при возврате? Уточняется в поддержке Робокассы.
 
 ## Таблицы БД
 
