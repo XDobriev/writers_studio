@@ -65,7 +65,7 @@ export function CharacterHoverCard({ state, bookId, onMouseEnter, onMouseLeave }
         borderRadius: 10,
         boxShadow: '0 12px 32px oklch(0 0 0 / 0.5)',
         padding: '12px 14px',
-        animation: 'toast-in 0.15s cubic-bezier(0.22, 0.68, 0, 1.2) both',
+        animation: 'toast-in 0.15s var(--ease-out-quint) both',
         pointerEvents: 'auto',
       }}
     >

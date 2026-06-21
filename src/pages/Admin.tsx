@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useAdminData } from '../lib/useAdminData';
@@ -15,6 +15,8 @@ import AdminAnalytics, { type TopUser } from './AdminAnalytics';
 export default function Admin() {
   const { user, loading, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>('users');
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const tabKeys = Object.keys(TAB_LABELS) as Tab[];
   const {
     stats, users, isAdmin, error, clearError,
     auditLog, auditLoading, revenue, flags,
@@ -46,7 +48,7 @@ export default function Admin() {
 
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <div style={{ height: 56, display: 'flex', alignItems: 'center', padding: '0 32px', gap: 12, borderBottom: '1px solid var(--border-soft)', background: 'var(--bg-deep)' }}>
+      <div className="admin-header">
         <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
           <LogoMark size={18} />
           <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
@@ -63,30 +65,33 @@ export default function Admin() {
         </button>
       </div>
 
-      <div style={{ padding: '36px 40px', maxWidth: 1200 }}>
+      <div className="admin-main">
         {error && <ErrorBanner message={error} style={{ marginBottom: 20 }} />}
 
         <h1 style={{ font: '600 28px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 20 }}>Панель администратора</h1>
 
-        <div role="tablist" aria-label="Разделы панели администратора" style={{ display: 'flex', gap: 0, marginBottom: 32, borderBottom: '1px solid var(--border-soft)' }}>
-          {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
+        <div role="tablist" aria-label="Разделы панели администратора" className="admin-tab-bar">
+          {tabKeys.map((t, i) => (
             <button
               key={t}
               role="tab"
               aria-selected={tab === t}
+              tabIndex={tab === t ? 0 : -1}
+              ref={el => { tabRefs.current[i] = el; }}
               onClick={() => handleTabChange(t)}
-              style={{
-                padding: '10px 20px',
-                font: '500 11px var(--font-mono)',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                color: tab === t ? 'var(--accent)' : 'var(--ink-4)',
-                background: 'none',
-                border: 'none',
-                borderBottom: `2px solid ${tab === t ? 'var(--accent)' : 'transparent'}`,
-                marginBottom: -1,
-                cursor: 'pointer',
+              onKeyDown={(e) => {
+                let next: number | null = null;
+                if (e.key === 'ArrowRight') next = (i + 1) % tabKeys.length;
+                else if (e.key === 'ArrowLeft') next = (i - 1 + tabKeys.length) % tabKeys.length;
+                else if (e.key === 'Home') next = 0;
+                else if (e.key === 'End') next = tabKeys.length - 1;
+                if (next !== null) {
+                  e.preventDefault();
+                  handleTabChange(tabKeys[next]);
+                  tabRefs.current[next]?.focus();
+                }
               }}
+              className={`admin-tab${tab === t ? ' admin-tab--on' : ''}`}
             >
               {TAB_LABELS[t]}
             </button>

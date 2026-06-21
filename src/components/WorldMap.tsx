@@ -597,7 +597,8 @@ export function WorldMap({
               value={editType}
               onChange={e => { const t = e.target.value as LocationType; setEditType(t); scheduleUpdate(selected.id, { type: t }); }}
               aria-label="Тип локации"
-              style={{ width: '100%', height: 30, padding: '0 28px 0 8px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--ink-2)', font: '400 11px var(--font-ui)', outline: 'none', marginBottom: 7, appearance: 'none', backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 9px center', cursor: 'pointer' }}
+              className="map-popup-select"
+              style={{ marginBottom: 7 }}
             >
               {(['city','village','forest','sea','castle','other'] as const).map(t => (
                 <option key={t} value={t}>{TYPE_GLYPHS[t]} {TYPE_LABELS[t]}</option>
@@ -761,7 +762,8 @@ export function WorldMap({
             value={editType}
             onChange={e => { const t = e.target.value as LocationType; setEditType(t); scheduleUpdate(selected.id, { type: t }); }}
             aria-label="Тип локации"
-            style={{ width: '100%', height: 32, padding: '0 28px 0 9px', border: '1px solid var(--border-soft)', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--ink-2)', font: '400 12px var(--font-ui)', outline: 'none', marginBottom: 8, appearance: 'none', backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 9px center', cursor: 'pointer' }}
+            className="map-popup-select"
+            style={{ marginBottom: 8 }}
           >
             {(['city','village','forest','sea','castle','other'] as const).map(t => (
               <option key={t} value={t}>{TYPE_GLYPHS[t]} {TYPE_LABELS[t]}</option>
