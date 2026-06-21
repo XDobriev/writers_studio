@@ -257,7 +257,7 @@ export default function Timeline() {
         {!isMobile && (
           <Sidebar book={book} subtitle={`хронология · ${events.length}`}>
             <div className="sb-section">
-              <span className="sb-section-title">Слои</span>
+              <span className="sb-section-title">Линии</span>
             </div>
             <TimelineFilters variant="sidebar" filter={filter} onFilter={setFilter} />
           </Sidebar>
@@ -430,7 +430,7 @@ export default function Timeline() {
         subtitle={`хронология · ${events.length}`}
       >
         <div className="sb-section">
-          <span className="sb-section-title">Слои</span>
+          <span className="sb-section-title">Линии</span>
         </div>
         <TimelineFilters variant="sidebar" filter={filter} onFilter={setFilter} />
       </MobileSidebarDrawer>
