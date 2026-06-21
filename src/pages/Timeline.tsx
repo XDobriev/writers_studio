@@ -10,6 +10,7 @@ import { type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
+import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
@@ -53,6 +54,7 @@ export default function Timeline() {
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
 
   const { isMobile } = useResponsive();
+  const [sbOpen, setSbOpen] = useState(false);
 
   const activeEvent = useMemo(
     () => events?.find((e) => e.id === activeEventId) ?? null,
@@ -263,7 +265,14 @@ export default function Timeline() {
 
         <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>
-            <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Хронология</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {isMobile && (
+                <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
+                  <Icon name="panel" size={16} />
+                </button>
+              )}
+              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Хронология</span>
+            </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               {!isMobile && (
                 <div
@@ -413,6 +422,18 @@ export default function Timeline() {
         onCancel={() => setConfirmDeleteId(null)}
       />
       <UpgradePrompt open={showUpgrade} feature="timeline" onClose={() => setShowUpgrade(false)} />
+
+      <MobileSidebarDrawer
+        open={sbOpen}
+        onClose={() => setSbOpen(false)}
+        book={book}
+        subtitle={`хронология · ${events.length}`}
+      >
+        <div className="sb-section">
+          <span className="sb-section-title">Слои</span>
+        </div>
+        <TimelineFilters variant="sidebar" filter={filter} onFilter={setFilter} />
+      </MobileSidebarDrawer>
     </WithMode>
     </motion.div>
   );

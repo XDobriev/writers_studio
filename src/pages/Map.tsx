@@ -5,6 +5,8 @@ import { ErrorBanner } from '../components/ErrorBanner';
 import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useParams } from 'react-router-dom';
 import { WithMode, Sidebar } from '../components/Chrome';
+import { Icon } from '../components/Icon';
+import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { MapStyleModal } from '../components/MapStyleModal';
 import { WorldMap } from '../components/WorldMap';
@@ -52,6 +54,7 @@ export default function MapScreen() {
   // ── Export PNG ───────────────────────────────────────────────────────────
 
   const [exportBusy, setExportBusy] = useState(false);
+  const [sbOpen, setSbOpen] = useState(false);
 
   const onExportPng = useCallback(async () => {
     if (!book || !locations || !connections) return;
@@ -130,13 +133,16 @@ export default function MapScreen() {
 
           {/* Toolbar */}
           <div className="tb" style={{ justifyContent: 'space-between', gap: 8 }}>
-            {isMobile ? (
-              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0 }}>
-                {book.title}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {isMobile && (
+                <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
+                  <Icon name="panel" size={16} />
+                </button>
+              )}
+              <span style={{ font: '500 13px var(--font-ui)', color: isMobile ? 'var(--ink-2)' : 'var(--ink)', flexShrink: 0 }}>
+                {isMobile ? book.title : 'Карта мира'}
               </span>
-            ) : (
-              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Карта мира</span>
-            )}
+            </div>
 
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <button
@@ -277,6 +283,30 @@ export default function MapScreen() {
         onConfirm={() => { if (confirmDeleteId) { void onDeleteConfirmed(confirmDeleteId); setConfirmDeleteId(null); } }}
         onCancel={() => setConfirmDeleteId(null)}
       />
+
+      <MobileSidebarDrawer
+        open={sbOpen}
+        onClose={() => setSbOpen(false)}
+        book={book}
+        subtitle={`карта мира · ${locations.length} лок.`}
+      >
+        <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Режим</div>
+          {modeButtons.map(m => (
+            <button
+              key={m.value}
+              type="button"
+              onClick={() => { setMode(m.value); setSbOpen(false); }}
+              className={'sb-item' + (mode === m.value ? ' sb-item--on' : '')}
+              aria-pressed={mode === m.value}
+              style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
+            >
+              <span>{m.icon}</span>
+              <span className="sb-item-title">{m.label}</span>
+            </button>
+          ))}
+        </div>
+      </MobileSidebarDrawer>
     </WithMode>
     </motion.div>
   );

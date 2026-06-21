@@ -8,6 +8,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
+import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
 import { CharacterFieldCard } from '../components/CharacterFieldCard';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
@@ -67,6 +68,7 @@ export default function Characters() {
   const [charToDelete, setCharToDelete] = useState<Character | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>('info');
   const { isMobile } = useResponsive();
+  const [sbOpen, setSbOpen] = useState(false);
 
   const [debouncedQuery, setDebouncedQuery] = useState('');
   useEffect(() => {
@@ -223,6 +225,11 @@ export default function Characters() {
           {/* Тулбар */}
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {isMobile && (
+                <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
+                  <Icon name="panel" size={16} />
+                </button>
+              )}
               {isMobile && activeId && (
                 <button className="tb-btn" onClick={clearCharacter} title="К списку персонажей" aria-label="К списку персонажей">
                   <Icon name="arrows" size={16} />
@@ -464,6 +471,13 @@ export default function Characters() {
         onCancel={() => setCharToDelete(null)}
       />
       <UpgradePrompt open={showUpgrade} feature="characters" onClose={() => setShowUpgrade(false)} />
+
+      <MobileSidebarDrawer
+        open={sbOpen}
+        onClose={() => setSbOpen(false)}
+        book={book}
+        subtitle={`персонажи · ${characters.length}`}
+      />
     </WithMode>
 
     {mutationError && (

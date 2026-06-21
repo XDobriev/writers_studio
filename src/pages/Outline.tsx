@@ -20,6 +20,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
 import { WithMode, Sidebar } from '../components/Chrome';
+import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
+import { useResponsive } from '../lib/useResponsive';
 import { useAuth } from '../lib/auth';
 import { type ChapterMeta, type ChapterStatus } from '../lib/chapters';
 import { useBook, useChapters, useCharacters, useChapterPovMap } from '../lib/queries';
@@ -552,6 +554,8 @@ export default function Outline() {
     bookId, userId: user?.id, chapters, navigate, setError,
   });
   const error = chaptersError?.message ?? mutationError;
+  const { isMobile } = useResponsive();
+  const [sbOpen, setSbOpen] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const [renameFor, setRenameFor] = useState<string | null>(null);
@@ -609,22 +613,29 @@ export default function Outline() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%' }}>
     <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
-        <Sidebar book={book} subtitle={`структура · ${totals.words.toLocaleString('ru')} / ${(book?.goal ?? 0).toLocaleString('ru')} сл`}>
-          <div className="sb-tabs">
-            <button className="sb-tab sb-tab--on" aria-current="true">Структура</button>
-            <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/corkboard`)}>Доска</button>
-          </div>
-          <div style={{ padding: '18px 18px 14px', color: 'var(--ink-3)', fontSize: 12 }}>
-            Дерево структуры показывает книгу целиком. Перетащите главы, чтобы изменить порядок.
-          </div>
-          <div style={{ padding: '4px 14px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <button className="btn" onClick={onCreate}><Icon name="plus" size={13} /> Новая глава</button>
-          </div>
-        </Sidebar>
+        {!isMobile && (
+          <Sidebar book={book} subtitle={`структура · ${totals.words.toLocaleString('ru')} / ${(book?.goal ?? 0).toLocaleString('ru')} сл`}>
+            <div className="sb-tabs">
+              <button className="sb-tab sb-tab--on" aria-current="true">Структура</button>
+              <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/corkboard`)}>Доска</button>
+            </div>
+            <div style={{ padding: '18px 18px 14px', color: 'var(--ink-3)', fontSize: 12 }}>
+              Дерево структуры показывает книгу целиком. Перетащите главы, чтобы изменить порядок.
+            </div>
+            <div style={{ padding: '4px 14px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <button className="btn" onClick={onCreate}><Icon name="plus" size={13} /> Новая глава</button>
+            </div>
+          </Sidebar>
+        )}
 
         <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: 'var(--bg)' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {isMobile && (
+                <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
+                  <Icon name="panel" size={16} />
+                </button>
+              )}
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Структура</span>
               <span className="chip">{totals.count} {plural(totals.count, 'глава', 'главы', 'глав')} · {totals.words.toLocaleString('ru')} сл</span>
             </div>
@@ -701,6 +712,21 @@ export default function Outline() {
           </div>
         </main>
       </div>
+
+      <MobileSidebarDrawer
+        open={sbOpen}
+        onClose={() => setSbOpen(false)}
+        book={book}
+        subtitle={`структура · ${totals.words.toLocaleString('ru')} / ${(book?.goal ?? 0).toLocaleString('ru')} сл`}
+      >
+        <div className="sb-tabs">
+          <button className="sb-tab sb-tab--on" aria-current="true">Структура</button>
+          <button className="sb-tab" onClick={() => { setSbOpen(false); if (bookId) navigate(`/books/${bookId}/corkboard`); }}>Доска</button>
+        </div>
+        <div style={{ padding: '4px 14px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <button className="btn" onClick={() => { onCreate(); setSbOpen(false); }}><Icon name="plus" size={13} /> Новая глава</button>
+        </div>
+      </MobileSidebarDrawer>
     </WithMode>
     </motion.div>
   );

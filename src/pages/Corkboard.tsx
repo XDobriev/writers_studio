@@ -21,6 +21,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
 import { WithMode, Sidebar } from '../components/Chrome';
+import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
+import { useResponsive } from '../lib/useResponsive';
 import { useAuth } from '../lib/auth';
 import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
@@ -303,6 +305,8 @@ export default function Corkboard() {
   const { data: chapters, error: chaptersError } = useChapters(bookId);
   const { error: mutationError, setError } = useErrorState();
   const error = chaptersError?.message ?? mutationError;
+  const { isMobile } = useResponsive();
+  const [sbOpen, setSbOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
 
   const sensors = useSensors(
@@ -409,7 +413,7 @@ export default function Corkboard() {
   return (
     <WithMode>
       <div className="as as-app as-app--no-right" style={{ height: '100%' }}>
-        <Sidebar book={book} subtitle={`${counts.all} ${plural(counts.all, 'глава', 'главы', 'глав')} · ${(book?.words ?? 0).toLocaleString('ru')} сл`}>
+        {!isMobile && <Sidebar book={book} subtitle={`${counts.all} ${plural(counts.all, 'глава', 'главы', 'глав')} · ${(book?.words ?? 0).toLocaleString('ru')} сл`}>
           <div className="sb-tabs">
             <button className="sb-tab" onClick={() => bookId && navigate(`/books/${bookId}/outline`)}>Структура</button>
             <button className="sb-tab sb-tab--on" aria-current="true">Доска</button>
@@ -434,11 +438,16 @@ export default function Corkboard() {
               </button>
             ))}
           </div>
-        </Sidebar>
+        </Sidebar>}
 
         <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: 'var(--bg)' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {isMobile && (
+                <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
+                  <Icon name="panel" size={16} />
+                </button>
+              )}
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Доска глав</span>
               <span className="chip">{counts.done} готово · {counts.progress} в работе · {counts.draft} {plural(counts.draft, 'черновик', 'черновика', 'черновиков')}</span>
               {!dragEnabled && (
@@ -501,6 +510,35 @@ export default function Corkboard() {
           </div>
         </main>
       </div>
+
+      <MobileSidebarDrawer
+        open={sbOpen}
+        onClose={() => setSbOpen(false)}
+        book={book}
+        subtitle={`${counts.all} ${plural(counts.all, 'глава', 'главы', 'глав')} · ${(book?.words ?? 0).toLocaleString('ru')} сл`}
+      >
+        <div className="sb-tabs">
+          <button className="sb-tab" onClick={() => { setSbOpen(false); if (bookId) navigate(`/books/${bookId}/outline`); }}>Структура</button>
+          <button className="sb-tab sb-tab--on" aria-current="true">Доска</button>
+        </div>
+        <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Фильтр</div>
+          {filterItems.map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => { setFilter(key); setSbOpen(false); }}
+              className={'sb-item' + (filter === key ? ' sb-item--on' : '')}
+              aria-pressed={filter === key}
+              style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
+            >
+              <span />
+              <span className="sb-item-title" style={{ textTransform: 'capitalize' }}>{label}</span>
+              <span className="sb-item-meta">{counts[key]}</span>
+            </button>
+          ))}
+        </div>
+      </MobileSidebarDrawer>
     </WithMode>
   );
 }

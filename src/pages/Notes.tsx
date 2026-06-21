@@ -21,8 +21,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { WithMode } from '../components/Chrome';
-import { Sidebar } from '../components/Chrome';
+import { WithMode, Sidebar } from '../components/Chrome';
+import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
 import { type Note, type NoteKind } from '../lib/notes';
 import { useBook, useChapters, useNotes } from '../lib/queries';
 import { useNoteMutations } from '../lib/useNoteMutations';
@@ -231,6 +231,7 @@ function NotesGrid({ notes, chapterMap, onOpen }: {
 export default function Notes() {
   const { id: bookId } = useParams<{ id: string }>();
   const { isMobile } = useResponsive();
+  const [sbOpen, setSbOpen] = useState(false);
 
   const { data: book, error: bookError } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
@@ -428,6 +429,11 @@ export default function Notes() {
             padding: '14px 24px', borderBottom: '1px solid var(--border-soft)',
             flexShrink: 0,
           }}>
+            {isMobile && (
+              <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
+                <Icon name="panel" size={16} />
+              </button>
+            )}
             <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Заметки</span>
             <span className="chip">{filtered.length}</span>
             {activeChapterTitle && (
@@ -733,6 +739,16 @@ export default function Notes() {
           closeModal();
         }}
         onCancel={() => setConfirmDelete(null)}
+      />
+
+      <MobileSidebarDrawer
+        open={sbOpen}
+        onClose={() => setSbOpen(false)}
+        book={book}
+        chapters={chapters}
+        activeChapterId={activeChapterId}
+        chapterActions={{ onSelectChapter: (id) => { handleSelectChapter(id); setSbOpen(false); } }}
+        subtitle={`заметки · ${notes.length}`}
       />
     </WithMode>
   );
