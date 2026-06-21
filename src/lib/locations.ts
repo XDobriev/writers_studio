@@ -12,13 +12,14 @@ export interface Location {
   description: string;
   x: number | null;
   y: number | null;
+  size: number;
   position: number;
   created_at: string;
   updated_at: string;
 }
 
 export type LocationPatch = Partial<
-  Pick<Location, 'name' | 'type' | 'role' | 'description' | 'x' | 'y' | 'position'>
+  Pick<Location, 'name' | 'type' | 'role' | 'description' | 'x' | 'y' | 'size' | 'position'>
 >;
 
 const repo = createRepository<Location>(

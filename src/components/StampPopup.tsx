@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { STAMP_LABELS, STAMP_SVG, STAMP_TYPES, type MapStamp, type StampPatch, type StampType } from '../lib/mapStamps';
 
 interface StampPopupProps {
@@ -6,9 +7,14 @@ interface StampPopupProps {
   onUpdate: (patch: StampPatch) => void;
   onDelete: () => void;
   onClose: () => void;
+  onSizePreview?: (size: number) => void;
 }
 
-export function StampPopup({ stamp, position, onUpdate, onDelete, onClose }: StampPopupProps) {
+export function StampPopup({ stamp, position, onUpdate, onDelete, onClose, onSizePreview }: StampPopupProps) {
+  const [localSize, setLocalSize] = useState(stamp.size);
+  // Only sync on stamp change, not on each server update — avoids interrupting active drag
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setLocalSize(stamp.size); }, [stamp.id]);
   return (
     <div
       style={{
@@ -58,14 +64,15 @@ export function StampPopup({ stamp, position, onUpdate, onDelete, onClose }: Sta
       </div>
 
       <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-        Размер {stamp.size.toFixed(1)}×
+        Размер {localSize.toFixed(1)}×
       </div>
       <input
         type="range"
         min={0.5} max={3.0} step={0.1}
-        value={stamp.size}
-        onChange={e => onUpdate({ size: parseFloat(e.target.value) })}
-        aria-label={`Размер штампа: ${stamp.size.toFixed(1)}×`}
+        value={localSize}
+        onChange={e => { const s = parseFloat(e.target.value); setLocalSize(s); onSizePreview?.(s); }}
+        onPointerUp={e => onUpdate({ size: (e.target as HTMLInputElement).valueAsNumber })}
+        aria-label={`Размер штампа: ${localSize.toFixed(1)}×`}
         style={{ width: '100%', marginBottom: 12 }}
       />
 

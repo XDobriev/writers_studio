@@ -170,6 +170,8 @@ export function WorldMap({
   const [editConnLabel, setEditConnLabel] = useState('');
   const [editConnStyle, setEditConnStyle] = useState<LocationConnection['style']>('road');
   const connEditTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editPinSize, setEditPinSize] = useState(1);
+  const [previewStampSize, setPreviewStampSize] = useState<{ id: string; size: number } | null>(null);
 
   useEffect(() => () => {
     if (editTimer.current) clearTimeout(editTimer.current);
@@ -278,6 +280,10 @@ export function WorldMap({
     if (mode !== 'stamp') setSelectedStampId(null);
   }, [mode]);
 
+  useEffect(() => {
+    if (!selectedStampId) setPreviewStampSize(null);
+  }, [selectedStampId]);
+
   // Clear pending positions once React Query cache confirms the new coordinates
   useEffect(() => {
     if (!pendingStampPos) return;
@@ -301,6 +307,7 @@ export function WorldMap({
     setEditType(loc.type);
     setEditRole(loc.role);
     setEditDesc(loc.description);
+    setEditPinSize(loc.size ?? 1);
     pendingPatch.current = {};
   }, [selectedId, locations]);
 
@@ -536,6 +543,7 @@ export function WorldMap({
             selectedId={selectedStampId}
             dragPos={dragStampPos}
             pendingPos={pendingStampPos}
+            sizeOverride={previewStampSize}
           />
 
           {/* Connection lines — render before pins */}
@@ -572,8 +580,9 @@ export function WorldMap({
             const lx = (isDragging ? dragPinPos!.x : isPending ? pendingPinPos!.x : loc.x!) * CW;
             const ly = (isDragging ? dragPinPos!.y : isPending ? pendingPinPos!.y : loc.y!) * CH;
 
+            const effectivePinSize = isSelected ? editPinSize : (loc.size ?? 1);
             return (
-              <g key={loc.id} data-loc-id={loc.id} transform={`translate(${lx},${ly})`} style={{ cursor: 'pointer' }}>
+              <g key={loc.id} data-loc-id={loc.id} transform={`translate(${lx},${ly}) scale(${effectivePinSize})`} style={{ cursor: 'pointer' }}>
                 {(isSelected || isConnFrom) && <circle r={22} fill="var(--accent)" opacity={0.12} />}
                 <circle
                   r={14}
@@ -605,7 +614,7 @@ export function WorldMap({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
               <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 4, padding: '2px 7px' }}>
-                {TYPE_GLYPHS[selected.type]} {TYPE_LABELS[selected.type]}
+                {TYPE_GLYPHS[editType]} {TYPE_LABELS[editType]}
               </span>
               <button onClick={() => setSelectedId(null)} aria-label="Закрыть" title="Закрыть" style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '18px var(--font-ui)', lineHeight: 1, padding: '0 3px' }}>×</button>
             </div>
@@ -617,7 +626,7 @@ export function WorldMap({
             />
             <select
               value={editType}
-              onChange={e => { const t = e.target.value as LocationType; setEditType(t); scheduleUpdate(selected.id, { type: t }); }}
+              onChange={e => { const t = e.target.value as LocationType; setEditType(t); onUpdate(selected.id, { type: t }); }}
               aria-label="Тип локации"
               className="map-popup-select"
               style={{ marginBottom: 7 }}
@@ -626,6 +635,20 @@ export function WorldMap({
                 <option key={t} value={t}>{TYPE_GLYPHS[t]} {TYPE_LABELS[t]}</option>
               ))}
             </select>
+            <div style={{ marginBottom: 7 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', font: '400 10px var(--font-mono)', color: 'var(--ink-4)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                <span>Размер</span><span>{editPinSize.toFixed(1)}×</span>
+              </div>
+              <input
+                type="range"
+                min={0.5} max={2.5} step={0.1}
+                value={editPinSize}
+                onChange={e => setEditPinSize(parseFloat(e.target.value))}
+                onPointerUp={e => onUpdate(selected.id, { size: (e.target as HTMLInputElement).valueAsNumber })}
+                aria-label={`Размер пина: ${editPinSize.toFixed(1)}×`}
+                style={{ width: '100%' }}
+              />
+            </div>
             <input
               value={editRole}
               onChange={e => { setEditRole(e.target.value); scheduleUpdate(selected.id, { role: e.target.value }); }}
@@ -666,6 +689,7 @@ export function WorldMap({
             stamp={selectedStamp}
             position={{ left: stampPopupLeft, top: stampPopupTop }}
             onUpdate={patch => onUpdateStamp(selectedStamp.id, patch)}
+            onSizePreview={size => setPreviewStampSize({ id: selectedStamp.id, size })}
             onDelete={() => {
               onDeleteStamp(selectedStamp.id);
               setSelectedStampId(null);
@@ -770,7 +794,7 @@ export function WorldMap({
           <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--surface-3)', margin: '10px auto 12px' }} onPointerDown={() => setSelectedId(null)} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 4, padding: '2px 7px' }}>
-              {TYPE_GLYPHS[selected.type]} {TYPE_LABELS[selected.type]}
+              {TYPE_GLYPHS[editType]} {TYPE_LABELS[editType]}
             </span>
             <button onClick={() => setSelectedId(null)} aria-label="Закрыть" title="Закрыть" style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '20px var(--font-ui)', lineHeight: 1, padding: '0 3px' }}>×</button>
           </div>
@@ -782,7 +806,7 @@ export function WorldMap({
           />
           <select
             value={editType}
-            onChange={e => { const t = e.target.value as LocationType; setEditType(t); scheduleUpdate(selected.id, { type: t }); }}
+            onChange={e => { const t = e.target.value as LocationType; setEditType(t); onUpdate(selected.id, { type: t }); }}
             aria-label="Тип локации"
             className="map-popup-select"
             style={{ marginBottom: 8 }}
@@ -791,6 +815,20 @@ export function WorldMap({
               <option key={t} value={t}>{TYPE_GLYPHS[t]} {TYPE_LABELS[t]}</option>
             ))}
           </select>
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', font: '400 10px var(--font-mono)', color: 'var(--ink-4)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+              <span>Размер</span><span>{editPinSize.toFixed(1)}×</span>
+            </div>
+            <input
+              type="range"
+              min={0.5} max={2.5} step={0.1}
+              value={editPinSize}
+              onChange={e => setEditPinSize(parseFloat(e.target.value))}
+              onPointerUp={e => onUpdate(selected.id, { size: (e.target as HTMLInputElement).valueAsNumber })}
+              aria-label={`Размер пина: ${editPinSize.toFixed(1)}×`}
+              style={{ width: '100%' }}
+            />
+          </div>
           <input
             value={editRole}
             onChange={e => { setEditRole(e.target.value); scheduleUpdate(selected.id, { role: e.target.value }); }}

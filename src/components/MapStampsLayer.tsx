@@ -8,9 +8,10 @@ interface MapStampsLayerProps {
   selectedId: string | null;
   dragPos: { id: string; x: number; y: number } | null;
   pendingPos?: { id: string; x: number; y: number } | null;
+  sizeOverride?: { id: string; size: number } | null;
 }
 
-export function MapStampsLayer({ stamps, selectedId, dragPos, pendingPos }: MapStampsLayerProps) {
+export function MapStampsLayer({ stamps, selectedId, dragPos, pendingPos, sizeOverride }: MapStampsLayerProps) {
   return (
     <g>
       {stamps.map(stamp => {
@@ -20,12 +21,13 @@ export function MapStampsLayer({ stamps, selectedId, dragPos, pendingPos }: MapS
         const x = (isDragging ? dragPos!.x : isPending ? pendingPos!.x : stamp.x) * CW;
         const y = (isDragging ? dragPos!.y : isPending ? pendingPos!.y : stamp.y) * CH;
         const svgContent = STAMP_SVG[stamp.type as StampType] ?? '';
+        const effectiveSize = sizeOverride?.id === stamp.id ? sizeOverride.size : stamp.size;
 
         return (
           <g
             key={stamp.id}
             data-stamp-id={stamp.id}
-            transform={`translate(${x},${y}) scale(${stamp.size * STAMP_BASE_SCALE})`}
+            transform={`translate(${x},${y}) scale(${effectiveSize * STAMP_BASE_SCALE})`}
             style={{ cursor: 'pointer' }}
           >
             {isSelected && (
