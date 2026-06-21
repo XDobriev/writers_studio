@@ -765,7 +765,7 @@ button.chip:not(.chip--accent):hover { background: var(--surface-2); }
 /* modal overlay + panel */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 100;
-  background: oklch(0 0 0 / 0.55);
+  background: oklch(0.10 0.012 50 / 0.55);
   backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center;
 }

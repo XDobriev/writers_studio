@@ -219,7 +219,7 @@ export default function Characters() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%' }}>
     <WithMode>
       <div className="as as-app" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : '260px 1fr' }}>
-        {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${characters.length}`}><></></Sidebar>}
+        {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${filtered.length}`}><></></Sidebar>}
 
         {showMain && <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
           {/* Тулбар */}
@@ -476,7 +476,7 @@ export default function Characters() {
         open={sbOpen}
         onClose={() => setSbOpen(false)}
         book={book}
-        subtitle={`персонажи · ${characters.length}`}
+        subtitle={`персонажи · ${filtered.length}`}
       />
     </WithMode>
 

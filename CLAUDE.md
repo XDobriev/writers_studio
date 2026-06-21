@@ -45,7 +45,7 @@ npm run preview    # превью продакшен-сборки
 - `src/components/Sidebar/SidebarFoot.tsx` — футер сайдбара: дропдаун аккаунта, выход.
 - `src/components/Sidebar/SidebarNav.tsx` — nav-ссылки сайдбара (Дэшборд, Манускрипт и т.д.).
 - `src/components/Sidebar/index.ts` — barrel-экспорт Sidebar/*.
-- `src/components/MobileSidebarDrawer.tsx` — мобильный drawer сайдбара: backdrop + slide-in overlay; принимает все пропы Sidebar + `open/onClose`; обрабатывает Escape. Используется на страницах без собственного drawer (Map, Outline, Timeline, Corkboard, Notes, Characters).
+- `src/components/MobileSidebarDrawer.tsx` — мобильный drawer сайдбара: backdrop + slide-in overlay; полный a11y-кит (role/aria-modal/tabIndex/Tab-трап/focus-restore); принимает все пропы Sidebar + `open/onClose`; обрабатывает Escape. Используется на страницах без собственного drawer (Map, Outline, Timeline, Corkboard, Notes, Characters).
 - `src/components/RailNav.tsx` — иконочная рейлнавигация (режимы Focus/Split).
 - `src/components/EditorHybrid.tsx` — главный редактор, 4 режима (studio/left/right/page).
 - `src/components/CharacterHoverCard.tsx` — портальная hover-карточка персонажа в редакторе: аватар, имя, роль, snippet, навигация в Characters.

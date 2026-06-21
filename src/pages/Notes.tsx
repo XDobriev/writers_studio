@@ -420,7 +420,7 @@ export default function Notes() {
             chapters={chapters}
             activeChapterId={activeChapterId}
             chapterActions={{ onSelectChapter: handleSelectChapter }}
-            subtitle={`заметки · ${notes.length}`}
+            subtitle={`заметки · ${filtered.length}`}
           />
         )}
         <main className="as-main" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -748,7 +748,7 @@ export default function Notes() {
         chapters={chapters}
         activeChapterId={activeChapterId}
         chapterActions={{ onSelectChapter: (id) => { handleSelectChapter(id); setSbOpen(false); } }}
-        subtitle={`заметки · ${notes.length}`}
+        subtitle={`заметки · ${filtered.length}`}
       />
     </WithMode>
   );

@@ -12,11 +12,12 @@ import { FlagsTable } from '../components/admin/FlagsTable';
 import { UsersPanel } from '../components/admin/UsersPanel';
 import AdminAnalytics, { type TopUser } from './AdminAnalytics';
 
+const tabKeys = Object.keys(TAB_LABELS) as Tab[];
+
 export default function Admin() {
   const { user, loading, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>('users');
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const tabKeys = Object.keys(TAB_LABELS) as Tab[];
   const {
     stats, users, isAdmin, error, clearError,
     auditLog, auditLoading, revenue, flags,

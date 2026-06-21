@@ -9,8 +9,7 @@ export function PageMotion({ children }: { children: ReactNode }) {
       variants={pageVariants}
       initial={prefersReducedMotion ? 'animate' : 'initial'}
       animate="animate"
-      exit="exit"
-      transition={prefersReducedMotion ? { duration: 0 } : undefined}
+      exit={prefersReducedMotion ? 'animate' : 'exit'}
       style={{ width: '100%', height: '100%' }}
     >
       {children}

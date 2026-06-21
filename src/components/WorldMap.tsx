@@ -282,7 +282,8 @@ export function WorldMap({
   useEffect(() => {
     if (!pendingStampPos) return;
     const s = stamps.find(st => st.id === pendingStampPos.id);
-    if (!s || (s.x === pendingStampPos.x && s.y === pendingStampPos.y)) setPendingStampPos(null);
+    const round = (v: number) => Math.round(v * 1000) / 1000;
+    if (!s || (round(s.x) === round(pendingStampPos.x) && round(s.y) === round(pendingStampPos.y))) setPendingStampPos(null);
   }, [stamps, pendingStampPos]);
 
   useEffect(() => {
