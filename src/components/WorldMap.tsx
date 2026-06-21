@@ -145,8 +145,10 @@ export function WorldMap({
   const [selectedConnId, setSelectedConnId] = useState<string | null>(null);
   const [connectFrom, setConnectFrom] = useState<string | null>(null);
   const [dragPinPos, setDragPinPos] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [pendingPinPos, setPendingPinPos] = useState<{ id: string; x: number; y: number } | null>(null);
   const [selectedStampId, setSelectedStampId] = useState<string | null>(null);
   const [dragStampPos, setDragStampPos] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [pendingStampPos, setPendingStampPos] = useState<{ id: string; x: number; y: number } | null>(null);
   const stampDragRef = useRef<{ id: string; startPX: number; startPY: number } | null>(null);
   const [pendingPlaceId, setPendingPlaceId] = useState<string | null>(null);
   const [unmappedSheetOpen, setUnmappedSheetOpen] = useState(false);
@@ -276,6 +278,19 @@ export function WorldMap({
     if (mode !== 'stamp') setSelectedStampId(null);
   }, [mode]);
 
+  // Clear pending positions once React Query cache confirms the new coordinates
+  useEffect(() => {
+    if (!pendingStampPos) return;
+    const s = stamps.find(st => st.id === pendingStampPos.id);
+    if (!s || (s.x === pendingStampPos.x && s.y === pendingStampPos.y)) setPendingStampPos(null);
+  }, [stamps, pendingStampPos]);
+
+  useEffect(() => {
+    if (!pendingPinPos) return;
+    const l = locations.find(loc => loc.id === pendingPinPos.id);
+    if (!l || l.x == null || l.y == null || (l.x === pendingPinPos.x && l.y === pendingPinPos.y)) setPendingPinPos(null);
+  }, [locations, pendingPinPos]);
+
   // ── Popup field sync when selection changes ──────────────────────────────
   useEffect(() => {
     if (!selectedId) return;
@@ -385,6 +400,8 @@ export function WorldMap({
       const dragged = Math.abs(e.clientX - startPX) > DRAG_THRESHOLD || Math.abs(e.clientY - startPY) > DRAG_THRESHOLD;
       if (dragged && dragStampPos) {
         onUpdateStamp(id, { x: dragStampPos.x, y: dragStampPos.y });
+        // Keep showing at final position until React Query propagates the optimistic update
+        setPendingStampPos({ id, x: dragStampPos.x, y: dragStampPos.y });
       } else {
         setSelectedStampId(prev => prev === id ? null : id);
       }
@@ -398,6 +415,8 @@ export function WorldMap({
       const dragged = Math.abs(e.clientX - startPX) > DRAG_THRESHOLD || Math.abs(e.clientY - startPY) > DRAG_THRESHOLD;
       if (dragged && dragPinPos) {
         onUpdate(id, { x: dragPinPos.x, y: dragPinPos.y });
+        // Keep showing at final position until React Query propagates the optimistic update
+        setPendingPinPos({ id, x: dragPinPos.x, y: dragPinPos.y });
       } else if (mode === 'place') {
         setSelectedId(prev => prev === id ? null : id);
         setSelectedConnId(null);
@@ -515,6 +534,7 @@ export function WorldMap({
             stamps={stamps}
             selectedId={selectedStampId}
             dragPos={dragStampPos}
+            pendingPos={pendingStampPos}
           />
 
           {/* Connection lines — render before pins */}
@@ -547,8 +567,9 @@ export function WorldMap({
             const isSelected  = selectedId === loc.id;
             const isConnFrom  = connectFrom === loc.id;
             const isDragging  = dragPinPos?.id === loc.id;
-            const lx = (isDragging ? dragPinPos!.x : loc.x!) * CW;
-            const ly = (isDragging ? dragPinPos!.y : loc.y!) * CH;
+            const isPending   = !isDragging && pendingPinPos?.id === loc.id;
+            const lx = (isDragging ? dragPinPos!.x : isPending ? pendingPinPos!.x : loc.x!) * CW;
+            const ly = (isDragging ? dragPinPos!.y : isPending ? pendingPinPos!.y : loc.y!) * CH;
 
             return (
               <g key={loc.id} data-loc-id={loc.id} transform={`translate(${lx},${ly})`} style={{ cursor: 'pointer' }}>

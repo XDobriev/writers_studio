@@ -7,16 +7,18 @@ interface MapStampsLayerProps {
   stamps: MapStamp[];
   selectedId: string | null;
   dragPos: { id: string; x: number; y: number } | null;
+  pendingPos?: { id: string; x: number; y: number } | null;
 }
 
-export function MapStampsLayer({ stamps, selectedId, dragPos }: MapStampsLayerProps) {
+export function MapStampsLayer({ stamps, selectedId, dragPos, pendingPos }: MapStampsLayerProps) {
   return (
     <g>
       {stamps.map(stamp => {
         const isSelected = selectedId === stamp.id;
         const isDragging = dragPos?.id === stamp.id;
-        const x = (isDragging ? dragPos!.x : stamp.x) * CW;
-        const y = (isDragging ? dragPos!.y : stamp.y) * CH;
+        const isPending  = !isDragging && pendingPos?.id === stamp.id;
+        const x = (isDragging ? dragPos!.x : isPending ? pendingPos!.x : stamp.x) * CW;
+        const y = (isDragging ? dragPos!.y : isPending ? pendingPos!.y : stamp.y) * CH;
         const svgContent = STAMP_SVG[stamp.type as StampType] ?? '';
 
         return (
