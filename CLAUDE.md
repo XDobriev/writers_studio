@@ -130,6 +130,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/crossrefs.ts` — бэклинки: поиск упоминаний персонажей по главам.
 - `src/lib/htmlUtils.ts` — `htmlToText`: конвертация HTML в plain text (единственный канонический экземпляр).
 - `src/lib/useChapterVersioning.ts` — хук версионирования главы: session token, interval-снапшоты, chapter_switch, beforeunload-keepalive.
+- `src/lib/useCharacterMutations.ts` — **единственная точка входа для мутаций персонажа**: `onCreate`, `onUpdate` (включает crossref-sync при смене `name`/`aliases`), `onDeleteConfirmed`, `onCreateRelationship`, `onDeleteRelationship`, `onRelationshipLabelChange`. Все cache-обновления и инварианты живут здесь. Не вызывать `updateCharacter`/`createCharacter`/`deleteCharacter` напрямую из компонентов.
 - `src/lib/useCharacterHover.ts` — mousemove 500ms debounce + Unicode-поиск alias персонажа под курсором в TipTap DOM; возвращает `{ shown, onCardEnter, onCardLeave }`.
 - `src/lib/useErrorState.ts` — хук error-состояния: `{ error, setError(Error|string), clearError() }`.
 - `src/lib/chapterMutations.ts` — helpers обновления кэша React Query после мутаций глав: `updateChapterWithCache`, `createChapterWithCache`, `deleteChapterWithCache`, `invalidateChaptersCache`.
@@ -141,6 +142,9 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/activity.ts` — `computeActivityData(snapshots, today?)`: чистая функция расчёта heatmap-активности дашборда (cells/weeks/streak/cumulativeLine). Локальные даты, параметр `today` для тестов. Покрыта `activity.test.ts`.
 - `src/lib/useCreateOnMount.ts` — `useCreateOnMount(action)`: если в URL `?create=true` — один раз вызывает action и убирает параметр. Используется в Timeline/Notes/Outline для «создать сразу при переходе».
 - `src/lib/useVersionMutations.ts` — `createNamed(content, label)` и `remove(id)`: мутации версий с инвалидацией кеша; скрывает `QUERY_KEYS` и `queryClient` от `VersionsPanel`.
+- `src/lib/useNoteMutations.ts` — `onAdd`, `onUpdate`, `onDelete`, `onReorder` + `isSaving`: полный mutation-слой заметок; снимает `QUERY_KEYS` и `queryClient` с `Notes.tsx`.
+- `src/lib/useOutlineMutations.ts` — `onCreate`, `onDelete`, `onRename`, `onDragEnd`, `onPovChanged`: mutation-слой глав для `Outline.tsx`; использует хелперы `chapterMutations.ts` внутри.
+- `src/lib/useMapMutations.ts` — mutation-слой карты мира: локации, штампы, связи, фон, шаблон + `onRemoveBg`; объединяет 3 сущности для `Map.tsx`.
 - `src/lib/admin.ts` — единственная точка приведения RPC-ответов admin-панели: типы (`AdminStats`, `AdminUser`, `AuditEntry`, `AdminRevenue`, `FeatureFlag`), `AdminRpcError`, типизированные обёртки RPC (`fetchAdminStats`, `rpcSetUserPlan`…), форматтеры (`fmtNum`, `fmtDate`, `fmtWords`, `displayEmail`), константы `PLAN_COLOR`/`TAB_LABELS`. `as T` разрешён только здесь.
 - `src/lib/useAdminData.ts` — хук `useAdminData(user)`: все состояния и мутации admin-панели; lazy-загрузка audit/revenue/flags через `loadAuditLog`/`loadRevenue`/`loadFlags`; возвращает `handlePlanChange`, `handleSuspend`, `handleExtendPlan`, `handleSaveSlots`, `handleToggleFlag`, `handleMarkTest`.
 - `src/lib/useSubscription.ts` — хук `useSubscription(userId, fetchPayments)`: загрузка плана из профиля, последний Pro-платёж, логика возврата через `process-refund`; экспортирует тип `Plan`.
@@ -283,7 +287,8 @@ npm run preview    # превью продакшен-сборки
 
 ### Антирегрессия UI-компонентов
 
-- **Grep before implement.** Перед написанием любого form-элемента проверить `src/components/` на существующий компонент. Актуальные form-компоненты: `PasswordInput`, `GenrePicker`, `ConfirmDialog`.
+- **Grep before implement — компоненты.** Перед написанием любого form-элемента проверить `src/components/` на существующий компонент. Актуальные form-компоненты: `PasswordInput`, `GenrePicker`, `ConfirmDialog`.
+- **Grep before implement — мутации.** Перед написанием `await lib.create/update/delete(...)` напрямую — проверить `src/lib/` на существующий mutation-хук для этой сущности. Канонические хуки: `useCharacterMutations` (персонажи), `useVersionMutations` (версии). Прямые вызовы lib-функций из компонентов и страниц допустимы только если mutation-хука ещё нет.
 - **`type="password"` в JSX страниц запрещён** — только `<PasswordInput />`.
 - **Правило двух.** Один и тот же JSX+state-паттерн встречается в двух файлах → немедленно вынести в компонент, не откладывать.
 - **Sibling audit.** При добавлении фичи к одной странице домена проверить все сестринские: `Auth.tsx ↔ ResetPassword.tsx`; `Editor.tsx / Focus.tsx / Split.tsx` — всегда вместе; `Characters.tsx ↔` детальный вид персонажа.

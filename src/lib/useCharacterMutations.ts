@@ -3,8 +3,11 @@ import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import {
   createCharacter,
   deleteCharacter,
+  updateCharacter,
   type Character,
+  type CharacterPatch,
 } from './characters';
+import { syncCharacterAcrossAllChapters } from './crossrefs';
 
 // ─── InfiniteData helpers ────────────────────────────────────────────────────
 // Чистые функции: единственное место, знающее о структуре InfiniteData<Character[]>.
@@ -155,5 +158,26 @@ export function useCharacterMutations({
     }
   }, [bookId, active, queryClient, onError]);
 
-  return { onCreate, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange };
+  const onUpdate = useCallback(async (id: string, patch: CharacterPatch): Promise<Character | undefined> => {
+    if (!bookId) return;
+    const snapshot = queryClient.getQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId));
+    try {
+      const updated = await updateCharacter(id, patch);
+      queryClient.setQueryData<InfiniteData<Character[]>>(
+        QUERY_KEYS.characters(bookId),
+        (prev) => charInfiniteConfirm(prev, updated),
+      );
+      if (patch.name !== undefined || patch.aliases !== undefined) {
+        void syncCharacterAcrossAllChapters(updated, bookId)
+          .then(() => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterCharactersAll() }))
+          .catch(() => {});
+      }
+      return updated;
+    } catch (e) {
+      queryClient.setQueryData(QUERY_KEYS.characters(bookId), snapshot);
+      throw e;
+    }
+  }, [bookId, queryClient]);
+
+  return { onCreate, onUpdate, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange };
 }

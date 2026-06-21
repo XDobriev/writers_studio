@@ -18,16 +18,14 @@ import {
   ROLE_LABELS,
   ROLE_COLOR,
   ROLE_PORTRAIT_BG,
-  updateCharacter,
   type Character,
   type CharacterPatch,
 } from '../lib/characters';
 import { QUERY_KEYS, useBook, useCharacters, useRelationships, useCharacterSearch } from '../lib/queries';
-import { syncCharacterAcrossAllChapters } from '../lib/crossrefs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { useCharacterNavigation } from '../lib/useCharacterNavigation';
-import { useCharacterMutations, charInfiniteUpdate, charInfiniteConfirm } from '../lib/useCharacterMutations';
+import { useCharacterMutations, charInfiniteUpdate } from '../lib/useCharacterMutations';
 import { CharacterHeroBlock } from '../components/CharacterHeroBlock';
 import { CharacterRelationsBlock } from '../components/CharacterRelationsBlock';
 import { CharacterChaptersTab } from '../components/CharacterChaptersTab';
@@ -95,24 +93,11 @@ export default function Characters() {
 
   const { scheduleSave: debouncedSave, flush, cancel: cancelSave } = useDebouncedSave<CharacterPatch>(
     async (id, patch) => {
-      if (!bookId) return;
       setSaveState('saving');
-      // Snapshot для rollback: если API упадёт, восстановим кеш
-      const snapshot = queryClient.getQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId));
       try {
-        const updated = await updateCharacter(id, patch);
-        queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) =>
-          charInfiniteConfirm(prev, updated),
-        );
+        await onUpdate(id, patch);
         setSaveState('saved');
-        if (patch.name !== undefined || patch.aliases !== undefined) {
-          void syncCharacterAcrossAllChapters(updated, bookId)
-            .then(() => { void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterCharactersAll() }); })
-            .catch(() => { /* non-critical */ });
-        }
       } catch (e) {
-        // Восстанавливаем кеш до оптимистичного обновления
-        queryClient.setQueryData(QUERY_KEYS.characters(bookId), snapshot);
         setSaveState('error');
         setError((e as Error).message);
         throw e;
@@ -163,7 +148,7 @@ export default function Characters() {
     setSearch(next, { replace: true });
   }, [search, setSearch, setViewMode, activeId]);
 
-  const { onCreate, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange } = useCharacterMutations({
+  const { onCreate, onUpdate, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange } = useCharacterMutations({
     bookId,
     userId: user?.id,
     characters,

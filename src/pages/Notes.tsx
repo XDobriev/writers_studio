@@ -5,7 +5,6 @@ import { Navigate, useParams } from 'react-router-dom';
 import { useCreateOnMount } from '../lib/useCreateOnMount';
 import { useErrorState } from '../lib/useErrorState';
 import { ErrorBanner } from '../components/ErrorBanner';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   closestCenter,
@@ -18,15 +17,15 @@ import {
   SortableContext,
   useSortable,
   rectSortingStrategy,
-  arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { WithMode } from '../components/Chrome';
 import { Sidebar } from '../components/Chrome';
-import { createNote, updateNote, deleteNote, reorderNotes, type Note, type NoteKind } from '../lib/notes';
-import { QUERY_KEYS, useBook, useChapters, useNotes } from '../lib/queries';
+import { type Note, type NoteKind } from '../lib/notes';
+import { useBook, useChapters, useNotes } from '../lib/queries';
+import { useNoteMutations } from '../lib/useNoteMutations';
 
 type BaseKind = 'idea' | 'question' | 'todo' | 'important';
 
@@ -232,12 +231,12 @@ function NotesGrid({ notes, chapterMap, onOpen }: {
 export default function Notes() {
   const { id: bookId } = useParams<{ id: string }>();
   const { isMobile } = useResponsive();
-  const queryClient = useQueryClient();
 
   const { data: book, error: bookError } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
   const { data: notes, error: notesError } = useNotes(bookId);
   const { error, setError, clearError } = useErrorState();
+  const { isSaving, onAdd, onUpdate, onDelete, onReorder } = useNoteMutations({ bookId, setError });
   const queryError = (bookError ?? chaptersError ?? notesError)?.message ?? null;
 
   // Форма создания
@@ -247,7 +246,6 @@ export default function Notes() {
   const [formText, setFormText] = useState('');
   const [formCustomLabel, setFormCustomLabel] = useState('');
   const [formCustomColor, setFormCustomColor] = useState<BaseKind>('idea');
-  const [saving, setSaving] = useState(false);
 
   // Модальное окно
   const [modalNote, setModalNote] = useState<Note | null>(null);
@@ -265,22 +263,8 @@ export default function Notes() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  const onDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || !bookId || !notes || active.id === over.id) return;
-
-    const oldIndex = notes.findIndex((n) => n.id === active.id);
-    const newIndex = notes.findIndex((n) => n.id === over.id);
-    const reordered = arrayMove(notes, oldIndex, newIndex).map((n, i) => ({ ...n, position: i }));
-
-    queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), reordered);
-
-    try {
-      await reorderNotes(reordered.map((n) => ({ id: n.id, position: n.position })));
-    } catch (e) {
-      setError((e as Error).message);
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(bookId) });
-    }
+  const onDragEnd = (event: DragEndEvent) => {
+    if (notes) void onReorder(notes, event);
   };
 
   const handleSelectChapter = useCallback((id: string) => {
@@ -288,34 +272,19 @@ export default function Notes() {
   }, []);
 
   const handleAdd = async () => {
-    if (saving || !bookId || !formText.trim()) return;
-    setSaving(true);
-    try {
-      const note = await createNote(
-        bookId, formKind, formText.trim(),
-        formKind === 'custom' ? formCustomLabel : undefined,
-        formKind === 'custom' ? formCustomColor : undefined,
-        activeChapterId ?? undefined,
-      );
-      queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), (prev) => [note, ...(prev ?? [])]);
+    if (!formText.trim()) return;
+    const note = await onAdd(
+      formKind, formText,
+      formKind === 'custom' ? formCustomLabel : undefined,
+      formKind === 'custom' ? formCustomColor : undefined,
+      activeChapterId ?? undefined,
+    );
+    if (note) {
       setFormText('');
       setFormCustomLabel('');
       setFormCustomColor('idea');
       setShowForm(false);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSaving(false);
     }
-  };
-
-  const handleDelete = (id: string) => {
-    if (!bookId) return;
-    queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), (prev) => prev?.filter((n) => n.id !== id) ?? []);
-    deleteNote(id).catch((e: unknown) => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(bookId) });
-      setError(e instanceof Error ? e.message : 'Не удалось удалить заметку');
-    });
   };
 
   const openModal = (n: Note) => {
@@ -337,23 +306,15 @@ export default function Notes() {
   };
 
   const handleModalSave = async () => {
-    if (saving || !modalNote || !modalEditText.trim() || !bookId) return;
-    setSaving(true);
-    try {
-      const updated = await updateNote(
-        modalNote.id, modalEditKind, modalEditText.trim(),
-        modalEditKind === 'custom' ? modalEditCustomLabel : undefined,
-        modalEditKind === 'custom' ? modalEditCustomColor : undefined,
-      );
-      queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), (prev) =>
-        prev?.map((n) => (n.id === modalNote.id ? updated : n)) ?? []
-      );
+    if (!modalNote || !modalEditText.trim()) return;
+    const updated = await onUpdate(
+      modalNote.id, modalEditKind, modalEditText,
+      modalEditKind === 'custom' ? modalEditCustomLabel : undefined,
+      modalEditKind === 'custom' ? modalEditCustomColor : undefined,
+    );
+    if (updated) {
       setModalNote(updated);
       setModalEditing(false);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -555,10 +516,10 @@ export default function Notes() {
                       className="btn btn--primary"
                       style={{ fontSize: 12, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
                       onClick={handleAdd}
-                      disabled={saving || !formText.trim()}
+                      disabled={isSaving || !formText.trim()}
                     >
-                      {saving && <span className="btn-spinner" style={{ width: 11, height: 11 }} />}
-                      {saving ? 'Сохраняем…' : 'Сохранить'}
+                      {isSaving && <span className="btn-spinner" style={{ width: 11, height: 11 }} />}
+                      {isSaving ? 'Сохраняем…' : 'Сохранить'}
                     </button>
                   </div>
                 </div>
@@ -703,10 +664,10 @@ export default function Notes() {
                       className="btn btn--primary"
                       style={{ fontSize: 12, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
                       onClick={handleModalSave}
-                      disabled={saving || !modalEditText.trim()}
+                      disabled={isSaving || !modalEditText.trim()}
                     >
-                      {saving && <span className="btn-spinner" style={{ width: 11, height: 11 }} />}
-                      {saving ? 'Сохраняем…' : 'Сохранить'}
+                      {isSaving && <span className="btn-spinner" style={{ width: 11, height: 11 }} />}
+                      {isSaving ? 'Сохраняем…' : 'Сохранить'}
                     </button>
                   </div>
                 </>
@@ -767,7 +728,7 @@ export default function Notes() {
             : 'Удалить заметку?\nЭто действие нельзя отменить.'
         }
         onConfirm={() => {
-          handleDelete(confirmDelete!.id);
+          onDelete(confirmDelete!.id);
           setConfirmDelete(null);
           closeModal();
         }}

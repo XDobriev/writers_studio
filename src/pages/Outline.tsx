@@ -1,31 +1,29 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useDropdownPosition } from '../lib/useDropdownPosition';
 import { useErrorState } from '../lib/useErrorState';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useCreateOnMount } from '../lib/useCreateOnMount';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   closestCenter,
   PointerSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
-  arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
 import { WithMode, Sidebar } from '../components/Chrome';
 import { useAuth } from '../lib/auth';
-import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
-import { QUERY_KEYS, useBook, useChapters, useCharacters, useChapterPovMap } from '../lib/queries';
+import { type ChapterMeta, type ChapterStatus } from '../lib/chapters';
+import { useBook, useChapters, useCharacters, useChapterPovMap } from '../lib/queries';
+import { useOutlineMutations } from '../lib/useOutlineMutations';
 import { getCharacterColor, setPovCharacter, removePovCharacter, setPovForAllChapters } from '../lib/pov';
 import { plural } from '../lib/i18n';
 import { CharacterAvatar } from '../components/CharacterAvatar';
@@ -544,23 +542,21 @@ export default function Outline() {
   const { id: bookId } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { data: book } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
   const { data: characters = [] } = useCharacters(bookId);
   const { data: povEntries = [] } = useChapterPovMap(bookId);
 
-  const handlePovChanged = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterPovMap(bookId!) });
-  }, [queryClient, bookId]);
   const { error: mutationError, setError } = useErrorState();
+  const { onCreate, onDelete, onRename, onDragEnd, onPovChanged } = useOutlineMutations({
+    bookId, userId: user?.id, chapters, navigate, setError,
+  });
   const error = chaptersError?.message ?? mutationError;
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const [renameFor, setRenameFor] = useState<string | null>(null);
   const menuRef = useRef<HTMLButtonElement>(null);
   const menuDropdownStyle = useDropdownPosition(menuRef, menuFor);
-  const creatingRef = useRef(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -599,77 +595,13 @@ export default function Outline() {
     );
   }, [chapters]);
 
-  const onDelete = async (id: string) => {
+  const handleDelete = async (id: string) => {
     setMenuFor(null);
     setDeleteConfirmFor(null);
-    if (bookId) {
-      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-        (prev ?? []).filter((c) => c.id !== id),
-      );
-    }
-    try {
-      await deleteChapter(id);
-    } catch (e) {
-      setError((e as Error).message);
-      if (bookId) void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
-    }
+    await onDelete(id);
   };
-
-  const onCreate = useCallback(async () => {
-    if (!bookId || !user || creatingRef.current) return;
-    creatingRef.current = true;
-    try {
-      const nums = (chapters ?? [])
-        .map((c) => c.title.match(/^Глава (\d+)$/))
-        .filter(Boolean)
-        .map((m) => parseInt(m![1]));
-      const nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
-      const created = await createChapter(bookId, user.id, {
-        title: `Глава ${nextNum}`,
-        position: chapters?.length ?? 0,
-      });
-      const { content: _, ...createdMeta } = created;
-      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) => [...(prev ?? []), createdMeta]);
-      navigate(`/books/${bookId}/editor?chapter=${created.id}`);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      creatingRef.current = false;
-    }
-  }, [bookId, user, chapters, queryClient, navigate, setError]);
 
   useCreateOnMount(() => void onCreate());
-
-  const onRename = async (id: string, title: string) => {
-    if (!bookId) return;
-    queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-      (prev ?? []).map((c) => (c.id === id ? { ...c, title } : c)),
-    );
-    try {
-      await updateChapter(id, { title });
-    } catch (e) {
-      setError((e as Error).message);
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
-    }
-  };
-
-  const onDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || !bookId || !chapters || active.id === over.id) return;
-
-    const oldIndex = chapters.findIndex((c) => c.id === active.id);
-    const newIndex = chapters.findIndex((c) => c.id === over.id);
-    const reordered = arrayMove(chapters, oldIndex, newIndex).map((c, i) => ({ ...c, position: i }));
-
-    queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), reordered);
-
-    try {
-      await reorderChapters(reordered.map((c) => ({ id: c.id, position: c.position })));
-    } catch (e) {
-      setError((e as Error).message);
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
-    }
-  };
 
   if (!user) return null;
 
@@ -703,7 +635,7 @@ export default function Outline() {
                   characters={characters}
                   bookId={bookId!}
                   userId={user.id}
-                  onDone={handlePovChanged}
+                  onDone={onPovChanged}
                 />
               )}
               <button className="btn" onClick={onCreate}><Icon name="plus" size={14} /> Новая глава</button>
@@ -749,7 +681,7 @@ export default function Outline() {
                         setMenuFor={setMenuFor}
                         deleteConfirmFor={deleteConfirmFor}
                         setDeleteConfirmFor={setDeleteConfirmFor}
-                        onDelete={onDelete}
+                        onDelete={handleDelete}
                         menuRef={menuRef}
                         menuDropdownStyle={menuDropdownStyle}
                         renameFor={renameFor}
@@ -759,7 +691,7 @@ export default function Outline() {
                         povEntries={povEntries.filter((e) => e.chapter_id === c.id)}
                         allCharacters={characters}
                         userId={user.id}
-                        onPovChanged={handlePovChanged}
+                        onPovChanged={onPovChanged}
                       />
                     ))}
                   </SortableContext>

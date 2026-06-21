@@ -1,46 +1,28 @@
-import { useCallback, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useErrorState } from '../lib/useErrorState';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useParams } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { WithMode, Sidebar } from '../components/Chrome';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { MapStyleModal } from '../components/MapStyleModal';
 import { WorldMap } from '../components/WorldMap';
 import { useAuth } from '../lib/auth';
-import { supabase } from '../lib/supabase';
-import {
-  createLocation,
-  deleteLocation,
-  updateLocation,
-  type Location,
-  type LocationPatch,
-} from '../lib/locations';
-import {
-  createConnection,
-  deleteConnection,
-  updateConnection,
-  type LocationConnection,
-  type ConnectionPatch,
-} from '../lib/connections';
-import { updateBook } from '../lib/books';
 import { getMapTemplate } from '../lib/mapTemplates';
 import { generateMapPngBuffer, triggerMapDownload } from '../lib/mapExport';
-import { QUERY_KEYS, useBook, useLocations, useConnections, useStamps } from '../lib/queries';
+import { useBook, useLocations, useConnections, useStamps } from '../lib/queries';
 import {
-  createStamp, updateStamp, deleteStamp,
   STAMP_LABELS, STAMP_SVG, STAMP_TYPES,
-  type MapStamp, type StampPatch, type StampType,
+  type StampType,
 } from '../lib/mapStamps';
+import { useMapMutations } from '../lib/useMapMutations';
 
 export type MapMode = 'place' | 'connect' | 'pan' | 'stamp';
 
 export default function MapScreen() {
   const { id: bookId } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const { isMobile } = useResponsive();
 
   const { data: book } = useBook(bookId);
@@ -58,159 +40,14 @@ export default function MapScreen() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Location handlers ────────────────────────────────────────────────────
+  const {
+    onCreate, onUpdate, onDeleteConfirmed,
+    onCreateStamp, onUpdateStamp, onDeleteStamp,
+    onCreateConnection, onUpdateConnection, onDeleteConnection,
+    onFileChange, onTemplateChange, onRemoveBg,
+  } = useMapMutations({ bookId, userId: user?.id, locations, selectedStampType, setError });
 
-  const onCreate = useCallback(async (x: number, y: number) => {
-    if (!bookId || !user) return;
-    const position = locations?.length ?? 0;
-    try {
-      const created = await createLocation(bookId, user.id, { position, x, y });
-      queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), prev => [...(prev ?? []), created]);
-    } catch (e) { setError((e as Error).message); }
-  }, [bookId, user, locations, queryClient, setError]);
-
-  const onUpdate = useCallback(async (id: string, patch: LocationPatch) => {
-    if (!bookId) return;
-    queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), prev =>
-      prev ? prev.map(l => l.id === id ? { ...l, ...patch } as Location : l) : prev
-    );
-    try {
-      const updated = await updateLocation(id, patch);
-      queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), prev =>
-        prev ? prev.map(l => l.id === id ? updated : l) : prev
-      );
-    } catch (e) {
-      setError((e as Error).message);
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.locations(bookId) });
-    }
-  }, [bookId, queryClient, setError]);
-
-  const onDelete = useCallback((id: string) => {
-    setConfirmDeleteId(id);
-  }, []);
-
-  const onDeleteConfirmed = useCallback(async () => {
-    const id = confirmDeleteId;
-    setConfirmDeleteId(null);
-    if (!bookId || !id) return;
-    try {
-      await deleteLocation(id);
-      queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), prev =>
-        prev ? prev.filter(l => l.id !== id) : prev
-      );
-    } catch (e) { setError((e as Error).message); }
-  }, [bookId, confirmDeleteId, queryClient, setError]);
-
-  // ── Stamp handlers ───────────────────────────────────────────────────────
-
-  const onCreateStamp = useCallback(async (x: number, y: number) => {
-    if (!bookId || !user) return;
-    try {
-      const created = await createStamp(bookId, user.id, selectedStampType, x, y);
-      queryClient.setQueryData<MapStamp[]>(QUERY_KEYS.stamps(bookId), prev =>
-        [...(prev ?? []), created]
-      );
-    } catch (e) { setError((e as Error).message); }
-  }, [bookId, user, selectedStampType, queryClient, setError]);
-
-  const onUpdateStamp = useCallback(async (id: string, patch: StampPatch) => {
-    if (!bookId) return;
-    queryClient.setQueryData<MapStamp[]>(QUERY_KEYS.stamps(bookId), prev =>
-      prev ? prev.map(s => s.id === id ? { ...s, ...patch } as MapStamp : s) : prev
-    );
-    try {
-      const updated = await updateStamp(id, patch);
-      queryClient.setQueryData<MapStamp[]>(QUERY_KEYS.stamps(bookId), prev =>
-        prev ? prev.map(s => s.id === id ? updated : s) : prev
-      );
-    } catch (e) {
-      setError((e as Error).message);
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stamps(bookId) });
-    }
-  }, [bookId, queryClient, setError]);
-
-  const onDeleteStamp = useCallback(async (id: string) => {
-    if (!bookId) return;
-    queryClient.setQueryData<MapStamp[]>(QUERY_KEYS.stamps(bookId), prev =>
-      prev ? prev.filter(s => s.id !== id) : prev
-    );
-    try {
-      await deleteStamp(id);
-    } catch (e) {
-      setError((e as Error).message);
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stamps(bookId) });
-    }
-  }, [bookId, queryClient, setError]);
-
-  // ── Connection handlers ──────────────────────────────────────────────────
-
-  const onCreateConnection = useCallback(async (fromId: string, toId: string) => {
-    if (!bookId || !user) return;
-    try {
-      const created = await createConnection(bookId, user.id, fromId, toId);
-      queryClient.setQueryData<LocationConnection[]>(QUERY_KEYS.connections(bookId), prev =>
-        [...(prev ?? []), created]
-      );
-    } catch (e) { setError((e as Error).message); }
-  }, [bookId, user, queryClient, setError]);
-
-  const onUpdateConnection = useCallback(async (id: string, patch: ConnectionPatch) => {
-    if (!bookId) return;
-    queryClient.setQueryData<LocationConnection[]>(QUERY_KEYS.connections(bookId), prev =>
-      prev ? prev.map(c => c.id === id ? { ...c, ...patch } as LocationConnection : c) : prev
-    );
-    try {
-      const updated = await updateConnection(id, patch);
-      queryClient.setQueryData<LocationConnection[]>(QUERY_KEYS.connections(bookId), prev =>
-        prev ? prev.map(c => c.id === id ? updated : c) : prev
-      );
-    } catch (e) {
-      setError((e as Error).message);
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.connections(bookId) });
-    }
-  }, [bookId, queryClient, setError]);
-
-  const onDeleteConnection = useCallback(async (id: string) => {
-    if (!bookId) return;
-    queryClient.setQueryData<LocationConnection[]>(QUERY_KEYS.connections(bookId), prev =>
-      prev ? prev.filter(c => c.id !== id) : prev
-    );
-    try {
-      await deleteConnection(id);
-    } catch (e) {
-      setError((e as Error).message);
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.connections(bookId) });
-    }
-  }, [bookId, queryClient, setError]);
-
-  // ── Background image upload ──────────────────────────────────────────────
-
-  const onFileChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !bookId || !user) return;
-    e.target.value = '';
-    try {
-      const path = `${user.id}/${bookId}/background`;
-      const { error: uploadError } = await supabase.storage
-        .from('map-backgrounds')
-        .upload(path, file, { upsert: true, contentType: file.type });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('map-backgrounds').getPublicUrl(path);
-      const cacheBusted = `${publicUrl}?t=${Date.now()}`;
-      await updateBook(bookId, { map_bg_url: cacheBusted });
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
-    } catch (e) { setError((e as Error).message); }
-  }, [bookId, user, queryClient, setError]);
-
-  // ── Template change ──────────────────────────────────────────────────────
-
-  const onTemplateChange = useCallback(async (templateId: string) => {
-    if (!bookId) return;
-    try {
-      await updateBook(bookId, { map_template: templateId });
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
-    } catch (e) { setError((e as Error).message); }
-  }, [bookId, queryClient, setError]);
+  const onDelete = useCallback((id: string) => { setConfirmDeleteId(id); }, []);
 
   // ── Export PNG ───────────────────────────────────────────────────────────
 
@@ -431,20 +268,13 @@ export default function MapScreen() {
         bgUrl={book.map_bg_url ?? null}
         onSelectTemplate={(id) => { void onTemplateChange(id); setBgModalOpen(false); }}
         onPickFile={() => { setBgModalOpen(false); fileInputRef.current?.click(); }}
-        onRemoveBg={async () => {
-          if (!bookId) return;
-          try {
-            await updateBook(bookId, { map_bg_url: null });
-            void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
-            setBgModalOpen(false);
-          } catch (e) { setError((e as Error).message); }
-        }}
+        onRemoveBg={async () => { await onRemoveBg(); setBgModalOpen(false); }}
       />
 
       <ConfirmDialog
         open={!!confirmDeleteId}
         message="Удалить локацию? Действие нельзя отменить."
-        onConfirm={onDeleteConfirmed}
+        onConfirm={() => { if (confirmDeleteId) { void onDeleteConfirmed(confirmDeleteId); setConfirmDeleteId(null); } }}
         onCancel={() => setConfirmDeleteId(null)}
       />
     </WithMode>
