@@ -1,6 +1,8 @@
-import { useState, type CSSProperties } from 'react';
-import { supabase } from '../lib/supabase';
+import { useState, useEffect, type CSSProperties } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../lib/auth';
+import { updateDisplayName } from '../lib/profiles';
+import { useProfile, QUERY_KEYS } from '../lib/queries';
 import { PasswordInput } from './PasswordInput';
 
 const FL: CSSProperties = { font: '400 12px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 4 };
@@ -10,13 +12,17 @@ const H = 38;
 
 export function SettingsProfileTab() {
   const { user, signOut, updatePassword } = useAuth();
+  const queryClient = useQueryClient();
+  const { data: profile } = useProfile(user?.id);
+
   const isTelegram = user?.user_metadata?.provider === 'telegram';
   const accountLabel = isTelegram ? 'Telegram' : 'Email';
   const accountDisplay = isTelegram
     ? (user?.user_metadata?.telegram_username ? `@${user.user_metadata.telegram_username}` : `Telegram ID: ${user?.user_metadata?.telegram_id ?? ''}`)
     : (user?.email ?? '');
 
-  const [name, setName] = useState(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.user_metadata?.first_name ?? '');
+  const metaName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.user_metadata?.first_name ?? '';
+  const [name, setName] = useState(metaName);
   const [nameSaving, setNameSaving] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
@@ -25,12 +31,19 @@ export function SettingsProfileTab() {
   const [passError, setPassError] = useState<string | null>(null);
   const [passSaved, setPassSaved] = useState(false);
 
+  useEffect(() => {
+    if (profile?.display_name != null) setName(profile.display_name);
+  }, [profile?.display_name]);
+
   const handleSaveName = async () => {
+    if (!user) return;
     setNameSaving(true); setNameError(null);
     try {
-      const { error } = await supabase.auth.updateUser({ data: { full_name: name.trim() } });
-      if (error) setNameError(error.message);
-      else setNameSaved(true);
+      await updateDisplayName(user.id, name);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.profile(user.id) });
+      setNameSaved(true);
+    } catch (e) {
+      setNameError(e instanceof Error ? e.message : 'Ошибка сохранения');
     } finally {
       setNameSaving(false);
     }

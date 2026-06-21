@@ -12,7 +12,7 @@ export function useUserDisplay() {
   const vkName = meta?.provider === 'vk'
     ? ([meta?.first_name, meta?.last_name].filter(Boolean).join(' ') || null)
     : null;
-  const displayName: string = meta?.full_name ?? meta?.name ?? tgName ?? vkName ?? user?.email ?? '';
+  const displayName: string = profile?.display_name ?? meta?.full_name ?? meta?.name ?? tgName ?? vkName ?? user?.email ?? '';
   const initials = displayName
     .split(/\s+/)
     .filter(Boolean)

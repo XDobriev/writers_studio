@@ -23,12 +23,13 @@ export interface Profile {
   grandfathered: boolean;
   recurring_inv_id: string | null;
   cancel_at_period_end: boolean;
+  display_name: string | null;
 }
 
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('user_id, plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered, recurring_inv_id, cancel_at_period_end')
+    .select('user_id, plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered, recurring_inv_id, cancel_at_period_end, display_name')
     .eq('user_id', userId)
     .single();
   if (error) console.error('[profiles] getProfile failed:', error.message);
@@ -76,4 +77,12 @@ export async function markOnboarded(userId: string): Promise<void> {
     .eq('user_id', userId)
     .is('onboarded_at', null);
   if (error) console.error('[profiles] markOnboarded failed:', error.message);
+}
+
+export async function updateDisplayName(userId: string, name: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: name.trim() || null })
+    .eq('user_id', userId);
+  if (error) throw error;
 }
