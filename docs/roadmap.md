@@ -1,10 +1,10 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-21_ — §1.7 рекуррентные платежи: `billing-scheduler` задеплоен и проверен E2E (processed: 1, Robokassa получила запрос); цена Pro возвращена на 399₽. Ранее: §7 отмена подписки (`cancel-subscription`), `billing-scheduler` даунгрейд истёкших планов. `process-refund` требует переписки под актуальный Operation API.
+_Обновлён: 2026-06-21_ — §1.7 рекуррентные платежи: `billing-scheduler` задеплоен и проверен E2E (processed: 1, Robokassa получила запрос); цена Pro возвращена на 399₽. Ранее: §7 отмена подписки (`cancel-subscription`), `billing-scheduler` даунгрейд истёкших планов. `process-refund` исправлен: убран `RefundSum` (полный возврат не требует суммы по документации), сохраняется `refund_request_id`; `RefundService/Refund/Create` — верный merchant API (Partner API только для реселлеров).
 
 История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
-**Сейчас:** E2E возвраты заблокированы: ResultUrl2 не вызывается Robokassa (поддержка оповещена) → `op_key` NULL → `process-refund` неработоспособен. `process-refund` v5 (JWT+Password3, `RefundService/Refund/Create`) — **устаревший API, требует полной переписки** под Operation API (HTTP Basic, эндпоинт `PartnerRegisterService/api/Operation/RefundOperation`).
+**Сейчас:** E2E возвраты заблокированы: ResultUrl2 не вызывается Robokassa (поддержка оповещена) → `op_key` NULL в таблице `payments` → `process-refund` не может получить ключ для API.
 
 ---
 
@@ -67,7 +67,8 @@ _Обновлён: 2026-06-21_ — §1.7 рекуррентные платежи
    **Что осталось (выполнить после ответа поддержки):**
    - ✅ Password3 сгенерирован в Robokassa ЛК (тестового варианта нет)
    - ✅ Secret `ROBOKASSA_PASSWORD3` добавлен в Supabase
-   - ⏳ **`process-refund` требует переписки** под актуальный Operation API: эндпоинт `PartnerRegisterService/api/Operation/RefundOperation`, авторизация HTTP Basic, тело `{ RoboxPartnerId, OpKey, RefundSum }`. Инструкция в отдельной сессии.
+   - ✅ `process-refund` исправлен (2026-06-21): убран `RefundSum`, сохраняется `refund_request_id`; API `RefundService/Refund/Create` верный (не Partner API)
+   - ⏳ **Разблокировать `op_key`**: дождаться ответа поддержки Robokassa → ResultUrl2 начнёт вызываться → `op_key` появится в `payments`
    - Тестовый платёж (IsTest=true) → `SELECT op_key FROM payments ORDER BY paid_at DESC LIMIT 1` — NOT NULL
    - Настройки → Подписка → кнопка «Запросить возврат · ещё 14 дней» видна → подтвердить
    - SQL: `SELECT plan, refunded_at FROM payments ORDER BY paid_at DESC LIMIT 1` — refunded_at NOT NULL
@@ -367,7 +368,7 @@ _Обновлён: 2026-06-21_ — §1.7 рекуррентные платежи
 
 ---
 
-### R6. Реимпорт офлайн-правок
+### R5. Реимпорт офлайн-правок
 
 **Что это:** пользователь скачал книгу (DOCX/FB2), внёс правки офлайн, хочет загрузить изменённый файл обратно — и чтобы он подменил текущую версию главы.
 
@@ -378,7 +379,7 @@ _Обновлён: 2026-06-21_ — §1.7 рекуррентные платежи
 ---
 
 
-### R5. Позиционирование обложки (crop/pan)
+### R6. Позиционирование обложки (crop/pan)
 
 **Что это:** при загрузке изображения обложки — возможность сдвинуть кадр (drag) и задать `object-position`, чтобы фото центрировалось по нужной части.
 
@@ -438,10 +439,3 @@ _Задачи с явным "не делать сейчас". Вернуться
 **Установка:** `npx skills add AlariCode/expense-tracker-market`
 
 ---
-
-### 🟡 Graphify — семантический анализ (следующий шаг)
-**Статус:** частично установлен. AST-граф (6323 узла) работает, скилл активен в Claude Code.  
-**Что осталось:** семантический проход через LLM — понимает документацию, комментарии, связи между `docs/` и кодом.  
-**Как включить:** передать `ANTHROPIC_API_KEY` → `graphify .` из корня проекта (одноразово, ~$0.05–0.20 на весь проект).  
-**Что даст:** Claude сможет отвечать на архитектурные вопросы без сканирования файлов; особенно полезно для `docs/features/`, `supabase/migrations/` и связей типа «какие компоненты используют этот хук».  
-**Обновление графа после изменений:** `graphify update .` (бесплатно, AST-only).
