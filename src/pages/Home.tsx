@@ -355,7 +355,7 @@ export default function Home() {
 
       {/* ─── Create book modal ─── */}
       {showCreate && (
-        <div className="modal-overlay" style={{ zIndex: 50, background: 'oklch(0.10 0.012 50 / 0.55)' }} onClick={() => { if (!creating) setShowCreate(false); }}>
+        <div className="modal-overlay" style={{ zIndex: 50 }} onClick={() => { if (!creating) setShowCreate(false); }}>
           <form
             onSubmit={onCreate}
             role="dialog"

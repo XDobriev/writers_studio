@@ -223,8 +223,8 @@ export default function MapScreen() {
                 <div
                   style={{
                     pointerEvents: 'auto',
-                    background: 'oklch(0.14 0.015 45 / 0.9)',
-                    border: '1px solid oklch(0.32 0.02 50)',
+                    background: 'oklch(from var(--bg-void) l c h / 0.9)',
+                    border: '1px solid var(--border)',
                     borderRadius: 16,
                     padding: isMobile ? '24px 20px' : '32px 40px',
                     width: isMobile ? 'calc(100% - 48px)' : undefined,

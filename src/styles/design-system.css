@@ -1031,6 +1031,12 @@ select.input {
   .sheet { font-size: 18.5px; line-height: 1.82; }
 }
 
+/* ── Мобильный: листовой редактор ── */
+@media (max-width: 767px) {
+  .sheet-wrap { padding: 16px 0 0; }
+  .sheet { padding: 32px 24px 64px; border-radius: 0; }
+}
+
 /* ── character card ── */
 .char-card {
   background: var(--surface);
