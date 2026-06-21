@@ -49,26 +49,26 @@ export default function Admin() {
       <div style={{ height: 56, display: 'flex', alignItems: 'center', padding: '0 32px', gap: 12, borderBottom: '1px solid var(--border-soft)', background: 'var(--bg-deep)' }}>
         <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
           <LogoMark size={18} />
-          <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Р°РІС‚РѕСЂСЃРєР°СЏ СЃС‚СѓРґРёСЏ</span>
+          <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
         </Link>
         <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.06em' }}>/</span>
         <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)' }}>admin</span>
         <span style={{ flex: 1 }} />
-        <Link to="/books" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', textDecoration: 'none' }}>в†ђ Рє РїРѕР»РєРµ</Link>
+        <Link to="/books" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', textDecoration: 'none' }}>← к полке</Link>
         <button
           onClick={signOut}
           style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 4 }}
         >
-          Р’С‹Р№С‚Рё
+          Выйти
         </button>
       </div>
 
       <div style={{ padding: '36px 40px', maxWidth: 1200 }}>
         {error && <ErrorBanner message={error} style={{ marginBottom: 20 }} />}
 
-        <h1 style={{ font: '600 28px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 20 }}>РџР°РЅРµР»СЊ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°</h1>
+        <h1 style={{ font: '600 28px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 20 }}>Панель администратора</h1>
 
-        <div role="tablist" aria-label="Р Р°Р·РґРµР»С‹ РїР°РЅРµР»Рё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°" style={{ display: 'flex', gap: 0, marginBottom: 32, borderBottom: '1px solid var(--border-soft)' }}>
+        <div role="tablist" aria-label="Разделы панели администратора" style={{ display: 'flex', gap: 0, marginBottom: 32, borderBottom: '1px solid var(--border-soft)' }}>
           {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
             <button
               key={t}
@@ -109,7 +109,7 @@ export default function Admin() {
           <FlagsTable flags={flags} flagToggling={flagToggling} onToggle={handleToggleFlag} />
         )}
         {tab === 'flags' && flags === null && (
-          <div style={{ color: 'var(--ink-3)', fontSize: 13 }}>Р—Р°РіСЂСѓР·РєР°вЂ¦</div>
+          <div style={{ color: 'var(--ink-3)', fontSize: 13 }}>Загрузка…</div>
         )}
 
         {tab === 'users' && (

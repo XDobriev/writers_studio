@@ -88,7 +88,7 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
           backdropFilter: 'blur(6px)',
           cursor: 'pointer',
           alignItems: 'center', justifyContent: 'center',
-          color: 'oklch(0.95 0.01 80)',
+          color: 'oklch(0.98 0 0)',
         }}
       >
         <Icon name="pencil" size={13} />
