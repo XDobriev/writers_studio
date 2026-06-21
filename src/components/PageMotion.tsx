@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { pageVariants } from '../lib/motion';
 
 export function PageMotion({ children }: { children: ReactNode }) {
+  const prefersReducedMotion = useReducedMotion();
   return (
     <motion.main
       variants={pageVariants}
-      initial="initial"
+      initial={prefersReducedMotion ? 'animate' : 'initial'}
       animate="animate"
       exit="exit"
+      transition={prefersReducedMotion ? { duration: 0 } : undefined}
       style={{ width: '100%', height: '100%' }}
     >
       {children}

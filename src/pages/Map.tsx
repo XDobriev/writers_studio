@@ -165,11 +165,11 @@ export default function MapScreen() {
             {mode === 'stamp' && (
               <motion.div
                 key="stamp-strip"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
+                initial={{ scaleY: 0, opacity: 0 }}
+                animate={{ scaleY: 1, opacity: 1 }}
+                exit={{ scaleY: 0, opacity: 0 }}
                 transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                style={{ overflow: 'hidden', flexShrink: 0 }}
+                style={{ transformOrigin: 'top', overflow: 'hidden', flexShrink: 0 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '5px 14px', borderBottom: '1px solid var(--border-soft)', background: 'var(--bg-deep)', overflowX: 'auto', scrollbarWidth: 'none' }}>
                   <span style={{ font: '500 9px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginRight: 8, flexShrink: 0 }}>Тип</span>
