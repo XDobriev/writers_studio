@@ -4,7 +4,7 @@ _Зафиксировано: 2026-05-27. Реализовывать после �
 
 ## Стек
 
-- **Resend** — провайдер (бесплатно до 3 000 писем/мес, легко интегрируется с Supabase)
+- **Unisender GO** (`go2.unisender.ru`) — транзакционный email API (аккаунт активен, xdobriev@yandex.ru, Project ID: 8238434)
 - **Supabase Edge Function** `send-onboarding-email` — вызывается по триггеру или через `pg_cron`
 - Логика: каждый день проверять `profiles.created_at`, отправлять нужное письмо по дню
 
@@ -202,8 +202,8 @@ _Зафиксировано: 2026-05-27. Реализовывать после �
 
 ## Техническая реализация (когда придёт время)
 
-1. Зарегистрироваться на [resend.com](https://resend.com), получить API-ключ
-2. Добавить `RESEND_API_KEY` в Supabase Secrets
+1. Получить API-ключ в ЛК Unisender GO → Настройки → API
+2. Добавить `UNISENDER_GO_API_KEY` в Supabase Secrets
 3. Создать Edge Function `send-onboarding-email`
 4. Supabase `pg_cron`: каждый день в 10:00 → проверить `profiles` → отправить нужное письмо
 5. Добавить поле `last_onboarding_email int default 0` в `profiles`
