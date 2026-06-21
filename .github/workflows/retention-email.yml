@@ -1,0 +1,22 @@
+name: Retention Email
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call retention-email
+        run: |
+          STATUS=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://joaxeoavjvlqmtlepkrr.supabase.co/functions/v1/retention-email")
+          cat /tmp/resp.json
+          echo ""
+          if [ "$STATUS" != "200" ]; then
+            echo "retention-email returned HTTP $STATUS"
+            exit 1
+          fi
