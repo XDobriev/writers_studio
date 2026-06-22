@@ -42,6 +42,16 @@ function md5hex(input: string): string {
   return Md5.hashStr(input) as string;
 }
 
+// Constant-time сравнение для секрета планировщика (без тайминг-сайдканала).
+function timingSafeEqual(a: string, b: string): boolean {
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  if (aBytes.length !== bBytes.length) return false;
+  let diff = 0;
+  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
+  return diff === 0;
+}
+
 type Profile = {
   user_id: string;
   plan_expires_at: string;
@@ -69,7 +79,7 @@ Deno.serve(async (req) => {
   }
 
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ') || authHeader.slice(7) !== schedulerSecret) {
+  if (!authHeader?.startsWith('Bearer ') || !timingSafeEqual(authHeader.slice(7), schedulerSecret)) {
     return json(401, { error: 'unauthorized' });
   }
 
