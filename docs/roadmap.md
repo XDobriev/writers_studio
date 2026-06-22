@@ -1,10 +1,10 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-21_ — §1.7 рекуррентные платежи: `billing-scheduler` задеплоен и проверен E2E (processed: 1, Robokassa получила запрос); цена Pro возвращена на 399₽. Ранее: §7 отмена подписки (`cancel-subscription`), `billing-scheduler` даунгрейд истёкших планов. `process-refund` исправлен: убран `RefundSum` (полный возврат не требует суммы по документации), сохраняется `refund_request_id`; `RefundService/Refund/Create` — верный merchant API (Partner API только для реселлеров).
+_Обновлён: 2026-06-22_ — §1 монетизация закрыта: возвраты работают E2E (`op_key` через OpStateExt-pull; `Refund/Create` через `application/json` + JWT-как-JSON-строка), боевые цены возвращены (399/3490/4990), рабочая конфигурация зафиксирована в `docs/features/payments.md` (точка возврата). Ранее (06-21): §1.7 рекуррентные (`billing-scheduler` E2E); §7 отмена подписки; `process-refund` (убран `RefundSum`, merchant Refund API).
 
 История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
-**Сейчас:** возвраты работают E2E (22.06.2026). Два корня устранены: (1) `op_key` не сохранялся — переведён с push ResultUrl2 на pull `OpStateExt` (webhook v34 + fallback в process-refund); (2) `Refund/Create` падал — нужен `Content-Type: application/json` + JWT как JSON-строка (`JSON.stringify(jwt)`), не `text/plain`+сырой JWT. process-refund v18. E2E проверен: возврат 1₽ создан, `processing`, план → free.
+**Сейчас:** монетизация закрыта — оплата, возврат и рекурренты работают E2E. Ближайшее пред-запусковое действие — определить и выставить `GRANDFATHERING_ENDS_AT` перед первыми реальными продажами (см. §1).
 
 ---
 
@@ -30,50 +30,13 @@ _Обновлён: 2026-06-21_ — §1.7 рекуррентные платежи
 
 ---
 
-### 1. Robokassa — переключить на боевой режим
+### 1. Robokassa — монетизация ✅ ЗАКРЫТО (2026-06-22)
 
-**Что это:** монетизация полностью реализована. Единственный блокер — тестовый флаг. **Это задача на 15 минут.**
+Оплата → активация плана → `op_key` → возврат — всё работает E2E на боевом потоке, подтверждено в ЛК Робокассы. Боевой режим (`ROBOKASSA_IS_TEST=false`), боевые цены (Pro 399 / год 3490 / Lifetime 4990; грандфазер 290/2900). РобоЧеки СМЗ, lifetime-слоты, грандфазеринг, `/payment-success` — на месте. Рекурренты — §1.7.
 
-**Что уже сделано:**
-- ✅ Магазин `AvtorStudio` зарегистрирован и активен, алгоритм MD5
-- ✅ РобоЧеки СМЗ подключены (зелёная точка) — чеки в ФНС автоматически
-- ✅ Боевые Пароль #1 и #2 сгенерированы; тестовые #1 и #2 сгенерированы (ротированы 2026-06-13)
-- ✅ Result URL → `https://joaxeoavjvlqmtlepkrr.supabase.co/functions/v1/robokassa-webhook`, метод POST
-- ✅ `supabase/functions/robokassa-webhook/index.ts` — реализован, задеплоен (v14): MD5 timing-safe, pro/pro_annual/lifetime, грандфазеринг, audit_log, fire-and-forget email; `.trim()` на паролях
-- ✅ `supabase/functions/create-payment-url/index.ts` — реализован, задеплоен (v10): формирует подписанную ссылку, поддерживает IsTest
-- ✅ `supabase/functions/payment-confirmation/index.ts` — письмо покупателю через UniSender Go (готов)
-- ✅ `app_settings.lifetime_slots_remaining = 50` + атомарный RPC `decrement_lifetime_slot()` (миграция 0025)
-- ✅ `profiles.grandfathered boolean` (миграция 0026)
-- ✅ Лендинг и UpgradeModal показывают живой счётчик Lifetime-слотов
-- ✅ В настройках у грандфазированных: «✦ Ранняя цена · 290 ₽/мес навсегда»
-- ✅ Все Secrets заданы: `ROBOKASSA_MERCHANT_LOGIN`, `PASSWORD1/2`, `TEST_PASSWORD1/2`
-- ✅ `ROBOKASSA_IS_TEST=false` — **боевой режим активен (2026-06-14)**
-- ✅ `src/components/SettingsModal.tsx` — кнопки «Оформить» подключены к `create-payment-url`; страница `/payment-success` с поллингом
-- ✅ E2E тестовый платёж Pro пройден (IsTest=1): `profiles.plan = 'pro'` обновился, страница `/payment-success` показала успех
+**Рабочая конфигурация и 3 ключевые формулы (подпись оплаты, `op_key` через OpStateExt-pull, возврат через `application/json`+JSON-строка) зафиксированы в [docs/features/payments.md](../features/payments.md) как точка возврата.**
 
-**Что осталось (верифицировать монетизацию):**
-1. ✅ ~~Переключить на боевой режим~~ — сделано 2026-06-14
-2. ✅ ~~Тестовый боевой платёж 1 ₽ (Pro)~~ — пройден 2026-06-15, webhook отработал, `profiles.plan` обновился
-3. ✅ ~~E2E Lifetime~~ — пройден 2026-06-15: `plan='lifetime'`, `plan_expires_at=null`, `lifetime_slots_remaining=49`; кнопка `lifetime_test` удалена
-4. ✅ ~~Проверить возвраты~~ — Robokassa ЛК делает возврат без webhook; план остаётся (ожидаемое поведение). **Автоматические возвраты реализованы (§1.6 ✅ 2026-06-15)**
-5. ✅ ~~E2E-тест возвратов~~ — пройден 2026-06-22 (systematic-debugging, два корня)
-
-   **Корень 1 — `op_key` не сохранялся** (ни у одного платежа за всю историю):
-   - Полагались на push ResultUrl2 (JWS) — ненадёжен: старые вызовы падали на verify, на новые Robokassa ResultUrl2 не вызывала. `OpStateExt` показал: `OpKey` всегда был, ломалась доставка.
-   - Фикс: pull через `OpStateExt` (`MD5(MerchantLogin:InvoiceID:Password2)`) — `robokassa-webhook` v34 (best-effort при оплате) + `process-refund` fallback. `payment-result2` → DEPRECATED.
-
-   **Корень 2 — `Refund/Create` падал** (HTTP 415, затем 400 BadRequest):
-   - `process-refund` слал `Content-Type: text/plain` + сырой JWT. Robokassa требует **`application/json` + JWT как JSON-строку** (`JSON.stringify(jwt)`, ASP.NET `[FromBody] string`). Фикс в v18.
-   - E2E: возврат 1₽ по `1782137651847` создан (`success:true`, `requestId=db5cf95e…`), `GetState=processing`, `payments.refunded_at`+`refund_request_id` заполнены, `profiles.plan='free'`.
-
-   **Хвосты:**
-   - ⚠️ `ROBOKASSA_IS_TEST` фактически НЕ `'true'` — «тестовые» платежи на 1₽ идут реальной картой.
-   - ⚠️ Удалить временную функцию `op-state-check` через Supabase Dashboard (сейчас отключена, 410).
-   - Опционально: догнать full-UI прогон (новый платёж → кнопка «Запросить возврат») для проверки фронта.
-   
-   **Также после первых реальных платежей:** вернуть e2e-аккаунту 399₽ (списано при тестировании). Если на балансе магазина не хватает средств для возврата — выставить счёт самому себе через Robokassa ЛК (подтверждено поддержкой).
-
-**Рекуррентные → §1.7** (отдельная фаза после первых платящих пользователей)
+**Открытая развилка перед публичным запуском — `GRANDFATHERING_ENDS_AT`:**
 
 > 🤔 **Решение на подумать — дата окончания грандфазеринга:**  
 > `GRANDFATHERING_ENDS_AT` в Supabase Secrets сейчас не задан — это значит все Pro-покупатели получают `grandfathered = true` вечно. Нужно определить дату и выставить Secret до первых реальных продаж.  
