@@ -32,6 +32,30 @@ function md5hex(input: string): string {
   return Md5.hashStr(input) as string;
 }
 
+// Тянет OpKey операции через OpStateExt — надёжная замена push'у ResultUrl2.
+// Подпись: MD5(MerchantLogin:InvoiceID:Password2). OpKey может отсутствовать для
+// некоторых методов оплаты (предположительно СБП/BNPL) — тогда вернётся null.
+// best-effort с лёгким ретраем: операция может появиться в сервисе с задержкой.
+async function fetchOpKey(login: string, invId: string, password2: string): Promise<string | null> {
+  const sig = md5hex(`${login}:${invId}:${password2}`);
+  const url =
+    `https://auth.robokassa.ru/Merchant/WebService/Service.asmx/OpStateExt` +
+    `?MerchantLogin=${encodeURIComponent(login)}&InvoiceID=${encodeURIComponent(invId)}&Signature=${sig}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const xml = await res.text();
+      const m = xml.match(/<OpKey>([^<]+)<\/OpKey>/);
+      if (m) return m[1];
+    } catch (e) {
+      console.warn('[robokassa-webhook] OpStateExt fetch error:', e);
+    }
+  }
+  return null;
+}
+
 function timingSafeEqual(a: string, b: string): boolean {
   const aBytes = new TextEncoder().encode(a);
   const bBytes = new TextEncoder().encode(b);
@@ -59,6 +83,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return text(405, 'method not allowed');
 
+  const merchantLogin = Deno.env.get('ROBOKASSA_MERCHANT_LOGIN');
   const password2     = Deno.env.get('ROBOKASSA_PASSWORD2')?.trim();
   const testPassword2 = Deno.env.get('ROBOKASSA_TEST_PASSWORD2')?.trim();
   const supabaseUrl   = Deno.env.get('SUPABASE_URL');
@@ -202,12 +227,23 @@ Deno.serve(async (req) => {
   });
   if (auditErr) console.error('[robokassa-webhook] audit log failed:', auditErr.message);
 
+  // OpKey тянем через OpStateExt (надёжный pull вместо хрупкого push на ResultUrl2).
+  // best-effort: при неудаче op_key останется null, process-refund подтянет его позже.
+  let opKey: string | null = null;
+  if (merchantLogin) {
+    opKey = await fetchOpKey(merchantLogin, invId, activePassword2);
+    if (!opKey) console.warn(`[robokassa-webhook] OpKey not retrieved for invId=${invId} (will retry in process-refund)`);
+  } else {
+    console.warn('[robokassa-webhook] ROBOKASSA_MERCHANT_LOGIN not set — skipping OpKey fetch');
+  }
+
   const { error: paymentErr } = await db.from('payments').upsert({
     inv_id:  invId,
     user_id: shpUserId,
     amount:  parseFloat(outSum),
     plan:    shpPlan,
     paid_at: new Date().toISOString(),
+    ...(opKey ? { op_key: opKey } : {}),
   }, { onConflict: 'inv_id' });
   if (paymentErr) console.error('[robokassa-webhook] payments upsert failed:', paymentErr.message);
 

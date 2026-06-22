@@ -1,5 +1,12 @@
 // supabase/functions/payment-result2/index.ts
 //
+// DEPRECATED (22.06.2026). Push-механизм ResultUrl2 оказался ненадёжным
+// (за всю историю ни разу не сохранил op_key). Получение OpKey переведено
+// на pull через OpStateExt в robokassa-webhook (основной путь) и
+// process-refund (fallback). Эта функция оставлена как безвредная заглушка
+// на случай, если Robokassa всё же пришлёт уведомление; новые интеграции
+// op_key на неё опираться не должны.
+//
 // Принимает JWS уведомление от Robokassa (ResultUrl2).
 // Верифицирует RS256-подпись через jose (importSPKI + jwtVerify).
 // Сохраняет OpKey и InvId в таблицу payments.
@@ -56,14 +63,21 @@ Deno.serve(async (req) => {
   const contentType = req.headers.get('content-type') ?? 'not set';
   console.log(`[payment-result2] content-type="${contentType}" body[0:300]="${rawBody.slice(0, 300)}"`);
 
-  // Robokassa может прислать JWS как raw-строку или как form-urlencoded jws=<token>
-  let jws = rawBody.trim();
-  if (!jws.includes('.') || jws.startsWith('jws=') || jws.startsWith('body=')) {
-    const params = new URLSearchParams(jws);
-    const candidate = params.get('jws') ?? params.get('body') ?? '';
-    if (candidate) {
-      console.log('[payment-result2] detected form-encoded body, extracted jws param');
-      jws = candidate.trim();
+  // Robokassa отправляет JWS base64-кодированным в теле запроса (подтверждено поддержкой 22.06.2026)
+  let jws: string;
+  try {
+    jws = atob(rawBody.trim());
+    console.log('[payment-result2] base64-decoded body, jws[0:100]:', jws.slice(0, 100));
+  } catch {
+    // Запасной вариант: raw JWS или form-urlencoded
+    jws = rawBody.trim();
+    if (!jws.includes('.') || jws.startsWith('jws=') || jws.startsWith('body=')) {
+      const params = new URLSearchParams(jws);
+      const candidate = params.get('jws') ?? params.get('body') ?? '';
+      if (candidate) {
+        console.log('[payment-result2] form-encoded body, extracted jws param');
+        jws = candidate.trim();
+      }
     }
   }
 
@@ -88,13 +102,21 @@ Deno.serve(async (req) => {
 
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-  const { data: existingPayment } = await db
-    .from('payments')
-    .select('inv_id')
-    .eq('inv_id', invId)
-    .maybeSingle();
+  // Retry loop — robokassa-webhook может ещё не завершить upsert к моменту вызова result2
+  let existingPayment = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 1000));
+    const { data } = await db
+      .from('payments')
+      .select('inv_id')
+      .eq('inv_id', invId)
+      .maybeSingle();
+    existingPayment = data;
+    if (existingPayment) break;
+    console.log(`[payment-result2] invId=${invId} not found yet, attempt ${attempt + 1}/5`);
+  }
   if (!existingPayment) {
-    console.warn(`[payment-result2] unknown invId=${invId}, skipping op_key`);
+    console.warn(`[payment-result2] unknown invId=${invId} after 5 attempts, skipping op_key`);
     return new Response('OK', { status: 200 });
   }
 

@@ -8,6 +8,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// Боевые цены (соответствуют оферте /offer и лендингу).
 const BASE_PRICES: Record<string, string> = {
   pro:        '399.00',
   pro_annual: '3490.00',

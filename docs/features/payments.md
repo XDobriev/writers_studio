@@ -2,6 +2,31 @@
 
 Монетизация через Робокассу. Три плана: Free / Pro (месяц / год) / Lifetime.
 
+## ✅ Рабочая конфигурация — точка возврата (2026-06-22)
+
+Полный цикл **оплата → активация → op_key → возврат** проверен E2E на боевом потоке. Если что-то сломается — откатываться к этому состоянию.
+
+**Версии Edge Functions (задеплоены через Supabase MCP, НЕ через git push):**
+
+| Функция | Версия | verify_jwt | Роль |
+|---|---|---|---|
+| `create-payment-url` | v57 | true | URL оплаты, боевые цены |
+| `robokassa-webhook` | v34 | **false** | активация плана + pull `op_key` через OpStateExt |
+| `process-refund` | v18 | true | возврат + fallback `op_key` через OpStateExt |
+| `payment-result2` | — | false | **DEPRECATED** (push ResultUrl2, не использовать) |
+
+**Три рабочие формулы (ломались — не менять без причины):**
+
+1. **Подпись оплаты** (`create-payment-url`): `MD5(MerchantLogin:OutSum:InvId:ReceiptJSON:ResultUrl2:Password1:Shp_plan=…:Shp_user_id=…)` — Receipt = **raw JSON** (не URL-encoded), `ResultUrl2` входит.
+2. **Получение `op_key`** — pull через `OpStateExt`, НЕ push ResultUrl2: `GET .../Service.asmx/OpStateExt?MerchantLogin=…&InvoiceID=…&Signature=MD5(MerchantLogin:InvoiceID:Password2)` → `<OpKey>`.
+3. **Возврат** (`process-refund` → `Refund/Create`): `Content-Type: application/json`, тело = **JWT как JSON-строка** (`JSON.stringify(jwt)`), payload `{OpKey}`, подпись Password3. Сырой JWT с `text/plain`→415, с `application/json`→400.
+
+**Боевые цены** (`BASE_PRICES`): Pro `399.00` · Pro-год `3490.00` · Lifetime `4990.00`. Грандфазер (`grandfathered=true`): Pro `290.00` · год `2900.00`.
+
+**Env / Secrets:** `ROBOKASSA_IS_TEST` НЕ `'true'` (боевой режим — даже 1₽-платежи реальны). Заданы: `ROBOKASSA_MERCHANT_LOGIN`, `PASSWORD1/2/3`, `TEST_PASSWORD1/2`.
+
+> Подробности и обоснование каждого пункта — ниже по документу. Это лишь сводка для быстрого отката.
+
 ## Стек
 
 - **Робокасса** — эквайринг, приём платежей.
@@ -40,8 +65,25 @@
 
 **Критично:** `.update().select('user_id')` — без `.select()` supabase-js не видит 0 обновлённых строк и не возвращает ошибку.
 
-### `payment-result2` (ResultUrl2)
-Получает JWS-уведомление от Робокассы, сохраняет `op_key` в `payments.op_key`. Нужен для автоматических возвратов (`process-refund`).
+### Получение `op_key` — через OpStateExt (pull), не ResultUrl2 (push)
+
+`op_key` (токен операции) нужен для автоматических возвратов (`process-refund`). Достаётся **запросом** к Робокассе, а не из push-уведомления:
+
+```
+GET https://auth.robokassa.ru/Merchant/WebService/Service.asmx/OpStateExt
+    ?MerchantLogin=…&InvoiceID=…&Signature=MD5(MerchantLogin:InvoiceID:Password2)
+→ XML <OperationStateResponse> … <OpKey>…</OpKey> …
+```
+
+- **Основной путь:** `robokassa-webhook` после подтверждения оплаты дёргает OpStateExt (3 попытки × 1.5с, best-effort) и пишет `op_key` в `payments` тем же upsert.
+- **Fallback:** `process-refund` при пустом `op_key` сам тянет его через OpStateExt и сохраняет перед возвратом.
+- **Ограничение:** `OpKey` существует **только если оплата прошла банковской картой** (не СБП/BNPL/pay-сервисы) — подтверждено документацией Робокассы.
+
+> **Проверено 22.06.2026:** OpStateExt по `inv_id=1782137651847` вернул `OpKey` + `PaymentMethod=BankCard` (prod Password2). Подпись с test-паролем даёт `Code=1` — операции живут в боевом пространстве.
+
+### `payment-result2` (ResultUrl2) — DEPRECATED
+
+Push-механизм ResultUrl2 (JWS на ResultUrl2) оказался ненадёжным: за всю историю **ни разу не сохранил `op_key`** (старые попытки падали на verify, новые платежи Робокасса на ResultUrl2 не вызывала). Заменён pull через OpStateExt (см. выше). Функция оставлена как безвредная заглушка; новые интеграции на неё опираться не должны. `ResultUrl2` в `create-payment-url` оставлен в подписи — **не трогать** (рабочая формула, верифицирована 17-18.06.2026).
 
 ### `billing-scheduler`
 Ежедневный планировщик рекуррентных списаний (GitHub Actions, 06:05 UTC).
@@ -69,6 +111,10 @@
 
 JWT payload: только `OpKey`. `InvoiceItems` и `RefundSum` не передаются — подтверждено поддержкой Робокассы 22.06.2026.
 
+> **Формат запроса (критично, проверено 22.06.2026):** `Content-Type: application/json`, тело — JWT как **JSON-строка в кавычках** (`body = JSON.stringify(jwt)`, ASP.NET `[FromBody] string`). Распространённые ошибки: сырой JWT + `text/plain` → **415**; сырой JWT + `application/json` → **400 BadRequest**.
+
+> **E2E-возврат проверен 22.06.2026:** `inv_id=1782137651847` → `Refund/Create` вернул `success:true` + `requestId`, `GetState` → `processing`, `payments.refunded_at`/`refund_request_id` заполнены, `profiles.plan='free'`.
+
 ## Таблицы БД
 
 ### `payments`
@@ -76,7 +122,7 @@ JWT payload: только `OpKey`. `InvoiceItems` и `RefundSum` не перед
 id uuid PK
 user_id uuid → auth.users
 inv_id text UNIQUE NOT NULL   -- timestamp в мс, генерируется в create-payment-url
-op_key text                   -- заполняется из payment-result2
+op_key text                   -- заполняется через OpStateExt (webhook + fallback в process-refund)
 amount numeric(10,2)
 plan text
 paid_at timestamptz
@@ -124,8 +170,8 @@ cancel_at_period_end bool -- true = не продлевать; billing-scheduler
   → create-payment-url (Edge Fn) → URL Робокассы
   → Пользователь оплачивает
   → Робокасса → robokassa-webhook (ResultUrl1) → profiles.plan обновлён
-  → Робокасса → payment-result2 (ResultUrl2) → payments.op_key сохранён
+                                               → OpStateExt (pull) → payments.op_key сохранён
   → РобоЧеки СМЗ → «Мой налог» (чек самозанятого, только реальный платёж)
   → Покупатель получает email-чек от Робокассы (только реальный платёж)
-  → payment-confirmation (fire-and-forget) → наш email покупателю
+  → payment-confirmation (fire-and-forget) → наш email покупателю  ⚠️ функция не реализована, даёт 404 на каждый платёж
 ```

@@ -4,7 +4,7 @@ _Обновлён: 2026-06-21_ — §1.7 рекуррентные платежи
 
 История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
-**Сейчас:** E2E возвраты заблокированы: ResultUrl2 не вызывается Robokassa (поддержка оповещена) → `op_key` NULL в таблице `payments` → `process-refund` не может получить ключ для API.
+**Сейчас:** возвраты работают E2E (22.06.2026). Два корня устранены: (1) `op_key` не сохранялся — переведён с push ResultUrl2 на pull `OpStateExt` (webhook v34 + fallback в process-refund); (2) `Refund/Create` падал — нужен `Content-Type: application/json` + JWT как JSON-строка (`JSON.stringify(jwt)`), не `text/plain`+сырой JWT. process-refund v18. E2E проверен: возврат 1₽ создан, `processing`, план → free.
 
 ---
 
@@ -56,24 +56,20 @@ _Обновлён: 2026-06-21_ — §1.7 рекуррентные платежи
 2. ✅ ~~Тестовый боевой платёж 1 ₽ (Pro)~~ — пройден 2026-06-15, webhook отработал, `profiles.plan` обновился
 3. ✅ ~~E2E Lifetime~~ — пройден 2026-06-15: `plan='lifetime'`, `plan_expires_at=null`, `lifetime_slots_remaining=49`; кнопка `lifetime_test` удалена
 4. ✅ ~~Проверить возвраты~~ — Robokassa ЛК делает возврат без webhook; план остаётся (ожидаемое поведение). **Автоматические возвраты реализованы (§1.6 ✅ 2026-06-15)**
-5. ⏳ **E2E-тест возвратов** — **ЗАБЛОКИРОВАН: ResultUrl2 не вызывается Robokassa**
-   
-   **Что произошло (2026-06-18):**
-   - `payment-result2` возвращал 400 из-за ошибки верификации JWS (crypto.subtle vs jose). Исправлено: функция задеплоена с `jose` (`importSPKI` + `jwtVerify`, RS256).
-   - После серии 400-ответов Robokassa перестала вызывать ResultUrl2 вообще (подтверждено по логам уведомлений — только `robokassa-webhook` вызывается).
-   - Отправлен запрос в поддержку Robokassa: объяснены причины 400, описана ситуация, запрошено восстановление вызовов ResultUrl2.
-   - Локальный файл `supabase/functions/payment-result2/index.ts` синхронизирован с задеплоенной v10 (jose).
-   
-   **Что осталось (выполнить после ответа поддержки):**
-   - ✅ Password3 сгенерирован в Robokassa ЛК (тестового варианта нет)
-   - ✅ Secret `ROBOKASSA_PASSWORD3` добавлен в Supabase
-   - ✅ `process-refund` исправлен (2026-06-21): убран `RefundSum`, сохраняется `refund_request_id`; API `RefundService/Refund/Create` верный (не Partner API)
-   - ⏳ **Разблокировать `op_key`**: дождаться ответа поддержки Robokassa → ResultUrl2 начнёт вызываться → `op_key` появится в `payments`
-   - Тестовый платёж (IsTest=true) → `SELECT op_key FROM payments ORDER BY paid_at DESC LIMIT 1` — NOT NULL
-   - Настройки → Подписка → кнопка «Запросить возврат · ещё 14 дней» видна → подтвердить
-   - SQL: `SELECT plan, refunded_at FROM payments ORDER BY paid_at DESC LIMIT 1` — refunded_at NOT NULL
-   - SQL: `SELECT plan FROM profiles WHERE user_id = '<id>'` — plan = 'free'
-   - Повторный вызов → `{"error":"refund_not_eligible"}` (422)
+5. ✅ ~~E2E-тест возвратов~~ — пройден 2026-06-22 (systematic-debugging, два корня)
+
+   **Корень 1 — `op_key` не сохранялся** (ни у одного платежа за всю историю):
+   - Полагались на push ResultUrl2 (JWS) — ненадёжен: старые вызовы падали на verify, на новые Robokassa ResultUrl2 не вызывала. `OpStateExt` показал: `OpKey` всегда был, ломалась доставка.
+   - Фикс: pull через `OpStateExt` (`MD5(MerchantLogin:InvoiceID:Password2)`) — `robokassa-webhook` v34 (best-effort при оплате) + `process-refund` fallback. `payment-result2` → DEPRECATED.
+
+   **Корень 2 — `Refund/Create` падал** (HTTP 415, затем 400 BadRequest):
+   - `process-refund` слал `Content-Type: text/plain` + сырой JWT. Robokassa требует **`application/json` + JWT как JSON-строку** (`JSON.stringify(jwt)`, ASP.NET `[FromBody] string`). Фикс в v18.
+   - E2E: возврат 1₽ по `1782137651847` создан (`success:true`, `requestId=db5cf95e…`), `GetState=processing`, `payments.refunded_at`+`refund_request_id` заполнены, `profiles.plan='free'`.
+
+   **Хвосты:**
+   - ⚠️ `ROBOKASSA_IS_TEST` фактически НЕ `'true'` — «тестовые» платежи на 1₽ идут реальной картой.
+   - ⚠️ Удалить временную функцию `op-state-check` через Supabase Dashboard (сейчас отключена, 410).
+   - Опционально: догнать full-UI прогон (новый платёж → кнопка «Запросить возврат») для проверки фронта.
    
    **Также после первых реальных платежей:** вернуть e2e-аккаунту 399₽ (списано при тестировании). Если на балансе магазина не хватает средств для возврата — выставить счёт самому себе через Robokassa ЛК (подтверждено поддержкой).
 
