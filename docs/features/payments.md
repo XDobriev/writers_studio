@@ -67,7 +67,7 @@
 
 Использует стандартный merchant Refund API: `POST services.robokassa.ru/RefundService/Refund/Create` с JWT, подписанным Password3. Ответ содержит `requestId` — статус поллится через `GetState` (до 20 сек). Partner API (`PartnerRegisterService/api/Operation/RefundOperation`) — только для реселлеров Робокассы, для обычного магазина недоступен (подтверждено поддержкой 21.06.2026).
 
-> ⚠️ **Открытый вопрос:** нужно ли передавать `InvoiceItems` для аннуляции РобоЧека СМЗ при возврате? Уточняется в поддержке Робокассы.
+JWT payload: только `OpKey`. `InvoiceItems` и `RefundSum` не передаются — подтверждено поддержкой Робокассы 22.06.2026.
 
 ## Таблицы БД
 
