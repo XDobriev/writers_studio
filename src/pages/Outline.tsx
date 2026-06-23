@@ -486,6 +486,9 @@ function SortableChapterRow({
           <Icon name="moremenu" size={14} />
         </button>
 
+        {menuFor === c.id && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 199 }} onMouseDown={() => setMenuFor(null)} />
+        )}
         {menuFor === c.id && menuDropdownStyle && (
           <div style={{
             ...menuDropdownStyle,
@@ -567,18 +570,7 @@ export default function Outline() {
   );
 
   useEffect(() => {
-    if (!menuFor) {
-      setDeleteConfirmFor(null);
-      return;
-    }
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuFor(null);
-        setDeleteConfirmFor(null);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    if (!menuFor) setDeleteConfirmFor(null);
   }, [menuFor]);
 
   const maxWords = useMemo(
