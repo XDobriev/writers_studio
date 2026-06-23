@@ -54,6 +54,7 @@ export default function Export() {
   const authorInitialized = useRef(false);
 
   const [format, setFormat] = useState<Format>('epub');
+  const formatDefaulted = useRef(false);
   const [doneOnly, setDoneOnly] = useState(false);
   const [includeChapterTitles, setIncludeChapterTitles] = useState(true);
   const [includeTitlePage, setIncludeTitlePage] = useState(true);
@@ -94,10 +95,10 @@ export default function Export() {
   }, [bookId, setError]);
 
   useEffect(() => {
-    if (!limits.canExportRich && (format === 'epub' || format === 'fb2' || format === 'docx')) {
-      setFormat('html');
-    }
-  }, [limits.canExportRich, format]);
+    if (formatDefaulted.current || profile === undefined) return;
+    formatDefaulted.current = true;
+    if (!limits.canExportRich) setFormat('html');
+  }, [profile, limits.canExportRich]);
 
   useEffect(() => {
     if (!book || authorInitialized.current) return;
@@ -126,6 +127,10 @@ export default function Export() {
 
   const onDownload = useCallback(async () => {
     if (!book || !bookId) return;
+    if (!limits.canExportRich && (['epub', 'fb2', 'docx'] as Format[]).includes(format)) {
+      setShowUpgrade(true);
+      return;
+    }
     if (selectedChapters.length === 0) { setError('Нет глав для экспорта.'); return; }
     setBusy(true);
     clearError();
@@ -189,7 +194,7 @@ export default function Export() {
     } finally {
       setBusy(false);
     }
-  }, [book, bookId, authorName, selectedChapters, format, includeChapterTitles, includeTitlePage, includeNotes, notes, language, paragraphStyle, filename, includeMap, mapLocations, mapConnections, setError, clearError]);
+  }, [book, bookId, authorName, selectedChapters, format, limits, includeChapterTitles, includeTitlePage, includeNotes, notes, language, paragraphStyle, filename, includeMap, mapLocations, mapConnections, setError, clearError]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
