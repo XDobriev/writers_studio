@@ -604,10 +604,17 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         display: 'flex', alignItems: 'center',
         position: 'relative',
       }}>
-        <div style={{ flex: 1, display: 'flex', justifyContent: isMobile ? 'flex-start' : 'center', minWidth: 0, overflow: 'visible' }}>
+        <div style={{ flex: 1, display: 'flex', justifyContent: isMobile ? 'flex-start' : 'center', minWidth: 0, overflow: 'hidden', position: 'relative' }}>
           <div ref={scrollRef} className="tb" style={{ width: isMobile ? '100%' : 680, maxWidth: '100%', flex: 'none', height: '100%', background: 'transparent', borderBottom: 'none' } as React.CSSProperties}>
             {buttons}
           </div>
+          {isMobile && (
+            <div aria-hidden style={{
+              position: 'absolute', right: 0, top: 0, bottom: 0, width: 40,
+              pointerEvents: 'none',
+              background: 'linear-gradient(to right, transparent, var(--bg))',
+            }} />
+          )}
         </div>
         {showModes && mode && setMode && (
           <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }}>
