@@ -424,51 +424,66 @@ export default function Notes() {
           />
         )}
         <main className="as-main" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '14px 24px', borderBottom: '1px solid var(--border-soft)',
-            flexShrink: 0,
-          }}>
-            {isMobile && (
-              <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
-                <Icon name="panel" size={16} />
+          <div style={{ borderBottom: '1px solid var(--border-soft)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isMobile ? '12px 16px' : '14px 24px' }}>
+              {isMobile && (
+                <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
+                  <Icon name="panel" size={16} />
+                </button>
+              )}
+              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Заметки</span>
+              <span className="chip">{filtered.length}</span>
+              {activeChapterTitle && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px 3px 10px', borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-2)' }}>
+                  <span>{activeChapterTitle}</span>
+                  <button
+                    onClick={() => setActiveChapterId(null)}
+                    style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: '3px 5px', fontSize: 14, lineHeight: 1, minHeight: 24 }}
+                    aria-label="Сбросить фильтр"
+                    title="Сбросить фильтр"
+                  >×</button>
+                </div>
+              )}
+              <div style={{ flex: 1 }} />
+              {!isMobile && (
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {(['all', ...BASE_KINDS, 'custom'] as Array<NoteKind | 'all'>).map((k) => (
+                    <button
+                      key={k}
+                      aria-pressed={filterKind === k}
+                      className={'btn btn--ghost' + (filterKind === k ? ' btn--active' : '')}
+                      style={{ fontSize: 12, padding: '3px 10px', opacity: filterKind === k ? 1 : 0.6 }}
+                      onClick={() => setFilterKind(k)}
+                    >
+                      {k === 'all' ? 'Все' : KIND_LABELS[k]}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                className="btn btn--primary"
+                style={{ fontSize: 12, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
+                onClick={() => setShowForm(true)}
+              >
+                <Icon name="plus" size={13} />
+                {!isMobile && 'Добавить'}
               </button>
-            )}
-            <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Заметки</span>
-            <span className="chip">{filtered.length}</span>
-            {activeChapterTitle && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px 3px 10px', borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-2)' }}>
-                <span>{activeChapterTitle}</span>
-                <button
-                  onClick={() => setActiveChapterId(null)}
-                  style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', padding: '3px 5px', fontSize: 14, lineHeight: 1, minHeight: 24 }}
-                  aria-label="Сбросить фильтр"
-                  title="Сбросить фильтр"
-                >×</button>
+            </div>
+            {isMobile && (
+              <div style={{ display: 'flex', gap: 4, padding: '0 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+                {(['all', ...BASE_KINDS, 'custom'] as Array<NoteKind | 'all'>).map((k) => (
+                  <button
+                    key={k}
+                    aria-pressed={filterKind === k}
+                    className={'btn btn--ghost' + (filterKind === k ? ' btn--active' : '')}
+                    style={{ fontSize: 12, padding: '3px 10px', opacity: filterKind === k ? 1 : 0.6, flexShrink: 0 }}
+                    onClick={() => setFilterKind(k)}
+                  >
+                    {k === 'all' ? 'Все' : KIND_LABELS[k]}
+                  </button>
+                ))}
               </div>
             )}
-            <div style={{ flex: 1 }} />
-            <div style={{ display: 'flex', gap: 4 }}>
-              {(['all', ...BASE_KINDS, 'custom'] as Array<NoteKind | 'all'>).map((k) => (
-                <button
-                  key={k}
-                  aria-pressed={filterKind === k}
-                  className={'btn btn--ghost' + (filterKind === k ? ' btn--active' : '')}
-                  style={{ fontSize: 12, padding: '3px 10px', opacity: filterKind === k ? 1 : 0.6 }}
-                  onClick={() => setFilterKind(k)}
-                >
-                  {k === 'all' ? 'Все' : KIND_LABELS[k]}
-                </button>
-              ))}
-            </div>
-            <button
-              className="btn btn--primary"
-              style={{ fontSize: 12, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
-              onClick={() => setShowForm(true)}
-            >
-              <Icon name="plus" size={13} />
-              Добавить
-            </button>
           </div>
 
           {/* статичная область: ошибки + форма */}
