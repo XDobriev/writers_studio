@@ -31,7 +31,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: https://joaxeoavjvlqmtlepkrr.supabase.co
+          VITE_SUPABASE_URL: https://avtorstudio.com/sb
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_ADMIN_EMAIL: admin@avtorstudio.com
           VITE_TELEGRAM_BOT_USERNAME: authorsStudioBot
