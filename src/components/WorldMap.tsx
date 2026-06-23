@@ -184,7 +184,14 @@ export function WorldMap({
     if (!el) return;
     const { width, height } = el.getBoundingClientRect();
     const s = Math.min(width / CW, height / CH) * 0.85;
-    const p = { x: (width - CW * s) / 2, y: (height - CH * s) / 2 };
+    // В портретной ориентации (телефон) карта шире контейнера по масштабу от ширины,
+    // поэтому вертикальное центрирование даёт 200-300px пустого пространства сверху.
+    // Прижимаем карту к верху с небольшим отступом.
+    const portrait = height > width;
+    const p = {
+      x: (width - CW * s) / 2,
+      y: portrait ? 8 : (height - CH * s) / 2,
+    };
     setScale(s); scaleRef.current = s;
     setPan(p);   panValRef.current = p;
   }, []);
