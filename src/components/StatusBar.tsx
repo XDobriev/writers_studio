@@ -233,8 +233,12 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
   return (
     <div className="status">
       <span><span className="status-dot" style={{ display: 'inline-block', marginRight: 6, verticalAlign: 'middle', background: saveState === 'error' ? 'var(--danger)' : saveState === 'saving' ? 'var(--accent-2)' : 'var(--ok)' }} />{statusLabel ?? (savedAt ? `Сохранено · ${savedAt}` : 'Сохранение…')}</span>
-      <span style={{ color: 'var(--ink-4)' }}>·</span>
-      <span>Слов: {words.toLocaleString('ru')}</span>
+      {!isNarrow && (
+        <>
+          <span style={{ color: 'var(--ink-4)' }}>·</span>
+          <span>Слов: {words.toLocaleString('ru')}</span>
+        </>
+      )}
       {!isNarrow && (
         <>
           <span style={{ color: 'var(--ink-4)' }}>·</span>
