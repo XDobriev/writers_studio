@@ -218,7 +218,7 @@ const PRINCIPLES = [
 
 function LandingPrinciples() {
   return (
-    <section style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'oklch(0.21 0.016 55)' }}>
+    <section style={{ padding: 'clamp(40px,10vw,120px) clamp(20px,4vw,56px)', background: 'oklch(0.21 0.016 55)' }}>
       <div className="lnd-max">
         <div style={{ marginBottom: 64, maxWidth: 640 }}>
           <h2 style={{ font: '600 clamp(48px,5.5vw,76px)/1.02 var(--font-serif)', letterSpacing: '-0.022em', color: 'var(--ink)' }}>
@@ -393,7 +393,7 @@ function LandingFAQ() {
     { q: 'Если я нашёл баг или хочу предложить фичу?', a: 'Напишите на почту или в Telegram — ответ обычно в течение суток. Pro-подписчики попадают в закрытый чат с разработчиком напрямую и влияют на приоритеты следующих версий.' },
   ];
   return (
-    <section id="faq" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
+    <section id="faq" style={{ padding: 'clamp(40px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
       <div className="lnd-max" style={{ maxWidth: 920 }}>
         <div style={{ marginBottom: 80, maxWidth: 780 }}>
           <h2 style={{ font: '600 clamp(32px,4vw,56px)/1.05 var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 16, color: 'var(--ink)' }}>Что обычно спрашивают.</h2>
@@ -427,7 +427,7 @@ function LandingCTA() {
   }, []);
 
   return (
-    <section style={{ padding: 'clamp(100px,12vw,140px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)', position: 'relative', overflow: 'hidden' }}>
+    <section style={{ padding: 'clamp(48px,12vw,140px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)', position: 'relative', overflow: 'hidden' }}>
       <div ref={decoRef} style={{ position: 'absolute', right: -100, top: '50%', transform: 'translateY(-50%) rotate(-8deg)', font: '600 280px/1 var(--font-serif)', color: 'var(--surface-2)', opacity: 0.4, pointerEvents: 'none', letterSpacing: '-0.04em', userSelect: 'none' }} aria-hidden="true">книга</div>
       <motion.div
         style={{ position: 'relative', maxWidth: 880, margin: '0 auto', textAlign: 'center' }}

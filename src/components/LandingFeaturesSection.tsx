@@ -570,7 +570,7 @@ function FeatureRow({ headline, body, mock, reverse, noBrowserChrome, mockHeight
 
 export function LandingFeatures() {
   return (
-    <section id="features" style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
+    <section id="features" style={{ padding: 'clamp(40px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
       <div className="lnd-max">
         <SectionLabel title="Студия, а не текстовое поле." subtitle="Каждая часть книги живёт рядом с рукописью — не в отдельном приложении, не на отдельной вкладке. Открыли главу — видите её мир." />
         <FeatureRowFull

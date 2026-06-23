@@ -1564,6 +1564,9 @@ select.input {
 }
 @media (max-width: 479px) {
   .lnd-footer-grid { grid-template-columns: 1fr; }
+  .lnd-feat-row { padding: 24px 0; gap: 24px; }
+  .lnd-feat-row-full { padding: 24px 0; }
+  .lnd-manifesto-row { padding: 20px 0; }
 }
 
 /* OnboardingChecklist */
