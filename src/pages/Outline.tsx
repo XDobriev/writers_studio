@@ -637,10 +637,10 @@ export default function Outline() {
                 </button>
               )}
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Структура</span>
-              <span className="chip">{totals.count} {plural(totals.count, 'глава', 'главы', 'глав')} · {totals.words.toLocaleString('ru')} сл</span>
+              {!isMobile && <span className="chip">{totals.count} {plural(totals.count, 'глава', 'главы', 'глав')} · {totals.words.toLocaleString('ru')} сл</span>}
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              {chapters && chapters.length > 0 && characters.length > 0 && (
+              {!isMobile && chapters && chapters.length > 0 && characters.length > 0 && (
                 <BulkPovButton
                   chapters={chapters}
                   characters={characters}
@@ -649,7 +649,10 @@ export default function Outline() {
                   onDone={onPovChanged}
                 />
               )}
-              <button className="btn" onClick={onCreate}><Icon name="plus" size={14} /> Новая глава</button>
+              <button className="btn" onClick={onCreate} aria-label="Новая глава">
+                <Icon name="plus" size={14} />
+                {!isMobile && ' Новая глава'}
+              </button>
             </div>
           </div>
 
