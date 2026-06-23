@@ -1,5 +1,8 @@
 import { HEATMAP_WEEKS, type ActivityData } from '../lib/activity';
 import { fmtNumber, plural, pluralDays } from '../lib/i18n';
+import { useResponsive } from '../lib/useResponsive';
+
+const MOBILE_WEEKS = 13;
 
 interface ActivityHeatmapProps {
   activityData: ActivityData | null;
@@ -8,6 +11,7 @@ interface ActivityHeatmapProps {
 // Карточка «История активности» дашборда: heatmap по дням, столбцы по неделям,
 // легенда интенсивности и график накопленного объёма. Данные — из computeActivityData.
 export function ActivityHeatmap({ activityData }: ActivityHeatmapProps) {
+  const { isMobile } = useResponsive();
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '20px 24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
@@ -33,16 +37,25 @@ export function ActivityHeatmap({ activityData }: ActivityHeatmapProps) {
         <div style={{ color: 'var(--ink-3)', fontSize: 13, padding: '8px 0' }}>
           Данных пока нет — начните писать, и здесь появится график активности.
         </div>
-      ) : (
+      ) : (() => {
+        const visibleWeeks = isMobile ? MOBILE_WEEKS : HEATMAP_WEEKS;
+        const weekOffset = HEATMAP_WEEKS - visibleWeeks;
+        const visibleCells = activityData.cells.slice(weekOffset * 7);
+        const visibleWeekBars = activityData.weeks.slice(weekOffset);
+        const visibleMonthLabels = activityData.monthLabels
+          .filter(({ col }) => col >= weekOffset)
+          .map(({ col, label }) => ({ col: col - weekOffset, label }));
+
+        return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {/* Month labels */}
           <div style={{ position: 'relative', height: 14, paddingLeft: 22 }}>
-            {activityData.monthLabels.map(({ col, label }) => (
+            {visibleMonthLabels.map(({ col, label }) => (
               <span
                 key={col}
                 style={{
                   position: 'absolute',
-                  left: `calc(22px + ${col} * (100% - 22px) / 52)`,
+                  left: `calc(22px + ${col} * (100% - 22px) / ${visibleWeeks})`,
                   top: 0,
                   lineHeight: '14px',
                   font: '400 9px var(--font-mono)',
@@ -65,9 +78,9 @@ export function ActivityHeatmap({ activityData }: ActivityHeatmapProps) {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>
-              {Array.from({ length: HEATMAP_WEEKS }, (_, w) => (
+              {Array.from({ length: visibleWeeks }, (_, w) => (
                 <div key={w} style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
-                  {activityData.cells.slice(w * 7, w * 7 + 7).map((cell) => {
+                  {visibleCells.slice(w * 7, w * 7 + 7).map((cell) => {
                     const t = cell.delta / activityData.maxDelta;
                     const bg = cell.future
                       ? 'transparent'
@@ -98,7 +111,7 @@ export function ActivityHeatmap({ activityData }: ActivityHeatmapProps) {
           <div style={{ paddingLeft: 22 }}>
             <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 6 }}>Объём по неделям</div>
             <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', height: 40 }}>
-              {activityData.weeks.map((w, i) => {
+              {visibleWeekBars.map((w, i) => {
                 const h = activityData.maxWeek > 0 ? Math.max(2, Math.round((w / activityData.maxWeek) * 40)) : 2;
                 return (
                   <div
@@ -157,7 +170,8 @@ export function ActivityHeatmap({ activityData }: ActivityHeatmapProps) {
             );
           })()}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
