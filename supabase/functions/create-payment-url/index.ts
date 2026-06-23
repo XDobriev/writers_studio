@@ -79,7 +79,9 @@ Deno.serve(async (req) => {
     return json(400, { error: `unknown plan: ${plan}` });
   }
 
-  // Проверяем грандфазерский флаг — ранние пользователи платят 290₽/2900₽ навсегда
+  // Грандфазер: ранняя цена 290₽ действует если:
+  // (а) флаг уже стоит на профиле (рекуррентные платежи существующих пользователей), или
+  // (б) текущая дата в пределах окна GRANDFATHERING_ENDS_AT (первая покупка нового пользователя)
   const { data: profile } = await db
     .from('profiles')
     .select('grandfathered')
@@ -87,7 +89,12 @@ Deno.serve(async (req) => {
     .single();
   const isGrandfathered = profile?.grandfathered === true;
 
-  const outSum = (isGrandfathered && GRANDFATHERED_PRICES[plan])
+  const grandfatheringEndsAt = Deno.env.get('GRANDFATHERING_ENDS_AT');
+  const isInGrandfatheringWindow = grandfatheringEndsAt
+    ? new Date() < new Date(grandfatheringEndsAt)
+    : false;
+
+  const outSum = ((isGrandfathered || isInGrandfatheringWindow) && GRANDFATHERED_PRICES[plan])
     ? GRANDFATHERED_PRICES[plan]
     : BASE_PRICES[plan];
   const invId       = String(Date.now());
