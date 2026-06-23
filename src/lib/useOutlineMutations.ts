@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { arrayMove } from '@dnd-kit/sortable';
 import type { DragEndEvent } from '@dnd-kit/core';
 import type { NavigateFunction } from 'react-router-dom';
-import { createChapter, deleteChapter, updateChapter, reorderChapters, type ChapterMeta } from './chapters';
+import { createChapter, deleteChapter, updateChapter, reorderChapters, renumberChapters, type ChapterMeta } from './chapters';
 import { QUERY_KEYS } from './queries';
 import { createChapterWithCache, deleteChapterWithCache, invalidateChaptersCache } from './chapterMutations';
 
@@ -88,5 +88,29 @@ export function useOutlineMutations({
     if (bookId) void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterPovMap(bookId) });
   }, [queryClient, bookId]);
 
-  return { onCreate, onDelete, onRename, onDragEnd, onPovChanged };
+  const onRenumber = useCallback(async () => {
+    if (!bookId || !chapters) return;
+    const toUpdate: Array<{ id: string; title: string }> = [];
+    let rank = 0;
+    chapters.forEach((c) => {
+      if (/^Глава \d+$/.test(c.title)) {
+        rank += 1;
+        const next = `Глава ${rank}`;
+        if (next !== c.title) toUpdate.push({ id: c.id, title: next });
+      }
+    });
+    if (toUpdate.length === 0) return;
+    const titleMap = new Map(toUpdate.map((u) => [u.id, u.title]));
+    queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+      prev ? prev.map((c) => titleMap.has(c.id) ? { ...c, title: titleMap.get(c.id)! } : c) : prev,
+    );
+    try {
+      await renumberChapters(toUpdate);
+    } catch (e) {
+      setError((e as Error).message);
+      invalidateChaptersCache(queryClient, bookId);
+    }
+  }, [bookId, chapters, queryClient, setError]);
+
+  return { onCreate, onDelete, onRename, onDragEnd, onPovChanged, onRenumber };
 }

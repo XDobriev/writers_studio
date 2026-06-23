@@ -553,12 +553,13 @@ export default function Outline() {
   const { data: povEntries = [] } = useChapterPovMap(bookId);
 
   const { error: mutationError, setError } = useErrorState();
-  const { onCreate, onDelete, onRename, onDragEnd, onPovChanged } = useOutlineMutations({
+  const { onCreate, onDelete, onRename, onDragEnd, onPovChanged, onRenumber } = useOutlineMutations({
     bookId, userId: user?.id, chapters, navigate, setError,
   });
   const error = chaptersError?.message ?? mutationError;
   const { isMobile } = useResponsive();
   const [sbOpen, setSbOpen] = useState(false);
+  const [renumbering, setRenumbering] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const [renameFor, setRenameFor] = useState<string | null>(null);
@@ -577,6 +578,18 @@ export default function Outline() {
     () => Math.max(...(chapters ?? []).map((c) => c.words), 1),
     [chapters],
   );
+
+  const needsRenumber = useMemo(() => {
+    if (!chapters || chapters.length === 0) return false;
+    let rank = 0;
+    return chapters.some((c) => {
+      if (/^Глава \d+$/.test(c.title)) {
+        rank += 1;
+        return c.title !== `Глава ${rank}`;
+      }
+      return false;
+    });
+  }, [chapters]);
 
   const totals = useMemo(() => {
     if (!chapters) return { count: 0, words: 0, done: 0, progress: 0, draft: 0 };
@@ -640,6 +653,22 @@ export default function Outline() {
                   userId={user.id}
                   onDone={onPovChanged}
                 />
+              )}
+              {needsRenumber && (
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={renumbering}
+                  onClick={() => {
+                    setRenumbering(true);
+                    void onRenumber().finally(() => setRenumbering(false));
+                  }}
+                  title="Перенумеровать главы — исправить пропуски в нумерации «Глава N»"
+                  aria-label="Перенумеровать главы"
+                >
+                  <Icon name="olist" size={14} />
+                  {!isMobile && (renumbering ? ' Обновляем…' : ' Перенумеровать')}
+                </button>
               )}
               <button className="btn" onClick={onCreate} aria-label="Новая глава">
                 <Icon name="plus" size={14} />

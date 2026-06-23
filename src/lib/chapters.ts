@@ -114,3 +114,9 @@ export async function reorderChapters(updates: { id: string; position: number }[
   const { error } = await supabase.rpc('reorder_chapters', { updates });
   if (error) throw error;
 }
+
+export async function renumberChapters(updates: Array<{ id: string; title: string }>): Promise<void> {
+  if (updates.length === 0) return;
+  const { error } = await supabase.from('chapters').upsert(updates);
+  if (error) throw error;
+}
