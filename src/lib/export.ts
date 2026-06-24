@@ -4,7 +4,7 @@ import { type Chapter } from './chapters';
 import { type Note } from './notes';
 import { htmlToText } from './htmlUtils';
 
-export type Format = 'epub' | 'fb2' | 'docx' | 'html' | 'txt' | 'md';
+export type Format = 'epub' | 'fb2' | 'docx' | 'html' | 'txt' | 'md' | 'pdf';
 export type ParagraphStyle = 'indent' | 'spacing' | 'both';
 
 export const LANGUAGES = [
@@ -17,6 +17,7 @@ export const FORMAT_MAIN: { value: Format; label: string; ext: string; desc: str
   { value: 'epub', label: 'EPUB', ext: 'epub', desc: 'Электронные читалки' },
   { value: 'fb2', label: 'FB2', ext: 'fb2', desc: 'Русские читалки и pocketbook' },
   { value: 'docx', label: 'DOCX', ext: 'docx', desc: 'Word, для редактора' },
+  { value: 'pdf', label: 'PDF', ext: 'pdf', desc: 'Печать · редактор' },
 ];
 
 export const FORMAT_TEXT: { value: Format; label: string; ext: string; desc?: string }[] = [
@@ -26,7 +27,7 @@ export const FORMAT_TEXT: { value: Format; label: string; ext: string; desc?: st
 ];
 
 export const FORMAT_EXT: Record<Format, string> = {
-  epub: 'epub', fb2: 'fb2', docx: 'docx', html: 'html', md: 'md', txt: 'txt',
+  epub: 'epub', fb2: 'fb2', docx: 'docx', html: 'html', md: 'md', txt: 'txt', pdf: 'pdf',
 };
 
 const KIND_LABELS: Record<string, string> = {
@@ -226,8 +227,8 @@ export function buildMarkdownDoc(book: Book, chapters: Chapter[], opts: BuildOpt
 
 export function estimateSize(format: Format, chapters: { words: number; content?: string | null }[]): string {
   const len = chapters.reduce((s, c) => s + (c.content?.length ?? c.words * 5), 0);
-  const bytes = Math.round(len * ({ epub: 0.65, fb2: 0.75, docx: 0.6, html: 0.5, md: 0.35, txt: 0.3 }[format] ?? 0.5)
-    + ({ epub: 15000, fb2: 3000, docx: 12000, html: 2000, md: 500, txt: 500 }[format] ?? 2000));
+  const bytes = Math.round(len * ({ epub: 0.65, fb2: 0.75, docx: 0.6, html: 0.5, md: 0.35, txt: 0.3, pdf: 0 }[format] ?? 0.5)
+    + ({ epub: 15000, fb2: 3000, docx: 12000, html: 2000, md: 500, txt: 500, pdf: 0 }[format] ?? 2000));
   if (bytes < 1024) return `${bytes} Б`;
   if (bytes < 1024 * 1024) return `~${Math.round(bytes / 1024)} КБ`;
   return `~${(bytes / 1024 / 1024).toFixed(1)} МБ`;
