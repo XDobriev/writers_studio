@@ -97,8 +97,7 @@ Deno.serve(async (req) => {
   const baseOutSum = ((isGrandfathered || isInGrandfatheringWindow) && GRANDFATHERED_PRICES[plan])
     ? GRANDFATHERED_PRICES[plan]
     : BASE_PRICES[plan];
-  // BILLING_TEST_AMOUNT — временный override для E2E-теста рекуррентов (1₽).
-  // Удалить Secret после проверки.
+  // BILLING_TEST_AMOUNT — тест-override суммы (напр. 1₽ для E2E). Установить Secret → удалить после теста.
   const outSum = Deno.env.get('BILLING_TEST_AMOUNT') ?? baseOutSum;
   const invId       = String(Date.now());
   const shpPlan     = plan;

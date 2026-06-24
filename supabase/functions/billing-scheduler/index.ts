@@ -110,8 +110,7 @@ Deno.serve(async (req) => {
 
   for (const profile of rows) {
     const interval    = profile.plan_interval ?? 'monthly';
-    // BILLING_TEST_AMOUNT — временный override для E2E-теста рекуррентов (1₽).
-    // Удалить Secret после проверки.
+    // BILLING_TEST_AMOUNT — тест-override суммы (напр. 1₽ для E2E). Установить Secret → удалить после теста.
     const outSum      = Deno.env.get('BILLING_TEST_AMOUNT')
       ?? (profile.grandfathered ? PRICES[interval].grandfathered : PRICES[interval].base);
     const description = DESCRIPTIONS[interval];

@@ -64,18 +64,18 @@ _Обновлён: 2026-06-22_ — §1 монетизация закрыта: в
 ---
 
 
-### 1.7. Рекуррентные платежи — автоматическое продление Pro ✅ (2026-06-21)
+### 1.7. Рекуррентные платежи — автоматическое продление Pro ✅ ЗАКРЫТО (2026-06-24)
 
 **Реализовано:**
 - ✅ Миграция `0042_recurring_payments.sql`: колонки `recurring_inv_id text` + `cancel_at_period_end boolean` в `profiles`
 - ✅ Миграция `0045_plan_interval.sql`: колонка `plan_interval text ('monthly'|'annual')` в `profiles` — планировщик применяет нужную цену
 - ✅ `create-payment-url`: `Recurring=true` для `pro`/`pro_annual` при `ROBOKASSA_RECURRING_ENABLED=true`
 - ✅ `robokassa-webhook`: при первом Pro-платеже сохраняет `recurring_inv_id = invId` + `plan_interval`
-- ✅ `billing-scheduler` (задеплоен 2026-06-21, баги исправлены): подпись raw JSON, `Shp_plan`/`Shp_user_id` в теле и подписи, матрица цен monthly/annual × base/grandfathered
+- ✅ `billing-scheduler`: подпись raw JSON, `Shp_plan`/`Shp_user_id` в теле и подписи, матрица цен monthly/annual × base/grandfathered; `BILLING_TEST_AMOUNT` Secret — тестовый override суммы (удалить после теста)
 - ✅ GitHub Actions cron `.github/workflows/billing-scheduler.yml` (06:05 UTC, `workflow_dispatch` для ручного запуска)
 - ✅ Рекуррентные платежи активированы поддержкой Робокассы (2026-06-20)
 
-**E2E-проверка (2026-06-21):** симуляция с тестовым аккаунтом — `processed: 1`, запрос до Robokassa дошёл, ответ `Recurring: Internal ERROR` ожидаем (тестовый режим не видит боевой `PreviousInvoiceID`). Логика планировщика верна.
+**E2E боевая проверка (2026-06-24):** платёж 1₽ → `recurring_inv_id` сохранён → планировщик запущен вручную → Robokassa списала 1₽ → вебхук пришёл за 12 сек → `plan_expires_at` продлён на +30 дней. Полный цикл подтверждён реальными деньгами.
 
 **Dunning-цепочка при сбое → §5** (email-триггеры, реализовать вместе с retention)
 
@@ -201,6 +201,7 @@ _Обновлён: 2026-06-22_ — §1 монетизация закрыта: в
 - Retention-офферы: пауза 1–3 мес / скидка 20% на 2 мес на основе причины
 - Email-уведомление об отмене через UniSender Go
 - Пауза: `plan_paused_until timestamptz` в `profiles`; автовозобновление с письмом за 3 дня
+- Напоминание о предстоящем списании: in-app баннер в `SettingsSubscriptionTab` «Следующее списание: [дата] · [сумма]»; email за 3 дня через UniSender Go. Реализовывать вместе с retention-письмами (§5)
 
 ---
 
