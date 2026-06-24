@@ -176,10 +176,8 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
   useEffect(() => {
     const handleVisibility = () => {
       const audio = audioRef.current;
-      if (!audio) return;
-      if (document.hidden) {
-        audio.pause();
-      } else if (isPlayingRef.current) {
+      if (!audio || document.hidden) return;
+      if (isPlayingRef.current) {
         audio.play().catch(() => {});
       }
     };
