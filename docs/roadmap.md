@@ -1,16 +1,29 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-22_ — §1 монетизация закрыта: возвраты работают E2E (`op_key` через OpStateExt-pull; `Refund/Create` через `application/json` + JWT-как-JSON-строка), боевые цены возвращены (399/3490/4990), рабочая конфигурация зафиксирована в `docs/features/payments.md` (точка возврата). Ранее (06-21): §1.7 рекуррентные (`billing-scheduler` E2E); §7 отмена подписки; `process-refund` (убран `RefundSum`, merchant Refund API).
+_Обновлён: 2026-06-24_ — §1 монетизация закрыта (оплата, возврат, рекурренты E2E). §1.7 рекурренты закрыты (E2E боевая проверка 1₽ → webhook → plan_expires_at +30 дней). §7 отмена подписки MVP закрыта. `GRANDFATHERING_ENDS_AT=2026-09-01` выставлен. Ближайшее пред-запусковое действие — ручное тестирование (§2).
 
-История: VK ID авторизация (OAuth 2.1 + PKCE, Edge Function vk-auth, SidebarFoot показывает реальное имя). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Robokassa: create-payment-url + PaymentSuccess + SettingsModal подключены, тестовый e2e-платёж прошёл. Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
+История: Robokassa полный цикл (оплата → план → `op_key` → возврат → рекурренты → отмена); VK ID авторизация (OAuth 2.1 + PKCE). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
-**Сейчас:** монетизация закрыта — оплата, возврат и рекурренты работают E2E. Ближайшее пред-запусковое действие — определить и выставить `GRANDFATHERING_ENDS_AT` перед первыми реальными продажами (см. §1).
+**Сейчас:** монетизация закрыта — оплата, возврат и рекурренты работают E2E. Грандфазеринг активен до 2026-09-01. Рабочая конфигурация зафиксирована в [docs/features/payments.md](../features/payments.md).
+
+> 🤔 **На подумать — грандфазер не применяется к первому платежу:**  
+> `grandfathered` ставится вебхуком *после* первого платежа, а `create-payment-url` берёт 290₽ только если флаг *уже* стоит. Итог: первый платёж идёт по 399₽, со второго — 290₽. Если задумка «ранняя цена 290₽ с первой покупки» — расходится с поведением.  
+> **Варианты:** (а) давать 290₽ с первой покупки в пределах окна `GRANDFATHERING_ENDS_AT`; (б) поправить формулировку на лендинге. Решить до первых реальных продаж.
 
 ---
 
 ## Активные баги
 
 > Самый критичный — первый в списке.
+
+### payment-result2 — проверить новый сертификат после следующего платежа
+
+**Симптом:** все вызовы `payment-result2` возвращали 400 (bad jws). Robokassa ротировала `jwtsign.cer` 16.06.2026, старый SPKI-ключ стал невалидным.  
+**Фикс:** `importSPKI` → `importX509`, новый X.509-сертификат (v28, задеплоен 2026-06-24).  
+**Проверить:** после следующего реального платежа — в логах `payment-result2` должно быть 200 вместо 400. Функция deprecated (op_key дублируется через OpStateExt в robokassa-webhook), но должна работать корректно. Сертификат действует до 2027-06-16.  
+**Файлы:** `supabase/functions/payment-result2/index.ts`
+
+---
 
 > **Шаблон новой записи:**
 > ```
@@ -26,61 +39,9 @@ _Обновлён: 2026-06-22_ — §1 монетизация закрыта: в
 ## Задачи — критический путь
 
 > Порядок выстроен по зависимостям и бизнес-приоритету:  
-> **монетизация → легал/тестирование → запуск → retention → рост → инфраструктура**
+> **легал/тестирование → запуск → retention → рост → инфраструктура**
 
 ---
-
-### 1. Robokassa — монетизация ✅ ЗАКРЫТО (2026-06-22)
-
-Оплата → активация плана → `op_key` → возврат — всё работает E2E на боевом потоке, подтверждено в ЛК Робокассы. Боевой режим (`ROBOKASSA_IS_TEST=false`), боевые цены (Pro 399 / год 3490 / Lifetime 4990; грандфазер 290/2900). РобоЧеки СМЗ, lifetime-слоты, грандфазеринг, `/payment-success` — на месте. Рекурренты — §1.7.
-
-**Рабочая конфигурация и 3 ключевые формулы (подпись оплаты, `op_key` через OpStateExt-pull, возврат через `application/json`+JSON-строка) зафиксированы в [docs/features/payments.md](../features/payments.md) как точка возврата.**
-
-**Открытая развилка перед публичным запуском — `GRANDFATHERING_ENDS_AT`:**
-
-> 🤔 **Решение на подумать — дата окончания грандфазеринга:**  
-> `GRANDFATHERING_ENDS_AT` в Supabase Secrets сейчас не задан — это значит все Pro-покупатели получают `grandfathered = true` вечно. Нужно определить дату и выставить Secret до первых реальных продаж.  
-> Логика: грандфазеринг заканчивается в момент публичного запуска (vc.ru / ProductHunt / первый трафик). До этого момента — ранняя цена 290₽ оправдана риском пользователя. После — продукт известен, риска нет, цена 399₽.  
-> **Действие:** когда определится дата публичного запуска — выставить `GRANDFATHERING_ENDS_AT=<дата>` в Supabase Secrets (без деплоя). Кандидат: `2026-09-01` (до конца лета).
-
-> 🤔 **На подумать (не баг, существующая логика) — грандфазер не применяется к первому платежу:**  
-> Флаг `grandfathered` ставится вебхуком *после* первого платежа, а `create-payment-url` берёт цену 290₽ только если флаг *уже* стоит. Итог: первый платёж идёт по 399₽, со второго (рекуррентного) — 290₽; лендинг/модалка новому юзеру тоже показывают 399₽. Если задумка «ранняя цена 290₽ с первой покупки» — расходится с поведением.  
-> **Варианты:** (а) давать 290₽ с первой покупки в пределах окна `GRANDFATHERING_ENDS_AT` (проверять дату прямо в `create-payment-url`); (б) оставить как есть и поправить формулировку на лендинге. Решить до первых реальных продаж.
-
-**Email-дюнинг при сбое платежа → §1.7** (dunning-цепочка описана там же)
-
-**При переносе на self-hosted:** обновить Result URL в Robokassa ЛК; переложить Secrets в docker-compose `.env`; задеплоить функции через Supabase CLI.
-
-**Также сделано в рамках §1:**
-- ✅ VK auth guard: проверка по `vk_id` вместо ненадёжного поля `provider` (2026-06-15)
-- ✅ Pro → Lifetime: кнопка «Перейти на Lifetime» добавлена в SettingsModal для Pro-пользователей; `UpgradeModal` получил `skipPro` prop (2026-06-15)
-- ✅ §1.5 — лендинг сохраняет выбранный тариф через регистрацию → авто-редирект на Robokassa (2026-06-15): `LandingPricingSection` запускает оплату напрямую; `Auth.tsx` читает `plan` из URL / `sessionStorage.pending_plan` после входа
-- ✅ Чек ФЗ-54 в `create-payment-url` (2026-06-15): параметр `Receipt` с номенклатурой (`tax: none`, УСН) включён в MD5-подпись; требует деплоя Edge Function
-- ✅ **Receipt в подписи — raw JSON** (не URL-encoded). В URL-параметр идёт URL-encoded. Формула верифицирована боевыми платежами 17/18/20.06.2026 (create-payment-url v45)
-
-**Файлы:** `supabase/functions/robokassa-webhook/index.ts`, `supabase/functions/create-payment-url/index.ts`, `src/components/SettingsModal.tsx`
-**Проверить:** тестовый платёж → `profiles.plan = 'pro'` → SettingsModal показывает Pro; Lifetime → `lifetime_slots_remaining` убывает; чек на email
-
----
-
-
-### 1.7. Рекуррентные платежи — автоматическое продление Pro ✅ ЗАКРЫТО (2026-06-24)
-
-**Реализовано:**
-- ✅ Миграция `0042_recurring_payments.sql`: колонки `recurring_inv_id text` + `cancel_at_period_end boolean` в `profiles`
-- ✅ Миграция `0045_plan_interval.sql`: колонка `plan_interval text ('monthly'|'annual')` в `profiles` — планировщик применяет нужную цену
-- ✅ `create-payment-url`: `Recurring=true` для `pro`/`pro_annual` при `ROBOKASSA_RECURRING_ENABLED=true`
-- ✅ `robokassa-webhook`: при первом Pro-платеже сохраняет `recurring_inv_id = invId` + `plan_interval`
-- ✅ `billing-scheduler`: подпись raw JSON, `Shp_plan`/`Shp_user_id` в теле и подписи, матрица цен monthly/annual × base/grandfathered; `BILLING_TEST_AMOUNT` Secret — тестовый override суммы (удалить после теста)
-- ✅ GitHub Actions cron `.github/workflows/billing-scheduler.yml` (06:05 UTC, `workflow_dispatch` для ручного запуска)
-- ✅ Рекуррентные платежи активированы поддержкой Робокассы (2026-06-20)
-
-**E2E боевая проверка (2026-06-24):** платёж 1₽ → `recurring_inv_id` сохранён → планировщик запущен вручную → Robokassa списала 1₽ → вебхук пришёл за 12 сек → `plan_expires_at` продлён на +30 дней. Полный цикл подтверждён реальными деньгами.
-
-**Dunning-цепочка при сбое → §5** (email-триггеры, реализовать вместе с retention)
-
----
-
 
 ### 2. Ручное тестирование перед публичным запуском
 
@@ -121,7 +82,7 @@ _Обновлён: 2026-06-22_ — §1 монетизация закрыта: в
 
 **Что сделать:** зайти на pd.rkn.gov.ru, заполнить форму (~30 минут). Указать: оператор — физлицо (ФИО, ИНН), статус — самозанятый, цель обработки — регистрация и авторизация пользователей, категории данных — email.
 
-**Файлы:** нет (ручное действие на pd.rkn.gov.ru)
+**Файлы:** нет (ручное действие на pd.rkn.gov.ru)  
 **Проверить:** скриншот/email подтверждения от РКН
 
 ---
@@ -168,8 +129,8 @@ _Обновлён: 2026-06-22_ — §1 монетизация закрыта: в
 - Cron-задача раз в сутки (Supabase Edge Function + pg_cron) → проверяет `last_sign_in_at` → отправляет через UniSender Go
 - Недельный отчёт: отдельная Edge Function по расписанию каждое воскресенье
 
-**Файлы:** новая `supabase/functions/retention-trigger/index.ts`
-**Проверить:** вызвать функцию вручную для тестового аккаунта → письмо приходит с правильным именем книги
+**Файлы:** новая `supabase/functions/retention-trigger/index.ts`  
+**Проверить:** вызвать функцию вручную для тестового аккаунта → письмо приходит с правильным именем книги  
 **Deps:** §4 (email-механика), UniSender Go API-ключ в Supabase Vault
 
 ---
@@ -188,20 +149,16 @@ _Обновлён: 2026-06-22_ — §1 монетизация закрыта: в
 
 ---
 
-### 7. Отмена подписки ✅ MVP (2026-06-20)
+### 7. Отмена подписки — улучшения (после первых пользователей)
 
-**Реализовано:**
-- ✅ Edge Function `cancel-subscription` (задеплоить): POST → `cancel_at_period_end = true`; `?resume=true` → `false`; логирует в `admin_audit_log`
-- ✅ `billing-scheduler`: добавлен шаг даунгрейда истёкших отменённых планов (`plan = 'free'` когда `cancel_at_period_end = true && plan_expires_at < now()`)
-- ✅ `useSubscription.ts`: `cancelAtPeriodEnd`, `handleCancel`, `handleResume`, `cancelLoading`, `cancelError`, `cancelConfirmOpen`
-- ✅ `SettingsSubscriptionTab.tsx`: кнопка «Отменить подписку» (только для рекуррентных) → ConfirmDialog → `cancel-subscription`; баннер «Отменена · доступ до [дата]»; кнопка «Возобновить подписку»
+MVP закрыт: кнопка «Отменить подписку», баннер «Отменена · доступ до [дата]», кнопка «Возобновить», даунгрейд истёкших планов — всё на месте.
 
-**Что осталось (после первых пользователей):**
+**Что осталось:**
 - Exit-интервью: 5 причин отмены → сохранять в `profiles.cancel_reason text` (новая колонка)
 - Retention-офферы: пауза 1–3 мес / скидка 20% на 2 мес на основе причины
 - Email-уведомление об отмене через UniSender Go
 - Пауза: `plan_paused_until timestamptz` в `profiles`; автовозобновление с письмом за 3 дня
-- Напоминание о предстоящем списании: in-app баннер в `SettingsSubscriptionTab` «Следующее списание: [дата] · [сумма]»; email за 3 дня через UniSender Go. Реализовывать вместе с retention-письмами (§5)
+- Напоминание о предстоящем списании: in-app баннер «Следующее списание: [дата] · [сумма]»; email за 3 дня (реализовывать вместе с §5)
 
 ---
 
@@ -260,7 +217,7 @@ _Обновлён: 2026-06-22_ — §1 монетизация закрыта: в
 
 **Инструмент управления:** использовать Portainer (GUI для Docker, есть в маркетплейсе Timeweb) вместо CLI — проще для первого раза.
 
-**Файлы:** `~/supabase-project/docker-compose.yml` (создать на VPS), `~/supabase-project/.env` (создать на VPS), `/etc/nginx/sites-available/avtorstudio.com` (обновить proxy_pass), `src/pages/Privacy.tsx` (раздел 4), Vercel env vars (`VITE_SUPABASE_ANON_KEY`)
+**Файлы:** `~/supabase-project/docker-compose.yml` (создать на VPS), `~/supabase-project/.env` (создать на VPS), `/etc/nginx/sites-available/avtorstudio.com` (обновить proxy_pass), `src/pages/Privacy.tsx` (раздел 4), Vercel env vars (`VITE_SUPABASE_ANON_KEY`)  
 **Проверить:** `docker compose ps` → все `healthy` → зайти в приложение → авторизация через email работает → Edge Functions отвечают → `SELECT version()` на self-hosted instance
 
 ---
@@ -271,7 +228,7 @@ _Обновлён: 2026-06-22_ — §1 монетизация закрыта: в
 
 **Что сделать:** миграция — таблица `book_collaborators (book_id, user_id, role, invited_by, created_at)`. Владелец вводит email → создаётся pending-запись → пользователь получает email с ссылкой → принимает приглашение. RLS: `auth.uid() = user_id OR EXISTS (SELECT 1 FROM book_collaborators WHERE book_id = ... AND user_id = auth.uid())`.
 
-**Файлы:** `supabase/migrations/` (таблица `book_collaborators`), `src/App.tsx` (маршрут принятия приглашения), `src/components/SettingsModal.tsx` или новый `CollaboratorsPanel`
+**Файлы:** `supabase/migrations/` (таблица `book_collaborators`), `src/App.tsx` (маршрут принятия приглашения), `src/components/SettingsModal.tsx` или новый `CollaboratorsPanel`  
 **Проверить:** владелец приглашает email → приглашённый видит книгу в Dashboard с ролью `editor` → RLS блокирует удаление книги не-владельцем
 
 ---
@@ -341,8 +298,6 @@ _Обновлён: 2026-06-22_ — §1 монетизация закрыта: в
 **Триггер:** минимум 5 пользователей самостоятельно запросят эту функцию. До этого — workflow «скачать → поправить → загрузить» слишком нишевый для инвестиций.
 
 ---
-
-
 
 ### R6. Позиционирование обложки (crop/pan)
 
