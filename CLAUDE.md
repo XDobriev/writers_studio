@@ -153,6 +153,7 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/mapExport.ts` — `generateMapPngBuffer` (SVG→canvas→PNG) и `triggerMapDownload`; используется из Map.tsx и Export.tsx.
 - `src/lib/mapStamps.ts` — `StampType`, `MapStamp`, `STAMP_SVG` (10 типов), `STAMP_LABELS`, `STAMP_BASE_SCALE`; CRUD через `createRepository`; используется в MapStampsLayer, StampPopup, mapExport.
 - `src/lib/export.ts` — типы (`Format`, `ParagraphStyle`, `BuildOpts`), константы форматов/языков, shared-утилиты (`escapeHtml`, `escapeXml`, `slugify`, `arrayBufferToBase64`, `scaleToFit`, `triggerDownload`, `downloadText`, `estimateSize`), HTML/TXT/MD builders; реэкспортирует `buildDocxBlob`/`buildFb2Doc`/`buildEpubBlob`.
+- `src/lib/exportPdf.ts` — PDF-экспорт: `PdfPageSize`, `PdfBuildOpts`, `buildPrintHtml` (HTML + CSS @page), `openPrintPdf` (открывает print-диалог в переданном окне). Pro-only.
 - `src/lib/exportDocx.ts` — DOCX builder: `collectRuns`, `parseBlockEl`, `parseHtmlToParagraphs`, `buildDocxBlob`.
 - `src/lib/exportFb2.ts` — FB2 builder: `inlineToFb2`, `blockToFb2`, `htmlToFb2Content`, `buildFb2Doc`.
 - `src/lib/exportEpub.ts` — EPUB builder: `buildEpubBlob`, ZIP-сборка через JSZip.
