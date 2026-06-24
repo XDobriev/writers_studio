@@ -13,6 +13,7 @@ export function LandingPricing() {
   const [loadingPlan, setLoadingPlan] = useState<'pro' | 'lifetime' | null>(null);
   const { session } = useAuth();
   const navigate = useNavigate();
+  const isGrandfatheringActive = new Date() < new Date('2026-09-01');
 
   useEffect(() => {
     getLifetimeSlotsRemaining().then((slots) => {
@@ -66,7 +67,13 @@ export function LandingPricing() {
       cta: 'Начать бесплатно', accent: false, tag: null, planKey: null as 'pro' | 'lifetime' | null,
     },
     {
-      name: 'Pro', price: '399 ₽', sub: 'в месяц · или 3 490 ₽/год',
+      name: 'Pro',
+      price: isGrandfatheringActive ? '290 ₽' : '399 ₽',
+      priceOld: isGrandfatheringActive ? '399 ₽' : undefined,
+      sub: isGrandfatheringActive ? 'в месяц' : 'в месяц · или 3 490 ₽/год',
+      subAnnualOld: isGrandfatheringActive ? '3 490 ₽' : undefined,
+      subAnnualNew: isGrandfatheringActive ? '2 900 ₽/год' : undefined,
+      promoBadge: isGrandfatheringActive ? '⏰ Ранняя цена · до 1 сентября' : undefined,
       summary: 'Для тех, кто работает всерьёз — безлимит персонажей, хронологии и полный экспорт.',
       features: [
         ['Безлимит книг и персонажей', true],
@@ -119,9 +126,24 @@ export function LandingPricing() {
               {t.tag && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', padding: '4px 12px', borderRadius: 999, background: t.accent ? 'var(--accent)' : 'var(--surface-2)', color: t.accent ? 'oklch(0.98 0 0)' : 'var(--ink-2)', font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', border: t.accent ? 'none' : '1px solid var(--border)', whiteSpace: 'nowrap' }}>{t.tag}</div>}
               <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: t.accent ? 'var(--accent)' : 'var(--ink-3)', marginBottom: 14 }}>{t.name}</div>
               <div style={{ marginBottom: 6 }}>
+                {'priceOld' in t && t.priceOld && (
+                  <span style={{ display: 'block', font: '400 15px var(--font-serif)', color: 'var(--ink-4)', textDecoration: 'line-through', marginBottom: 2 }}>
+                    {t.priceOld}
+                  </span>
+                )}
                 <span style={{ font: '600 48px var(--font-serif)', letterSpacing: '-0.018em', color: 'var(--ink)' }}>{t.price}</span>
               </div>
-              <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 18 }}>{t.sub}</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 'promoBadge' in t && t.promoBadge ? 8 : 18 }}>
+                {'subAnnualOld' in t && t.subAnnualOld
+                  ? <>{t.sub} · или <s style={{ color: 'var(--ink-4)' }}>{t.subAnnualOld}</s> {'subAnnualNew' in t ? t.subAnnualNew : ''}</>
+                  : t.sub
+                }
+              </div>
+              {'promoBadge' in t && t.promoBadge && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: 'oklch(0.80 0.14 80 / 0.10)', border: '1px solid oklch(0.80 0.14 80 / 0.28)', borderRadius: 999, font: '500 10px var(--font-mono)', color: 'oklch(0.80 0.14 80)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 18 }}>
+                  {t.promoBadge}
+                </div>
+              )}
               <p style={{ font: '400 14px/1.5 var(--font-serif)', color: 'var(--ink-2)', marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid var(--border-soft)' }}>{t.summary}</p>
               <ul style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28, flex: 1 }}>
                 {t.features.map(([l, on], fi) => (
