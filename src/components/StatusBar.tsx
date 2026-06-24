@@ -296,20 +296,8 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
           onClick={onToggleFocusMode}
           title={focusMode ? 'Выключить режим фокуса' : 'Режим фокуса'}
           aria-label={focusMode ? 'Выключить режим фокуса' : 'Режим фокуса'}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 22,
-            height: 22,
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            padding: 0,
-            color: focusMode ? 'var(--accent)' : 'var(--ink-3)',
-            borderRadius: 4,
-            marginLeft: 4,
-          }}
+          className="status-icon-btn"
+          style={{ color: focusMode ? 'var(--accent)' : 'var(--ink-3)' }}
         >
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', flexShrink: 0 }}>
             <circle cx="12" cy="12" r="3"/>
@@ -326,19 +314,9 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
             aria-label="Шрифт редактора"
             aria-expanded={fontOpen}
             aria-haspopup="listbox"
+            className="status-icon-btn"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 22,
-              height: 22,
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              padding: 0,
               color: fontOpen ? 'var(--accent)' : 'var(--ink-3)',
-              borderRadius: 4,
-              marginLeft: 4,
               font: '500 12px var(--font-ui)',
               letterSpacing: '-0.02em',
             }}
@@ -386,20 +364,8 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
             onClick={() => setPopupOpen(o => !o)}
             title="Фоновые звуки"
             aria-label="Фоновые звуки"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 22,
-              height: 22,
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              color: isPlaying ? 'var(--accent)' : 'var(--ink-3)',
-              borderRadius: 4,
-              marginLeft: 4,
-            }}
+            className="status-icon-btn"
+            style={{ color: popupOpen || isPlaying ? 'var(--accent)' : 'var(--ink-3)' }}
           >
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', flexShrink: 0 }}>
               <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>

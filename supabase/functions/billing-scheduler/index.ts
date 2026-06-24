@@ -110,7 +110,10 @@ Deno.serve(async (req) => {
 
   for (const profile of rows) {
     const interval    = profile.plan_interval ?? 'monthly';
-    const outSum      = profile.grandfathered ? PRICES[interval].grandfathered : PRICES[interval].base;
+    // BILLING_TEST_AMOUNT — временный override для E2E-теста рекуррентов (1₽).
+    // Удалить Secret после проверки.
+    const outSum      = Deno.env.get('BILLING_TEST_AMOUNT')
+      ?? (profile.grandfathered ? PRICES[interval].grandfathered : PRICES[interval].base);
     const description = DESCRIPTIONS[interval];
     const shpPlan     = interval === 'annual' ? 'pro_annual' : 'pro';
     const newInvId    = String(Date.now()) + Math.floor(Math.random() * 1000);
