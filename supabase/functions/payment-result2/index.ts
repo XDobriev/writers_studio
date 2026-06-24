@@ -8,12 +8,12 @@
 // op_key на неё опираться не должны.
 //
 // Принимает JWS уведомление от Robokassa (ResultUrl2).
-// Верифицирует RS256-подпись через jose (importSPKI + jwtVerify).
+// Верифицирует RS256-подпись через jose (importX509 + jwtVerify).
 // Сохраняет OpKey и InvId в таблицу payments.
 //
 // Автоматические Supabase Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { importSPKI, jwtVerify } from 'https://esm.sh/jose@5.6.3';
+import { importX509, jwtVerify } from 'https://esm.sh/jose@5.6.3';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -21,22 +21,42 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Публичный ключ Robokassa (SPKI/PEM, извлечён из https://docs.robokassa.ru/media/files/jwtsign.cer)
-const ROBOKASSA_PEM = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA44EdooH8yufX8qMcXrdS
-SKSNeKyuW+1smLOyo8k6/KKAqp0b7L+z6e9r0kIlTy+FQTD+ZaUIj6MPG8aRguVu
-8joDpYWX33mJ6/RFSvUYKFIinKd7WZ4OokMJ2bFOE+2EvQGZS6NZxSRihMbp3BvA
-mb/PwFYoV51vYgLIU0rVdPfcLc6SiOnyY22FYKaq+9r7KKWK5HilfVewbJiP2A9v
-OqjhbBP1uArPET92j/pDyiWOsNevChwBMEx0ZHgWyEhSyRQA4Sq5usFbCikc3wmK
-zDYrXRBTnVJ4ValUtSQj4Pxq+2XX46qm4AZUGHatHDf2UI73LZZ2ffeqLWW3Kaf5
-sQIDAQAB
------END PUBLIC KEY-----`;
+// X.509 сертификат Robokassa (https://docs.robokassa.ru/media/files/jwtsign.cer)
+// Выпущен 2026-06-16, действует до 2027-06-16. При ротации — обновить и задеплоить.
+const ROBOKASSA_CERT = `-----BEGIN CERTIFICATE-----
+MIIExzCCA6+gAwIBAgITbQAAC9yiLFSIsMEcOwABAAAL3DANBgkqhkiG9w0BAQsF
+ADA9MQswCQYDVQQGEwJSVTEPMA0GA1UEBxMGTW9zY293MR0wGwYDVQQDExRSb2Jv
+a2Fzc2EgSXNzdWluZyBDQTAeFw0yNjA2MTYxMTU5MjBaFw0yNzA2MTYxMjA5MjBa
+MIGPMQswCQYDVQQGEwJSVTEPMA0GA1UECBMGTU9TQ09XMQ8wDQYDVQQHEwZNT1ND
+T1cxEjAQBgNVBAoTCVJPQk9LQVNTQTESMBAGA1UECxMJUk9CT0tBU1NBMRIwEAYD
+VQQDEwlST0JPS0FTU0ExIjAgBgkqhkiG9w0BCQEWE3N1cHBvcnRAcm9ib2thc2Eu
+cnUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCa4HPVZvGMaWFoV05q
+btXIO5xU1SdKL6BhzHjGXuo5EtfJmrAiptIsomHOpMmwgve2eFGCQvNYzcv9cA+r
+nUpxZyqpsZjPAun648iky2oS+urtHeQesQ6TURMHym3L5Jj6yBeY5Zm6lA1J3MVa
+iQpMCGazOI5sPg2edWulPqq6MyC1nCHAx4CMKofX5vJzubF3pVR65Nd7BArxvIuc
+u3wnAwqf7YbwQ4RkWrPWK+Goj2i5bGDM/BfZJOw0RN4uqV3zWxqsWYyBCrUmNYPX
+sb2eYT61Posy0T/lWTXfZxKN7WNezKhVl3HjDJr+1xVzEQnUvuSyb4q82z/ybZnZ
+2FFxAgMBAAGjggFrMIIBZzAOBgNVHQ8BAf8EBAMCBPAwQQYDVR0lBDowOAYEKwYB
+BQYIKwYBBQUHAwUGCCsGAQUFBwMEBggrBgEFBQcDAwYIKwYBBQUHAwIGCCsGAQUF
+BwMBMB0GA1UdDgQWBBRfZiaO8QzVZtA4ClsUWKMQALZt9jAfBgNVHSMEGDAWgBSh
+gNJMrkv3drSETcF5OE8uhJYaJzBEBgNVHR8EPTA7MDmgN6A1hjNodHRwOi8vYXV0
+aC5yb2Jva2Fzc2EucnUvcGtpL1JvYm9rYXNzYUlzc3VpbmdDQS5jcmwwfgYIKwYB
+BQUHAQEEcjBwMD8GCCsGAQUFBzAChjNodHRwOi8vYXV0aC5yb2Jva2Fzc2EucnUv
+cGtpL1JvYm9rYXNzYUlzc3VpbmdDQS5jcnQwLQYIKwYBBQUHMAGGIWh0dHA6Ly9h
+dXRoLnJvYm9rYXNzYS5ydS9wa2kvb2NzcDAMBgNVHRMBAf8EAjAAMA0GCSqGSIb3
+DQEBCwUAA4IBAQA5HypPsTNLSgCUl7s6CvnmtT3HIPGgEBXH7O0FZqZLYuPYL/kj
+vddjDMoiPtplfWIsi7Y2z46EwqZYybNx+/+eAni69w6UlWp4Ul1BpDX+2QrJwQhg
+SPyJkK8+ZW20BfLVanPB9Dy3JvDD3F47IvW0HoYkNmkP7LnP+S64ku0kOU3UhKJc
+Mpjhr7kpje6i2YZQhnXTp/Noceyj+6J08gJdUVgqEJoPB33MiIM0zsueQnABdWIs
+Xp0N1/Jeei9yG1Hb1TOkUaVcrm4uqrUkfMkvKlZ0crVtaL7adidqSGxZChvTX/0P
+TrFXkyKA1ptiVgIsbxZuOeTxJ3lDXDghviqW
+-----END CERTIFICATE-----`;
 
-let cachedPubKey: Awaited<ReturnType<typeof importSPKI>> | null = null;
+let cachedPubKey: Awaited<ReturnType<typeof importX509>> | null = null;
 
 async function getRobokassaKey() {
   if (cachedPubKey) return cachedPubKey;
-  cachedPubKey = await importSPKI(ROBOKASSA_PEM, 'RS256');
+  cachedPubKey = await importX509(ROBOKASSA_CERT, 'RS256');
   return cachedPubKey;
 }
 
