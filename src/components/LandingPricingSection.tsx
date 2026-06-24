@@ -8,12 +8,13 @@ import { SectionLabel } from './LandingSectionLabel';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 
+const isGrandfatheringActive = new Date() < new Date('2026-09-01');
+
 export function LandingPricing() {
   const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
   const [loadingPlan, setLoadingPlan] = useState<'pro' | 'lifetime' | null>(null);
   const { session } = useAuth();
   const navigate = useNavigate();
-  const isGrandfatheringActive = new Date() < new Date('2026-09-01');
 
   useEffect(() => {
     getLifetimeSlotsRemaining().then((slots) => {
@@ -140,7 +141,7 @@ export function LandingPricing() {
                 }
               </div>
               {'promoBadge' in t && t.promoBadge && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: 'oklch(0.80 0.14 80 / 0.10)', border: '1px solid oklch(0.80 0.14 80 / 0.28)', borderRadius: 999, font: '500 10px var(--font-mono)', color: 'oklch(0.80 0.14 80)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 18 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: 'color-mix(in oklch, var(--warn) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--warn) 28%, transparent)', borderRadius: 999, font: '500 10px var(--font-mono)', color: 'var(--warn)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 18 }}>
                   {t.promoBadge}
                 </div>
               )}
