@@ -192,11 +192,10 @@ Deno.serve(async (req) => {
       cancel_at_period_end: false,
     };
     if (isGrandfathering) updateData.grandfathered = true;
-    // Всегда обновляем recurring_inv_id на последний успешный платёж —
-    // Robokassa ожидает PreviousInvoiceID = предыдущий платёж в цепочке.
-    // plan_interval ставим только при первом платеже (не меняется при продлениях).
-    updateData.recurring_inv_id = invId;
+    // Первый платёж — сохраняем InvId как материнский для цепочки рекуррентов.
+    // PreviousInvoiceID всегда = первый InvId (подтверждено поддержкой Robokassa).
     if (!existing?.recurring_inv_id) {
+      updateData.recurring_inv_id = invId;
       updateData.plan_interval = shpPlan === 'pro_annual' ? 'annual' : 'monthly';
     }
 
