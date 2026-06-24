@@ -33,6 +33,7 @@ import {
   buildTextDoc,
   estimateSize,
 } from '../lib/export';
+import { type PdfPageSize } from '../lib/exportPdf';
 
 export default function Export() {
   const { id: bookId } = useParams<{ id: string }>();
@@ -68,6 +69,7 @@ export default function Export() {
     return (s === 'indent' || s === 'spacing' || s === 'both') ? s : 'indent';
   });
   const [busy, setBusy] = useState(false);
+  const [pdfPageSize, setPdfPageSize] = useState<PdfPageSize>('a5');
 
   useEffect(() => {
     if (!bookId) return;
@@ -127,11 +129,20 @@ export default function Export() {
 
   const onDownload = useCallback(async () => {
     if (!book || !bookId) return;
-    if (!limits.canExportRich && (['epub', 'fb2', 'docx'] as Format[]).includes(format)) {
+    if (!limits.canExportRich && (['epub', 'fb2', 'docx', 'pdf'] as Format[]).includes(format)) {
       setShowUpgrade(true);
       return;
     }
     if (selectedChapters.length === 0) { setError('Нет глав для экспорта.'); return; }
+    // Для PDF открываем окно синхронно — до любого await — чтобы не потерять user gesture
+    let pdfWindow: Window | null = null;
+    if (format === 'pdf') {
+      pdfWindow = window.open('', '_blank');
+      if (!pdfWindow) {
+        setError('Браузер заблокировал открытие вкладки. Разрешите всплывающие окна для этого сайта.');
+        return;
+      }
+    }
     setBusy(true);
     clearError();
     const bookWithAuthor = { ...book, author: authorName.trim() || book.author };
@@ -183,6 +194,14 @@ export default function Export() {
         downloadText(buildHtmlDoc(bookWithAuthor, chaptersWithContent, opts), 'text/html', filename);
       } else if (format === 'md') {
         downloadText(buildMarkdownDoc(bookWithAuthor, chaptersWithContent, opts), 'text/markdown', filename);
+      } else if (format === 'pdf') {
+        const { openPrintPdf } = await import('../lib/exportPdf');
+        openPrintPdf(pdfWindow!, bookWithAuthor, chaptersWithContent, {
+          pageSize: pdfPageSize,
+          includeChapterTitles,
+          includeTitlePage,
+          authorName: authorName.trim(),
+        });
       } else {
         downloadText(buildTextDoc(bookWithAuthor, chaptersWithContent, opts), 'text/plain', filename);
       }
@@ -194,7 +213,9 @@ export default function Export() {
     } finally {
       setBusy(false);
     }
-  }, [book, bookId, authorName, selectedChapters, format, limits, includeChapterTitles, includeTitlePage, includeNotes, notes, language, paragraphStyle, filename, includeMap, mapLocations, mapConnections, setError, clearError]);
+  }, [book, bookId, authorName, selectedChapters, format, limits, includeChapterTitles, includeTitlePage,
+      includeNotes, notes, language, paragraphStyle, filename, includeMap, mapLocations, mapConnections,
+      pdfPageSize, setError, clearError]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
@@ -216,7 +237,9 @@ export default function Export() {
   }
 
   const doneCnt = chapters.filter((c) => c.status === 'done').length;
-  const downloadLabel = busy ? 'Генерация…' : `Скачать ${FORMAT_MAIN.find((f) => f.value === format)?.label ?? format.toUpperCase()}`;
+  const downloadLabel = busy ? 'Генерация…'
+    : format === 'pdf' ? 'Открыть PDF'
+    : `Скачать ${FORMAT_MAIN.find((f) => f.value === format)?.label ?? format.toUpperCase()}`;
 
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg-void)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
@@ -237,7 +260,7 @@ export default function Export() {
 
           {/* Main format cards */}
           <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Формат</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 12 }}>
             {FORMAT_MAIN.map((o) => {
               const active = o.value === format;
               const locked = !limits.canExportRich;
@@ -365,28 +388,78 @@ export default function Export() {
               on={includeChapterTitles}
               onChange={setIncludeChapterTitles}
             />
-            <ToggleRow
-              label="Заметки на полях как примечания автора"
-              hint={notes.length ? `— ${notes.length} ${plural(notes.length, 'заметка', 'заметки', 'заметок')}` : '— нет заметок'}
-              on={includeNotes && notes.length > 0}
-              onChange={(v) => notes.length > 0 && setIncludeNotes(v)}
-              disabled={notes.length === 0}
-            />
-            {(() => {
-              const hasMapContent = !!(book?.map_bg_url || mapLocations.some(l => l.x != null));
-              const supportsMap = (['epub', 'fb2', 'docx', 'html'] as Format[]).includes(format);
-              return (
+            {format !== 'pdf' && (
+              <>
                 <ToggleRow
-                  label="Карта мира отдельной страницей"
-                  hint={!supportsMap ? '— недоступно для текстовых форматов' : !hasMapContent ? '— карта не заполнена' : undefined}
-                  on={includeMap && hasMapContent && supportsMap}
-                  onChange={(v) => hasMapContent && supportsMap && setIncludeMap(v)}
-                  disabled={!hasMapContent || !supportsMap}
-                  last
+                  label="Заметки на полях как примечания автора"
+                  hint={notes.length ? `— ${notes.length} ${plural(notes.length, 'заметка', 'заметки', 'заметок')}` : '— нет заметок'}
+                  on={includeNotes && notes.length > 0}
+                  onChange={(v) => notes.length > 0 && setIncludeNotes(v)}
+                  disabled={notes.length === 0}
                 />
-              );
-            })()}
+                {(() => {
+                  const hasMapContent = !!(book?.map_bg_url || mapLocations.some(l => l.x != null));
+                  const supportsMap = (['epub', 'fb2', 'docx', 'html'] as Format[]).includes(format);
+                  return (
+                    <ToggleRow
+                      label="Карта мира отдельной страницей"
+                      hint={!supportsMap ? '— недоступно для текстовых форматов' : !hasMapContent ? '— карта не заполнена' : undefined}
+                      on={includeMap && hasMapContent && supportsMap}
+                      onChange={(v) => hasMapContent && supportsMap && setIncludeMap(v)}
+                      disabled={!hasMapContent || !supportsMap}
+                      last
+                    />
+                  );
+                })()}
+              </>
+            )}
           </div>
+
+          {/* PDF page settings */}
+          {format === 'pdf' && (
+            <div style={{ paddingTop: 16, marginBottom: 4 }}>
+              <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Страница</div>
+
+              <div style={{ display: 'flex', gap: 7, marginBottom: 12 }}>
+                {(['a5', 'a4'] as PdfPageSize[]).map((size) => {
+                  const active = pdfPageSize === size;
+                  const labels: Record<PdfPageSize, { name: string; sub: string }> = {
+                    a5: { name: 'A5 — Книга', sub: '148 × 210 мм · самиздат' },
+                    a4: { name: 'A4 — Рукопись', sub: '210 × 297 мм · редактор' },
+                  };
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setPdfPageSize(size)}
+                      aria-pressed={active}
+                      style={{
+                        flex: 1, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                        border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
+                        background: 'var(--surface)',
+                      }}
+                    >
+                      <div style={{ fontSize: 12.5, fontWeight: 500, color: active ? 'var(--ink)' : 'var(--ink-2)', marginBottom: 2 }}>
+                        {labels[size].name}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: 'var(--ink-4)' }}>{labels[size].sub}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{
+                display: 'flex', gap: 8, alignItems: 'flex-start',
+                background: 'var(--surface)', border: '1px solid var(--border-soft)',
+                borderRadius: 8, padding: '10px 14px',
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 5 }} />
+                <span style={{ fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.6 }}>
+                  PDF откроется в диалоге браузера. Выбери «Сохранить как PDF». Для наилучшего результата используй Chrome или Edge.
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Paragraph style — rich formats only */}
           {(['epub', 'fb2', 'docx', 'html'] as Format[]).includes(format) && (
@@ -432,7 +505,11 @@ export default function Export() {
         <div style={{ padding: '16px 28px', borderTop: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface)' }}>
           <div style={{ minWidth: 0, overflow: 'hidden' }}>
             <div style={{ font: '500 12px var(--font-mono)', color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{filename}</div>
-            <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 1 }}>{estimateSize(format, selectedChapters)}</div>
+            <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 1 }}>
+              {format === 'pdf'
+                ? `~${Math.round(totalWords / 250)} стр. · ${pdfPageSize.toUpperCase()}`
+                : estimateSize(format, selectedChapters)}
+            </div>
           </div>
           <span style={{ flex: 1 }} />
           <Link to={`/books/${bookId}`} className="btn btn--ghost" style={{ textDecoration: 'none' }}>Отмена</Link>
