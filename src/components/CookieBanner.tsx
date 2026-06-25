@@ -37,7 +37,7 @@ export function CookieBanner() {
         alignItems: 'center',
         gap: 10,
         maxWidth: 520,
-        width: 'calc(100vw - 32px)',
+        width: 'calc(100% - 32px)',
         boxShadow: '0 4px 24px oklch(0 0 0 / 0.5)',
         font: '13px var(--font-ui)',
         color: 'var(--ink-2)',

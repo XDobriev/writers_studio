@@ -64,7 +64,7 @@ export function EventDetailPanel({
           top: 0,
           right: 0,
           bottom: 0,
-          width: 'min(380px, 100vw)',
+          width: 'min(380px, 100%)',
           background: 'var(--bg)',
           borderLeft: '1px solid var(--border-soft)',
           zIndex: 101,

@@ -163,7 +163,7 @@ export function LandingPricing() {
                 onClick={() => void handleCtaClick(t.planKey)}
                 disabled={loadingPlan !== null || (t.planKey === 'lifetime' && lifetimeSlots === null)}
                 className={t.accent ? 'btn btn--primary' : 'btn'}
-                style={{ height: 42, fontSize: 14, justifyContent: 'center', width: '100%', display: 'flex', alignItems: 'center' }}
+                style={{ height: 44, fontSize: 14, justifyContent: 'center', width: '100%', display: 'flex', alignItems: 'center' }}
               >
                 {loadingPlan !== null && loadingPlan === t.planKey ? 'Подождите…' : t.cta}
               </button>
