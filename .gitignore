@@ -51,5 +51,14 @@ docs/superpowers/
 council-report-*.html
 council-transcript-*.md
 
+# AI-тулинг (скиллы, ревью, артефакты)
+.agents/skills/
+.impeccable/
+skills-lock.json
+CLAUDE.md
+
+# Референс-дизайн (не активный код)
+_design-source/
+
 # Брендинг (локальные ассеты, не в репо)
 brand/
