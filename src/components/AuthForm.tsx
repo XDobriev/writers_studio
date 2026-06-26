@@ -124,7 +124,7 @@ export function AuthForm() {
             type="submit"
             disabled={busy || !supabaseConfigured}
             className="btn btn--primary"
-            style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
+            style={{ width: '100%', height: 44, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
           >
             {busy && <span className="btn-spinner" />}
             {busy ? 'Отправляем…' : 'Отправить ссылку'}
@@ -140,7 +140,7 @@ export function AuthForm() {
               type="button"
               onClick={() => handleTabChange('signin')}
               style={{
-                padding: '10px 0', marginRight: 24,
+                padding: '13px 0', marginRight: 24,
                 font: tab === 'signin' ? '500 14px var(--font-ui)' : '400 14px var(--font-ui)',
                 color: tab === 'signin' ? 'var(--ink)' : 'var(--ink-3)',
                 borderBottom: tab === 'signin' ? '1.5px solid var(--accent)' : '1.5px solid transparent',
@@ -151,7 +151,7 @@ export function AuthForm() {
               type="button"
               onClick={() => handleTabChange('signup')}
               style={{
-                padding: '10px 0',
+                padding: '13px 0',
                 font: tab === 'signup' ? '500 14px var(--font-ui)' : '400 14px var(--font-ui)',
                 color: tab === 'signup' ? 'var(--ink)' : 'var(--ink-3)',
                 borderBottom: tab === 'signup' ? '1.5px solid var(--accent)' : '1.5px solid transparent',
@@ -172,7 +172,7 @@ export function AuthForm() {
               <button
                 type="button"
                 className="btn btn--primary"
-                style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center' }}
+                style={{ width: '100%', height: 44, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center' }}
                 onClick={() => setTab('signin')}
               >
                 Войти в студию
@@ -197,7 +197,7 @@ export function AuthForm() {
                 {TG_BOT_USERNAME && (
                   <div
                     className="auth-oauth-wrap"
-                    style={{ position: 'relative', height: 42, cursor: 'pointer', opacity: (tab === 'signup' && !consent) ? 0.4 : 1, pointerEvents: (tab === 'signup' && !consent) ? 'none' : 'auto' }}
+                    style={{ position: 'relative', height: 44, cursor: 'pointer', opacity: (tab === 'signup' && !consent) ? 0.4 : 1, pointerEvents: (tab === 'signup' && !consent) ? 'none' : 'auto' }}
                   >
                     <button
                       type="button"
@@ -221,7 +221,7 @@ export function AuthForm() {
                     className="auth-oauth-wrap"
                     style={{
                       position: 'relative',
-                      height: 42,
+                      height: 44,
                       cursor: 'pointer',
                       opacity: (tab === 'signup' && !consent) ? 0.4 : 1,
                       pointerEvents: (tab === 'signup' && !consent) ? 'none' : 'auto',
@@ -233,7 +233,7 @@ export function AuthForm() {
                       tabIndex={-1}
                       aria-hidden="true"
                       className="btn"
-                      style={{ pointerEvents: 'none', width: '100%', height: 42, justifyContent: 'center', gap: 10 }}
+                      style={{ pointerEvents: 'none', width: '100%', height: 44, justifyContent: 'center', gap: 10 }}
                     >
                       <VkGlyph />
                       <span>
@@ -328,7 +328,7 @@ export function AuthForm() {
                 type="submit"
                 disabled={busy || !supabaseConfigured || (tab === 'signup' && !consent)}
                 className="btn btn--primary"
-                style={{ width: '100%', height: 42, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
+                style={{ width: '100%', height: 44, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
               >
                 {busy && <span className="btn-spinner" />}
                 {busy

@@ -45,21 +45,21 @@ export function CookieBanner() {
     >
       <span style={{ flex: 1, lineHeight: 1.5 }}>
         Мы используем куки для авторизации и аналитики.{' '}
-        <Link to="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+        <Link to="/privacy" style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
           Политика&nbsp;конфиденциальности
         </Link>
       </span>
       <button
         onClick={reject}
         className="btn btn--ghost"
-        style={{ flexShrink: 0, fontSize: 12.5, height: 40, padding: '0 12px' }}
+        style={{ flexShrink: 0, fontSize: 12.5, height: 44, padding: '0 12px' }}
       >
         Отклонить
       </button>
       <button
         onClick={accept}
         className="btn btn--primary"
-        style={{ flexShrink: 0, fontSize: 12.5, height: 40, padding: '0 14px' }}
+        style={{ flexShrink: 0, fontSize: 12.5, height: 44, padding: '0 14px' }}
       >
         Принять
       </button>

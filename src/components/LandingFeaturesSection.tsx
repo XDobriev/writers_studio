@@ -110,6 +110,7 @@ function MockStatusBar() {
       <button
         onClick={() => setFocusOn(v => !v)}
         title="Режим фокуса"
+        tabIndex={-1}
         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: focusOn ? 'var(--accent)' : 'var(--ink-3)', borderRadius: 4 }}
       >
         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
@@ -124,6 +125,7 @@ function MockStatusBar() {
         <button
           onClick={() => { setFontOpen(v => !v); setSoundOpen(false); }}
           title="Шрифт редактора"
+          tabIndex={-1}
           style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: fontOpen ? 'var(--accent)' : 'var(--ink-3)', borderRadius: 4, font: '500 11px var(--font-ui)', letterSpacing: '-0.02em' }}
         >
           Aa
@@ -134,6 +136,7 @@ function MockStatusBar() {
               <button
                 key={f.label}
                 onClick={() => { setActiveFont(i); setFontOpen(false); }}
+                tabIndex={-1}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '5px 8px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 5, fontFamily: f.family, fontSize: 13, color: activeFont === i ? 'var(--ink)' : 'var(--ink-3)', textAlign: 'left' }}
               >
                 {f.label}
@@ -149,6 +152,7 @@ function MockStatusBar() {
         <button
           onClick={() => { setSoundOpen(v => !v); setFontOpen(false); }}
           title="Фоновые звуки"
+          tabIndex={-1}
           style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: activeSound ? 'var(--accent)' : 'var(--ink-3)', borderRadius: 4 }}
         >
           <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
@@ -164,6 +168,7 @@ function MockStatusBar() {
                 <button
                   key={s}
                   onClick={() => setActiveSound(activeSound === s ? null : s)}
+                  tabIndex={-1}
                   style={{ font: '400 11.5px var(--font-ui)', padding: '3px 10px', borderRadius: 999, border: activeSound === s ? '1.5px solid var(--accent)' : '1px solid var(--border-soft)', background: 'transparent', color: activeSound === s ? 'var(--ink)' : 'var(--ink-3)', cursor: 'pointer' }}
                 >
                   {s}
@@ -174,6 +179,7 @@ function MockStatusBar() {
               <input
                 type="range" min={0} max={1} step={0.01} value={volume}
                 onChange={e => setVolume(parseFloat(e.target.value))}
+                tabIndex={-1}
                 style={{ flex: 1, accentColor: 'var(--accent)', height: 4, cursor: 'pointer' }}
               />
               <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)', width: 28, textAlign: 'right' }}>
@@ -183,6 +189,7 @@ function MockStatusBar() {
             {activeSound && (
               <button
                 onClick={() => setActiveSound(null)}
+                tabIndex={-1}
                 style={{ width: '100%', font: '400 12px var(--font-ui)', padding: '4px 0', border: '1px solid var(--border-soft)', borderRadius: 4, background: 'transparent', color: 'var(--ink-3)', cursor: 'pointer' }}
               >
                 × Стоп
@@ -267,6 +274,7 @@ function MockRightPanel({ activeTab, onTabChange }: { activeTab: RightTab; onTab
           <button
             key={t}
             onClick={() => onTabChange(t)}
+            tabIndex={-1}
             style={{ flex: 1, height: 34, font: '500 10.5px var(--font-ui)', color: activeTab === t ? 'var(--ink)' : 'var(--ink-4)', background: 'transparent', border: 'none', borderBottom: activeTab === t ? '2px solid var(--accent)' : '2px solid transparent', cursor: 'pointer', transition: 'color 150ms' }}
           >
             {t}
@@ -346,6 +354,7 @@ function MockStudioFull() {
             <button
               key={m}
               onClick={() => setMode(m)}
+              tabIndex={-1}
               style={{ height: 26, padding: '0 11px', borderRadius: 5, display: 'flex', alignItems: 'center', gap: 5, font: '500 11px var(--font-ui)', color: mode === m ? 'var(--ink)' : 'var(--ink-4)', background: mode === m ? 'var(--surface)' : 'transparent', border: mode === m ? '1px solid var(--border-soft)' : '1px solid transparent', cursor: 'pointer', transition: 'all 150ms' }}
             >
               {mode === m && <span style={{ width: 5, height: 5, borderRadius: 999, background: 'var(--accent)', display: 'inline-block' }} />}

@@ -1,7 +1,13 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { LogoMark } from '../components/LogoMark';
 
 export default function Terms() {
+  useEffect(() => {
+    const prev = document.title;
+    document.title = 'Пользовательское соглашение — Авторская студия';
+    return () => { document.title = prev; };
+  }, []);
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', padding: '56px 24px' }}>
       <div style={{ maxWidth: 680, margin: '0 auto' }}>

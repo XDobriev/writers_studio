@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../lib/auth';
 import { Icon } from '../components/Icon';
@@ -74,6 +74,7 @@ function LandingNav() {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function LandingHero() {
+  const navigate = useNavigate();
   const sectionRef = useRef<HTMLElement>(null);
   const tiltRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
@@ -130,10 +131,8 @@ function LandingHero() {
               Рукопись, картотека персонажей, карта мира и хронология — в одном чистом редакторе. Без нейросети, которая дописывает за вас.
             </motion.p>
             <motion.div variants={heroItemVariants} style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-              <SpotlightButton className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center' }}>
-                <Link to="/login?tab=signup" style={{ color: 'inherit', textDecoration: 'none' }}>
-                  Начать свою книгу
-                </Link>
+              <SpotlightButton className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center' }} onClick={() => navigate('/login?tab=signup')}>
+                Начать свою книгу
               </SpotlightButton>
             </motion.div>
             <motion.div variants={heroItemVariants}>
@@ -299,13 +298,13 @@ function LandingEmailCapture() {
               onChange={e => setEmail(e.target.value)}
               placeholder="ваш@email.ru"
               className="input"
-              style={{ flex: 1, minWidth: 200, height: 42 }}
+              style={{ flex: 1, minWidth: 200, height: 44 }}
               disabled={status === 'loading'}
             />
             <button
               type="submit"
               className="btn btn--primary"
-              style={{ height: 42, padding: '0 20px', fontSize: 14 }}
+              style={{ height: 44, padding: '0 20px', fontSize: 14 }}
               disabled={status === 'loading'}
             >
               {status === 'loading' ? '…' : 'Подписаться'}
@@ -486,7 +485,7 @@ function LandingFooter() {
             </Link>
             <p style={{ font: '400 14px/1.65 var(--font-serif)', color: 'var(--ink-3)', fontStyle: 'italic', maxWidth: 340 }}>
               «Ворна исчезла за одну ночь, и никто из тех, кто жил в Тереее, не желал в это верить.»{' '}
-              <span style={{ fontStyle: 'normal', fontSize: 11.5, color: 'var(--ink-4)' }}>— первая фраза, написанная в Авторской студии, май 2026</span>
+              <span style={{ fontStyle: 'normal', fontSize: 11.5, color: 'var(--ink-3)' }}>— первая фраза, написанная в Авторской студии, май 2026</span>
             </p>
           </div>
           {([
@@ -513,6 +512,8 @@ function LandingFooter() {
                     : label;
                   return href.startsWith('/') ? (
                     <Link key={label} to={href} className="lnd-foot-link" style={{ fontSize: 13.5, textDecoration: 'none' }}>{content}</Link>
+                  ) : href.startsWith('#') ? (
+                    <a key={label} href={href} className="lnd-foot-link" style={{ fontSize: 13.5, textDecoration: 'none' }}>{content}</a>
                   ) : (
                     <a key={label} href={href} className="lnd-foot-link" style={{ fontSize: 13.5, textDecoration: 'none' }} rel="noopener noreferrer" target="_blank">{content}</a>
                   );

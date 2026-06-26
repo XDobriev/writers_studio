@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 
@@ -6,6 +7,12 @@ export default function NotFound() {
   const { session } = useAuth();
   const canGoBack = (window.history.state?.idx ?? 0) > 0;
   const homePath = session ? '/books' : '/';
+
+  useEffect(() => {
+    const prev = document.title;
+    document.title = 'Страница не найдена — Авторская студия';
+    return () => { document.title = prev; };
+  }, []);
 
   return (
     <div
@@ -45,7 +52,7 @@ export default function NotFound() {
       <div
         style={{
           font: '400 0.8125rem var(--font-ui)',
-          color: 'var(--ink-4)',
+          color: 'var(--ink-3)',
           marginTop: 8,
           maxWidth: 300,
           textAlign: 'center',
@@ -59,6 +66,7 @@ export default function NotFound() {
         {canGoBack && (
           <button
             className="btn btn--ghost"
+            style={{ height: 44 }}
             onClick={() => navigate(-1)}
           >
             ← Назад
@@ -66,6 +74,7 @@ export default function NotFound() {
         )}
         <button
           className="btn btn--primary"
+          style={{ height: 44 }}
           onClick={() => navigate(homePath, { replace: true })}
         >
           На главную
