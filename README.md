@@ -18,7 +18,7 @@
 
 | ![Персонажи](docs/screenshots/05-characters.png) | ![Карта мира](docs/screenshots/04-map.png) |
 |---|---|
-| Картотека персонажей | Карта мира с режимами: Место / Связь / Перемещение |
+| Картотека персонажей | Карта мира с режимами: Место / Связь / Панорама / Штамп |
 
 ---
 
@@ -26,13 +26,16 @@
 
 | Слой | Технологии |
 |---|---|
-| Frontend | React 18, TypeScript (strict), Vite |
+| Frontend | React 18, TypeScript (strict), Vite, Framer Motion |
 | Редактор | TipTap (ProseMirror) |
-| Backend / Auth | Supabase (Postgres + Auth + RLS) |
+| Backend / Auth | Supabase (Postgres + Auth + RLS + Edge Functions) |
+| Оплата | Робокасса (СБП + карты), РобоЧеки СМЗ |
+| Мониторинг | Sentry (ошибки + source maps) |
 | Деплой — основной | Timeweb VPS, Ubuntu 24.04, Nginx, Let's Encrypt |
 | Деплой — резервный | Vercel |
 | CI/CD | GitHub Actions (build → rsync → reload) |
-| Экспорт | docx.js, JSZip (EPUB), XML (FB2) |
+| DnD | @dnd-kit (сортировка глав, заметок, хронологии) |
+| Экспорт | docx.js, JSZip (EPUB), XML (FB2), CSS @page (PDF) |
 
 ---
 
@@ -46,25 +49,35 @@
 - **Outline** (дерево глав с drag & drop), **Corkboard** (карточки), **Focus** (полноэкранный), **Split** (два редактора)
 
 ### Структура произведения
-- **Персонажи** — карточки, связи между персонажами, привязка к главам
-- **Хронология** — события с датами и привязкой к главе
-- **Карта мира** — SVG-холст с zoom/pan, режимы «Место / Связь / Перемещение», загрузка фона, inline-редактирование пинов
-- **Заметки на полях** — живые заметки к тексту, цвета, Supabase CRUD
+- **Персонажи** — карточки, связи между персонажами, привязка к главам, псевдонимы, авто-детектирование упоминаний
+- **Хронология** — события с типами и привязкой к главе, режимы «Список / Лента», drag & drop
+- **Карта мира** — SVG-холст с zoom/pan, режимы «Место / Связь / Панорама / Штамп», загрузка фона, шаблоны карт, штампы рельефа (10 типов), экспорт PNG
+- **Заметки** — 5 видов (идея, вопрос, todo, важно, пользовательский), drag & drop сортировка, привязка к главе
 
 ### Аккаунт и данные
-- **Авторизация** — email/пароль + Google OAuth, одношаговая регистрация
+- **Авторизация** — email/пароль, Telegram OAuth, VK ID 2.1, одношаговая регистрация
 - **RLS-политики** — каждый пользователь видит только свои данные
-- **Полка книг** — список, создание (название, жанр, цель по словам)
-- **Дашборд книги** — прогресс по словам, heatmap активности (GitHub-style), недельные бары
+- **Полка книг** — список, создание (название, жанр, цель по словам), загрузка обложки
+- **Дашборд книги** — прогресс по словам, heatmap активности (GitHub-style), ETA завершения
+- **Шаринг** — публичная ссылка для чтения книги (share_token)
+- **Онбординг** — прогресс-чеклист для новых пользователей
 
 ### Экспорт и статистика
-- **Экспорт** в DOCX / FB2 / EPUB / HTML с настройкой стиля абзацев
-- **StatusBar** — дневной прогресс, серия дней, время чтения главы
+- **Экспорт** в DOCX / FB2 / EPUB / PDF / HTML / Markdown / TXT с настройкой стиля абзацев
+- **StatusBar** — дневной прогресс, серия дней, ambient sounds, шрифт редактора
+
+### Монетизация
+- **Тарифы** — Free / Pro (месяц/год) / Lifetime
+- **Оплата** через Робокассу (СБП + карты), рекуррентные списания
+- **Возвраты** — автоматические через op_key
+- **Отмена подписки** — с сохранением доступа до конца периода
 
 ### Платформа
 - **Мобильный адаптив** — редактор, дашборд, персонажи, хронология, карта, навигация
-- **Admin-панель** `/admin` — DAU/WAU/MAU, retention, топ-10, аномалии, управление пользователями и планами
-- **Лендинг** — публичная страница с тарифами и FAQ. `/privacy`, `/terms`
+- **Offline-баннер** — уведомление при потере сети
+- **Admin-панель** `/admin` — DAU/WAU/MAU, retention, топ-10, управление пользователями, планами, feature flags, audit log, revenue-метрики
+- **Лендинг** — публичная страница с тарифами и FAQ
+- **Юридические страницы** — `/privacy`, `/terms`, `/offer`
 
 ---
 
@@ -72,9 +85,9 @@
 
 ```
 src/
-  components/        — Chrome (Sidebar, Toolbar, RightPanel, StatusBar), EditorHybrid, RichEditor, EditorToolbar, AuthGuard, ErrorBoundary
-  pages/             — Auth, Home, Dashboard, Editor, Outline, Corkboard, Map, Timeline, Characters, Focus, Split, Export, Admin, Landing, Privacy, Terms
-  lib/               — supabase-клиент, AuthProvider
+  components/        — Chrome, Sidebar/*, EditorHybrid, RichEditor, EditorToolbar, RightPanel, StatusBar, WorldMap, BookCard, Icon, AuthForm, admin/* и др. (70+ файлов)
+  pages/             — Auth, Home, Dashboard, Editor, Focus, Split, Outline, Corkboard, Map, Timeline, Characters, Notes, Export, Admin, Landing, Offer, ShareBook, ResetPassword, Privacy, Terms, NotFound
+  lib/               — supabase-клиент, AuthProvider, React Query хуки, mutation-хуки, экспорт, утилиты (60+ файлов)
   styles/            — design-system.css (CSS-переменные oklch, классы .as, .btn, .input и др.)
   App.tsx            — роутер
 supabase/migrations/ — SQL-миграции

@@ -4,8 +4,13 @@
 
 ## Компоненты
 
-- `src/pages/Timeline.tsx` — UI.
-- `src/lib/timeline.ts` — CRUD событий.
+- `src/pages/Timeline.tsx` — UI: тулбар, список/лента, мобильный sidebar drawer.
+- `src/lib/timeline.ts` — CRUD событий через `createRepository`.
+- `src/components/TimelineEventCard.tsx` — карточка события: редактирование типа, названия, описания, эпохи, главы.
+- `src/components/TimelineFilters.tsx` — фильтры по слоям; `variant="sidebar"|"mobile"`.
+- `src/components/TimelineLane.tsx` — горизонтальная лента: LANE_* константы, SortableNode, DragCard, DnD-контекст.
+- `src/components/EventDetailPanel.tsx` — боковая панель деталей события: полный a11y (role/aria-modal/focus/Escape/Tab-trap).
+- `src/lib/useCreateOnMount.ts` — хук «создать сразу при переходе» (`?create=true` в URL).
 
 ## БД
 

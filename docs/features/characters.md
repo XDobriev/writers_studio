@@ -6,7 +6,7 @@
 
 - `src/pages/Characters.tsx` — весь UI, inline-формы связей.
 - `src/lib/characters.ts` — CRUD персонажей.
-- `src/lib/character_relationships.ts` — CRUD двухсторонних связей.
+- `src/lib/relationships.ts` — CRUD двухсторонних связей (`character_relationships`).
 - `src/lib/crossrefs.ts` — авто-детектирование упоминаний персонажа в тексте глав, синхронизация backlinks, поиск вариантов имени.
 - `src/lib/pov.ts` — управление POV-маркером в `chapter_characters`, цвета персонажей.
 - `src/lib/useCharacterNavigation.ts` — хук навигации (выбор персонажа, mobile/desktop режимы).

@@ -339,23 +339,14 @@ _Задачи с явным "не делать сейчас". Вернуться
 
 ## Скиллы — установить позже
 
-> Эти три скилла зависят от конкретного этапа продукта. Вернуться к ним когда наступит нужный момент.
-
-### 🔵 marketingskills — `coreyhaines31/marketingskills`
-**Когда:** перед публичным запуском.  
-**Что даёт:** 50+ скиллов — аудит onboarding и signup-воронки (`/cro`, `/signup`, `/onboarding`), копирайтинг лендинга (`/copywriting`), SEO (`/seo-audit`, `/ai-seo`), настройка аналитики (`/analytics`), реферальная программа (`/referrals`).  
-**Что проверить в первую очередь:** `/onboarding` (активация после регистрации), `/cro` (конверсия лендинга), `/seo-audit` (технический SEO).  
-**Установка:** `npx skills add coreyhaines31/marketingskills`
+### ✅ marketingskills — `coreyhaines31/marketingskills` (установлен)
+50+ скиллов: `/cro`, `/signup`, `/onboarding`, `/copywriting`, `/seo-audit`, `/ai-seo`, `/analytics`, `/referrals` и др.  
+**Использовать:** при оптимизации лендинга, подготовке к публичному запуску, настройке аналитики.
 
 ### 🔵 Frontend Slides — `zarazhangrui/frontend-slides`
 **Когда:** перед питчем, Product Hunt лонч или при создании презентации для инвесторов/курса.  
 **Что даёт:** генерация HTML-презентаций с реальными скриншотами приложения вместо заглушек.  
 **Сейчас рано:** нет аудитории, которой нужна презентация.  
 **Установка:** `npx skills add zarazhangrui/frontend-slides`
-
-### 🔵 Expense Tracker Market — `AlariCode/expense-tracker-market`
-**Когда:** при подключении Robokassa (§1) и запуске монетизации.  
-**Что даёт:** возможно — паттерны для биллинговых UI и маркетплейс-механик. Изучить README при запуске §1.  
-**Установка:** `npx skills add AlariCode/expense-tracker-market`
 
 ---

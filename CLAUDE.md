@@ -52,6 +52,12 @@ npm run preview    # превью продакшен-сборки
 - `src/components/MapStampsLayer.tsx` — SVG-слой штампов карты: рендер всех штампов с drag-состоянием и selection ring; получает stamps[], selectedId, dragPos.
 - `src/components/MapStyleModal.tsx` — модал «Стиль карты»: пикер шаблона + свой фон. Полный a11y (role/aria/Escape/focus/Tab-trap по образцу ConfirmDialog). Вынесен из Map.tsx.
 - `src/components/StampPopup.tsx` — попап редактирования штампа: пикер типа (5×2 grid), слайдер размера, удаление; закрывается по Escape и клику за пределами.
+- `src/components/Icon.tsx` — SVG-иконки (30+ name-ов): stroke-based, `{ name, size? }`, используется повсеместно.
+- `src/components/LogoMark.tsx` — SVG-логотип (стопка книг с градиентами); `{ size? }`.
+- `src/components/OfflineBanner.tsx` — fixed-top баннер потери сети; использует `useOnlineStatus`.
+- `src/components/CoverPicker.tsx` — пикер обложки книги: 12 цветовых свотчей + загрузка изображения; экспортирует `COVERS`, `isImageUrl`.
+- `src/components/BookCard.tsx` — карточка книги на Home: обложка (цвет/изображение), прогресс, даты, кнопка редактирования.
+- `src/components/WorldMap.tsx` — SVG-холст карты мира: pan/zoom/pinch, рендер пинов/связей/штампов, попапы редактирования локаций и связей, unmapped-панель, мобильные bottom-sheet-ы.
 - `src/components/RichEditor.tsx` — TipTap wrapper.
 - `src/components/EditorToolbar.tsx` — полноценный тулбар TipTap.
 - `src/components/RightPanel.tsx` — правая панель редактора: версии, персонажи главы, POV.
@@ -116,6 +122,11 @@ npm run preview    # превью продакшен-сборки
 - `src/pages/Landing.tsx` — публичный лендинг.
 - `src/pages/Offer.tsx` — публичная страница оферты `/offer`: тарифы, цены, возврат, акцепт.
 - `src/pages/PaymentSuccess.tsx` — страница `/payment-success` после редиректа Робокассы: 3 состояния (`checking` / `success` / `timeout`), поллинг `getProfile` каждые 2с до смены плана или 30с таймаута.
+- `src/pages/ResetPassword.tsx` — сброс пароля `/reset-password`: форма нового пароля, валидация, перевод ошибок Supabase.
+- `src/pages/ShareBook.tsx` — публичная страница расшаренной книги `/share/:token`: чтение по `share_token`, рендер глав через DOMPurify.
+- `src/pages/Terms.tsx` — пользовательское соглашение `/terms`.
+- `src/pages/Privacy.tsx` — политика конфиденциальности `/privacy`.
+- `src/pages/NotFound.tsx` — 404-страница: навигация назад или на главную.
 
 ### lib/
 - `src/lib/repository.ts` — фабрика `createRepository<T>(table, defaults, orderBy)` → `{ list, create, update, delete }` с единой обработкой ошибок; используется в characters, locations, timeline, connections, notes.
@@ -163,10 +174,32 @@ npm run preview    # превью продакшен-сборки
 - `src/lib/usePostAuthRedirect.ts` — хук редиректа после авторизации: `pending_plan` → payment URL, fallback `/books`; возвращает `{ redirectingToPay }`.
 - `src/lib/characterMatching.ts` — единая логика сопоставления токена с псевдонимом персонажа: `normalizeAlias`, `matchesAlias` (одно слово vs псевдоним), `makeAliasPattern` (regex для full-text поиска с учётом падежных окончаний).
 - `src/lib/useCharacterFilter.ts` — хук фильтрации персонажей по роли и поисковому запросу; экспортирует тип `RoleFilter`.
+- `src/lib/books.ts` — `getBook`, `listBooks`, `updateBook`, `createBook`, `deleteBook`; типы `BookPatch`, `BookCreateInput`.
+- `src/lib/chapters.ts` — `Chapter`, `ChapterMeta`, `ChapterPatch`, `ChapterActions`; CRUD глав (`fetchChapters`, `createChapter`, `updateChapter`, `deleteChapter`, `renumberChapters`).
+- `src/lib/locations.ts` — `Location`, `LocationType`, `LocationPatch`; CRUD через `createRepository`; константы `TYPE_GLYPHS`, `TYPE_LABELS`.
+- `src/lib/connections.ts` — `LocationConnection`, `ConnectionStyle`, `ConnectionPatch`; CRUD через `createRepository`; `CONNECTION_STYLES` (road/river/path/border).
+- `src/lib/notes.ts` — `Note`, `NoteKind`; CRUD (`fetchNotes`, `createNote`, `updateNote`, `deleteNote`, `reorderNotes`).
+- `src/lib/timeline.ts` — `TimelineEvent`, `TimelineEventType`, `TimelineEventPatch`; CRUD через `createRepository`.
+- `src/lib/theme.ts` — `getStoredTheme`, `applyTheme` (dark/light); хранит выбор в localStorage.
+- `src/lib/shortcuts.ts` — `ShortcutDef`, `EDITOR_SHORTCUTS` (6 клавиш), `shortcutLabel`; единый источник правды для документации и UI.
+- `src/lib/useOnlineStatus.ts` — хук `navigator.onLine` с online/offline events.
+- `src/lib/useMobileDrawers.ts` — хук `useMobileDrawers(isMobile)` → `{ sidebar, right }` (open/close); сбрасывается при уходе с мобилки.
+- `src/lib/usePageHint.ts` — одноразовая подсказка для режима «Страница»; 8с auto-dismiss, localStorage-флаг.
+- `src/lib/useCharacterNavigation.ts` — хук навигации grid↔detail для Characters: `?character=` в URL, auto-select при stale id.
+- `src/lib/useEditorLayout.ts` — хук расчёта layout редактора по mode и breakpoints: cols, sheetWidth, padding.
+- `src/lib/useKeyboardShortcuts.ts` — хук горячих клавиш редактора: save, prev/next chapter, page toggle, new chapter/note.
+- `src/lib/useWritingStats.ts` — хук статистики письма: `todayWords`, `streak`; запрашивает `word_count_snapshots`.
+- `src/lib/useGoalToast.ts` — хук toast-уведомления при достижении/превышении дневной цели.
+- `src/lib/useUserDisplay.ts` — хук отображения имени пользователя: приоритет profile → metadata (TG/VK) → email.
 - `src/lib/motion.ts` — реестр Framer Motion вариантов и переходов: overlay, modalPanel, page, toast, dropdown, card, hero, feat, reveal.
 - `src/lib/repository.test.ts` — unit-тесты `createRepository` (list с лимитом, DbError, create с дефолтами); мокает `./supabase`.
 - `src/lib/crossrefs.test.ts` — unit-тесты `extractCharacterMentions`: кириллица, word-boundary lookaround, HTML-стрипинг; без моков.
 - `src/lib/queries.test.ts` — тесты стабильности `QUERY_KEYS`: структура, детерминированность, отсутствие коллизий между entity-префиксами.
+- `src/lib/characters.test.ts` — unit-тесты CRUD персонажей.
+- `src/lib/chapters.test.ts` — unit-тесты CRUD глав.
+- `src/lib/shortcuts.test.ts` — тесты `shortcutLabel` и структуры `EDITOR_SHORTCUTS`.
+- `src/lib/timeline.test.ts` — unit-тесты CRUD событий хронологии.
+- `src/lib/pov.test.ts` — unit-тесты POV-записей.
 
 ## Supabase
 
@@ -174,7 +207,17 @@ npm run preview    # превью продакшен-сборки
 - Миграции: `supabase/migrations/*.sql`. Применять через Supabase MCP (`apply_migration` / `execute_sql`). CLI локально не используется.
 - **Edge Functions НЕ деплоятся автоматически при `git push`.** После изменений в `supabase/functions/*` — деплоить вручную: `npx supabase functions deploy <name> --project-ref joaxeoavjvlqmtlepkrr` (Docker не нужен).
 - **Вебхук-функции (вызываются внешними сервисами без JWT) — деплоить с `--no-verify-jwt`:** `robokassa-webhook`, `payment-result2`, `billing-scheduler`. Без флага Supabase возвращает 401 и внешний сервис не может обратиться к функции. Функции с пользовательским Bearer-токеном (`process-refund`, `cancel-subscription`) — `--no-verify-jwt` НЕ нужен.
-- Edge Functions: `supabase/functions/telegram-auth/` — авторизация через Telegram. `supabase/functions/robokassa-webhook/` — вебхук Робокассы: Pro/Lifetime-подписки, декремент lifetime_slots, grandfathered (требует Secrets: `ROBOKASSA_MERCHANT_LOGIN`, `ROBOKASSA_PASSWORD2`, опционально `GRANDFATHERING_ENDS_AT`). `supabase/functions/vk-auth/` — авторизация через VK ID 2.1: верификация access_token, создание пользователя, возврат token_hash.
+- Edge Functions (10 штук):
+  - `telegram-auth` — авторизация через Telegram.
+  - `vk-auth` — авторизация через VK ID 2.1: верификация access_token, создание пользователя, возврат token_hash.
+  - `create-payment-url` — генерация URL оплаты Робокассы (Receipt, подпись, грандфазер-цены). verify_jwt: true.
+  - `robokassa-webhook` — ResultUrl1, активация плана: проверка подписи, upsert в payments, pull op_key через OpStateExt. verify_jwt: **false** (--no-verify-jwt).
+  - `payment-result2` — ResultUrl2, **DEPRECATED** (JWS-верификация, push op_key). verify_jwt: false.
+  - `process-refund` — возврат через Робокассу по op_key, fallback OpStateExt. verify_jwt: true (Bearer пользователя).
+  - `cancel-subscription` — отмена/возобновление рекуррентной подписки. verify_jwt: true.
+  - `billing-scheduler` — ежедневный cron рекуррентных списаний (GitHub Actions). verify_jwt: **false** (Bearer SCHEDULER_SECRET).
+  - `payment-confirmation` — email-подтверждение оплаты через UniSender Go. Fire-and-forget из webhook. ⚠️ Не реализован полностью (404).
+  - `retention-email` — retention-письмо через UniSender Go (7 дней без входа). verify_jwt: false.
 - **При добавлении таблиц: обязательно RLS** `auth.uid() = user_id` (образец: `0001_init.sql`).
 - **При добавлении таблиц: обязательно GRANT** (с 30.10.2026 без него supabase-js не видит таблицу): `GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.<table> TO anon, authenticated;`
 - Auth URL: `site_url=https://avtorskaya-studiya.vercel.app`, allow-list включает прод + `avtorskaya-studiya-*.vercel.app` + `localhost:5273`.
@@ -360,9 +403,7 @@ npm run preview    # превью продакшен-сборки
 `/ab-testing`, `/ad-creative`, `/ads`, `/ai-seo`, `/analytics`, `/aso`, `/churn-prevention`, `/co-marketing`, `/cold-email`, `/community-marketing`, `/competitor-profiling`, `/competitors`, `/content-strategy`, `/copy-editing`, `/copywriting`, `/cro`, `/customer-research`, `/directory-submissions`, `/emails`, `/free-tools`, `/image`, `/launch`, `/lead-magnets`, `/marketing-ideas`, `/marketing-psychology`, `/onboarding`, `/paywalls`, `/popups`, `/pricing`, `/product-marketing`, `/programmatic-seo`, `/prospecting`, `/referrals`, `/revops`, `/sales-enablement`, `/schema`, `/seo-audit`, `/signup`, `/site-architecture`, `/sms`, `/social`, `/video`
 
 **Установить позже** (подробности в [docs/roadmap.md](docs/roadmap.md)):
-- SEO/GEO — перед публичным запуском
 - Frontend Slides — перед питчем/демо
-- Expense Tracker Market — при запуске монетизации §3
 
 ## Документация (читать по задаче)
 

@@ -4,8 +4,10 @@
 
 ## Компоненты
 
-- `src/pages/Notes.tsx` — весь UI, DnD-карточки.
+- `src/pages/Notes.tsx` — UI: поиск, форма создания, DnD-карточки.
 - `src/lib/notes.ts` — CRUD заметок + `reorderNotes`.
+- `src/lib/useNoteMutations.ts` — mutation-хук: `onAdd`, `onUpdate`, `onDelete`, `onReorder` + `isSaving`.
+- `src/lib/useCreateOnMount.ts` — хук «создать сразу при переходе» (`?create=true` в URL).
 
 ## БД
 
