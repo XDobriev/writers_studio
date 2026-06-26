@@ -36,6 +36,7 @@ export interface AuditEntry {
   target_email: string | null;
   payload: Record<string, string> | null;
   created_at: string;
+  is_test: boolean;
 }
 
 export interface AdminRevenue {

@@ -45,7 +45,9 @@ export default function Admin() {
     .slice(0, 10)
     .map((u) => ({ email: u.email, words_total: Number(u.words_total) }));
 
-  const payments = (auditLog ?? []).filter((e) => e.action === 'payment_received');
+  // Скрываем записи тест-пользователей (is_test) из журнала и платежей.
+  const visibleLog = (auditLog ?? []).filter((e) => !e.is_test);
+  const payments = visibleLog.filter((e) => e.action === 'payment_received');
 
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -102,7 +104,7 @@ export default function Admin() {
         {tab === 'analytics' && <AdminAnalytics topUsers={top10} />}
 
         {tab === 'audit' && (
-          <AuditLogTable entries={auditLog ?? []} loading={auditLoading} />
+          <AuditLogTable entries={visibleLog} loading={auditLoading} />
         )}
 
         {tab === 'payments' && (
