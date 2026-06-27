@@ -12,6 +12,16 @@ _Обновлён: 2026-06-24_ — §1 монетизация закрыта (о
 
 > Самый критичный — первый в списке.
 
+### Security-хардениг после публикации репо (анон-ключ открыт)
+
+**Контекст:** репозиторий публичный → `VITE_SUPABASE_ANON_KEY` открыт. Два живых эксплойта на RPC уже закрыты (`20260627_revoke_anon_security_definer_rpcs.sql`: `decrement_lifetime_slot`, `get_inactive_users_for_retention`). Осталось (не-DB, требуют дашборда):
+- **Storage buckets allow listing** (`book-covers`, `character-avatars`, `map-backgrounds`) — anon может перечислить файлы всех пользователей. Запретить листинг (public READ оставить).
+- **Leaked password protection выключена** — включить HaveIBeenPwned-проверку в Auth-настройках Supabase (1 клик).
+- **SSH VPS:** IP `72.56.232.231` теперь публичен → `PasswordAuthentication no` + fail2ban.
+- _(опц.)_ Defense-in-depth: REVOKE EXECUTE FROM anon у guard-нутых admin-RPC (`authenticated` оставить — их вызывает админ).
+
+---
+
 ### payment-result2 — проверить новый сертификат после следующего платежа
 
 **Симптом:** все вызовы `payment-result2` возвращали 400 (bad jws). Robokassa ротировала `jwtsign.cer` 16.06.2026, старый SPKI-ключ стал невалидным.  
