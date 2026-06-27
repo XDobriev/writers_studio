@@ -34,7 +34,7 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
           height: 180,
           ...(hasImage
             ? { backgroundImage: `url(${b.cover})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-            : { background: `linear-gradient(160deg, ${b.cover ?? '#3a3a4a'}, oklch(0.20 0.02 50))` }
+            : { background: `linear-gradient(160deg, ${b.cover ?? 'oklch(0.30 0.012 50)'}, oklch(0.20 0.02 50))` }
           ),
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
           padding: '18px 20px', borderBottom: '1px solid var(--border-soft)',

@@ -560,7 +560,7 @@ function ToggleRow({ label, hint, on, onChange, disabled, last }: {
     }}>
       <input type="checkbox" checked={on} onChange={(e) => !disabled && onChange(e.target.checked)} disabled={disabled} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }} />
       <span style={{ width: 32, height: 18, borderRadius: 999, background: on && !disabled ? 'var(--accent)' : 'var(--surface-2)', position: 'relative', transition: 'background 150ms', flexShrink: 0, opacity: disabled ? 0.4 : 1 }}>
-        <span style={{ position: 'absolute', top: 2, left: on && !disabled ? 16 : 2, width: 14, height: 14, borderRadius: 999, background: on && !disabled ? 'oklch(0.98 0 0)' : 'var(--ink-2)', transition: 'left 150ms' }} />
+        <span style={{ position: 'absolute', top: 2, left: 2, width: 14, height: 14, borderRadius: 999, background: on && !disabled ? 'oklch(0.98 0 0)' : 'var(--ink-2)', transform: on && !disabled ? 'translateX(14px)' : 'translateX(0)', transition: 'transform 150ms' }} />
       </span>
       <span>{label}{hint && <span style={{ color: 'var(--ink-4)', marginLeft: 4 }}>{hint}</span>}</span>
     </label>

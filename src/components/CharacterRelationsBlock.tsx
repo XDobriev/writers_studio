@@ -194,7 +194,7 @@ function RelationRow({ relId, partner, labelMine, labelTheirs, onDelete, onLabel
     <div style={{ padding: '10px 12px', border: '1px solid var(--border-soft)', borderRadius: 8, display: 'flex', gap: 12 }}>
       <div style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 12px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0, overflow: 'hidden' }}>
         {partner.avatar_url
-          ? <img src={partner.avatar_url} alt={partner.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <img src={partner.avatar_url} alt={partner.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : initialsFromName(partner.name || 'Без имени')}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>

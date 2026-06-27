@@ -874,7 +874,7 @@ select.input {
 .tiptap blockquote {
   margin: 1em 0;
   padding-left: 1em;
-  border-left: 3px solid var(--accent);
+  border-left: 2px solid var(--paper-ink-2);
   font-style: italic;
 }
 .tiptap ul, .tiptap ol { padding-left: 1.4em; margin: 0 0 1em; list-style: revert; }
@@ -1514,6 +1514,9 @@ select.input {
 
 .lnd-price-card--accent { transform: translateY(-8px); }
 .faq-chevron.open { transform: rotate(180deg); }
+.faq-body { display: grid; grid-template-rows: 0fr; }
+.faq-body.open { grid-template-rows: 1fr; }
+.faq-body > div { overflow: hidden; min-height: 0; }
 @media (prefers-reduced-motion: no-preference) {
   .lnd-note-in { animation: lnd-note-in 0.5s cubic-bezier(0.16,1,0.3,1) backwards; }
   @keyframes lnd-note-in { from{opacity:0;transform:translateY(10px) scale(0.94)} to{opacity:1;transform:none} }
@@ -1523,7 +1526,7 @@ select.input {
   .lnd-nav-login { transition: color 0.15s ease; }
   .lnd-foot-link, .lnd-foot-link--sub, .lnd-foot-icon { transition: color 0.15s ease; }
   .faq-chevron { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1), color 0.15s ease; }
-  .faq-body { transition: height 0.3s cubic-bezier(0.16,1,0.3,1); }
+  .faq-body { transition: grid-template-rows 0.3s cubic-bezier(0.16,1,0.3,1); }
   .lnd-browser-mock { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }
   .lnd-browser-mock:hover { transform: translateY(-4px); }
   .lnd-price-card { transition: transform 0.22s cubic-bezier(0.16,1,0.3,1); }

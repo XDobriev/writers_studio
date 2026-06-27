@@ -97,10 +97,12 @@ export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }
       }}>
         <div style={{
           height: '100%',
-          width: `${(completedCount / STEPS.length) * 100}%`,
+          width: '100%',
           background: 'var(--accent)',
           borderRadius: 2,
-          transition: 'width 0.2s cubic-bezier(0.25, 1, 0.5, 1)',
+          transform: `scaleX(${completedCount / STEPS.length})`,
+          transformOrigin: 'left',
+          transition: 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)',
         }} />
       </div>
 

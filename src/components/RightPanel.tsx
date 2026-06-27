@@ -186,7 +186,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   <div key={m.character_id} className="rp-member">
                     <div className="rp-member-av" style={{ background: color }}>
                       {m.characters?.avatar_url
-                        ? <img src={m.characters.avatar_url} alt={name} className="rp-member-img" />
+                        ? <img src={m.characters.avatar_url} alt={name} loading="lazy" className="rp-member-img" />
                         : initials}
                     </div>
                     <span className="rp-member-name">{name}</span>

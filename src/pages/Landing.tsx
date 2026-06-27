@@ -325,34 +325,12 @@ function LandingEmailCapture() {
 
 function FAQItem({ q, a, index, defaultOpen = false }: { q: string; a: string; index: number; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
-  const [height, setHeight] = useState(defaultOpen ? 'auto' : '0px');
-  const bodyRef = useRef<HTMLDivElement>(null);
-
-  const toggle = () => {
-    const el = bodyRef.current;
-    if (!el) return;
-    if (open) {
-      setHeight(el.scrollHeight + 'px');
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        setHeight('0px');
-        setOpen(false);
-      }));
-    } else {
-      setOpen(true);
-      setHeight(el.scrollHeight + 'px');
-    }
-  };
-
-  const onTransitionEnd = () => {
-    if (open) setHeight('auto');
-  };
-
   const panelId = `faq-panel-${index}`;
 
   return (
     <div style={{ borderTop: '1px solid var(--border-soft)', padding: '13px 0' }}>
       <button
-        onClick={toggle}
+        onClick={() => setOpen((o) => !o)}
         className="faq-trigger"
         aria-expanded={open}
         aria-controls={panelId}
@@ -366,14 +344,10 @@ function FAQItem({ q, a, index, defaultOpen = false }: { q: string; a: string; i
           <Icon name="chevd" size={16} />
         </span>
       </button>
-      <div
-        id={panelId}
-        ref={bodyRef}
-        className="faq-body"
-        style={{ overflow: 'hidden', height }}
-        onTransitionEnd={onTransitionEnd}
-      >
-        <p style={{ font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', marginTop: 14, paddingLeft: 42, maxWidth: 680 }}>{a}</p>
+      <div id={panelId} className={`faq-body${open ? ' open' : ''}`} role="region">
+        <div>
+          <p style={{ font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', marginTop: 14, paddingLeft: 42, maxWidth: 680 }}>{a}</p>
+        </div>
       </div>
     </div>
   );

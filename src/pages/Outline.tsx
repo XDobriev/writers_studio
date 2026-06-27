@@ -442,7 +442,7 @@ function SortableChapterRow({
             {pct > 0 && (
               <div style={{ position: 'relative', height: 2, marginTop: 5, borderRadius: 1 }}>
                 <div style={{ position: 'absolute', inset: 0, background: 'var(--accent)', borderRadius: 1, opacity: 0.35 }} />
-                <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${pct}%`, background: 'var(--accent)', borderRadius: 1, opacity: 0.7, transition: 'width 0.3s ease' }} />
+                <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: '100%', background: 'var(--accent)', borderRadius: 1, opacity: 0.7, transform: `scaleX(${pct / 100})`, transformOrigin: 'left', transition: 'transform 0.3s ease' }} />
               </div>
             )}
           </div>

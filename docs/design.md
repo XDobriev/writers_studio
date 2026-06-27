@@ -6,8 +6,8 @@ colors:
   lamplight-amber: "oklch(0.78 0.10 90)"
   ink: "oklch(0.95 0.008 80)"
   ink-secondary: "oklch(0.78 0.012 80)"
-  ink-muted: "oklch(0.58 0.012 70)"
-  ink-ghost: "oklch(0.46 0.012 60)"
+  ink-muted: "oklch(0.65 0.012 70)"
+  ink-ghost: "oklch(0.56 0.012 60)"
   oak-void: "oklch(0.165 0.012 50)"
   oak-dark: "oklch(0.205 0.014 50)"
   oak-surface: "oklch(0.245 0.014 50)"
@@ -161,8 +161,8 @@ Four ink steps for text hierarchy, all with a warm amber tint (hue 70–80) rath
 
 - **Ink** (`oklch(0.95 0.008 80)`): Primary text in the shell. Headlines, body copy, labels.
 - **Ink Secondary** (`oklch(0.78 0.012 80)`): Supporting text, inactive controls, toolbar buttons at rest.
-- **Ink Muted** (`oklch(0.58 0.012 70)`): Section headers (uppercase mono), placeholder prompts.
-- **Ink Ghost** (`oklch(0.46 0.012 60)`): Metadata, word counts, timestamps. Present but undemanding.
+- **Ink Muted** (`oklch(0.65 0.012 70)`): Section headers (uppercase mono), placeholder prompts.
+- **Ink Ghost** (`oklch(0.56 0.012 60)`): Metadata, word counts, timestamps. Present but undemanding, yet still WCAG AA on the oak shells.
 
 ### Neutral: Paper
 
