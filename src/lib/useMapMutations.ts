@@ -7,6 +7,7 @@ import { createStamp, updateStamp, deleteStamp, type MapStamp, type StampPatch, 
 import { updateBook } from './books';
 import { supabase } from './supabase';
 import { QUERY_KEYS } from './queries';
+import { optimizeImage, MAP_BG_OPTS } from './imageOptimize';
 
 interface UseMapMutationsOptions {
   bookId: string | undefined;
@@ -140,10 +141,11 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     if (!file || !bookId || !userId) return;
     e.target.value = '';
     try {
+      const optimized = await optimizeImage(file, MAP_BG_OPTS);
       const path = `${userId}/${bookId}/background`;
       const { error: uploadError } = await supabase.storage
         .from('map-backgrounds')
-        .upload(path, file, { upsert: true, contentType: file.type });
+        .upload(path, optimized, { upsert: true, contentType: optimized.type });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('map-backgrounds').getPublicUrl(path);
       await updateBook(bookId, { map_bg_url: `${publicUrl}?t=${Date.now()}` });

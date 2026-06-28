@@ -19,6 +19,7 @@ import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useProfile, QUERY_KEYS } from '../lib/queries';
+import { optimizeImage, COVER_OPTS } from '../lib/imageOptimize';
 
 import { plural } from '../lib/i18n';
 
@@ -66,9 +67,10 @@ export default function Home() {
   ) => {
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop() ?? 'jpg';
+      const optimized = await optimizeImage(file, COVER_OPTS);
+      const ext = optimized.type === 'image/webp' ? 'webp' : 'jpg';
       const path = `${user!.id}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from('book-covers').upload(path, file, { upsert: true });
+      const { error } = await supabase.storage.from('book-covers').upload(path, optimized, { upsert: true, contentType: optimized.type });
       if (error) throw error;
       const { data } = supabase.storage.from('book-covers').getPublicUrl(path);
       setter(data.publicUrl);

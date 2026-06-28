@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { createRepository, DbError } from './repository';
+import { optimizeImage, AVATAR_OPTS } from './imageOptimize';
 
 export type CharacterRole = 'protagonist' | 'secondary' | 'minor';
 
@@ -68,11 +69,12 @@ export function deleteCharacter(id: string): Promise<void> {
 }
 
 export async function uploadCharacterAvatar(characterId: string, userId: string, file: File): Promise<string> {
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const optimized = await optimizeImage(file, AVATAR_OPTS);
+  const ext = optimized.type === 'image/webp' ? 'webp' : 'jpg';
   const path = `${userId}/${characterId}.${ext}`;
   const { error } = await supabase.storage
     .from('character-avatars')
-    .upload(path, file, { upsert: true, contentType: file.type });
+    .upload(path, optimized, { upsert: true, contentType: optimized.type });
   if (error) throw error;
   const { data } = supabase.storage.from('character-avatars').getPublicUrl(path);
   return data.publicUrl;
