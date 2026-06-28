@@ -136,6 +136,8 @@
   --character-color-4: oklch(0.48 0.09 55);
 }
 
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 html, body, #root {
   margin: 0;
   height: 100%;
