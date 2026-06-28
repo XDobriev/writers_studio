@@ -1,0 +1,3 @@
+Contact: mailto:support@avtorstudio.com
+Preferred-Languages: ru, en
+Expires: 2027-06-28T00:00:00.000Z
