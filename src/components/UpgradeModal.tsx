@@ -162,6 +162,14 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
             </p>
           )}
 
+          {lifetimeSlots === null && (
+            <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 16, paddingTop: 16 }}>
+              <div className="skeleton" style={{ height: 14, width: '60%', marginBottom: 10 }} />
+              <div className="skeleton" style={{ height: 22, width: '40%', marginBottom: 10 }} />
+              <div className="skeleton" style={{ height: 36, width: '100%', borderRadius: 8 }} />
+            </div>
+          )}
+
           {showLifetime && (
             <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 16, paddingTop: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
