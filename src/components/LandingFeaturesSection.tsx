@@ -409,7 +409,7 @@ function MockWorld() {
         <path d="M28 60 Q 40 56 46 50 Q 52 42 56 38 Q 60 30 64 24" fill="none" stroke="oklch(0.35 0.04 50)" strokeWidth="0.18" strokeDasharray="0.6 0.6" />
       </svg>
       {([
-        { x: 25, y: 60, n: 'Терея', active: false },
+        { x: 25, y: 60, n: 'Тереея', active: false },
         { x: 62, y: 24, n: 'Ворна', active: true },
         { x: 45, y: 48, n: 'Сольва', active: false },
         { x: 54, y: 38, n: 'Серая Цапля', active: false },
