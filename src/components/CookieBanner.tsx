@@ -35,6 +35,7 @@ export function CookieBanner() {
         padding: '10px 12px 10px 16px',
         display: 'flex',
         alignItems: 'center',
+        flexWrap: 'wrap',
         gap: 10,
         maxWidth: 520,
         width: 'calc(100% - 32px)',
