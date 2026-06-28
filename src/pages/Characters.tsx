@@ -652,6 +652,7 @@ function CharacterCard({ character: c, onSelect, onDelete }: { character: Charac
               src={c.avatar_url}
               alt={c.name}
               loading="lazy"
+              decoding="async"
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
