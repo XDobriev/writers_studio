@@ -136,6 +136,8 @@
   --character-color-4: oklch(0.48 0.09 55);
 }
 
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 html, body, #root {
   margin: 0;
   height: 100%;
@@ -1580,6 +1582,10 @@ select.input {
   .lnd-feat-row { padding: 24px 0; gap: 24px; }
   .lnd-feat-row-full { padding: 24px 0; }
   .lnd-manifesto-row { padding: 20px 0; }
+  .lnd-nav-cta,
+  .lnd-nav-sep,
+  .lnd-nav-spacer { display: none !important; }
+  .lnd-header { justify-content: space-between; }
 }
 
 /* Dashboard stat grid — растянуть последнюю нечётную карточку на всю ширину (только мобильный) */
