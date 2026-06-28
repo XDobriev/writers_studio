@@ -18,7 +18,7 @@ export default function Landing() {
   if (session) return <Navigate to="/books" replace />;
 
   return (
-    <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)' }}>
+    <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', overflowX: 'hidden' }}>
       <LandingNav />
       <main>
         <LandingHero />
@@ -145,7 +145,7 @@ function LandingHero() {
                 <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--paper-ink-2)', marginBottom: 8 }}>Глава первая</div>
                 <div style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 12, color: 'var(--paper-ink)' }}>Город, которого нет</div>
                 <div style={{ width: 24, height: 1, background: 'var(--paper-ink)', opacity: 0.25, marginBottom: 16 }} />
-                <p style={{ margin: '0 0 0.8em' }}>Ворна исчезла за одну ночь, и никто из тех, кто жил в Тереее, не желал в это верить.</p>
+                <p style={{ margin: '0 0 0.8em' }}>Ворна исчезла за одну ночь, и никто из тех, кто жил в Терее, не желал в это верить.</p>
                 <p style={{ margin: 0, textIndent: '1.4em', color: 'var(--paper-ink-2)' }}>Аней Ворон узнала об этом в архиве, на третьем этаже башни, где пахло железом и устым мхом…</p>
               </div>
             </div>
@@ -183,7 +183,7 @@ function FloatingSheet({ tiltRef }: { tiltRef: React.RefObject<HTMLDivElement> }
           <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--paper-ink-2)', marginBottom: 10 }}>Глава первая</div>
           <div style={{ font: '600 26px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6, color: 'var(--paper-ink)' }}>Город, которого нет</div>
           <div style={{ width: 30, height: 1, background: 'var(--paper-ink)', opacity: 0.3, marginBottom: 20 }} />
-          <p style={{ margin: '0 0 0.9em' }}>Ворна исчезла за одну ночь, и никто из тех, кто жил в Тереее, не желал в это верить.</p>
+          <p style={{ margin: '0 0 0.9em' }}>Ворна исчезла за одну ночь, и никто из тех, кто жил в Терее, не желал в это верить.</p>
           <p style={{ margin: '0 0 0.9em', textIndent: '1.4em' }}>Аней Ворон узнала об этом в архиве, на третьем этаже башни, где пахло железом и устым мхом. <span style={{ background: 'oklch(0.84 0.13 90 / 0.45)', padding: '1px 2px', borderRadius: 2 }}>Она перечерчивала контуры озера, которого никогда не видела</span>, когда чьи-то шаги остановились за её спиной.</p>
           <p style={{ margin: '0 0 0.9em', textIndent: '1.4em' }}>— Картограф Ворон, — сказал голос. Голос был старый и строгий, как страница. — Магистр требует вас немедленно.</p>
           <p style={{ margin: 0, textIndent: '1.4em' }}>Аней не подняла голову. Кисть вела мягкую кривую — северный край озера, мнимый, но обязательный для атласа.<span style={{ display: 'inline-block', width: 2, height: '1em', background: 'var(--accent)', marginLeft: 1, verticalAlign: 'middle', animation: 'blink 1s step-end infinite' }} /></p>
@@ -459,7 +459,7 @@ function LandingFooter() {
               <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
             </Link>
             <p style={{ font: '400 14px/1.65 var(--font-serif)', color: 'var(--ink-3)', fontStyle: 'italic', maxWidth: 340 }}>
-              «Ворна исчезла за одну ночь, и никто из тех, кто жил в Тереее, не желал в это верить.»{' '}
+              «Ворна исчезла за одну ночь, и никто из тех, кто жил в Терее, не желал в это верить.»{' '}
               <span style={{ fontStyle: 'normal', fontSize: 11.5, color: 'var(--ink-3)' }}>— первая фраза, написанная в Авторской студии, май 2026</span>
             </p>
           </div>
