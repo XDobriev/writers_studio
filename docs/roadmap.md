@@ -1,10 +1,10 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-24_ — §1 монетизация закрыта (оплата, возврат, рекурренты E2E). §1.7 рекурренты закрыты (E2E боевая проверка 1₽ → webhook → plan_expires_at +30 дней). §7 отмена подписки MVP закрыта. `GRANDFATHERING_ENDS_AT=2026-09-01` выставлен. Ближайшее пред-запусковое действие — ручное тестирование (§2).
+_Обновлён: 2026-06-28_ — §1 монетизация закрыта (оплата, возврат, рекурренты E2E). §1.7 рекурренты закрыты (E2E боевая проверка 1₽ → webhook → plan_expires_at +30 дней). §7 отмена подписки MVP закрыта. `GRANDFATHERING_ENDS_AT=2026-09-01` выставлен. Ближайшее пред-запусковое действие — ручное тестирование (§2).
 
 История: Robokassa полный цикл (оплата → план → `op_key` → возврат → рекурренты → отмена); VK ID авторизация (OAuth 2.1 + PKCE). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
-**Сейчас:** монетизация закрыта — оплата, возврат и рекурренты работают E2E. Грандфазеринг активен до 2026-09-01: 290₽ действует **с первой покупки** в окне акции (`create-payment-url` v63 даёт раннюю цену по `GRANDFATHERING_ENDS_AT`, webhook закрепляет флаг `grandfathered`, рекурренты держат 290₽ навсегда). Рабочая конфигурация зафиксирована в [docs/features/payments.md](../features/payments.md).
+**Сейчас:** пред-релизная полировка закрыта (2026-06-28): лендинг (мок карты, a11y, OG), приложение (payment UX, skeleton), SEO (manifest, sitemap, security.txt), security (storage listing закрыт). Монетизация закрыта — оплата, возврат и рекурренты работают E2E. Грандфазеринг активен до 2026-09-01: 290₽ действует **с первой покупки** в окне акции (`create-payment-url` v63 даёт раннюю цену по `GRANDFATHERING_ENDS_AT`, webhook закрепляет флаг `grandfathered`, рекурренты держат 290₽ навсегда). Рабочая конфигурация зафиксирована в [docs/features/payments.md](../features/payments.md).
 
 ---
 
@@ -14,10 +14,8 @@ _Обновлён: 2026-06-24_ — §1 монетизация закрыта (о
 
 ### Security-хардениг после публикации репо (анон-ключ открыт)
 
-**Контекст:** репозиторий публичный → `VITE_SUPABASE_ANON_KEY` открыт. Два живых эксплойта на RPC уже закрыты (`20260627_revoke_anon_security_definer_rpcs.sql`: `decrement_lifetime_slot`, `get_inactive_users_for_retention`). Осталось (не-DB, требуют дашборда):
-- **Storage buckets allow listing** (`book-covers`, `character-avatars`, `map-backgrounds`) — anon может перечислить файлы всех пользователей. Запретить листинг (public READ оставить).
-- **Leaked password protection выключена** — включить HaveIBeenPwned-проверку в Auth-настройках Supabase (1 клик).
-- **SSH VPS:** IP `72.56.232.231` теперь публичен → `PasswordAuthentication no` + fail2ban.
+**Контекст:** репозиторий публичный → `VITE_SUPABASE_ANON_KEY` открыт. Два живых эксплойта на RPC уже закрыты (`20260627_revoke_anon_security_definer_rpcs.sql`: `decrement_lifetime_slot`, `get_inactive_users_for_retention`). ~~Storage buckets listing~~ закрыт (2026-06-28, DROP POLICY на 3 бакета). ~~SSH~~ уже настроен (fail2ban + PasswordAuthentication no). Осталось:
+- **Leaked password protection** — требует Supabase Pro план. Включить после апгрейда.
 - _(опц.)_ Defense-in-depth: REVOKE EXECUTE FROM anon у guard-нутых admin-RPC (`authenticated` оставить — их вызывает админ).
 
 ---
