@@ -137,17 +137,22 @@ export default function PaymentSuccess() {
           <>
             <div style={{ fontSize: 40 }}>🕐</div>
             <h1 style={{ font: '600 17px var(--font-ui)', color: 'var(--ink)', margin: 0 }}>
-              Платёж получен
+              Платёж обрабатывается
             </h1>
-            <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', margin: 0, maxWidth: 300 }}>
-              Статус подписки обновится в течение нескольких минут. Если через 5 минут ничего не изменилось — напишите в поддержку.
+            <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', margin: 0, maxWidth: 340 }}>
+              Статус подписки обновится в течение нескольких минут.
+              {searchParams.get('InvId') && (
+                <> Номер заказа: <strong style={{ color: 'var(--ink-2)' }}>{searchParams.get('InvId')}</strong>.</>
+              )}
+              {' '}Если через 5 минут ничего не изменилось — напишите на{' '}
+              <a href="mailto:support@avtorstudio.com" style={{ color: 'var(--accent)' }}>support@avtorstudio.com</a>.
             </p>
             <button
-              className="btn btn--ghost"
-              style={{ height: 38, paddingInline: 20, fontSize: 13 }}
+              className="btn btn--primary"
+              style={{ height: 40, paddingInline: 24, fontSize: 14 }}
               onClick={() => navigate('/books')}
             >
-              Перейти в редактор
+              Перейти в студию
             </button>
           </>
         )}
