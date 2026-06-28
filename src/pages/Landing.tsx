@@ -45,7 +45,7 @@ function LandingNav() {
     return () => window.removeEventListener('scroll', fn);
   }, []);
   return (
-    <header style={{
+    <header className="lnd-header" style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30,
       padding: 'clamp(14px,2vw,18px) clamp(20px,4vw,56px)',
       display: 'flex', alignItems: 'center', gap: 16,
@@ -57,14 +57,14 @@ function LandingNav() {
         <LogoMark size={22} />
         <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink)' }}>авторская студия</span>
       </Link>
-      <div style={{ flex: 1 }} />
+      <div className="lnd-nav-spacer" style={{ flex: 1 }} />
       <nav className="lnd-nav-links">
         <a href="#features" style={{ textDecoration: 'none', color: 'inherit' }}>Возможности</a>
         <a href="#process" style={{ textDecoration: 'none', color: 'inherit' }}>Процесс</a>
         <a href="#pricing" style={{ textDecoration: 'none', color: 'inherit' }}>Цены</a>
         <a href="#faq" style={{ textDecoration: 'none', color: 'inherit' }}>Вопросы</a>
       </nav>
-      <span style={{ width: 1, height: 18, background: 'var(--border-soft)' }} />
+      <span className="lnd-nav-sep" style={{ width: 1, height: 18, background: 'var(--border-soft)' }} />
       <Link to="/login" className="lnd-nav-login" style={{ fontSize: 13.5, textDecoration: 'none', padding: '12px 6px', margin: '-12px -6px' }}>Войти</Link>
       <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 44, padding: '0 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать свою книгу</Link>
     </header>
@@ -298,6 +298,7 @@ function LandingEmailCapture() {
               onChange={e => setEmail(e.target.value)}
               placeholder="ваш@email.ru"
               className="input"
+              aria-label="Адрес электронной почты"
               style={{ flex: 1, minWidth: 200, height: 44 }}
               disabled={status === 'loading'}
             />
