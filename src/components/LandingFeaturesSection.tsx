@@ -396,32 +396,66 @@ function MockCorkboard() {
 
 function MockWorld() {
   return (
-    <div style={{ height: '100%', background: 'oklch(0.86 0.03 85)', position: 'relative', overflow: 'hidden' }}>
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-        <path d="M0 75 Q 12 70 22 75 T 50 78 Q 65 82 80 80 T 100 75 L 100 100 L 0 100 Z" fill="oklch(0.68 0.06 230)" opacity="0.5" />
-        <g opacity="0.7" stroke="oklch(0.30 0.04 50)" strokeWidth="0.18" fill="none">
-          <path d="M20 20 l3-4 3 4" /><path d="M40 14 l3-4 3 4" /><path d="M55 20 l3-4 3 4" /><path d="M70 28 l3-4 3 4" />
+    <div style={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
+      <svg viewBox="0 0 800 480" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        <defs>
+          <radialGradient id="lm-bg" cx="50%" cy="50%" r="65%">
+            <stop offset="0%" stopColor="#3d2e1e"/>
+            <stop offset="100%" stopColor="#1e150d"/>
+          </radialGradient>
+          <pattern id="lm-dots" width={48} height={48} patternUnits="userSpaceOnUse">
+            <circle cx={24} cy={24} r={0.9} fill="#9a7a52" opacity={0.18}/>
+          </pattern>
+        </defs>
+        <rect width={800} height={480} fill="url(#lm-bg)"/>
+        <rect width={800} height={480} fill="url(#lm-dots)"/>
+        <rect width={800} height={480} fill="none" stroke="#5a3f28" strokeWidth={2}/>
+        <rect x={12} y={12} width={776} height={456} fill="none" stroke="#4a3420" strokeWidth={0.8} strokeDasharray="10 5" opacity={0.5}/>
+
+        <path d="M180 60 Q220 120 260 180 Q300 250 350 310 Q400 370 460 420" fill="none" stroke="#4a7a9a" strokeWidth={3} opacity={0.5} strokeLinecap="round"/>
+
+        <path d="M340 300 Q400 270 480 220" fill="none" stroke="#9a7a52" strokeWidth={1.2} strokeDasharray="8 5" opacity={0.6}/>
+
+        <path d="M570 130 Q500 180 400 250 Q370 270 340 300" fill="none" stroke="#8a6a40" strokeWidth={1.5} opacity={0.5}/>
+
+        <g transform="translate(140, 80) scale(2.2)" opacity={0.7}>
+          <polygon points="20,4 6,28 34,28" fill="#8a7060" stroke="#5a3f28" strokeWidth={1.5}/>
+          <polygon points="28,10 19,28 37,28" fill="#a08070" stroke="#5a3f28" strokeWidth={1}/>
+          <polygon points="20,4 16,12 24,12" fill="white" opacity={0.5}/>
         </g>
-        <g opacity="0.4" fill="oklch(0.46 0.06 130)">
-          {Array.from({ length: 50 }, (_, i) => <circle key={i} cx={20 + (i * 7) % 50} cy={32 + ((i * 11) % 18)} r="0.7" />)}
+        <g transform="translate(600, 60) scale(1.6)" opacity={0.6}>
+          <polygon points="20,4 6,28 34,28" fill="#8a7060" stroke="#5a3f28" strokeWidth={1.5}/>
+          <polygon points="28,10 19,28 37,28" fill="#a08070" stroke="#5a3f28" strokeWidth={1}/>
+          <polygon points="20,4 16,12 24,12" fill="white" opacity={0.5}/>
         </g>
-        <path d="M30 22 Q 38 36 44 48 T 52 68 Q 58 75 70 80" fill="none" stroke="oklch(0.62 0.08 230)" strokeWidth="0.6" opacity="0.7" />
-        <path d="M28 60 Q 40 56 46 50 Q 52 42 56 38 Q 60 30 64 24" fill="none" stroke="oklch(0.35 0.04 50)" strokeWidth="0.18" strokeDasharray="0.6 0.6" />
+
+        <g transform="translate(250, 240) scale(1.4)" opacity={0.6}>
+          <circle cx={20} cy={10} r={8} fill="#2d5a27" stroke="#1a3a15" strokeWidth={1}/>
+          <rect x={18} y={17} width={4} height={10} fill="#5a3f28"/>
+        </g>
+
+        <g transform="translate(420, 340) scale(1.2)" opacity={0.5}>
+          <polygon points="19,3 4,22 34,22" fill="#2d5a27" stroke="#1a3a15" strokeWidth={1.2}/>
+          <polygon points="19,10 7,25 31,25" fill="#3a6e30" stroke="#1a3a15" strokeWidth={1.2}/>
+          <rect x={16} y={22} width={6} height={8} fill="#5a3f28"/>
+        </g>
+
+        {([
+          { x: 200, y: 370, n: 'Терея', active: false },
+          { x: 570, y: 110, n: 'Ворна', active: true },
+          { x: 340, y: 290, n: 'Сольва', active: false },
+          { x: 480, y: 210, n: 'Серая Цапля', active: false },
+          { x: 680, y: 360, n: 'Гарнизон Лиха', active: false },
+        ] as const).map((p, i) => (
+          <g key={i} transform={`translate(${p.x}, ${p.y})`}>
+            <g transform="translate(-11, -25)">
+              <path d="M11 25 C11 20 21 16 21 9 A10 10 0 1 0 1 9 C1 16 11 20 11 25Z" fill={p.active ? '#d97706' : '#6a5a48'} stroke={p.active ? '#b45309' : '#4a3a2a'} strokeWidth={1}/>
+              <circle cx={11} cy={9} r={3} fill="#f5e6d0" opacity={0.9}/>
+            </g>
+            <text x={0} y={10} textAnchor="middle" fill="#d4c4a0" fontSize={11} fontFamily="var(--font-serif)" fontWeight={p.active ? 600 : 400} opacity={p.active ? 1 : 0.8}>{p.n}</text>
+          </g>
+        ))}
       </svg>
-      {([
-        { x: 25, y: 60, n: 'Терея', active: false },
-        { x: 62, y: 24, n: 'Ворна', active: true },
-        { x: 45, y: 48, n: 'Сольва', active: false },
-        { x: 54, y: 38, n: 'Серая Цапля', active: false },
-      ] as const).map((p, i) => (
-        <div key={i} style={{ position: 'absolute', left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%,-100%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <svg viewBox="0 0 22 26" width={p.active ? 22 : 16} height={p.active ? 26 : 19}>
-            <path d="M11 25 C 11 20 21 16 21 9 A 10 10 0 1 0 1 9 C 1 16 11 20 11 25 Z" fill={p.active ? 'var(--accent)' : 'oklch(0.30 0.04 50)'} />
-            <circle cx="11" cy="9" r="3" fill="oklch(0.95 0.014 85)" />
-          </svg>
-          <div style={{ font: '500 9px var(--font-serif)', color: 'oklch(0.22 0.02 60)', background: 'oklch(0.95 0.014 85 / 0.85)', padding: '1px 4px', borderRadius: 2, marginTop: 1, whiteSpace: 'nowrap', border: p.active ? '1px solid var(--accent)' : 'none' }}>{p.n}</div>
-        </div>
-      ))}
     </div>
   );
 }
