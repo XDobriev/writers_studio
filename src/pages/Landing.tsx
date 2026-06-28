@@ -66,7 +66,7 @@ function LandingNav() {
       </nav>
       <span className="lnd-nav-sep" style={{ width: 1, height: 18, background: 'var(--border-soft)' }} />
       <Link to="/login" className="lnd-nav-login" style={{ fontSize: 13.5, textDecoration: 'none', padding: '12px 6px', margin: '-12px -6px' }}>Войти</Link>
-      <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 44, padding: '0 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать свою книгу</Link>
+      <Link to="/login?tab=signup" className="btn btn--primary lnd-nav-cta" style={{ height: 44, padding: '0 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать свою книгу</Link>
     </header>
   );
 }
