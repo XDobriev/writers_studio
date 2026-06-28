@@ -32,14 +32,20 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
       >
         <div style={{
           height: 180,
-          ...(hasImage
-            ? { backgroundImage: `url(${b.cover})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-            : { background: `linear-gradient(160deg, ${b.cover ?? 'oklch(0.30 0.012 50)'}, oklch(0.20 0.02 50))` }
-          ),
+          ...(!hasImage && { background: `linear-gradient(160deg, ${b.cover ?? 'oklch(0.30 0.012 50)'}, oklch(0.20 0.02 50))` }),
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
           padding: '18px 20px', borderBottom: '1px solid var(--border-soft)',
-          position: 'relative',
+          position: 'relative', overflow: 'hidden',
         }}>
+          {hasImage && (
+            <img
+              src={b.cover!}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          )}
           {hasImage && (
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, oklch(0.08 0.01 50 / 0.85) 0%, transparent 55%)' }} />
           )}
