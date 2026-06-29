@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { timingSafeEqual } from 'node:crypto';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -80,7 +81,10 @@ Deno.serve(async (req) => {
   }
 
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ') || authHeader.slice(7) !== cronSecret) {
+  if (!authHeader?.startsWith('Bearer ')) return json(401, { error: 'unauthorized' });
+  const token = new TextEncoder().encode(authHeader.slice(7));
+  const secret = new TextEncoder().encode(cronSecret);
+  if (token.byteLength !== secret.byteLength || !timingSafeEqual(token, secret)) {
     return json(401, { error: 'unauthorized' });
   }
 
@@ -147,5 +151,5 @@ Deno.serve(async (req) => {
   }
 
   console.log(`[retention-email] done: sent=${sent} failed=${failed.length}`);
-  return json(200, { sent, failed_count: failed.length, failed });
+  return json(200, { sent, failed_count: failed.length });
 });

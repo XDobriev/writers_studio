@@ -5,6 +5,8 @@
 //   UNISENDER_API_KEY — ключ UniSender Go (go.unisender.ru)
 //   EMAIL_FROM        — отправитель, например "Авторская студия <noreply@avtorstudio.com>"
 
+import { timingSafeEqual } from 'node:crypto';
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -95,6 +97,17 @@ ${expiresLine}Транзакция: ${transaction_id}
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
+
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!serviceKey) return json(500, { error: 'server misconfigured' });
+
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return json(401, { error: 'unauthorized' });
+  const token = new TextEncoder().encode(authHeader.slice(7));
+  const expected = new TextEncoder().encode(serviceKey);
+  if (token.byteLength !== expected.byteLength || !timingSafeEqual(token, expected)) {
+    return json(401, { error: 'unauthorized' });
+  }
 
   const apiKey = Deno.env.get('UNISENDER_API_KEY');
   const emailFromRaw = Deno.env.get('EMAIL_FROM') ?? 'Авторская студия <noreply@avtorstudio.com>';

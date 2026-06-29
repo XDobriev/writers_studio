@@ -5,6 +5,9 @@ on:
     - cron: '0 6 */2 * *'   # каждые 2 дня в 06:00 UTC
   workflow_dispatch:          # ручной запуск для проверки
 
+permissions:
+  contents: read
+
 jobs:
   ping:
     runs-on: ubuntu-latest

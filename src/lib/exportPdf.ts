@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import { type Book } from './supabase';
 import { type Chapter } from './chapters';
 import { escapeHtml, addNoIndentToFirst } from './export';
@@ -78,9 +79,10 @@ function buildPrintHtml(book: Book, chapters: Chapter[], opts: PdfBuildOpts): st
     const titleHtml = opts.includeChapterTitles
       ? `<h2 class="chapter-title">${escapeHtml(ch.title)}</h2>`
       : (!isFirst ? '<div style="break-before:page"></div>' : '');
+    const sanitized = DOMPurify.sanitize(ch.content || '');
     const content = opts.pageSize === 'a5'
-      ? addNoIndentToFirst(ch.content || '')
-      : (ch.content || '');
+      ? addNoIndentToFirst(sanitized)
+      : sanitized;
     return `<div class="${isFirst ? 'chapter-first' : 'chapter'}">${titleHtml}${content}</div>`;
   }).join('\n');
 
