@@ -48,9 +48,11 @@ export function Sidebar({
   const dropdownStyle = useDropdownPosition(statusMenuRef, statusMenuFor);
   const [shareToken, setShareToken] = useState<string | null>(book?.share_token ?? null);
   const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   async function handleShare() {
-    if (!book?.id) return;
+    if (!book?.id || sharing) return;
+    setSharing(true);
     const token = crypto.randomUUID();
     try {
       await updateBook(book.id, { share_token: token });
@@ -60,6 +62,8 @@ export function Sidebar({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // оставляем текущее состояние при ошибке
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -71,13 +75,16 @@ export function Sidebar({
   }
 
   async function handleDisable() {
-    if (!book?.id) return;
+    if (!book?.id || sharing) return;
+    setSharing(true);
     try {
       await updateBook(book.id, { share_token: null });
       setShareToken(null);
       setCopied(false);
     } catch {
       // оставляем текущее состояние при ошибке
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -125,6 +132,7 @@ export function Sidebar({
                 <button
                   type="button"
                   onClick={() => void handleDisable()}
+                  disabled={sharing}
                   title="Отключить доступ по ссылке"
                   className="sb-share-btn"
                   style={{ color: 'var(--danger)' }}
@@ -136,6 +144,7 @@ export function Sidebar({
               <button
                 type="button"
                 onClick={() => void handleShare()}
+                disabled={sharing}
                 className="sb-share-btn"
                 style={{ color: 'var(--ink-3)', width: '100%' }}
               >
