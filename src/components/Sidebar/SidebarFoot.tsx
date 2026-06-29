@@ -24,7 +24,7 @@ export function SidebarFoot() {
         >
           <div className="sb-avatar" style={signingOut ? { opacity: 0.5 } : undefined}>
             {avatarUrl
-              ? <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer" />
+              ? <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer" loading="lazy" decoding="async" />
               : initials
             }
           </div>
