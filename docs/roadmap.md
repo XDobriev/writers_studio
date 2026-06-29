@@ -27,10 +27,11 @@ _Обновлён: 2026-06-29_ — §1 монетизация закрыта (о
 - ~~M2: REVOKE admin DEFINER от anon~~ — 16 функций, миграция `20260629`.
 - ~~M5: REVOKE `character_relationships` от anon~~ — миграция `20260629`.
 - ~~M11: `server_tokens off`~~ — nginx (2026-06-29).
+- ~~M3: FK bypass `book_id` на INSERT~~ — миграция `20260630_rls_book_id_ownership.sql`, 11 таблиц (включая `map_stamps`/`writing_snapshots`, проверенные дополнительно), `chapter_versions` через `chapter_id`. Верифицировано симулированными INSERT (своя книга проходит, чужая — `42501`).
 
 **Осталось (backlog, по приоритету):**
 - **H1 (medium на деле): CSP header** — nginx + Vercel. Итеративно через `Report-Only`. Нужна отладка с Telegram/VK iframe.
-- **M3: FK bypass `book_id` на INSERT** — RLS не проверяет владение `book_id`. `WITH CHECK (book_id IN (SELECT id FROM books WHERE user_id = auth.uid()))`.
+- **M3b: тот же book_id-bypass на UPDATE и в `character_relationships`** — найдено при работе над M3, но не входило в её скоуп. UPDATE-политики (`... update own`) на всех 11 таблицах из M3 до сих пор проверяют только `user_id = auth.uid()` — можно UPDATE-ом перепривязать свою же запись на чужой `book_id`. `character_relationships` имеет тот же паттерн INSERT-проверки, что был у M3 (только `user_id`), но не упоминалась в исходном списке M3. Фикс — то же расширение `WITH CHECK`/`USING` по аналогии с миграцией `20260630_rls_book_id_ownership.sql`.
 - **M4: `exportPdf.ts` — `DOMPurify.sanitize(ch.content)`** — self-XSS сейчас, реальный XSS при соавторствах.
 - **M6: `retention-email` — `timingSafeEqual`** вместо `!==` для CRON_SECRET.
 - **M7: `retention-email` — убрать PII из ответа** — возвращать `failed_count`, не email.
