@@ -407,6 +407,7 @@ export default function Dashboard() {
               role="dialog"
               aria-modal="true"
               aria-label="Редактировать книгу"
+              tabIndex={-1}
               className="modal-panel"
               style={{ width: 460 }}
               onClick={(e) => e.stopPropagation()}

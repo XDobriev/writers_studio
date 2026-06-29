@@ -252,6 +252,7 @@ export default function Home() {
             role="dialog"
             aria-modal="true"
             aria-label="Редактировать книгу"
+            tabIndex={-1}
             className="modal-panel"
             style={{ width: 460, maxWidth: 'calc(100vw - 32px)' }}
             onClick={(e) => e.stopPropagation()}
@@ -363,6 +364,7 @@ export default function Home() {
             role="dialog"
             aria-modal="true"
             aria-label="Новая книга"
+            tabIndex={-1}
             className="modal-panel"
             style={{ width: 460, maxWidth: 'calc(100vw - 32px)' }}
             onClick={(e) => e.stopPropagation()}
