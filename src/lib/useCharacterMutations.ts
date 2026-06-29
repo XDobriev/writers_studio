@@ -21,7 +21,7 @@ export function charInfiniteUpdate(
   return { ...prev, pages: prev.pages.map((page) => page.map((c) => (c.id === id ? { ...c, ...patch } as Character : c))) };
 }
 
-export function charInfiniteConfirm(
+function charInfiniteConfirm(
   prev: InfiniteData<Character[]> | undefined,
   updated: Character,
 ): InfiniteData<Character[]> | undefined {
@@ -29,7 +29,7 @@ export function charInfiniteConfirm(
   return { ...prev, pages: prev.pages.map((page) => page.map((c) => (c.id === updated.id ? updated : c))) };
 }
 
-export function charInfiniteAppend(
+function charInfiniteAppend(
   prev: InfiniteData<Character[]> | undefined,
   created: Character,
 ): InfiniteData<Character[]> {
@@ -39,7 +39,7 @@ export function charInfiniteAppend(
   return { ...prev, pages };
 }
 
-export function charInfiniteRemove(
+function charInfiniteRemove(
   prev: InfiniteData<Character[]> | undefined,
   id: string,
 ): InfiniteData<Character[]> | undefined {

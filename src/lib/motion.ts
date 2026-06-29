@@ -36,16 +36,6 @@ export const dropdownVariants: Variants = {
   exit:    { opacity: 0, scale: 0.96, y: -4, transition: { duration: 0.12, ease: 'easeIn' } },
 };
 
-export const cardContainerVariants: Variants = {
-  initial: {},
-  animate: { transition: { staggerChildren: 0.04 } },
-};
-
-export const cardItemVariants: Variants = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0, transition: { ...springCard, duration: 0.4 } },
-};
-
 export const cardHoverTransition: Transition = springCard;
 
 export const heroContainerVariants: Variants = {

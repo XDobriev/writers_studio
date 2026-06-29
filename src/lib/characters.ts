@@ -36,9 +36,7 @@ const repo = createRepository<Character>(
   [{ column: 'position', ascending: true }, { column: 'created_at', ascending: true }],
 );
 
-export function listCharacters(bookId: string, options?: { limit?: number }): Promise<Character[]> {
-  return repo.list(bookId, options);
-}
+
 
 export async function listCharactersPage(bookId: string, from: number, to: number): Promise<Character[]> {
   const { data, error } = await supabase

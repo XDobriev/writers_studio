@@ -7,7 +7,7 @@ export interface ActivitySnapshot {
   words: number;
 }
 
-export interface ActivityCell {
+interface ActivityCell {
   date: string;
   delta: number;
   future: boolean;

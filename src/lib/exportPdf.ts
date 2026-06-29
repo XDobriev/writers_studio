@@ -63,7 +63,7 @@ function getPrintCss(pageSize: PdfPageSize): string {
   `;
 }
 
-export function buildPrintHtml(book: Book, chapters: Chapter[], opts: PdfBuildOpts): string {
+function buildPrintHtml(book: Book, chapters: Chapter[], opts: PdfBuildOpts): string {
   const css = getPrintCss(opts.pageSize);
 
   const titlePage = opts.includeTitlePage

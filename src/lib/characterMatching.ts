@@ -9,7 +9,7 @@
  *   Это покрывает основные падежные окончания русских имён.
  */
 
-export function normalizeAlias(s: string): string {
+function normalizeAlias(s: string): string {
   return s.toLowerCase().replace(/ё/g, 'е');
 }
 
