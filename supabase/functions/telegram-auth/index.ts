@@ -99,7 +99,10 @@ Deno.serve(async (req) => {
   let userId: string | null = null;
   for (let page = 1; page <= 5; page++) {
     const { data: list, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) return json(500, { error: `listUsers failed: ${error.message}` });
+    if (error) {
+      console.error('[telegram-auth] listUsers failed:', error.message);
+      return json(500, { error: 'auth lookup failed' });
+    }
     const hit = list.users.find((u) => u.email === email);
     if (hit) { userId = hit.id; break; }
     if (list.users.length < 200) break;
@@ -111,7 +114,10 @@ Deno.serve(async (req) => {
       email_confirm: true,
       user_metadata: meta,
     });
-    if (error || !created.user) return json(500, { error: `createUser failed: ${error?.message ?? 'unknown'}` });
+    if (error || !created.user) {
+      console.error('[telegram-auth] createUser failed:', error?.message ?? 'unknown');
+      return json(500, { error: 'account creation failed' });
+    }
     userId = created.user.id;
   } else {
     await admin.auth.admin.updateUserById(userId, { user_metadata: meta });
@@ -122,7 +128,8 @@ Deno.serve(async (req) => {
     email,
   });
   if (linkErr || !link.properties) {
-    return json(500, { error: `generateLink failed: ${linkErr?.message ?? 'unknown'}` });
+    console.error('[telegram-auth] generateLink failed:', linkErr?.message ?? 'unknown');
+    return json(500, { error: 'login link generation failed' });
   }
 
   return json(200, {

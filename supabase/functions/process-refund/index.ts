@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
     const data = await res.json() as { success?: boolean; message?: string; requestId?: string };
     if (!data.success || !data.requestId) {
       console.error('[process-refund] Robokassa rejected:', JSON.stringify(data));
-      return json(502, { error: 'robokassa_error', message: data.message ?? 'rejected' });
+      return json(502, { error: 'robokassa_error' });
     }
     requestId = data.requestId;
   } catch (e) {

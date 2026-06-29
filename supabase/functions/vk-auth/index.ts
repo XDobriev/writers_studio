@@ -124,7 +124,10 @@ Deno.serve(async (req) => {
   let existingAppMeta: Record<string, unknown> | null = null;
   for (let page = 1; page <= 5; page++) {
     const { data: list, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) return json(500, { error: `listUsers failed: ${error.message}` });
+    if (error) {
+      console.error('[vk-auth] listUsers failed:', error.message);
+      return json(500, { error: 'auth lookup failed' });
+    }
     const hit = list.users.find((u) => u.email === email);
     if (hit) {
       userId = hit.id;
@@ -143,7 +146,10 @@ Deno.serve(async (req) => {
       user_metadata: meta,
       app_metadata: appMeta,
     });
-    if (error || !created.user) return json(500, { error: `createUser failed: ${error?.message ?? 'unknown'}` });
+    if (error || !created.user) {
+      console.error('[vk-auth] createUser failed:', error?.message ?? 'unknown');
+      return json(500, { error: 'account creation failed' });
+    }
     userId = created.user.id;
   } else {
     // Guard: vk_id in app_metadata is set by this function and not overridden by Supabase.
@@ -155,7 +161,10 @@ Deno.serve(async (req) => {
       user_metadata: meta,
       app_metadata: appMeta,
     });
-    if (updateErr) return json(500, { error: `updateUser failed: ${updateErr.message}` });
+    if (updateErr) {
+      console.error('[vk-auth] updateUser failed:', updateErr.message);
+      return json(500, { error: 'account update failed' });
+    }
   }
 
   const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
@@ -163,7 +172,8 @@ Deno.serve(async (req) => {
     email,
   });
   if (linkErr || !link.properties) {
-    return json(500, { error: `generateLink failed: ${linkErr?.message ?? 'unknown'}` });
+    console.error('[vk-auth] generateLink failed:', linkErr?.message ?? 'unknown');
+    return json(500, { error: 'login link generation failed' });
   }
 
   return json(200, { token_hash: link.properties.hashed_token, email });

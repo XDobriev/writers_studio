@@ -99,7 +99,8 @@ Deno.serve(async (req) => {
     : BASE_PRICES[plan];
   // BILLING_TEST_AMOUNT — тест-override суммы (напр. 1₽ для E2E). Установить Secret → удалить после теста.
   const outSum = Deno.env.get('BILLING_TEST_AMOUNT') ?? baseOutSum;
-  const invId       = String(Date.now());
+  // Числовой InvId с случайным суффиксом — Робокасса требует целое число, поэтому не UUID.
+  const invId       = String(Date.now()) + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
   const shpPlan     = plan;
   const shpUserId   = user.id;
   const result2Url  = `${supabaseUrl}/functions/v1/payment-result2`;
