@@ -58,8 +58,8 @@ export function ActivityHeatmap({ activityData }: ActivityHeatmapProps) {
                   left: `calc(22px + ${col} * (100% - 22px) / ${visibleWeeks})`,
                   top: 0,
                   lineHeight: '14px',
-                  font: '400 9px var(--font-mono)',
-                  color: 'var(--ink-2)',
+                  font: '400 11px var(--font-mono)',
+                  color: 'oklch(0.72 0.012 60)',
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -126,11 +126,11 @@ export function ActivityHeatmap({ activityData }: ActivityHeatmapProps) {
 
           {/* Intensity legend */}
           <div style={{ paddingLeft: 22, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 3, marginTop: 2 }}>
-            <span style={{ font: '400 9px var(--font-mono)', color: 'var(--ink-4)', marginRight: 3 }}>меньше</span>
+            <span style={{ font: '400 11px var(--font-mono)', color: 'oklch(0.72 0.012 60)', marginRight: 3 }}>меньше</span>
             {(['var(--surface-3)', 'oklch(0.63 0.16 30 / 0.28)', 'oklch(0.63 0.16 30 / 0.52)', 'oklch(0.63 0.16 30 / 0.76)', 'var(--accent)'] as const).map((bg, i) => (
               <div key={i} style={{ width: 8, height: 8, borderRadius: 2, background: bg, flexShrink: 0 }} />
             ))}
-            <span style={{ font: '400 9px var(--font-mono)', color: 'var(--ink-4)', marginLeft: 3 }}>больше</span>
+            <span style={{ font: '400 11px var(--font-mono)', color: 'oklch(0.72 0.012 60)', marginLeft: 3 }}>больше</span>
           </div>
 
           {/* Cumulative volume line chart */}
@@ -162,7 +162,7 @@ export function ActivityHeatmap({ activityData }: ActivityHeatmapProps) {
                   <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
                   <circle cx={toX(pts.length - 1)} cy={toY(pts[pts.length - 1].words)} r="1.8" fill="var(--accent)" />
                 </svg>
-                <div style={{ display: 'flex', justifyContent: 'space-between', font: '400 10px var(--font-mono)', color: 'var(--ink-4)', marginTop: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', font: '400 10px var(--font-mono)', color: 'oklch(0.68 0.012 60)', marginTop: 4 }}>
                   <span>{fmtNumber(pts[0].words)} {plural(pts[0].words, 'слово', 'слова', 'слов')}</span>
                   <span>{fmtNumber(pts[pts.length - 1].words)} {plural(pts[pts.length - 1].words, 'слово', 'слова', 'слов')} сейчас</span>
                 </div>
