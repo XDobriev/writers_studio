@@ -72,6 +72,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
         role="dialog"
         aria-modal="true"
         aria-label="Перейти на Pro"
+        tabIndex={-1}
         style={{
           background: 'var(--bg)', border: '1px solid var(--border)',
           borderRadius: 14, width: 360, maxWidth: '100%',

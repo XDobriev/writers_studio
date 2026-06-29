@@ -50,6 +50,7 @@ export function UpgradePrompt({ open, feature, onClose }: { open: boolean; featu
             role="dialog"
             aria-modal="true"
             aria-label={title}
+            tabIndex={-1}
             variants={modalPanelVariants}
             style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '28px 32px', width: 380, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 48px oklch(0 0 0 / 0.4)' }}
             onClick={(e) => e.stopPropagation()}
