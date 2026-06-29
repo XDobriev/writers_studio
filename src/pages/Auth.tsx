@@ -1,12 +1,18 @@
 import { Link } from 'react-router-dom';
 import { useResponsive } from '../lib/useResponsive';
 import { usePostAuthRedirect } from '../lib/usePostAuthRedirect';
+import { usePageMeta } from '../lib/usePageMeta';
 import { LogoMark } from '../components/LogoMark';
 import { AuthForm } from '../components/AuthForm';
 
 export default function Auth() {
   const { redirectingToPay } = usePostAuthRedirect();
   const { isMobile } = useResponsive();
+  usePageMeta({
+    title: 'Вход — Авторская студия',
+    description: 'Войдите или создайте аккаунт. Email, Telegram, ВКонтакте.',
+    path: '/login',
+  });
 
   if (redirectingToPay) {
     return (

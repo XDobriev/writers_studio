@@ -23,6 +23,7 @@ const ROUTES = [
   { path: '/', out: 'index.html' },
   { path: '/privacy', out: 'privacy/index.html' },
   { path: '/terms', out: 'terms/index.html' },
+  { path: '/offer', out: 'offer/index.html' },
 ];
 
 if (!existsSync(DIST)) {

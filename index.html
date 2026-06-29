@@ -6,6 +6,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#1a1a22" />
     <meta name="google-site-verification" content="wvMyN9CUTGAGAtgq20p056MClRMU9Tc702f1est0cjo" />
     <meta name="yandex-verification" content="9df4874f3a7e6b28" />
     <meta name="mailru-domain" content="BXhFkDF43tuJRaZc" />
@@ -44,11 +45,20 @@
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Web",
         "inLanguage": "ru",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "RUB"
-        }
+        "offers": [
+          { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "RUB", "description": "1 книга, 3 персонажа, экспорт TXT/HTML" },
+          { "@type": "Offer", "name": "Pro", "price": "399", "priceCurrency": "RUB", "description": "Безлимит книг и персонажей, экспорт EPUB/FB2/DOCX, хронология, карта мира" },
+          { "@type": "Offer", "name": "Lifetime", "price": "4990", "priceCurrency": "RUB", "description": "Все возможности Pro навсегда, единоразовый платёж" }
+        ]
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Авторская студия",
+        "url": "https://avtorstudio.com",
+        "logo": "https://avtorstudio.com/favicon.svg",
+        "email": "hello@avtorstudio.com",
+        "sameAs": ["https://t.me/avtorstudio_app", "https://vk.com/avtorstudio_app"]
       },
       {
         "@context": "https://schema.org",
@@ -160,7 +170,7 @@
       (function () {
         try {
           var p = location.pathname.replace(/\/+$/, '') || '/';
-          var prerendered = p === '/' || p === '/privacy' || p === '/terms';
+          var prerendered = p === '/' || p === '/privacy' || p === '/terms' || p === '/offer';
           // Update canonical to current page for non-prerendered routes
           var c = document.querySelector('link[rel="canonical"]');
           if (c && !prerendered) c.href = location.origin + p;

@@ -22,6 +22,7 @@ export default function Landing() {
       <LandingNav />
       <main>
         <LandingHero />
+        <LandingTrust />
         <LandingFeatures />
         <LandingProcess />
         <LandingPrinciples />
@@ -137,7 +138,7 @@ function LandingHero() {
             </motion.div>
             <motion.div variants={heroItemVariants}>
               <p style={{ font: '400 13px/1.5 var(--font-ui)', color: 'var(--ink-2)', margin: 0 }}>
-                Открытая бета: все функции без ограничений, без привязки карты.
+                Бесплатный план — навсегда. Без привязки карты, без триала.
               </p>
             </motion.div>
             <div className="lnd-hero-mobile-card" aria-hidden="true">
@@ -191,6 +192,30 @@ function FloatingSheet({ tiltRef }: { tiltRef: React.RefObject<HTMLDivElement> }
       </div>
       </div>
     </div>
+  );
+}
+
+// ─── Trust bar ───────────────────────────────────────────────────────────────
+
+const TRUST_ITEMS = [
+  { icon: 'feather' as const, text: 'Без нейросети' },
+  { icon: 'save' as const, text: 'Автосохранение' },
+  { icon: 'download' as const, text: 'Экспорт в любой момент' },
+  { icon: 'shield' as const, text: 'Данные — ваши' },
+];
+
+function LandingTrust() {
+  return (
+    <section style={{ padding: '28px clamp(20px,4vw,56px)', background: 'var(--bg)', borderBottom: '1px solid var(--border-soft)' }}>
+      <div className="lnd-max" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '20px 40px' }}>
+        {TRUST_ITEMS.map((t) => (
+          <div key={t.text} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name={t.icon} size={15} />
+            <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink-2)', letterSpacing: '0.01em' }}>{t.text}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -280,7 +305,7 @@ function LandingEmailCapture() {
         viewport={{ once: true, margin: '-80px' }}
       >
         <h2 style={{ font: '600 clamp(26px,3vw,40px)/1.08 var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 12, color: 'var(--ink)' }}>
-          Следите за развитием студии.
+          Письма для авторов.
         </h2>
         <p style={{ font: '400 15px/1.6 var(--font-serif)', color: 'var(--ink-2)', marginBottom: 28 }}>
           Обновления, новые фичи, закрытые приглашения. Не чаще раза в месяц.
@@ -385,6 +410,7 @@ function LandingFAQ() {
 // ─── CTA ──────────────────────────────────────────────────────────────────────
 
 function LandingCTA() {
+  const navigate = useNavigate();
   const decoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -418,8 +444,8 @@ function LandingCTA() {
           Бесплатно, без карты, без 14-дневного триала. Регистрация в три клика — и у вас открыт первый лист.
         </p>
         <div style={{ display: 'inline-flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <SpotlightButton className="btn btn--primary" style={{ height: 50, padding: '0 28px', fontSize: 15, display: 'inline-flex', alignItems: 'center' }}>
-            <Link to="/login?tab=signup" style={{ color: 'inherit', textDecoration: 'none' }}>Начать свою книгу</Link>
+          <SpotlightButton className="btn btn--primary" style={{ height: 50, padding: '0 28px', fontSize: 15, display: 'inline-flex', alignItems: 'center' }} onClick={() => navigate('/login?tab=signup')}>
+            Начать свою книгу
           </SpotlightButton>
           <Link to="/login" className="btn" style={{ height: 50, padding: '0 22px', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <Icon name="eye" size={15} /> Войти

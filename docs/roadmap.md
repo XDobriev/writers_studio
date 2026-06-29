@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-28_ — §1 монетизация закрыта (оплата, возврат, рекурренты E2E). §1.7 рекурренты закрыты (E2E боевая проверка 1₽ → webhook → plan_expires_at +30 дней). §7 отмена подписки MVP закрыта. `GRANDFATHERING_ENDS_AT=2026-09-01` выставлен. Ближайшее пред-запусковое действие — ручное тестирование (§2).
+_Обновлён: 2026-06-29_ — §1 монетизация закрыта (оплата, возврат, рекурренты E2E). §1.7 рекурренты закрыты (E2E боевая проверка 1₽ → webhook → plan_expires_at +30 дней). §7 отмена подписки MVP закрыта. `GRANDFATHERING_ENDS_AT=2026-09-01` выставлен. Ближайшее пред-запусковое действие — ручное тестирование (§2).
 
 История: Robokassa полный цикл (оплата → план → `op_key` → возврат → рекурренты → отмена); VK ID авторизация (OAuth 2.1 + PKCE). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
@@ -14,9 +14,31 @@ _Обновлён: 2026-06-28_ — §1 монетизация закрыта (о
 
 ### Security-хардениг после публикации репо (анон-ключ открыт)
 
-**Контекст:** репозиторий публичный → `VITE_SUPABASE_ANON_KEY` открыт. Два живых эксплойта на RPC уже закрыты (`20260627_revoke_anon_security_definer_rpcs.sql`: `decrement_lifetime_slot`, `get_inactive_users_for_retention`). ~~Storage buckets listing~~ закрыт (2026-06-28, DROP POLICY на 3 бакета). ~~SSH~~ уже настроен (fail2ban + PasswordAuthentication no). Осталось:
-- **Leaked password protection** — требует Supabase Pro план. Включить после апгрейда.
-- _(опц.)_ Defense-in-depth: REVOKE EXECUTE FROM anon у guard-нутых admin-RPC (`authenticated` оставить — их вызывает админ).
+**Контекст:** репозиторий публичный → `VITE_SUPABASE_ANON_KEY` открыт. Полный security review проведён 2026-06-29.
+
+**Закрыто:**
+- ~~`decrement_lifetime_slot` + `get_inactive_users_for_retention`~~ — REVOKE в `20260627`.
+- ~~Storage buckets listing~~ — DROP POLICY (2026-06-28).
+- ~~SSH~~ — fail2ban + PasswordAuthentication no.
+- ~~H3: GitHub Actions SHA pinning~~ — все actions привязаны к SHA (2026-06-29).
+- ~~H2: Rate limiting `/sb/auth/`~~ — `limit_req_zone sb_auth 5r/s` в nginx (2026-06-29).
+- ~~H4: GRANT TO authenticated 12 таблиц~~ — миграция `20260629_security_hardening.sql`.
+- ~~M1: Security headers в static/fallback locations~~ — продублированы в nginx (2026-06-29).
+- ~~M2: REVOKE admin DEFINER от anon~~ — 16 функций, миграция `20260629`.
+- ~~M5: REVOKE `character_relationships` от anon~~ — миграция `20260629`.
+- ~~M11: `server_tokens off`~~ — nginx (2026-06-29).
+
+**Осталось (backlog, по приоритету):**
+- **H1 (medium на деле): CSP header** — nginx + Vercel. Итеративно через `Report-Only`. Нужна отладка с Telegram/VK iframe.
+- **M3: FK bypass `book_id` на INSERT** — RLS не проверяет владение `book_id`. `WITH CHECK (book_id IN (SELECT id FROM books WHERE user_id = auth.uid()))`.
+- **M4: `exportPdf.ts` — `DOMPurify.sanitize(ch.content)`** — self-XSS сейчас, реальный XSS при соавторствах.
+- **M6: `retention-email` — `timingSafeEqual`** вместо `!==` для CRON_SECRET.
+- **M7: `retention-email` — убрать PII из ответа** — возвращать `failed_count`, не email.
+- **M8: `payment-confirmation` — ограничить вызов service_role** — сейчас любой authenticated может отправить поддельное письмо.
+- **M9: GitHub Actions `permissions: { contents: read }`** — минимальные права GITHUB_TOKEN.
+- **M10: SSH host key pinning в deploy** — зафиксировать fingerprint VPS в secret.
+- **L1–L10** — санитизация ошибок третьих сторон, SSL ciphers, OCSP stapling и др. (см. security review).
+- **Leaked password protection** — требует Supabase Pro план.
 
 ---
 
@@ -136,6 +158,29 @@ _Обновлён: 2026-06-28_ — §1 монетизация закрыта (о
 **Файлы:** новая `supabase/functions/retention-trigger/index.ts`  
 **Проверить:** вызвать функцию вручную для тестового аккаунта → письмо приходит с правильным именем книги  
 **Deps:** §4 (email-механика), UniSender Go API-ключ в Supabase Vault
+
+---
+
+### 5.5. SEO/маркетинг — после первых 100 пользователей
+
+> Остатки аудита от 2026-06-29. P0-P1 закрыты, ниже — отложенные P2-P3.
+
+| # | Категория | Действие |
+|---|-----------|----------|
+| 1 | Structured Data | Сменить `@type` на `WebApplication` (подтип SoftwareApplication) |
+| 2 | AI SEO | llms.txt: добавить Telegram/VK ссылки в тело |
+| 3 | AI SEO | pricing.md: упомянуть ранние цены (grandfathering до 01.09) |
+| 4 | Technical SEO | `<link rel="alternate" hreflang="ru">` (не критично для моноязычного) |
+| 5 | Structured Data | BreadcrumbList schema для /offer, /terms, /privacy |
+| 6 | Structured Data | AggregateRating — после сбора реальных отзывов |
+| 7 | Content | Видео-демо продукта (60–90s screencast) в Hero или Features |
+| 8 | Content | Синхронизировать FAQ schema.org и JSX (расхождение в Q9) |
+| 9 | Content | Завести /blog или /changelog для SEO длинного хвоста |
+| 10 | AI SEO | llms-full.txt с расширенным описанием фичей и use-cases |
+| 11 | Конверсия | Публичная демо-книга (read-only) или интерактивный preview без регистрации |
+| 12 | Конверсия | Exit-intent popup с email capture |
+| 13 | Technical SEO | Генерировать sitemap.xml при build (сейчас ручные lastmod) |
+| 14 | Technical SEO | Сгенерировать PNG-иконки 192×192 и 512×512 из favicon.svg (manifest.json уже ссылается) |
 
 ---
 

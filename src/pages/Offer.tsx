@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { LogoMark } from '../components/LogoMark';
+import { usePageMeta } from '../lib/usePageMeta';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -16,11 +16,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function Offer() {
-  useEffect(() => {
-    const prev = document.title;
-    document.title = 'Публичная оферта — Авторская студия';
-    return () => { document.title = prev; };
-  }, []);
+  usePageMeta({
+    title: 'Публичная оферта — Авторская студия',
+    description: 'Тарифы и условия: Free (бесплатно), Pro (399 ₽/мес), Lifetime (4 990 ₽). Публичная оферта.',
+    path: '/offer',
+  });
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', padding: '56px 24px' }}>
       <div style={{ maxWidth: 680, margin: '0 auto' }}>

@@ -1,13 +1,13 @@
-import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { LogoMark } from '../components/LogoMark';
+import { usePageMeta } from '../lib/usePageMeta';
 
 export default function Privacy() {
-  useEffect(() => {
-    const prev = document.title;
-    document.title = 'Политика конфиденциальности — Авторская студия';
-    return () => { document.title = prev; };
-  }, []);
+  usePageMeta({
+    title: 'Политика конфиденциальности — Авторская студия',
+    description: 'Политика конфиденциальности Авторской студии. Какие данные собираем, как храним и защищаем.',
+    path: '/privacy',
+  });
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', padding: '56px 24px' }}>
       <div style={{ maxWidth: 680, margin: '0 auto' }}>

@@ -48,6 +48,16 @@
 URL: https://avtorstudio.com
 Язык: русский
 
+## Сообщество
+
+- Telegram-канал: https://t.me/avtorstudio_app
+- ВКонтакте: https://vk.com/avtorstudio_app
+- Поддержка: hello@avtorstudio.com
+
+## Подробнее о тарифах
+
+→ /pricing.md — детальное сравнение Free / Pro / Lifetime с таблицей.
+
 ## Ссылки
 
 - [Главная страница](https://avtorstudio.com/)
