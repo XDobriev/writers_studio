@@ -53,6 +53,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
             role="dialog"
             aria-modal="true"
             aria-label="Настройки"
+            tabIndex={-1}
             variants={modalPanelVariants}
             style={{
               background: 'var(--bg)', border: '1px solid var(--border)',

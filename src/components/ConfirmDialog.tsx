@@ -44,6 +44,7 @@ export function ConfirmDialog({ message, onConfirm, onCancel, open, confirmLabel
             role="dialog"
             aria-modal="true"
             aria-label="Подтверждение действия"
+            tabIndex={-1}
             variants={modalPanelVariants}
             style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '24px 28px', width: 360, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 48px oklch(0 0 0 / 0.4)' }}
             onClick={(e) => e.stopPropagation()}
