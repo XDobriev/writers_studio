@@ -481,7 +481,7 @@ export default function Corkboard() {
             {chapters && chapters.length > 0 && (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
                 <SortableContext items={chapters.map((c) => c.id)} strategy={rectSortingStrategy}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: isMobile ? 14 : 20 }}>
                     {visible.map((c) => {
                       const index = chapters.findIndex((x) => x.id === c.id);
                       return (
