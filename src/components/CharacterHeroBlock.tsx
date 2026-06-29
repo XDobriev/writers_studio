@@ -236,6 +236,7 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError }: {
                   type="button"
                   onClick={() => removeAlias(alias)}
                   className="alias-remove-btn"
+                  aria-label={`Удалить псевдоним ${alias}`}
                 >
                   ×
                 </button>
