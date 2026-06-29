@@ -7,7 +7,7 @@
  * Usage: node scripts/prerender.mjs
  * Requires: npx playwright install chromium (run once locally or in CI)
  *
- * Routes rendered: /, /privacy, /terms
+ * Routes rendered: /, /privacy, /terms, /offer, /changelog
  */
 
 import { chromium } from '@playwright/test';
@@ -24,6 +24,7 @@ const ROUTES = [
   { path: '/privacy', out: 'privacy/index.html' },
   { path: '/terms', out: 'terms/index.html' },
   { path: '/offer', out: 'offer/index.html' },
+  { path: '/changelog', out: 'changelog/index.html' },
 ];
 
 if (!existsSync(DIST)) {

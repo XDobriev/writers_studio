@@ -39,6 +39,7 @@
 - /offer: Тарифы, цены и условия оферты
 - /login: Вход и регистрация (бесплатно, без подтверждения email)
 - /privacy: Политика конфиденциальности
+- /changelog: История изменений
 
 ## Технически
 
@@ -58,10 +59,16 @@ URL: https://avtorstudio.com
 
 → /pricing.md — детальное сравнение Free / Pro / Lifetime с таблицей.
 
+## Подробнее о возможностях
+
+→ /llms-full.txt — расширенное описание всех фич, сценариев использования и FAQ.
+
 ## Ссылки
 
 - [Главная страница](https://avtorstudio.com/)
 - [Тарифы и оферта](https://avtorstudio.com/offer)
 - [Вход и регистрация](https://avtorstudio.com/login)
 - [Политика конфиденциальности](https://avtorstudio.com/privacy)
+- [Telegram-канал](https://t.me/avtorstudio_app)
+- [ВКонтакте](https://vk.com/avtorstudio_app)
 - [Условия использования](https://avtorstudio.com/terms)

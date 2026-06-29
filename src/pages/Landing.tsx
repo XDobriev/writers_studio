@@ -10,6 +10,7 @@ import { SpotlightButton } from '../components/SpotlightButton';
 import { LandingFeatures } from '../components/LandingFeaturesSection';
 import { LandingProcess } from '../components/LandingProcessSection';
 import { LandingPricing } from '../components/LandingPricingSection';
+import { ExitIntentPopup } from '../components/ExitIntentPopup';
 
 export default function Landing() {
   const { session, initializing } = useAuth();
@@ -32,6 +33,7 @@ export default function Landing() {
         <LandingCTA />
       </main>
       <LandingFooter />
+      <ExitIntentPopup />
     </div>
   );
 }
@@ -494,6 +496,7 @@ function LandingFooter() {
               { label: 'Возможности', href: '#features' },
               { label: 'Цены', href: '#pricing' },
               { label: 'Вопросы', href: '#faq' },
+              { label: 'История изменений', href: '/changelog' },
             ]],
             ['Авторам', [
               { label: 'Войти', href: '/login' },

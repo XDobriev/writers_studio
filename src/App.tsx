@@ -31,6 +31,7 @@ const Admin           = lazy(() => import('./pages/Admin'));
 const AdminUserDetail = lazy(() => import('./pages/AdminUserDetail'));
 const Privacy    = lazy(() => import('./pages/Privacy'));
 const Terms      = lazy(() => import('./pages/Terms'));
+const Changelog  = lazy(() => import('./pages/Changelog'));
 const Offer      = lazy(() => import('./pages/Offer'));
 const ShareBook  = lazy(() => import('./pages/ShareBook'));
 const NotFound       = lazy(() => import('./pages/NotFound'));
@@ -90,6 +91,7 @@ function AnimatedRoutes() {
         <Route path="/admin/users/:userId" element={<PageMotion><Guard><AdminUserDetail /></Guard></PageMotion>} />
         <Route path="/privacy" element={<PageMotion><Privacy /></PageMotion>} />
         <Route path="/terms" element={<PageMotion><Terms /></PageMotion>} />
+        <Route path="/changelog" element={<PageMotion><Changelog /></PageMotion>} />
         <Route path="/offer" element={<PageMotion><Offer /></PageMotion>} />
         <Route path="/payment-success" element={<PageMotion><Guard><PaymentSuccess /></Guard></PageMotion>} />
         <Route path="*" element={<PageMotion><NotFound /></PageMotion>} />

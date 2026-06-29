@@ -29,16 +29,29 @@ _Обновлён: 2026-06-29_ — §1 монетизация закрыта (о
 - ~~M11: `server_tokens off`~~ — nginx (2026-06-29).
 - ~~M3: FK bypass `book_id` на INSERT~~ — миграция `20260630_rls_book_id_ownership.sql`, 11 таблиц (включая `map_stamps`/`writing_snapshots`, проверенные дополнительно), `chapter_versions` через `chapter_id`. Верифицировано симулированными INSERT (своя книга проходит, чужая — `42501`).
 
+**Закрыто (продолжение):**
+- ~~M9: GitHub Actions `permissions: { contents: read }`~~ — добавлено во все 4 workflow-файла.
+- ~~M10: SSH host key pinning~~ — `deploy-timeweb.yml` использует `VPS_HOST_KEY` secret вместо `ssh-keyscan`.
+- ~~L1: `process-refund` — generic-сообщение~~ — `message: data.message` убран из ответа, детали только в `console.error`. Задеплоено.
+- ~~L2: `telegram-auth`/`vk-auth` — generic-сообщения~~ — все 7 мест (`listUsers`/`createUser`/`updateUser`/`generateLink` failed) больше не пробрасывают `error.message` клиенту. Задеплоено.
+- ~~L3: непредсказуемый InvId в `create-payment-url`~~ — добавлен случайный 3-значный суффикс (тот же паттерн, что уже в `billing-scheduler`). **Не переходили на `crypto.randomUUID()`** — Робокасса требует числовой InvId, UUID сломал бы подпись. Задеплоено.
+- ~~L5: SSL ciphers в nginx~~ — Mozilla recommended cipher suite добавлен.
+- ~~L6: `ssl_stapling`/`ssl_session_cache`~~ — добавлены вместе с `ssl_trusted_certificate` (chain.pem) и `resolver`, без которых `ssl_stapling_verify` не работает.
+
 **Осталось (backlog, по приоритету):**
-- **H1 (medium на деле): CSP header** — nginx + Vercel. Итеративно через `Report-Only`. Нужна отладка с Telegram/VK iframe.
+- **H1: CSP header** — nginx + Vercel. План:
+  1. Составить CSP с `Content-Security-Policy-Report-Only` → задеплоить
+  2. Открыть приложение → собрать нарушения в DevTools Console за 2-3 дня реального трафика
+  3. Разрешить источники: `telegram.org` (iframe виджета), `id.vk.com` (SDK), `*.sentry.io` (мониторинг), `'unsafe-inline'` для стилей, `blob:`/`data:` для изображений
+  4. Переключить на enforcement (`Content-Security-Policy`) только после отсутствия ложных срабатываний
+  5. Продублировать заголовок в `vercel.json` — иначе резервный прод на Vercel останется без защиты
+  **Риск без плана:** включить строгий CSP сразу на блокировку может сломать вход через VK/Telegram без предупреждения.
 - **M3b: тот же book_id-bypass на UPDATE и в `character_relationships`** — найдено при работе над M3, но не входило в её скоуп. UPDATE-политики (`... update own`) на всех 11 таблицах из M3 до сих пор проверяют только `user_id = auth.uid()` — можно UPDATE-ом перепривязать свою же запись на чужой `book_id`. `character_relationships` имеет тот же паттерн INSERT-проверки, что был у M3 (только `user_id`), но не упоминалась в исходном списке M3. Фикс — то же расширение `WITH CHECK`/`USING` по аналогии с миграцией `20260630_rls_book_id_ownership.sql`.
 - **M4: `exportPdf.ts` — `DOMPurify.sanitize(ch.content)`** — self-XSS сейчас, реальный XSS при соавторствах.
 - **M6: `retention-email` — `timingSafeEqual`** вместо `!==` для CRON_SECRET.
 - **M7: `retention-email` — убрать PII из ответа** — возвращать `failed_count`, не email.
 - **M8: `payment-confirmation` — ограничить вызов service_role** — сейчас любой authenticated может отправить поддельное письмо.
-- **M9: GitHub Actions `permissions: { contents: read }`** — минимальные права GITHUB_TOKEN.
-- **M10: SSH host key pinning в deploy** — зафиксировать fingerprint VPS в secret.
-- **L1–L10** — санитизация ошибок третьих сторон, SSL ciphers, OCSP stapling и др. (см. security review).
+- _(информационные, без действия)_ L4 (X-XSS-Protection deprecated), L7 (хардкод ADMIN_EMAIL — UI-only), L8 (profiles без DELETE policy), L9 (listUsers пагинация O(N)), L10 (waitlist email enumeration — типично для форм).
 - **Leaked password protection** — требует Supabase Pro план.
 
 ---
@@ -164,24 +177,16 @@ _Обновлён: 2026-06-29_ — §1 монетизация закрыта (о
 
 ### 5.5. SEO/маркетинг — после первых 100 пользователей
 
-> Остатки аудита от 2026-06-29. P0-P1 закрыты, ниже — отложенные P2-P3.
+> Аудит от 2026-06-29. Большая часть закрыта 2026-06-30: WebApplication schema,
+> BreadcrumbList (/offer, /terms, /privacy), hreflang=ru, FAQ Q9 синхронизирован,
+> llms.txt/pricing.md дополнены (TG/VK, grandfathering), llms-full.txt создан,
+> sitemap.xml генерируется при build (`scripts/generate-sitemap.mjs`), exit-intent
+> popup на лендинге, PNG-иконки 192/512, `/changelog` (история изменений, пререндерится).
 
-| # | Категория | Действие |
-|---|-----------|----------|
-| 1 | Structured Data | Сменить `@type` на `WebApplication` (подтип SoftwareApplication) |
-| 2 | AI SEO | llms.txt: добавить Telegram/VK ссылки в тело |
-| 3 | AI SEO | pricing.md: упомянуть ранние цены (grandfathering до 01.09) |
-| 4 | Technical SEO | `<link rel="alternate" hreflang="ru">` (не критично для моноязычного) |
-| 5 | Structured Data | BreadcrumbList schema для /offer, /terms, /privacy |
-| 6 | Structured Data | AggregateRating — после сбора реальных отзывов |
-| 7 | Content | Видео-демо продукта (60–90s screencast) в Hero или Features |
-| 8 | Content | Синхронизировать FAQ schema.org и JSX (расхождение в Q9) |
-| 9 | Content | Завести /blog или /changelog для SEO длинного хвоста |
-| 10 | AI SEO | llms-full.txt с расширенным описанием фичей и use-cases |
-| 11 | Конверсия | Публичная демо-книга (read-only) или интерактивный preview без регистрации |
-| 12 | Конверсия | Exit-intent popup с email capture |
-| 13 | Technical SEO | Генерировать sitemap.xml при build (сейчас ручные lastmod) |
-| 14 | Technical SEO | Сгенерировать PNG-иконки 192×192 и 512×512 из favicon.svg (manifest.json уже ссылается) |
+**Осталось (P3, по приоритету):**
+- **AggregateRating schema** — нужны реальные отзывы пользователей, сбор не начат.
+- **Видео-демо продукта** (60–90s screencast в Hero/Features) — ручная задача (запись + монтаж), не код.
+- **Публичная демо-книга / интерактивный preview без регистрации** — крупная фича (sample-контент, read-only режим, риск пути ShareBook.tsx); отложена по решению пользователя 2026-06-30, требует отдельного скоупинга перед реализацией.
 
 ---
 

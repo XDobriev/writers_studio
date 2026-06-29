@@ -13,6 +13,7 @@
     <title>Авторская студия — редактор для писателей</title>
     <meta name="description" content="Редактор для писателей на русском. Главы, персонажи, хронология, статистика — всё в одном месте. Ваш Scrivener в браузере." />
     <link rel="canonical" href="https://avtorstudio.com/" />
+    <link rel="alternate" hreflang="ru" href="https://avtorstudio.com/" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 
     <!-- Open Graph (Telegram, ВКонтакте, Discord) -->
@@ -33,17 +34,19 @@
     <meta name="twitter:description" content="Пишите книги удобно. Главы, персонажи, хронология и статистика — всё в одном месте." />
     <meta name="twitter:image" content="https://avtorstudio.com/og.png" />
 
-    <!-- Schema.org: SoftwareApplication + FAQPage -->
+    <!-- Schema.org: WebApplication + FAQPage + BreadcrumbList -->
     <script type="application/ld+json">
     [
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
+        "@type": "WebApplication",
+        "additionalType": "https://schema.org/SoftwareApplication",
         "name": "Авторская студия",
         "url": "https://avtorstudio.com",
         "description": "Редактор для писателей на русском. Главы, персонажи, хронология, статистика — всё в одном месте.",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Web",
+        "browserRequirements": "Requires JavaScript. Works in modern browsers (Chrome, Firefox, Safari, Edge).",
         "inLanguage": "ru",
         "offers": [
           { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "RUB", "description": "1 книга, 3 персонажа, экспорт TXT/HTML" },
@@ -133,9 +136,33 @@
             "name": "Если я нашёл баг или хочу предложить фичу?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Напишите на почту или оставьте запрос на GitHub — ответ обычно в течение суток. Pro-подписчики попадают в закрытый Telegram-чат с разработчиком напрямую и влияют на приоритеты следующих версий."
+              "text": "Напишите на почту или в Telegram — ответ обычно в течение суток. Pro-подписчики попадают в закрытый чат с разработчиком напрямую и влияют на приоритеты следующих версий."
             }
           }
+        ]
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Главная", "item": "https://avtorstudio.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Тарифы и оферта", "item": "https://avtorstudio.com/offer" }
+        ]
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Главная", "item": "https://avtorstudio.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Условия использования", "item": "https://avtorstudio.com/terms" }
+        ]
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Главная", "item": "https://avtorstudio.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Конфиденциальность", "item": "https://avtorstudio.com/privacy" }
         ]
       }
     ]
@@ -170,7 +197,7 @@
       (function () {
         try {
           var p = location.pathname.replace(/\/+$/, '') || '/';
-          var prerendered = p === '/' || p === '/privacy' || p === '/terms' || p === '/offer';
+          var prerendered = p === '/' || p === '/privacy' || p === '/terms' || p === '/offer' || p === '/changelog';
           // Update canonical to current page for non-prerendered routes
           var c = document.querySelector('link[rel="canonical"]');
           if (c && !prerendered) c.href = location.origin + p;
