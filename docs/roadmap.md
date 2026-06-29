@@ -1,6 +1,6 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-29_ — §1 монетизация закрыта (оплата, возврат, рекурренты E2E). §1.7 рекурренты закрыты (E2E боевая проверка 1₽ → webhook → plan_expires_at +30 дней). §7 отмена подписки MVP закрыта. `GRANDFATHERING_ENDS_AT=2026-09-01` выставлен. Ближайшее пред-запусковое действие — ручное тестирование (§2).
+_Обновлён: 2026-06-30_ — §1 монетизация закрыта (оплата, возврат, рекурренты E2E). §1.7 рекурренты закрыты (E2E боевая проверка 1₽ → webhook → plan_expires_at +30 дней). §7 отмена подписки MVP закрыта. `GRANDFATHERING_ENDS_AT=2026-09-01` выставлен. Ближайшее пред-запусковое действие — ручное тестирование (§2).
 
 История: Robokassa полный цикл (оплата → план → `op_key` → возврат → рекурренты → отмена); VK ID авторизация (OAuth 2.1 + PKCE). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
@@ -37,6 +37,10 @@ _Обновлён: 2026-06-29_ — §1 монетизация закрыта (о
 - ~~L3: непредсказуемый InvId в `create-payment-url`~~ — добавлен случайный 3-значный суффикс (тот же паттерн, что уже в `billing-scheduler`). **Не переходили на `crypto.randomUUID()`** — Робокасса требует числовой InvId, UUID сломал бы подпись. Задеплоено.
 - ~~L5: SSL ciphers в nginx~~ — Mozilla recommended cipher suite добавлен.
 - ~~L6: `ssl_stapling`/`ssl_session_cache`~~ — добавлены вместе с `ssl_trusted_certificate` (chain.pem) и `resolver`, без которых `ssl_stapling_verify` не работает.
+- ~~M4: `exportPdf.ts` — `DOMPurify.sanitize(ch.content)`~~ — добавлено (2026-06-30). Задеплоено через git push.
+- ~~M6: `retention-email` — `timingSafeEqual`~~ — заменил `!==` на `timingSafeEqual` из `node:crypto`. Задеплоено.
+- ~~M7: `retention-email` — убрать PII из ответа~~ — возвращает `{ sent, failed_count }`, массив email больше не раскрывается. Задеплоено.
+- ~~M8: `payment-confirmation` — ограничить вызов service_role~~ — `timingSafeEqual(token, serviceKey)`: только вызовы с `SUPABASE_SERVICE_ROLE_KEY` проходят. Задеплоено.
 
 **Осталось (backlog, по приоритету):**
 - **H1: CSP header** — nginx + Vercel. План:
@@ -47,10 +51,6 @@ _Обновлён: 2026-06-29_ — §1 монетизация закрыта (о
   5. Продублировать заголовок в `vercel.json` — иначе резервный прод на Vercel останется без защиты
   **Риск без плана:** включить строгий CSP сразу на блокировку может сломать вход через VK/Telegram без предупреждения.
 - **M3b: тот же book_id-bypass на UPDATE и в `character_relationships`** — найдено при работе над M3, но не входило в её скоуп. UPDATE-политики (`... update own`) на всех 11 таблицах из M3 до сих пор проверяют только `user_id = auth.uid()` — можно UPDATE-ом перепривязать свою же запись на чужой `book_id`. `character_relationships` имеет тот же паттерн INSERT-проверки, что был у M3 (только `user_id`), но не упоминалась в исходном списке M3. Фикс — то же расширение `WITH CHECK`/`USING` по аналогии с миграцией `20260630_rls_book_id_ownership.sql`.
-- **M4: `exportPdf.ts` — `DOMPurify.sanitize(ch.content)`** — self-XSS сейчас, реальный XSS при соавторствах.
-- **M6: `retention-email` — `timingSafeEqual`** вместо `!==` для CRON_SECRET.
-- **M7: `retention-email` — убрать PII из ответа** — возвращать `failed_count`, не email.
-- **M8: `payment-confirmation` — ограничить вызов service_role** — сейчас любой authenticated может отправить поддельное письмо.
 - _(информационные, без действия)_ L4 (X-XSS-Protection deprecated), L7 (хардкод ADMIN_EMAIL — UI-only), L8 (profiles без DELETE policy), L9 (listUsers пагинация O(N)), L10 (waitlist email enumeration — типично для форм).
 - **Leaked password protection** — требует Supabase Pro план.
 
