@@ -140,8 +140,8 @@ export default function Split() {
             <span className="chip" style={{ borderColor: 'var(--accent)', color: 'var(--accent)', background: 'var(--accent-soft)' }}>Сравнение глав</span>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
-            <Link to={`/books/${bookId}/editor${leftId ? `?chapter=${leftId}` : ''}`} className="tb-btn" style={{ textDecoration: 'none' }}><Icon name="book" size={15} /></Link>
-            <Link to={`/books/${bookId}/focus${leftId ? `?chapter=${leftId}` : ''}`} className="tb-btn" style={{ textDecoration: 'none' }}><Icon name="focus" size={15} /></Link>
+            <Link to={`/books/${bookId}/editor${leftId ? `?chapter=${leftId}` : ''}`} className="tb-btn" style={{ textDecoration: 'none' }} title="Редактор" aria-label="Редактор"><Icon name="book" size={15} /></Link>
+            <Link to={`/books/${bookId}/focus${leftId ? `?chapter=${leftId}` : ''}`} className="tb-btn" style={{ textDecoration: 'none' }} title="Фокус" aria-label="Фокус"><Icon name="focus" size={15} /></Link>
           </div>
         </div>
 
