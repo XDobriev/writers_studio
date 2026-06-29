@@ -107,7 +107,7 @@ export default function Editor() {
       next.set('chapter', created.id);
       setSearch(next, { replace: false });
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     }
   }, [bookId, user, chapters, queryClient, search, setSearch, setError]);
 

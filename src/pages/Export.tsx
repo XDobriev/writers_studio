@@ -90,7 +90,7 @@ export default function Export() {
         setMapLocations(locs);
         setMapConnections(conns);
       } catch (e) {
-        if (!cancelled) setError((e as Error).message);
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       }
     })();
     return () => { cancelled = true; };
@@ -154,7 +154,7 @@ export default function Export() {
         .filter((c) => selectedIds.has(c.id))
         .sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at));
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       setBusy(false);
       return;
     }
@@ -209,7 +209,7 @@ export default function Export() {
         await updateBook(bookId, { author: authorName.trim() || null });
       } catch { /* silent */ }
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       setBusy(false);
     }

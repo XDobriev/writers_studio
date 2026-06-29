@@ -37,7 +37,7 @@ export function useOutlineMutations({
       createChapterWithCache(queryClient, bookId, created);
       navigate(`/books/${bookId}/editor?chapter=${created.id}`);
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       creatingRef.current = false;
     }
@@ -49,7 +49,7 @@ export function useOutlineMutations({
     try {
       await deleteChapter(id);
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       invalidateChaptersCache(queryClient, bookId);
     }
   }, [bookId, queryClient, setError]);
@@ -62,7 +62,7 @@ export function useOutlineMutations({
     try {
       await updateChapter(id, { title });
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       invalidateChaptersCache(queryClient, bookId);
     }
   }, [bookId, queryClient, setError]);
@@ -79,7 +79,7 @@ export function useOutlineMutations({
     try {
       await reorderChapters(reordered.map((c) => ({ id: c.id, position: c.position })));
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       invalidateChaptersCache(queryClient, bookId);
     }
   }, [bookId, chapters, queryClient, setError]);
@@ -107,7 +107,7 @@ export function useOutlineMutations({
     try {
       await renumberChapters(toUpdate);
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       invalidateChaptersCache(queryClient, bookId);
     }
   }, [bookId, chapters, queryClient, setError]);

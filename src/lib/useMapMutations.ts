@@ -27,7 +27,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     try {
       const created = await createLocation(bookId, userId, { position: locations?.length ?? 0, x, y });
       queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), (prev) => [...(prev ?? []), created]);
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Неизвестная ошибка'); }
   }, [bookId, userId, locations, queryClient, setError]);
 
   const onUpdate = useCallback(async (id: string, patch: LocationPatch) => {
@@ -41,7 +41,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
         prev ? prev.map((l) => (l.id === id ? updated : l)) : prev
       );
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.locations(bookId) });
     }
   }, [bookId, queryClient, setError]);
@@ -53,7 +53,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
       queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), (prev) =>
         prev ? prev.filter((l) => l.id !== id) : prev
       );
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Неизвестная ошибка'); }
   }, [bookId, queryClient, setError]);
 
   // ── Stamp ─────────────────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     try {
       const created = await createStamp(bookId, userId, selectedStampType, x, y);
       queryClient.setQueryData<MapStamp[]>(QUERY_KEYS.stamps(bookId), (prev) => [...(prev ?? []), created]);
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Неизвестная ошибка'); }
   }, [bookId, userId, selectedStampType, queryClient, setError]);
 
   const onUpdateStamp = useCallback(async (id: string, patch: StampPatch) => {
@@ -77,7 +77,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
         prev ? prev.map((s) => (s.id === id ? updated : s)) : prev
       );
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stamps(bookId) });
     }
   }, [bookId, queryClient, setError]);
@@ -90,7 +90,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     try {
       await deleteStamp(id);
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stamps(bookId) });
     }
   }, [bookId, queryClient, setError]);
@@ -102,7 +102,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     try {
       const created = await createConnection(bookId, userId, fromId, toId);
       queryClient.setQueryData<LocationConnection[]>(QUERY_KEYS.connections(bookId), (prev) => [...(prev ?? []), created]);
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Неизвестная ошибка'); }
   }, [bookId, userId, queryClient, setError]);
 
   const onUpdateConnection = useCallback(async (id: string, patch: ConnectionPatch) => {
@@ -116,7 +116,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
         prev ? prev.map((c) => (c.id === id ? updated : c)) : prev
       );
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.connections(bookId) });
     }
   }, [bookId, queryClient, setError]);
@@ -129,7 +129,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     try {
       await deleteConnection(id);
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.connections(bookId) });
     }
   }, [bookId, queryClient, setError]);
@@ -150,7 +150,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
       const { data: { publicUrl } } = supabase.storage.from('map-backgrounds').getPublicUrl(path);
       await updateBook(bookId, { map_bg_url: `${publicUrl}?t=${Date.now()}` });
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Неизвестная ошибка'); }
   }, [bookId, userId, queryClient, setError]);
 
   const onTemplateChange = useCallback(async (templateId: string) => {
@@ -158,7 +158,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     try {
       await updateBook(bookId, { map_template: templateId });
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Неизвестная ошибка'); }
   }, [bookId, queryClient, setError]);
 
   const onRemoveBg = useCallback(async () => {
@@ -166,7 +166,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     try {
       await updateBook(bookId, { map_bg_url: null });
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Неизвестная ошибка'); }
   }, [bookId, queryClient, setError]);
 
   return {

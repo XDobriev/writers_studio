@@ -30,7 +30,7 @@ export function useNoteMutations({ bookId, setError }: UseNoteMutationsOptions) 
       queryClient.setQueryData<Note[]>(QUERY_KEYS.notes(bookId), (prev) => [note, ...(prev ?? [])]);
       return note;
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       savingRef.current = false;
       setIsSaving(false);
@@ -54,7 +54,7 @@ export function useNoteMutations({ bookId, setError }: UseNoteMutationsOptions) 
       );
       return updated;
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       savingRef.current = false;
       setIsSaving(false);
@@ -82,7 +82,7 @@ export function useNoteMutations({ bookId, setError }: UseNoteMutationsOptions) 
     try {
       await reorderNotes(reordered.map((n) => ({ id: n.id, position: n.position })));
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(bookId) });
     }
   }, [bookId, queryClient, setError]);

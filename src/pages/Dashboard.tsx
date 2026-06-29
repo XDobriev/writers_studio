@@ -83,7 +83,7 @@ export default function Dashboard() {
       queryClient.setQueryData(QUERY_KEYS.book(id), data);
       setEditOpen(false);
     } catch (e) {
-      setEditError((e as Error).message);
+      setEditError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       setEditSaving(false);
     }

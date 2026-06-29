@@ -75,7 +75,7 @@ export default function Home() {
       const { data } = supabase.storage.from('book-covers').getPublicUrl(path);
       setter(data.publicUrl);
     } catch (e) {
-      setError((e as Error).message ?? 'Ошибка загрузки обложки');
+      setError(e instanceof Error ? e.message : 'Ошибка загрузки обложки');
     } finally {
       setUploading(false);
     }
@@ -90,7 +90,7 @@ export default function Home() {
       setEditBook(null);
       setConfirmDeleteBook(false);
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(e instanceof Error ? e.message : 'Неизвестная ошибка');
       throw e;
     } finally {
       setDeleting(false);
@@ -116,7 +116,7 @@ export default function Home() {
       queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => prev?.map((b) => b.id === editBook.id ? data : b));
       setEditBook(null);
     } catch (e) {
-      setEditError((e as Error).message);
+      setEditError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       setEditSaving(false);
     }
@@ -152,7 +152,7 @@ export default function Home() {
       setCreateCover(COVERS[0]);
       setCreateGenres([]);
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       setCreating(false);
     }

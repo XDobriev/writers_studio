@@ -96,7 +96,7 @@ export function useCharacterMutations({
       }
       onCreated(created.id);
     } catch (e) {
-      onError((e as Error).message);
+      onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       creatingRef.current = false;
     }
@@ -116,7 +116,7 @@ export function useCharacterMutations({
       );
       onDeleted(remaining, characterId);
     } catch (e) {
-      onError((e as Error).message);
+      onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     }
   }, [characters, bookId, queryClient, cancelSave, onDeleted, onError]);
 
@@ -126,7 +126,7 @@ export function useCharacterMutations({
       const created = await createRelationship(bookId, userId, active.id, toId, labelMine, labelTheirs);
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) => [...(prev ?? []), created]);
     } catch (e) {
-      onError((e as Error).message);
+      onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     }
   }, [bookId, userId, active, queryClient, onError]);
 
@@ -138,7 +138,7 @@ export function useCharacterMutations({
         prev ? prev.filter((r) => r.id !== id) : prev
       );
     } catch (e) {
-      onError((e as Error).message);
+      onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     }
   }, [bookId, queryClient, onError]);
 
@@ -154,7 +154,7 @@ export function useCharacterMutations({
         prev ? prev.map((r) => (r.id === id ? updated : r)) : prev
       );
     } catch (e) {
-      onError((e as Error).message);
+      onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     }
   }, [bookId, active, queryClient, onError]);
 

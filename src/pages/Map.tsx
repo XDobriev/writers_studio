@@ -64,7 +64,7 @@ export default function MapScreen() {
       const buffer = await generateMapPngBuffer(book, locations, connections, stamps);
       triggerMapDownload(buffer, book.title);
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       setExportBusy(false);
     }

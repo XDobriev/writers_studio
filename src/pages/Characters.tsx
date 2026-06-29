@@ -101,7 +101,7 @@ export default function Characters() {
         setSaveState('saved');
       } catch (e) {
         setSaveState('error');
-        setError((e as Error).message);
+        setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
         throw e;
       }
     },

@@ -376,7 +376,7 @@ export default function Corkboard() {
     try {
       await reorderChapters(reordered.map((c) => ({ id: c.id, position: c.position })));
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       invalidateChaptersCache(queryClient, bookId);
     }
   };
@@ -395,7 +395,7 @@ export default function Corkboard() {
       createChapterWithCache(queryClient, bookId, created);
       navigate(`/books/${bookId}/editor?chapter=${created.id}`);
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       creatingRef.current = false;
     }
@@ -442,22 +442,24 @@ export default function Corkboard() {
 
         <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: 'var(--bg)' }}>
           <div className="tb" style={{ justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '1 1 0', minWidth: 0, overflow: 'hidden' }}>
               {isMobile && (
                 <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
                   <Icon name="panel" size={16} />
                 </button>
               )}
-              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Доска глав</span>
-              <span className="chip">{counts.done} готово · {counts.progress} в работе · {counts.draft} {plural(counts.draft, 'черновик', 'черновика', 'черновиков')}</span>
-              {!dragEnabled && (
+              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', whiteSpace: 'nowrap' }}>Доска глав</span>
+              {!isMobile && (
+                <span className="chip">{counts.done} готово · {counts.progress} в работе · {counts.draft} {plural(counts.draft, 'черновик', 'черновика', 'черновиков')}</span>
+              )}
+              {!dragEnabled && !isMobile && (
                 <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.04em' }}>
                   перетаскивание доступно при фильтре «все»
                 </span>
               )}
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn" onClick={onCreate}><Icon name="plus" size={14} /> Новая глава</button>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <button className="btn" onClick={onCreate} aria-label="Новая глава">{isMobile ? <Icon name="plus" size={14} /> : <><Icon name="plus" size={14} /> Новая глава</>}</button>
             </div>
           </div>
 

@@ -46,7 +46,7 @@ export default function Split() {
         setBook(book);
         setChapters(list);
       } catch (e) {
-        if (!cancelled) setError((e as Error).message);
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       }
     })();
     return () => { cancelled = true; };
@@ -94,7 +94,7 @@ export default function Split() {
       setSaveState((s) => ({ ...s, [side]: 'saved' }));
     } catch (e) {
       setSaveState((s) => ({ ...s, [side]: 'error' }));
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     }
   }, [setError]);
 

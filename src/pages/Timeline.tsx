@@ -78,7 +78,7 @@ export default function Timeline() {
         (prev) => [...(prev ?? []), created]
       );
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       creatingRef.current = false;
     }
@@ -106,7 +106,7 @@ export default function Timeline() {
           prev ? prev.map((e) => (e.id === id ? updated : e)) : prev
         );
       } catch (e) {
-        setError((e as Error).message);
+        setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
         void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timelineEvents(bookId) });
       }
     },
@@ -130,7 +130,7 @@ export default function Timeline() {
         prev ? prev.filter((e) => e.id !== id) : prev
       );
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     }
   }, [bookId, confirmDeleteId, activeEventId, queryClient, setError]);
 
@@ -151,7 +151,7 @@ export default function Timeline() {
       try {
         await reorderTimelineEvents(reordered.map((e) => ({ id: e.id, position: e.position })));
       } catch (e) {
-        setError((e as Error).message);
+        setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
         void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timelineEvents(bookId) });
       }
     },
