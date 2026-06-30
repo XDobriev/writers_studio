@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { getLifetimeSlotsRemaining } from '../lib/profiles';
+import { useFeatureFlag } from '../lib/useFeatureFlag';
 
 const PRO_FEATURES = [
   'Безлимитное количество книг',
@@ -22,6 +23,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
   const [isLoading, setIsLoading] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [recurringConsent, setRecurringConsent] = useState(false);
+  const { enabled: paymentsEnabled } = useFeatureFlag('payments_enabled');
 
   async function handlePurchase(plan: 'pro' | 'lifetime') {
     setIsLoading(true);
@@ -137,11 +139,16 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
                     </a>
                   </span>
                 </label>
+                {!paymentsEnabled && (
+                  <p style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', margin: '0 0 4px', textAlign: 'center' }}>
+                    Оплата временно недоступна. Попробуйте позже.
+                  </p>
+                )}
                 <button
                   className="btn btn--primary"
                   style={{ justifyContent: 'center', fontSize: 13, height: 38 }}
                   onClick={() => handlePurchase('pro')}
-                  disabled={isLoading || !recurringConsent}
+                  disabled={isLoading || !recurringConsent || !paymentsEnabled}
                 >
                   {isLoading ? 'Переход к оплате…' : 'Оформить подписку'}
                 </button>
@@ -195,7 +202,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
                 className="btn"
                 style={{ justifyContent: 'center', fontSize: 13, height: 36, width: '100%' }}
                 onClick={() => handlePurchase('lifetime')}
-                disabled={isLoading}
+                disabled={isLoading || !paymentsEnabled}
               >
                 {isLoading ? 'Переход к оплате…' : 'Купить Lifetime'}
               </button>

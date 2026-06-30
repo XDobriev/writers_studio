@@ -11,9 +11,11 @@ import { LandingFeatures } from '../components/LandingFeaturesSection';
 import { LandingProcess } from '../components/LandingProcessSection';
 import { LandingPricing } from '../components/LandingPricingSection';
 import { ExitIntentPopup } from '../components/ExitIntentPopup';
+import { useFeatureFlag } from '../lib/useFeatureFlag';
 
 export default function Landing() {
   const { session, initializing } = useAuth();
+  const { enabled: exitIntentEnabled } = useFeatureFlag('exit_intent_popup');
 
   if (initializing) return null;
   if (session) return <Navigate to="/books" replace />;
@@ -33,7 +35,7 @@ export default function Landing() {
         <LandingCTA />
       </main>
       <LandingFooter />
-      <ExitIntentPopup />
+      {exitIntentEnabled && <ExitIntentPopup />}
     </div>
   );
 }

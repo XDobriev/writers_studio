@@ -10,6 +10,7 @@ import { updateBook } from '../../lib/books';
 import { Skeleton } from '../Skeleton';
 import { SidebarNav } from './SidebarNav';
 import { SidebarFoot } from './SidebarFoot';
+import { useFeatureFlag } from '../../lib/useFeatureFlag';
 
 const SB_STATUS_LABEL: Record<ChapterStatus, string> = {
   draft: 'Черновик',
@@ -49,6 +50,7 @@ export function Sidebar({
   const [shareToken, setShareToken] = useState<string | null>(book?.share_token ?? null);
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const { enabled: shareEnabled } = useFeatureFlag('share_book_enabled');
 
   async function handleShare() {
     if (!book?.id || sharing) return;
@@ -116,7 +118,7 @@ export function Sidebar({
         <div className="sb-book-author">
           {subtitle ?? (book ? [book.author, book.genres?.length ? book.genres.join(', ') : book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`)}
         </div>
-        {book?.id && (
+        {book?.id && shareEnabled && (
           <div style={{ marginTop: 8, display: 'flex', gap: 4 }}>
             {shareToken ? (
               <>

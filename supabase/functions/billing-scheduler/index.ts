@@ -85,6 +85,16 @@ Deno.serve(async (req) => {
 
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
+  const { data: flagRow } = await db
+    .from('feature_flags')
+    .select('enabled')
+    .eq('key', 'recurring_billing_enabled')
+    .maybeSingle();
+  if (!flagRow?.enabled) {
+    console.log('[billing-scheduler] recurring_billing_enabled=false, skipping');
+    return json(200, { skipped: true, reason: 'recurring_billing_enabled flag is off' });
+  }
+
   // Находим Pro-пользователей, у которых подписка истекает в течение 3 дней,
   // не отменена и есть сохранённый recurring_inv_id для повторного списания
   const renewalCutoff = new Date();

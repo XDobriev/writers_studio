@@ -59,15 +59,15 @@ export async function addWordToDictionary(userId: string, word: string): Promise
 
 export async function getRegistrationOpen(): Promise<boolean> {
   const { data, error } = await supabase
-    .from('app_settings')
-    .select('value')
+    .from('feature_flags')
+    .select('enabled')
     .eq('key', 'registration_open')
     .maybeSingle();
   if (error) {
     console.error('[profiles] getRegistrationOpen failed:', error.message);
     return true;
   }
-  return data?.value !== 'false';
+  return data?.enabled ?? true;
 }
 
 export async function markOnboarded(userId: string): Promise<void> {

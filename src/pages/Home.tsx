@@ -20,6 +20,7 @@ import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useProfile, QUERY_KEYS } from '../lib/queries';
 import { optimizeImage, COVER_OPTS } from '../lib/imageOptimize';
+import { useFeatureFlag } from '../lib/useFeatureFlag';
 
 import { plural } from '../lib/i18n';
 
@@ -33,6 +34,7 @@ export default function Home() {
   const limits = getPlanLimits(profile?.plan);
   const { isMobile } = useResponsive();
   const { error: err, setError: setErr } = useErrorState();
+  const { enabled: onboardingEnabled } = useFeatureFlag('onboarding_checklist');
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
@@ -193,7 +195,7 @@ export default function Home() {
           </div>
         </div>
 
-        {books != null && user && (
+        {books != null && user && onboardingEnabled && (
           <OnboardingChecklist
             books={books}
             userId={user.id}

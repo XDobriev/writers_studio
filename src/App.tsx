@@ -10,6 +10,20 @@ import { PageMotion } from './components/PageMotion';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineBanner } from './components/OfflineBanner';
 import { CookieBanner } from './components/CookieBanner';
+import { useFeatureFlag } from './lib/useFeatureFlag';
+
+function MaintenancePage() {
+  return (
+    <div style={{ height: '100vh', display: 'grid', placeItems: 'center', textAlign: 'center', gap: 12, padding: 24 }}>
+      <div>
+        <div style={{ font: '600 18px var(--font-ui)', color: 'var(--ink)', marginBottom: 8 }}>Технические работы</div>
+        <div style={{ font: '400 14px var(--font-ui)', color: 'var(--ink-3)', maxWidth: 320 }}>
+          Авторская студия временно недоступна. Заходите чуть позже — скоро всё будет готово.
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Все страницы — lazy: браузер скачает чанк только при переходе на маршрут
 const Auth          = lazy(() => import('./pages/Auth'));
@@ -54,7 +68,11 @@ function Guard({ children }: { children: ReactNode }) {
 // Это предотвращает краткий флэш лендинга при обновлении страниц авторизованных разделов.
 function AppContent() {
   const { initializing, session } = useAuth();
+  const { pathname } = useLocation();
+  const { enabled: maintenance } = useFeatureFlag('maintenance_mode', false);
+
   if (initializing && !session) return <PageFallback />;
+  if (maintenance && !pathname.startsWith('/admin')) return <MaintenancePage />;
   return (
     <ErrorBoundary>
       <Suspense fallback={<PageFallback />}>
