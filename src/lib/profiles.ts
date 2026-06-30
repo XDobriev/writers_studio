@@ -57,6 +57,14 @@ export async function addWordToDictionary(userId: string, word: string): Promise
   if (error) console.error('[profiles] addWordToDictionary failed:', error.message);
 }
 
+export async function removeWordFromDictionary(userId: string, word: string): Promise<void> {
+  const { error } = await supabase.rpc('remove_user_dictionary_word', {
+    p_user_id: userId,
+    p_word: word,
+  });
+  if (error) console.error('[profiles] removeWordFromDictionary failed:', error.message);
+}
+
 export async function getRegistrationOpen(): Promise<boolean> {
   const { data, error } = await supabase
     .from('feature_flags')

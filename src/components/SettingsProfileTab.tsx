@@ -1,9 +1,11 @@
 import { useState, useEffect, type CSSProperties } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../lib/auth';
 import { updateDisplayName } from '../lib/profiles';
 import { useProfile, QUERY_KEYS } from '../lib/queries';
 import { PasswordInput } from './PasswordInput';
+import { plural } from '../lib/i18n';
 
 const FL: CSSProperties = { font: '400 12px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 4 };
 const FG: CSSProperties = { display: 'flex', flexDirection: 'column' };
@@ -11,6 +13,7 @@ const ROW: CSSProperties = { display: 'flex', gap: 8 };
 const H = 38;
 
 export function SettingsProfileTab() {
+  const navigate = useNavigate();
   const { user, signOut, updatePassword } = useAuth();
   const queryClient = useQueryClient();
   const { data: profile } = useProfile(user?.id);
@@ -124,6 +127,22 @@ export function SettingsProfileTab() {
           {passSaved && <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ok)', marginTop: 6 }}>Пароль изменён</span>}
         </form>
       )}
+
+      <div style={FG}>
+        <label style={FL}>Пользовательский словарь</label>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: H }}>
+          <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
+            {(profile?.user_dictionary?.length ?? 0)} {plural(profile?.user_dictionary?.length ?? 0, 'слово', 'слова', 'слов')}
+          </span>
+          <button
+            className="btn btn--ghost"
+            style={{ fontSize: 13, padding: '0 10px', height: 30 }}
+            onClick={() => navigate('/dictionary')}
+          >
+            Открыть →
+          </button>
+        </div>
+      </div>
 
       <button
         className="settings-signout-btn"
