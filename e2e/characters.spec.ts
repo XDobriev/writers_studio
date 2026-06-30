@@ -36,7 +36,7 @@ test.describe('Картотека персонажей', () => {
     await expect(page).toHaveURL(/character=/, { timeout: 5_000 });
 
     // Ждём рендера детальной панели (таб появляется одновременно с полями)
-    await expect(page.getByRole('button', { name: 'Сведения' })).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByRole('tab', { name: 'Сведения' })).toBeVisible({ timeout: 8_000 });
 
     // Три поля Bibisco-триады должны присутствовать
     await expect(page.getByText('Внутренний мир')).toBeVisible();
