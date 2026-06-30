@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Icon } from './Icon';
@@ -18,6 +19,7 @@ function dayDiff(iso: string): number {
 export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
   const b = book;
   const hasImage = b.cover ? isImageUrl(b.cover) : false;
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   return (
     <motion.div
@@ -41,9 +43,10 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
             <img
               src={b.cover!}
               alt=""
-              loading="lazy"
+              loading="eager"
               decoding="async"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+              onLoad={() => setImgLoaded(true)}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.25s ease' }}
             />
           )}
           {hasImage && (
