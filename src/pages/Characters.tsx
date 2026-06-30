@@ -364,11 +364,13 @@ export default function Characters() {
               <CharacterHeroBlock character={active} bookId={bookId!} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} />
 
               {/* Вкладки */}
-              <div className="char-tabs">
+              <div className="char-tabs" role="tablist" aria-label="Вкладки персонажа">
                 {(['info', 'chapters'] as const).map((tab) => (
                   <button
                     key={tab}
                     type="button"
+                    role="tab"
+                    aria-selected={detailTab === tab}
                     onClick={() => setDetailTab(tab)}
                     className={`char-tab${detailTab === tab ? ' char-tab--on' : ''}`}
                   >

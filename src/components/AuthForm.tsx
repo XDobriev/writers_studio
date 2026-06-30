@@ -135,9 +135,11 @@ export function AuthForm() {
       {/* ── signin / signup ── */}
       {flow === 'auth' && (
         <>
-          <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: '1px solid var(--border-soft)' }}>
+          <div role="tablist" aria-label="Режим входа" style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: '1px solid var(--border-soft)' }}>
             <button
               type="button"
+              role="tab"
+              aria-selected={tab === 'signin'}
               onClick={() => handleTabChange('signin')}
               style={{
                 padding: '13px 0', marginRight: 24,
@@ -149,6 +151,8 @@ export function AuthForm() {
             >Войти</button>
             <button
               type="button"
+              role="tab"
+              aria-selected={tab === 'signup'}
               onClick={() => handleTabChange('signup')}
               style={{
                 padding: '13px 0',
