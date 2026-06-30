@@ -551,7 +551,7 @@ function BrowserMock({ children, mockHeight = 380 }: { children: ReactNode; mock
         <span style={{ width: 11, height: 11, borderRadius: 999, background: 'oklch(0.66 0.14 145)' }} />
         <span style={{ flex: 1, textAlign: 'center', font: '400 11px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.06em' }}>avtorstudio.com</span>
       </div>
-      <div style={{ height: mockHeight, position: 'relative', overflow: 'hidden' }}>{children}</div>
+      <div className="lnd-mock-content" style={{ height: mockHeight, position: 'relative', overflow: 'hidden' }}>{children}</div>
     </div>
     </div>
   );
@@ -613,7 +613,7 @@ function FeatureRow({ headline, body, mock, reverse, noBrowserChrome, mockHeight
 
 export function LandingFeatures() {
   return (
-    <section id="features" style={{ padding: 'clamp(40px,10vw,120px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
+    <section id="features" style={{ padding: 'clamp(36px,5vw,64px) clamp(20px,4vw,56px)', background: 'var(--bg)' }}>
       <div className="lnd-max">
         <SectionLabel title="Студия, а не текстовое поле." subtitle="Каждая часть книги живёт рядом с рукописью — не в отдельном приложении, не на отдельной вкладке. Открыли главу — видите её мир." />
         <FeatureRowFull
