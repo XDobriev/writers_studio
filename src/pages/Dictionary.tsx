@@ -56,10 +56,15 @@ export default function Dictionary() {
 
   const handleRemove = async (word: string) => {
     if (!user) return;
+    const prev = queryClient.getQueryData<Profile>(QUERY_KEYS.profile(user.id));
     queryClient.setQueryData<Profile>(QUERY_KEYS.profile(user.id), old =>
       old ? { ...old, user_dictionary: old.user_dictionary.filter(w => w !== word) } : old
     );
-    await removeWordFromDictionary(user.id, word);
+    try {
+      await removeWordFromDictionary(user.id, word);
+    } catch {
+      if (prev) queryClient.setQueryData<Profile>(QUERY_KEYS.profile(user.id), prev);
+    }
   };
 
   const wordCount = words.length;
