@@ -50,7 +50,7 @@ export function TimelineFilters({ variant, filter, onFilter }: {
           className={'sb-tab' + (filter === f.value ? ' sb-tab--on' : '')}
           onClick={() => onFilter(f.value)}
           aria-pressed={filter === f.value}
-          style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5 }}
+          style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}
         >
           {f.value !== 'all' && (
             <span

@@ -29,7 +29,9 @@ export function SidebarFoot() {
             }
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="sb-foot-name">{displayName || '—'}</div>
+            <div className="sb-foot-name" title={displayName || undefined}>
+              {displayName ? (displayName.includes('@') ? displayName.split('@')[0] : displayName) : '—'}
+            </div>
             <div className="sb-foot-meta">{planLoaded ? (PLAN_LABEL[plan] ?? plan) : '…'}</div>
           </div>
           <span style={{ color: 'var(--ink-4)', flexShrink: 0, transition: 'transform 0.12s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', display: 'flex' }}>
