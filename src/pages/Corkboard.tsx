@@ -421,23 +421,6 @@ export default function Corkboard() {
           <div style={{ padding: '18px 18px 14px', color: 'var(--ink-3)', fontSize: 12, lineHeight: 1.6 }}>
             На доске — главы как индексные карточки. Щелчок по карточке — открыть в редакторе.
           </div>
-          <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Фильтр</div>
-            {filterItems.map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setFilter(key)}
-                className={'sb-item' + (filter === key ? ' sb-item--on' : '')}
-                aria-pressed={filter === key}
-                style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
-              >
-                <span />
-                <span className="sb-item-title" style={{ textTransform: 'capitalize' }}>{label}</span>
-                <span className="sb-item-meta">{counts[key]}</span>
-              </button>
-            ))}
-          </div>
         </Sidebar>}
 
         <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: 'var(--bg)' }}>
@@ -449,8 +432,23 @@ export default function Corkboard() {
                 </button>
               )}
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', whiteSpace: 'nowrap' }}>Доска глав</span>
+              {!isMobile && <span className="tb-sep" />}
               {!isMobile && (
-                <span className="chip">{counts.done} готово · {counts.progress} в работе · {counts.draft} {plural(counts.draft, 'черновик', 'черновика', 'черновиков')}</span>
+                <div className="tb-grp" style={{ border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden', flexShrink: 0 }}>
+                  {filterItems.map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setFilter(key)}
+                      className={'tb-btn' + (filter === key ? ' tb-btn--on' : '')}
+                      aria-pressed={filter === key}
+                      style={{ borderRadius: 0, textTransform: 'capitalize' }}
+                    >
+                      {label}
+                      <span style={{ color: 'var(--ink-4)' }}>{counts[key]}</span>
+                    </button>
+                  ))}
+                </div>
               )}
               {!dragEnabled && !isMobile && (
                 <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.04em' }}>

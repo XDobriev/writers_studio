@@ -1,7 +1,7 @@
 import { TYPE_COLORS, TYPE_FILTERS, type TypeFilter } from '../lib/timeline';
 
 export function TimelineFilters({ variant, filter, onFilter }: {
-  variant: 'sidebar' | 'mobile';
+  variant: 'sidebar' | 'inline';
   filter: TypeFilter;
   onFilter: (f: TypeFilter) => void;
 }) {
@@ -50,7 +50,7 @@ export function TimelineFilters({ variant, filter, onFilter }: {
           className={'sb-tab' + (filter === f.value ? ' sb-tab--on' : '')}
           onClick={() => onFilter(f.value)}
           aria-pressed={filter === f.value}
-          style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}
+          style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', padding: '0 12px' }}
         >
           {f.value !== 'all' && (
             <span

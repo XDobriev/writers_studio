@@ -255,12 +255,7 @@ export default function Timeline() {
         style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : undefined }}
       >
         {!isMobile && (
-          <Sidebar book={book} subtitle={`хронология · ${events.length}`}>
-            <div className="sb-section">
-              <span className="sb-section-title">Линии</span>
-            </div>
-            <TimelineFilters variant="sidebar" filter={filter} onFilter={setFilter} />
-          </Sidebar>
+          <Sidebar book={book} subtitle={`хронология · ${events.length}`}><></></Sidebar>
         )}
 
         <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
@@ -325,9 +320,7 @@ export default function Timeline() {
             </div>
           </div>
 
-          {isMobile && (
-            <TimelineFilters variant="mobile" filter={filter} onFilter={setFilter} />
-          )}
+          <TimelineFilters variant="inline" filter={filter} onFilter={setFilter} />
 
           {mutationError && (
             <ErrorBanner message={mutationError} onDismiss={clearError} style={{ margin: '8px 24px 0', flexShrink: 0 }} />

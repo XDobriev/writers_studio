@@ -109,24 +109,7 @@ export default function MapScreen() {
 
         {/* Sidebar */}
         {!isMobile && (
-          <Sidebar book={book} subtitle={`карта мира · ${locations.length} лок.`}>
-            <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Режим</div>
-              {modeButtons.map(m => (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => setMode(m.value)}
-                  className={'sb-item' + (mode === m.value ? ' sb-item--on' : '')}
-                  aria-pressed={mode === m.value}
-                  style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
-                >
-                  <span>{m.icon}</span>
-                  <span className="sb-item-title">{m.label}</span>
-                </button>
-              ))}
-            </div>
-          </Sidebar>
+          <Sidebar book={book} subtitle={`карта мира · ${locations.length} лок.`}><></></Sidebar>
         )}
 
         <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden', height: '100%', minHeight: 0 }}>
@@ -142,6 +125,25 @@ export default function MapScreen() {
               <span style={{ font: '500 13px var(--font-ui)', color: isMobile ? 'var(--ink-2)' : 'var(--ink)', flexShrink: 0 }}>
                 {isMobile ? book.title : 'Карта мира'}
               </span>
+              {!isMobile && <span className="tb-sep" />}
+              {!isMobile && (
+                <div className="tb-grp" style={{ border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden', flexShrink: 0 }}>
+                  {modeButtons.map(m => (
+                    <button
+                      key={m.value}
+                      type="button"
+                      onClick={() => setMode(m.value)}
+                      className={'tb-btn' + (mode === m.value ? ' tb-btn--on' : '')}
+                      aria-pressed={mode === m.value}
+                      title={m.label}
+                      aria-label={m.label}
+                      style={{ borderRadius: 0 }}
+                    >
+                      <span aria-hidden="true">{m.icon}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
