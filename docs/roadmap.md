@@ -12,6 +12,16 @@ _Обновлён: 2026-06-30_ — §1 монетизация закрыта (о
 
 > Самый критичный — первый в списке.
 
+### Локальная разработка: оба Supabase-прокси блокируют CORS для 127.0.0.1
+
+**Симптом:** `npm run dev` на `127.0.0.1:5273` не может авторизоваться и не может прочитать `feature_flags` — оба `VITE_SUPABASE_URL` из `.env` (`api.avtorstudio.com`) и `.env.local` (`avtorstudio.com/sb`) отдают `Access-Control-Allow-Origin: https://avtorstudio.com`, из-за чего preflight-запрос с origin `127.0.0.1` падает.
+**Воспроизвести:** 1. `npm run dev` → 2. открыть `/login`, ввести реальные креды → 3. ожидаю вход, вижу `AuthRetryableFetchError: Failed to fetch` в консоли и зависшую кнопку «Входим…».
+**Побочный эффект (уже пофикшен отдельно):** пока фетч `feature_flags` падает по CORS, `useFeatureFlag('maintenance_mode', false)` до правки в этой сессии возвращал `true` вместо `defaultValue` — весь прод мог показать «Технические работы» любому юзеру при простом сетевом сбое. Исправлено в `src/lib/useFeatureFlag.ts`: `fetchFlag` теперь возвращает `null` при ошибке/сетевом сбое, и `useQuery` корректно откатывается на `defaultValue`.
+**Файлы:** `.env`, `.env.local`, nginx-конфиг прокси `/sb/` (не в репо), `src/lib/useFeatureFlag.ts` (фикс применён).
+**Проверить:** добавить `127.0.0.1` (или `*` для non-prod) в допустимые CORS-origin прокси на VPS; либо явно задокументировать, что для локальной разработки нужен `VITE_SUPABASE_URL=https://<ref>.supabase.co` через VPN (см. [project_supabase_russia.md] в памяти — прямой supabase.co блокируется российскими ISP без VPN).
+
+---
+
 ### Security-хардениг после публикации репо (анон-ключ открыт)
 
 **Контекст:** репозиторий публичный → `VITE_SUPABASE_ANON_KEY` открыт. Полный security review проведён 2026-06-29.
