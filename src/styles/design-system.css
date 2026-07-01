@@ -1167,6 +1167,7 @@ select.input {
 
 /* ── input/btn size variants ── */
 .input--sm { height: 32px; }
+.input--compact { height: 38px; }
 .btn--sm { font-size: 12px; }
 .tb-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 

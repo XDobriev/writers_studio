@@ -112,6 +112,7 @@ export function SettingsProfileTab() {
                 onChange={(v) => { setNewPass(v); setPassSaved(false); setPassError(null); }}
                 placeholder="Минимум 6 символов"
                 autoComplete="new-password"
+                compact
               />
             </div>
             <button

@@ -12,9 +12,10 @@ interface Props {
   required?: boolean;
   minLength?: number;
   placeholder?: string;
+  compact?: boolean;
 }
 
-export function PasswordInput({ id, value, onChange, autoComplete, hasError, autoFocus, name, required, minLength, placeholder }: Props) {
+export function PasswordInput({ id, value, onChange, autoComplete, hasError, autoFocus, name, required, minLength, placeholder, compact }: Props) {
   const [show, setShow] = useState(false);
 
   return (
@@ -22,7 +23,7 @@ export function PasswordInput({ id, value, onChange, autoComplete, hasError, aut
       <input
         id={id}
         name={name}
-        className={`input${hasError ? ' input--err' : ''}`}
+        className={`input${hasError ? ' input--err' : ''}${compact ? ' input--compact' : ''}`}
         type={show ? 'text' : 'password'}
         required={required}
         minLength={minLength}
