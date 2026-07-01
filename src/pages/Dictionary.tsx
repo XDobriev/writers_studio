@@ -128,7 +128,7 @@ export default function Dictionary() {
               className="btn btn--primary"
               onClick={handleAdd}
               disabled={adding || !newWord.trim()}
-              style={{ flexShrink: 0, fontSize: 13, padding: '0 16px' }}
+              style={{ flexShrink: 0, height: 44, fontSize: 13, padding: '0 18px' }}
             >
               Добавить
             </button>
