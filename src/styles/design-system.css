@@ -259,7 +259,7 @@ html, body, #root {
 /* sidebar */
 .sb {
   background: var(--bg-deep);
-  border-right: 1px solid var(--border-soft);
+  border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
   min-width: 0; min-height: 0;
   overflow: hidden;
@@ -267,7 +267,7 @@ html, body, #root {
 }
 .sb-head {
   padding: 18px 20px 14px;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border);
   display: flex; flex-direction: column; gap: 2px;
 }
 .sb-book-title {
@@ -287,7 +287,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .sb-share-btn {
   font: 500 11px var(--font-ui);
   background: var(--bg-deep);
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--border);
   border-radius: 5px;
   padding: 4px 8px;
   cursor: pointer;
@@ -360,7 +360,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .sb-foot {
   padding: 12px 14px;
   border: none;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--border);
   background: none;
   width: 100%;
   text-align: left;
@@ -632,7 +632,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 /* status bar */
 .status {
   height: 30px; flex-shrink: 0;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--border);
   background: var(--bg-deep);
   display: flex; align-items: center;
   padding: 0 14px;
@@ -655,14 +655,14 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 /* right panel */
 .rp {
   background: var(--bg-deep);
-  border-left: 1px solid var(--border-soft);
+  border-left: 1px solid var(--border);
   display: flex; flex-direction: column;
   min-width: 0; min-height: 0;
 }
 .rp-head {
   height: 44px; flex-shrink: 0;
   display: flex; align-items: center; padding: 0 14px;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border);
   gap: 14px;
 }
 .rp-tab {
@@ -1614,7 +1614,7 @@ select.input {
 .rp-members {
   padding: 10px 14px 12px;
   margin: -14px -14px 0;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: -14px;
   background: var(--bg);
@@ -1757,7 +1757,7 @@ select.input {
   display: flex; align-items: center;
   padding: 0 32px;
   gap: 12px;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border);
   background: var(--bg-deep);
 }
 .admin-main {
