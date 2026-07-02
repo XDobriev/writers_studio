@@ -10,6 +10,7 @@ import { updateBook } from '../../lib/books';
 import { Skeleton } from '../Skeleton';
 import { SidebarNav } from './SidebarNav';
 import { SidebarFoot } from './SidebarFoot';
+import { ConfirmDialog } from '../ConfirmDialog';
 import { useFeatureFlag } from '../../lib/useFeatureFlag';
 
 const SB_STATUS_LABEL: Record<ChapterStatus, string> = {
@@ -50,6 +51,7 @@ export function Sidebar({
   const [shareToken, setShareToken] = useState<string | null>(book?.share_token ?? null);
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [confirmingRevoke, setConfirmingRevoke] = useState(false);
   const { enabled: shareEnabled } = useFeatureFlag('share_book_enabled');
 
   async function handleShare() {
@@ -133,13 +135,14 @@ export function Sidebar({
                 </button>
                 <button
                   type="button"
-                  onClick={() => void handleDisable()}
+                  onClick={() => setConfirmingRevoke(true)}
                   disabled={sharing}
-                  title="Отключить доступ по ссылке"
+                  title="Отозвать доступ — ссылка перестанет работать безвозвратно"
+                  aria-label="Отозвать доступ по ссылке"
                   className="sb-share-btn"
                   style={{ color: 'var(--danger)' }}
                 >
-                  Откл.
+                  Отозвать
                 </button>
               </>
             ) : (
@@ -156,6 +159,17 @@ export function Sidebar({
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmingRevoke}
+        message="Ссылка перестанет работать немедленно и без возможности восстановления. Все, у кого она есть, потеряют доступ к книге."
+        confirmLabel="Отозвать доступ"
+        onCancel={() => setConfirmingRevoke(false)}
+        onConfirm={async () => {
+          await handleDisable();
+          setConfirmingRevoke(false);
+        }}
+      />
 
       <SidebarNav bookId={bid} />
 
