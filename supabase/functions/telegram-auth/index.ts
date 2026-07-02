@@ -94,9 +94,12 @@ Deno.serve(async (req) => {
     provider: 'telegram',
   };
 
+  const appMeta = { provider: 'telegram', providers: ['telegram'], telegram_id: data.id };
+
   // Поиск существующего юзера. Дешевле через listUsers c фильтром по email
   // (Supabase admin API сейчас не отдаёт getUserByEmail).
   let userId: string | null = null;
+  let existingAppMeta: Record<string, unknown> | null = null;
   for (let page = 1; page <= 5; page++) {
     const { data: list, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
     if (error) {
@@ -104,7 +107,11 @@ Deno.serve(async (req) => {
       return json(500, { error: 'auth lookup failed' });
     }
     const hit = list.users.find((u) => u.email === email);
-    if (hit) { userId = hit.id; break; }
+    if (hit) {
+      userId = hit.id;
+      existingAppMeta = (hit.app_metadata ?? null) as Record<string, unknown> | null;
+      break;
+    }
     if (list.users.length < 200) break;
   }
 
@@ -113,6 +120,7 @@ Deno.serve(async (req) => {
       email,
       email_confirm: true,
       user_metadata: meta,
+      app_metadata: appMeta,
     });
     if (error || !created.user) {
       console.error('[telegram-auth] createUser failed:', error?.message ?? 'unknown');
@@ -120,7 +128,20 @@ Deno.serve(async (req) => {
     }
     userId = created.user.id;
   } else {
-    await admin.auth.admin.updateUserById(userId, { user_metadata: meta });
+    // Guard от pre-hijack: telegram_id в app_metadata пишет только эта функция (service role).
+    // Публичный signUp не может задать app_metadata, поэтому заранее заведённый
+    // tg-<id>@telegram.local без него не сможет перехватить вход. По образцу vk-auth.
+    if (!existingAppMeta?.telegram_id || Number(existingAppMeta.telegram_id) !== data.id) {
+      return json(409, { error: 'email conflict: account exists with different provider' });
+    }
+    const { error: updateErr } = await admin.auth.admin.updateUserById(userId, {
+      user_metadata: meta,
+      app_metadata: appMeta,
+    });
+    if (updateErr) {
+      console.error('[telegram-auth] updateUser failed:', updateErr.message);
+      return json(500, { error: 'account update failed' });
+    }
   }
 
   const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
