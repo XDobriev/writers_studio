@@ -11,11 +11,12 @@ interface AccountMenuProps {
   children: (props: { onClick: () => void; open: boolean; signingOut: boolean }) => ReactNode;
 }
 
-const ADMIN_EMAIL = 'xdobriev@yandex.ru';
-
 export function AccountMenu({ placement = 'above', children }: AccountMenuProps) {
   const { signOut, user } = useAuth();
-  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
+  // Гейт согласован с серверным is_admin(): claim app_metadata.role пишет только
+  // service_role, подделать через updateUser нельзя. UI-ссылка появляется после
+  // релогина админа (свежий JWT с claim); реальную защиту держит серверный RPC.
+  const isAdmin = user?.app_metadata?.role === 'admin';
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
