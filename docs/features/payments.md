@@ -94,6 +94,7 @@ Push-механизм ResultUrl2 (JWS на ResultUrl2) оказался нена
 - `Shp_plan` и `Shp_user_id` передаются и в подпись, и в тело запроса — иначе `robokassa-webhook` упадёт с «missing params»
 - Цена определяется по `profile.plan_interval` × `profile.grandfathered`: monthly/annual × base/grandfathered
 - После успешного списания `robokassa-webhook` продлевает `plan_expires_at`
+- **Идемпотентность цикла:** после `OK` от Robokassa пишет `profiles.last_billed_expiry = plan_expires_at` и пропускает юзера, пока webhook не продлит подписку. Ответ `OK` = операция создана, не гарантия списания (docs.robokassa.ru/ru/recurring-payments), поэтому без этого маркера юзер списывался бы каждый суточный прогон до прихода webhook.
 - Управляется Secret `ROBOKASSA_RECURRING_ENABLED=true`; вызывается через `SCHEDULER_SECRET` Bearer
 
 ### `cancel-subscription`
@@ -139,6 +140,7 @@ grandfathered bool     -- грандфазерская скидка (290₽/2900
 recurring_inv_id text  -- InvId первого Pro-платежа; NULL = нет рекуррентной подписки
 plan_interval text     -- 'monthly' | 'annual'; DEFAULT 'monthly'; для billing-scheduler
 cancel_at_period_end bool -- true = не продлевать; billing-scheduler даунгрейдит по истечении
+last_billed_expiry timestamptz -- цикл, за который scheduler уже инициировал списание; = plan_expires_at → пропустить
 ```
 
 ## Цены

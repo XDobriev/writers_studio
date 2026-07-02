@@ -58,6 +58,7 @@ type Profile = {
   recurring_inv_id: string;
   grandfathered: boolean;
   plan_interval: 'monthly' | 'annual';
+  last_billed_expiry: string | null;
 };
 
 Deno.serve(async (req) => {
@@ -102,7 +103,7 @@ Deno.serve(async (req) => {
 
   const { data: profiles, error: fetchErr } = await db
     .from('profiles')
-    .select('user_id, plan_expires_at, recurring_inv_id, grandfathered, plan_interval')
+    .select('user_id, plan_expires_at, recurring_inv_id, grandfathered, plan_interval, last_billed_expiry')
     .eq('plan', 'pro')
     .eq('cancel_at_period_end', false)
     .not('recurring_inv_id', 'is', null)
@@ -119,6 +120,15 @@ Deno.serve(async (req) => {
   const results: { user_id: string; inv_id?: string; error?: string }[] = [];
 
   for (const profile of rows) {
+    // Идемпотентность цикла: если за этот же plan_expires_at списание уже инициировано
+    // (получен OK от Robokassa) — не дёргать Recurring повторно. Ответ OK означает лишь
+    // создание операции; продление plan_expires_at делает асинхронный webhook, поэтому до
+    // его прихода юзер остаётся в выборке и без этого guard'а списался бы каждый прогон.
+    if (profile.last_billed_expiry && profile.last_billed_expiry === profile.plan_expires_at) {
+      console.log(`[billing-scheduler] skip ${profile.user_id}: already billed for cycle ${profile.plan_expires_at}`);
+      continue;
+    }
+
     const interval    = profile.plan_interval ?? 'monthly';
     // BILLING_TEST_AMOUNT — тест-override суммы (напр. 1₽ для E2E). Установить Secret → удалить после теста.
     const outSum      = Deno.env.get('BILLING_TEST_AMOUNT')
@@ -186,6 +196,13 @@ Deno.serve(async (req) => {
         });
         continue;
       }
+
+      // Фиксируем цикл сразу после OK (операция создана) — до подтверждения webhook'ом.
+      // Так следующий суточный прогон не спишет повторно, пока webhook не продлит
+      // plan_expires_at. При non-OK маркер не ставится → прогон повторит попытку.
+      await db.from('profiles')
+        .update({ last_billed_expiry: profile.plan_expires_at })
+        .eq('user_id', profile.user_id);
 
       // Логируем попытку в payments (pending — webhook подтвердит)
       await db.from('payments').upsert({
