@@ -97,8 +97,9 @@ Deno.serve(async (req) => {
   const baseOutSum = ((isGrandfathered || isInGrandfatheringWindow) && GRANDFATHERED_PRICES[plan])
     ? GRANDFATHERED_PRICES[plan]
     : BASE_PRICES[plan];
-  // BILLING_TEST_AMOUNT — тест-override суммы (напр. 1₽ для E2E). Установить Secret → удалить после теста.
-  const outSum = Deno.env.get('BILLING_TEST_AMOUNT') ?? baseOutSum;
+  // BILLING_TEST_AMOUNT — тест-override суммы (напр. 1₽ для E2E). Применяется ТОЛЬКО в тест-режиме,
+  // иначе в бою обвалил бы боевую цену для всех. Установить Secret → удалить после теста.
+  const outSum = isTestMode ? (Deno.env.get('BILLING_TEST_AMOUNT') ?? baseOutSum) : baseOutSum;
   // Числовой InvId с случайным суффиксом — Робокасса требует целое число, поэтому не UUID.
   const invId       = String(Date.now()) + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
   const shpPlan     = plan;

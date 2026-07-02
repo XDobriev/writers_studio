@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
 
   const results: { user_id: string; inv_id?: string; error?: string }[] = [];
 
-  for (const profile of rows) {
+  for (const [i, profile] of rows.entries()) {
     // Идемпотентность цикла: если за этот же plan_expires_at списание уже инициировано
     // (получен OK от Robokassa) — не дёргать Recurring повторно. Ответ OK означает лишь
     // создание операции; продление plan_expires_at делает асинхронный webhook, поэтому до
@@ -130,12 +130,15 @@ Deno.serve(async (req) => {
     }
 
     const interval    = profile.plan_interval ?? 'monthly';
-    // BILLING_TEST_AMOUNT — тест-override суммы (напр. 1₽ для E2E). Установить Secret → удалить после теста.
-    const outSum      = Deno.env.get('BILLING_TEST_AMOUNT')
+    // BILLING_TEST_AMOUNT — тест-override суммы (напр. 1₽ для E2E). Применяется ТОЛЬКО в тест-режиме,
+    // иначе в бою обвалил бы сумму списания. Установить Secret → удалить после теста.
+    const outSum      = (isTestMode ? Deno.env.get('BILLING_TEST_AMOUNT') : null)
       ?? (profile.grandfathered ? PRICES[interval].grandfathered : PRICES[interval].base);
     const description = DESCRIPTIONS[interval];
     const shpPlan     = interval === 'annual' ? 'pro_annual' : 'pro';
-    const newInvId    = String(Date.now()) + Math.floor(Math.random() * 1000);
+    // Индекс цикла гарантирует уникальность InvId внутри батча (даже при одинаковом Date.now());
+    // суточный cron исключает совпадение Date.now() между прогонами. 16 цифр — как в create-payment-url.
+    const newInvId    = String(Date.now()) + String(i).padStart(3, '0');
 
     // Получаем email для чека (ФЗ-54 / РобоЧеки СМЗ)
     const { data: { user: authUser } } = await db.auth.admin.getUserById(profile.user_id);
@@ -263,5 +266,9 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json(200, { processed: rows.length, results });
+  // Провалившиеся рекуррентные списания → не-200, чтобы GitHub Actions зафиксировал сбой (dunning-сигнал).
+  // Даунгрейд истёкших планов выше уже отработал — на него статус не влияет.
+  const failures = results.filter((r) => r.error);
+  const status = failures.length > 0 ? 502 : 200;
+  return json(status, { processed: rows.length, failed: failures.length, results });
 });

@@ -133,7 +133,10 @@ Deno.serve(async (req) => {
 
       const result = await resp.json();
 
-      if (result.status === 'success') {
+      // UniSender Go может вернуть status:'success', но с адресом в failed_emails (отклонён/невалиден).
+      // Помечаем отправленным только если письмо реально ушло на этот адрес.
+      const failedEmails = result.failed_emails ?? {};
+      if (result.status === 'success' && !failedEmails[user.email]) {
         await db
           .from('profiles')
           .update({ retention_email_sent_at: new Date().toISOString() })

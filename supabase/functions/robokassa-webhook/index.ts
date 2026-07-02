@@ -132,6 +132,19 @@ Deno.serve(async (req) => {
     return text(200, 'BAD SIGN');
   }
 
+  // Defense-in-depth: сверяем OutSum с минимальной легитимной ценой плана (грандфазер-цена — нижняя граница).
+  // Ловит обвал суммы из BILLING_TEST_AMOUNT (баг #1) — реальный юзер не должен получить план за 1₽.
+  // В тест-режиме пропускаем: там BILLING_TEST_AMOUNT легитимно ниже.
+  const MIN_PRICE: Record<string, number> = { pro: 290, pro_annual: 2900, lifetime: 4990 };
+  if (!isTest) {
+    const paid = parseFloat(outSum);
+    const min = MIN_PRICE[shpPlan];
+    if (min && (Number.isNaN(paid) || paid + 0.01 < min)) {
+      console.error('[robokassa-webhook] OutSum below plan minimum, not activating', { shpPlan, paid, min, invId });
+      return text(200, 'ERROR: amount below plan price');
+    }
+  }
+
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
   // Идемпотентность (баг #3): Robokassa повторяет ResultURL 4 раза/1 мин, если не получила
