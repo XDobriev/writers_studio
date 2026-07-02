@@ -65,6 +65,12 @@ interface RichEditorProps {
   onEditor?: (editor: Editor | null) => void;
   userDictionary?: string[];
   onAddWord?: (word: string) => void;
+  /**
+   * Готов ли контент главы (данные загрузились). Пока false — редактор считается
+   * незасеянным: значение из `value` будет применено, как только контент придёт.
+   * По умолчанию true (для сёрфейсов, где контент приходит вместе с монтированием).
+   */
+  contentReady?: boolean;
 }
 
 export function RichEditor({
@@ -78,6 +84,7 @@ export function RichEditor({
   onEditor,
   userDictionary,
   onAddWord,
+  contentReady = true,
 }: RichEditorProps) {
   const dictRef = useRef<string[]>(userDictionary ?? []);
   useEffect(() => { dictRef.current = userDictionary ?? []; }, [userDictionary]);
@@ -130,12 +137,25 @@ export function RichEditor({
     return () => onEditor?.(null);
   }, [editor, onEditor]);
 
-  // Контент может прийти позже, чем редактор смонтировался (гонка запросов при обновлении страницы).
-  // Если editor.isEmpty && value уже есть — ставим контент без эмита onChange.
+  // Посев реального контента главы ровно один раз на инстанс редактора.
+  // Сбрасывается при пересоздании редактора (смена главы через contentKey).
+  const seededRef = useRef(false);
+  useEffect(() => { seededRef.current = false; }, [editor]);
+
+  // Гонка загрузки: редактор может смонтироваться пустым ДО того, как придёт
+  // сохранённый контент главы (deep-link / keyboard-nav / медленная сеть).
+  // Пользователь успевает нажать клавишу → editor.isEmpty=false, и старый гвард
+  // по isEmpty терял сохранённый текст, а следующий автосейв затирал главу одним
+  // символом. Теперь ждём contentReady и засеиваем value независимо от isEmpty.
+  // После посева редактор — источник правды: отстающий echo value (в Focus/Split
+  // value обновляется только после записи) уже не применяется и не сбивает ввод.
   useEffect(() => {
-    if (!editor || editor.isDestroyed || !value || !editor.isEmpty) return;
-    editor.commands.setContent(value, { emitUpdate: false });
-  }, [editor, value]);
+    if (!editor || editor.isDestroyed || !contentReady || seededRef.current) return;
+    seededRef.current = true;
+    if ((value || '') !== editor.getHTML()) {
+      editor.commands.setContent(value || '', { emitUpdate: false });
+    }
+  }, [editor, value, contentReady]);
 
   const bubbleStateRef = useRef<'hidden' | 'visible' | 'leaving'>('hidden');
   const bubbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

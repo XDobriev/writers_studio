@@ -5,8 +5,7 @@ import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { useQueryClient } from '@tanstack/react-query';
 import { EditorHybrid } from '../components/EditorHybrid';
 import { useAuth } from '../lib/auth';
-import { supabase, type Book } from '../lib/supabase';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/config';
+import { type Book } from '../lib/supabase';
 import { updateBook } from '../lib/books';
 import {
   countWords,
@@ -28,6 +27,7 @@ import {
 } from '../lib/chapterMutations';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useChapterVersioning } from '../lib/useChapterVersioning';
+import { useBeforeUnloadSave } from '../lib/useBeforeUnloadSave';
 import { syncBacklinks } from '../lib/crossrefs';
 import type { Character } from '../lib/characters';
 
@@ -67,6 +67,9 @@ export default function Editor() {
   // Контент только активной главы — загружается отдельно, не вместе с метаданными
   const { data: chapterContentData } = useChapterContent(activeId ?? undefined);
   const activeContent = chapterContentData?.content ?? '';
+  // Контент главы загружен (запрос разрешился). До этого редактор не засеивается —
+  // защита от гонки, когда автосейв мог записать ввод в ещё не загруженную главу.
+  const activeContentReady = chapterContentData !== undefined;
 
   useEffect(() => {
     if (!chapters || chapters.length === 0) return;
@@ -111,7 +114,6 @@ export default function Editor() {
     }
   }, [bookId, user, chapters, queryClient, search, setSearch, setError]);
 
-  const sessionTokenRef = useRef<string | null>(null);
   const { plan } = useUserDisplay();
   const isPro = plan === 'pro' || plan === 'lifetime';
 
@@ -126,24 +128,14 @@ export default function Editor() {
     }, 2500);
   }, []);
 
-  const { currentContentRef, onContentTracked, onChapterSwitch, onBeforeUnload } = useChapterVersioning({
+  const { onContentTracked, onChapterSwitch, onBeforeUnload } = useChapterVersioning({
     chapterId: activeId,
     userId: user?.id,
     isPro,
     onVersionCreated: handleVersionCreated,
   });
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      sessionTokenRef.current = data.session?.access_token ?? null;
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      sessionTokenRef.current = session?.access_token ?? null;
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const { scheduleSave: debouncedSave, flush, pendingPatchRef, targetIdRef } = useDebouncedSave<ChapterPatch>(
+  const { scheduleSave: debouncedSave, flush, cancel, pendingPatchRef, targetIdRef } = useDebouncedSave<ChapterPatch>(
     async (id, patch) => {
       if (!bookId) return;
       setSaveState('saving');
@@ -152,11 +144,16 @@ export default function Editor() {
         updateChapterWithCache(queryClient, bookId, updated);
         setSaveState('saved');
         setSavedAt(new Date());
-        const characters = queryClient.getQueryData<Character[]>(QUERY_KEYS.characters(bookId)) ?? [];
-        if (characters.length > 0) {
-          void syncBacklinks(id, bookId, currentContentRef.current, characters)
-            .then(() => { void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterCharactersAll() }); })
-            .catch(() => { /* non-critical */ });
+        // Бэклинки считаем из patch.content — контента ИМЕННО этой главы.
+        // currentContentRef после await мог уже указывать на другую главу
+        // (переключение за время запроса), тогда упоминания посчитались бы из чужого текста.
+        if (patch.content !== undefined) {
+          const characters = queryClient.getQueryData<Character[]>(QUERY_KEYS.characters(bookId)) ?? [];
+          if (characters.length > 0) {
+            void syncBacklinks(id, bookId, patch.content, characters)
+              .then(() => { void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterCharactersAll() }); })
+              .catch(() => { /* non-critical */ });
+          }
         }
       } catch (e) {
         setSaveState('error');
@@ -166,31 +163,7 @@ export default function Editor() {
     700,
   );
 
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      const patch = pendingPatchRef.current;
-      const id = targetIdRef.current;
-      const token = sessionTokenRef.current;
-      const supabaseUrl = SUPABASE_URL;
-      const anonKey = SUPABASE_ANON_KEY;
-      if (patch && id && token) {
-        void fetch(`${supabaseUrl}/rest/v1/chapters?id=eq.${id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': anonKey,
-            'Authorization': `Bearer ${token}`,
-            'Prefer': 'return=minimal',
-          },
-          body: JSON.stringify(patch),
-          keepalive: true,
-        });
-      }
-      onBeforeUnload();
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [pendingPatchRef, targetIdRef, onBeforeUnload]);
+  useBeforeUnloadSave(pendingPatchRef, targetIdRef, onBeforeUnload);
 
   const scheduleSave = useCallback((id: string, patch: ChapterPatch) => {
     if (bookId) {
@@ -329,11 +302,13 @@ export default function Editor() {
         chapters={chapters}
         activeChapter={activeChapter}
         activeContent={activeContent}
+        activeContentReady={activeContentReady}
         chapterActions={{ onSelectChapter: selectChapter, onCreateChapter, onStatusChange, onDeleteChapter, onChapterHover }}
         onContentChange={onContentChange}
         onTitleChange={onTitleChange}
         onGoalChange={onGoalChange}
         onSave={flush}
+        onBeforeRestore={cancel}
         saveState={saveState}
         savedAt={savedAt}
         versionToast={versionToast}

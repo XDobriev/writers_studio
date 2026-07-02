@@ -40,6 +40,14 @@ TextStyle, Color, Highlight (multicolor), Link, TextAlign (heading+paragraph), T
 
 Debounce 700 мс через `chapters.ts`. Подсчёт слов — `countWords` требует начало слова с буквы/цифры (одиночные `-` и `'` не считаются). Очистка HTML entities: `&[a-z0-9#]+;`.
 
+**Keepalive при закрытии вкладки.** Если вкладку закрывают в окне debounce (700 мс), последний патч дописывается через `fetch({ keepalive: true })` — хук `useBeforeUnloadSave` (`pendingPatchRef`/`targetIdRef` из `useDebouncedSave`). Подключён в `Editor.tsx`, `Focus.tsx` и `Split.tsx` (в каждой панели).
+
+**Посев контента (`contentReady`).** `RichEditor` засеивает `value` в редактор один раз на инстанс, только когда контент главы загружен (`contentReady`). Защита от гонки: при deep-link / keyboard-nav редактор мог смонтироваться пустым до загрузки; если пользователь успел нажать клавишу — старый гвард по `isEmpty` терял сохранённый текст, а автосейв затирал главу. `Editor`/`Focus` передают `contentReady = chapterContentData !== undefined`; `Split` грузит контент вместе с главами (по умолчанию `true`).
+
+**Восстановление версии** (`VersionModal`) сначала вызывает `onBeforeRestore` (`cancel` debounce из `Editor.tsx`), чтобы черновик из окна debounce не флашнулся после restore и не затёр восстановленную версию. Черновик уже входит в `currentContent` и сохраняется как точка отмены. Проброс: `Editor` → `EditorHybrid` → `RightPanel` → `VersionsPanel` → `VersionModal`.
+
+**Бэклинки** (`syncBacklinks`) считаются из `patch.content` — контента именно сохраняемой главы, а не `currentContentRef` (после `await` ref мог указывать на другую главу при быстром переключении).
+
 ## Пользовательский словарь (§11)
 
 `addWordToDictionary` из `profiles.ts` — добавляет слово в `profiles.custom_dictionary` (text[]). Передаётся в `RichEditor` через проп `userDictionary` + колбэк `onAddWord`.

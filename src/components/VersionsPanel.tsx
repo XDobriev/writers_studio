@@ -15,9 +15,10 @@ interface VersionsPanelProps {
   currentContent: string;
   isPro: boolean;
   onRestoreContent?: (content: string) => void;
+  onBeforeRestore?: () => void;
 }
 
-export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, currentContent, isPro, onRestoreContent }: VersionsPanelProps) {
+export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, currentContent, isPro, onRestoreContent, onBeforeRestore }: VersionsPanelProps) {
   const { error: versionError, setError: setVersionError, clearError: clearVersionError } = useErrorState();
   const { data: versions = [], isLoading } = useChapterVersions(chapterId);
   const { createNamed, remove } = useVersionMutations(chapterId, userId, isPro);
@@ -202,6 +203,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
         userId={userId}
         currentContent={currentContent}
         isPro={isPro}
+        onBeforeRestore={onBeforeRestore}
         onClose={() => setSelected(null)}
         onRestored={(restoredContent) => { onRestoreContent?.(restoredContent); setSelected(null); }}
       />

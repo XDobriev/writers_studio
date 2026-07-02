@@ -15,6 +15,7 @@ import {
   type SaveState,
 } from '../lib/chapters';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
+import { useBeforeUnloadSave } from '../lib/useBeforeUnloadSave';
 
 type Side = 'left' | 'right';
 
@@ -182,10 +183,13 @@ function Pane({ side, chapter, chapters, saveState, onSelect, onPersist }: {
   onSelect: (id: string) => void;
   onPersist: (id: string, patch: ChapterPatch) => void;
 }) {
-  const { scheduleSave, flush } = useDebouncedSave<ChapterPatch>(
+  const { scheduleSave, flush, pendingPatchRef, targetIdRef } = useDebouncedSave<ChapterPatch>(
     async (id, patch) => { onPersist(id, patch); },
     700,
   );
+
+  // Keepalive: дописать незаписанный патч панели при закрытии вкладки в окне debounce.
+  useBeforeUnloadSave(pendingPatchRef, targetIdRef);
 
   const lastChIdRef = useRef<string | null>(null);
   useEffect(() => {

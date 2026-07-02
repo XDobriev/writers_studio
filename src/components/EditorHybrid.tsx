@@ -30,6 +30,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 interface ChapterSheetProps {
   chapter: ChapterMeta;
   content: string;
+  contentReady?: boolean;
   onContentChange: (html: string) => void;
   onTitleChange: (title: string) => void;
   onEditor: (editor: Editor | null) => void;
@@ -41,7 +42,7 @@ interface ChapterSheetProps {
 
 import { plural } from '../lib/i18n';
 
-function ChapterSheet({ chapter, content, onContentChange, onTitleChange, onEditor, width, padding, userDictionary, onAddWord }: ChapterSheetProps) {
+function ChapterSheet({ chapter, content, contentReady, onContentChange, onTitleChange, onEditor, width, padding, userDictionary, onAddWord }: ChapterSheetProps) {
   return (
     <div className="sheet" style={{ width, padding }}>
       <input
@@ -61,6 +62,7 @@ function ChapterSheet({ chapter, content, onContentChange, onTitleChange, onEdit
         value={content}
         onChange={onContentChange}
         contentKey={chapter.id}
+        contentReady={contentReady}
         placeholder="Начните писать главу…"
         className="sheet-body"
         style={{ minHeight: 300 }}
@@ -92,6 +94,7 @@ interface EditorHybridProps {
   activeChapter?: ChapterMeta | null;
   activeContent?: string;
   chapterActions?: ChapterActions;
+  activeContentReady?: boolean;
   onContentChange?: (html: string) => void;
   onTitleChange?: (title: string) => void;
   onGoalChange?: (goal: number) => void;
@@ -99,6 +102,8 @@ interface EditorHybridProps {
   savedAt?: Date | null;
   /** Вызывается по Ctrl+S — принудительный flush debounce */
   onSave?: () => void;
+  /** Отменить pending-автосейв перед восстановлением версии (защита от затирания) */
+  onBeforeRestore?: () => void;
   versionToast?: boolean;
 }
 
@@ -108,6 +113,7 @@ export function EditorHybrid({
   chapters,
   activeChapter,
   activeContent = '',
+  activeContentReady = true,
   chapterActions,
   onContentChange,
   onTitleChange,
@@ -115,6 +121,7 @@ export function EditorHybrid({
   saveState = 'idle',
   savedAt = null,
   onSave,
+  onBeforeRestore,
   versionToast = false,
 }: EditorHybridProps) {
   const [mode, setMode] = useState<Mode>(defaultMode);
@@ -320,6 +327,7 @@ export function EditorHybrid({
               <ChapterSheet
                 chapter={activeChapter}
                 content={activeContent}
+                contentReady={activeContentReady}
                 onContentChange={(html) => onContentChange?.(html)}
                 onTitleChange={(title) => onTitleChange?.(title)}
                 onEditor={setEditor}
@@ -354,6 +362,7 @@ export function EditorHybrid({
             currentContent={activeContent}
             isPro={isPro}
             onRestoreContent={restoreContent}
+            onBeforeRestore={onBeforeRestore}
             showNoteForm={showNoteForm}
             onNoteFormClose={resetShowNoteForm}
           />
@@ -417,6 +426,7 @@ export function EditorHybrid({
               currentContent={activeContent}
               isPro={isPro}
               onRestoreContent={restoreContent}
+              onBeforeRestore={onBeforeRestore}
               showNoteForm={showNoteForm}
             onNoteFormClose={resetShowNoteForm}
             />

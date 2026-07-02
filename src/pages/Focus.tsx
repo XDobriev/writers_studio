@@ -12,6 +12,7 @@ import { plural } from '../lib/i18n';
 import { useBook, useChapters, useChapterContent } from '../lib/queries';
 import { updateChapterWithCache } from '../lib/chapterMutations';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
+import { useBeforeUnloadSave } from '../lib/useBeforeUnloadSave';
 
 export default function Focus() {
   const { id: bookId } = useParams<{ id: string }>();
@@ -31,6 +32,7 @@ export default function Focus() {
 
   const { data: chapterContentData } = useChapterContent(activeId ?? undefined);
   const activeContent = chapterContentData?.content ?? '';
+  const contentReady = chapterContentData !== undefined;
 
   const activeChapter = useMemo(
     () => (chapters && activeId ? chapters.find((c) => c.id === activeId) ?? null : null),
@@ -39,7 +41,7 @@ export default function Focus() {
 
   const [saveState, setSaveState] = useState<SaveState>('idle');
 
-  const { scheduleSave, flush } = useDebouncedSave<ChapterPatch>(
+  const { scheduleSave, flush, pendingPatchRef, targetIdRef } = useDebouncedSave<ChapterPatch>(
     async (id, patch) => {
       if (!bookId) return;
       setSaveState('saving');
@@ -54,6 +56,9 @@ export default function Focus() {
     },
     700,
   );
+
+  // Keepalive: дописать незаписанный патч при закрытии вкладки в окне debounce.
+  useBeforeUnloadSave(pendingPatchRef, targetIdRef);
 
   const error = (bookError ?? chaptersError)?.message ?? null;
 
@@ -143,6 +148,7 @@ export default function Focus() {
           value={activeContent}
           onChange={onContentChange}
           contentKey={activeChapter.id}
+          contentReady={contentReady}
           placeholder="Только текст и вы. Печатайте…"
           attributesStyle={focusEditorStyle}
           style={{ width: 720, maxWidth: '100%', minHeight: 'calc(100vh - 200px)' }}

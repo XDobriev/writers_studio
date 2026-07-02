@@ -18,12 +18,13 @@ interface RightPanelProps {
   currentContent?: string;
   isPro?: boolean;
   onRestoreContent?: (content: string) => void;
+  onBeforeRestore?: () => void;
   /** Ctrl+Shift+M из EditorHybrid — переключает панель на заметки и открывает форму */
   showNoteForm?: boolean;
   onNoteFormClose?: () => void;
 }
 
-export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, showNoteForm, onNoteFormClose }: RightPanelProps) {
+export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, onBeforeRestore, showNoteForm, onNoteFormClose }: RightPanelProps) {
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно', custom: 'Прочее' };
   const KIND_COLORS: Record<string, string> = {
     idea: 'var(--note-idea)', question: 'var(--note-question)',
@@ -163,6 +164,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                 currentContent={currentContent ?? ''}
                 isPro={isPro ?? false}
                 onRestoreContent={onRestoreContent}
+                onBeforeRestore={onBeforeRestore}
               />
               </Suspense>
             )}

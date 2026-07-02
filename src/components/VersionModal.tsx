@@ -78,6 +78,7 @@ interface VersionModalProps {
   userId: string;
   currentContent: string;
   isPro: boolean;
+  onBeforeRestore?: () => void;
   onClose: () => void;
   onRestored: (content: string) => void;
 }
@@ -90,6 +91,7 @@ export function VersionModal({
   userId,
   currentContent,
   isPro,
+  onBeforeRestore,
   onClose,
   onRestored,
 }: VersionModalProps) {
@@ -155,6 +157,11 @@ export function VersionModal({
   async function handleRestore() {
     if (!content) return;
     setRestoring(true);
+    // Отменяем pending-автосейв редактора ДО записи: черновик, набранный за
+    // <700 мс до «Восстановить», иначе флашнулся бы после restore и затёр бы
+    // восстановленную версию. Сам черновик уже входит в currentContent и
+    // сохраняется ниже как точка отмены — потери нет.
+    onBeforeRestore?.();
     try {
       // Снимок текущего контента как точка отмены
       await createVersion(chapterId, userId, currentContent, countWords(currentContent), 'manual', isPro);
