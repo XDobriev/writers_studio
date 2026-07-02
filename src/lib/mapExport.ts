@@ -117,12 +117,17 @@ export async function generateMapPngBuffer(
   const url = URL.createObjectURL(svgBlob);
   try {
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.src = url;
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
-      img.onerror = () => reject(new Error('Ошибка загрузки карты'));
+      img.onerror = () => reject(new Error('Ошибка загрузки карты: не удалось декодировать SVG-изображение'));
     });
-    ctx.drawImage(img, 0, 0);
+    try {
+      ctx.drawImage(img, 0, 0);
+    } catch (err) {
+      throw new Error(`Ошибка отрисовки карты на canvas: ${err instanceof Error ? err.message : String(err)}`);
+    }
   } finally {
     URL.revokeObjectURL(url);
   }

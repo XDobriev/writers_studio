@@ -238,6 +238,8 @@ export function WorldMap({
         cx: (e.touches[0].clientX + e.touches[1].clientX) / 2,
         cy: (e.touches[0].clientY + e.touches[1].clientY) / 2,
       };
+      // Второе касание — отменяем pan-drag от первого пальца, иначе pinch и pan дерутся за setPan
+      panRef.current = null;
     }
   }, []);
 
@@ -302,7 +304,8 @@ export function WorldMap({
   useEffect(() => {
     if (!pendingPinPos) return;
     const l = locations.find(loc => loc.id === pendingPinPos.id);
-    if (!l || l.x == null || l.y == null || (l.x === pendingPinPos.x && l.y === pendingPinPos.y)) setPendingPinPos(null);
+    const round = (v: number) => Math.round(v * 1000) / 1000;
+    if (!l || l.x == null || l.y == null || (round(l.x) === round(pendingPinPos.x) && round(l.y) === round(pendingPinPos.y))) setPendingPinPos(null);
   }, [locations, pendingPinPos]);
 
   // ── Popup field sync when selection changes ──────────────────────────────
@@ -483,6 +486,14 @@ export function WorldMap({
     }
   };
 
+  const onPointerCancel = () => {
+    stampDragRef.current = null;
+    setDragStampPos(null);
+    pinDragRef.current = null;
+    setDragPinPos(null);
+    panRef.current = null;
+  };
+
   // ── Derived ──────────────────────────────────────────────────────────────
   const mapped   = locations.filter(l => l.x != null && l.y != null);
   const unmapped = locations.filter(l => l.x == null || l.y == null);
@@ -530,6 +541,7 @@ export function WorldMap({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
