@@ -8,6 +8,15 @@ export interface WritingStats {
   streak: number;
 }
 
+// Снапшоты разрежённые: строка пишется только когда words меняется (см. 0008_writing_snapshots.sql).
+// День без строки — не обязательно день без прогресса, это может быть день ДО первого изменения в окне.
+// Поэтому кумулятив на дату нужно переносить вперёд от ближайшей известной даты, а не подставлять 0.
+function cumulativeAsOf(snap: Record<string, number>, dateStr: string): number {
+  const known = Object.keys(snap).filter(d => d <= dateStr).sort();
+  const last = known.at(-1);
+  return last ? snap[last] : 0;
+}
+
 function computeStats(data: Array<{ date: string; words: number }>): WritingStats {
   const today = new Date();
   const todayStr = toLocalISODate(today);
@@ -25,8 +34,11 @@ function computeStats(data: Array<{ date: string; words: number }>): WritingStat
     const prev = new Date(cur);
     prev.setDate(prev.getDate() - 1);
     const prevStr = toLocalISODate(prev);
-    if ((snap[curStr] ?? 0) > (snap[prevStr] ?? 0)) {
+    if (cumulativeAsOf(snap, curStr) > cumulativeAsOf(snap, prevStr)) {
       streak++;
+      cur.setDate(cur.getDate() - 1);
+    } else if (curStr === todayStr && !(curStr in snap)) {
+      // сегодня ещё не писали ни строки — не обрываем серию, продолжаем со вчера
       cur.setDate(cur.getDate() - 1);
     } else {
       break;
@@ -36,10 +48,10 @@ function computeStats(data: Array<{ date: string; words: number }>): WritingStat
   return { todayWords, streak };
 }
 
-export function useWritingStats(bookId: string | undefined): WritingStats & { refetch: () => void } {
+export function useWritingStats(bookId: string | undefined): WritingStats & { refetch: () => void; isLoading: boolean } {
   const queryClient = useQueryClient();
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['writing-stats', bookId],
     queryFn: async () => {
       const today = new Date();
@@ -52,10 +64,11 @@ export function useWritingStats(bookId: string | undefined): WritingStats & { re
         .select('date, words')
         .eq('book_id', bookId!)
         .gte('date', fromStr)
-        .order('date', { ascending: false });
+        .order('date', { ascending: false })
+        .returns<Array<{ date: string; words: number }>>();
 
       if (error || !data) return [];
-      return data as Array<{ date: string; words: number }>;
+      return data;
     },
     enabled: !!bookId,
     staleTime: 60_000,
@@ -66,5 +79,5 @@ export function useWritingStats(bookId: string | undefined): WritingStats & { re
   }, [queryClient, bookId]);
 
   const stats = data ? computeStats(data) : { todayWords: 0, streak: 0 };
-  return { ...stats, refetch };
+  return { ...stats, refetch, isLoading };
 }

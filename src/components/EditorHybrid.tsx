@@ -190,7 +190,7 @@ export function EditorHybrid({
   const { visible: showPageHint, dismiss: dismissPageHint } = usePageHint(isPage);
 
   const dailyGoal = book?.daily_goal ?? 0;
-  const { toast: goalToast } = useGoalToast({ todayWords: writingStats.todayWords, dailyGoal });
+  const { toast: goalToast } = useGoalToast({ todayWords: writingStats.todayWords, dailyGoal, isLoading: writingStats.isLoading });
 
   return (
     <div className="as" style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'var(--bg)', position: 'relative' }}>
