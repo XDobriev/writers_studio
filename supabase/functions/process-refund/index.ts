@@ -146,6 +146,30 @@ Deno.serve(async (req) => {
   }
   if (!opKey) return json(422, { error: 'op_key_missing' });
 
+  // Claim-first (баг #2): помечаем refunded_at ДО обращения к Robokassa атомарным
+  // UPDATE ... WHERE refunded_at IS NULL. Конкурентный/повторный вызов получит 0 строк
+  // и не пойдёт в Refund API. На успехе маркер остаётся (проблема исходного кода —
+  // best-effort запись после возврата, из-за которой платёж оставался refund-eligible);
+  // на сбое — откатываем, чтобы юзер мог повторить (двойной возврат невозможен: Robokassa
+  // отклоняет второй полный возврат по одному OpKey — подтверждено поддержкой 02.07.2026).
+  const now = new Date().toISOString();
+  const { data: claimedRefund, error: claimErr } = await db.from('payments')
+    .update({ refunded_at: now })
+    .eq('id', payment.id)
+    .is('refunded_at', null)
+    .select('id');
+  if (claimErr) {
+    console.error('[process-refund] refund claim failed:', claimErr.message);
+    return json(500, { error: 'db error' });
+  }
+  if (!claimedRefund?.length) {
+    return json(409, { error: 'refund_already_processing' });
+  }
+  const releaseRefundClaim = async () => {
+    const { error } = await db.from('payments').update({ refunded_at: null }).eq('id', payment.id);
+    if (error) console.error('[process-refund] refund claim rollback failed:', error.message);
+  };
+
   // Robokassa Refund API — JWT подписан Password3
   let requestId: string;
   try {
@@ -164,26 +188,29 @@ Deno.serve(async (req) => {
     const data = await res.json() as { success?: boolean; message?: string; requestId?: string };
     if (!data.success || !data.requestId) {
       console.error('[process-refund] Robokassa rejected:', JSON.stringify(data));
+      await releaseRefundClaim();
       return json(502, { error: 'robokassa_error' });
     }
     requestId = data.requestId;
   } catch (e) {
     console.error('[process-refund] Robokassa fetch failed:', e);
+    await releaseRefundClaim();
     return json(502, { error: 'robokassa_unreachable' });
   }
 
   const label = await pollStatus(requestId);
   if (label === 'canceled') {
     console.error(`[process-refund] refund canceled requestId=${requestId}`);
+    await releaseRefundClaim();
     return json(502, { error: 'refund_canceled' });
   }
 
   console.log(`[process-refund] refund ok userId=${user.id} opKey=${opKey} status=${label}`);
 
-  const now = new Date().toISOString();
+  // refunded_at уже проставлен claim'ом — дописываем requestId и снимаем план.
   const [profileUpdate, paymentUpdate] = await Promise.all([
     db.from('profiles').update({ plan: 'free', plan_expires_at: null }).eq('user_id', user.id),
-    db.from('payments').update({ refunded_at: now, refund_request_id: requestId }).eq('id', payment.id),
+    db.from('payments').update({ refund_request_id: requestId }).eq('id', payment.id),
   ]);
 
   if (profileUpdate.error) console.error('[process-refund] profile update failed:', profileUpdate.error.message);

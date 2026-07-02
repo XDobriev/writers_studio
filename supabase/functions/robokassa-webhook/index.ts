@@ -134,6 +134,42 @@ Deno.serve(async (req) => {
 
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
+  // Идемпотентность (баг #3): Robokassa повторяет ResultURL 4 раза/1 мин, если не получила
+  // OK{InvId}. Без guard'а повтор после partial-success (профиль обновлён, но OK не вернулся)
+  // стекал бы подписку и повторно дёргал decrement_lifetime_slot(). confirmed_at захватывается
+  // атомарно: строку пред-создаёт scheduler (рекуррент) или мы сами (первый платёж), затем
+  // один UPDATE ... WHERE confirmed_at IS NULL решает, кто из доставок обрабатывает платёж.
+  const confirmedIso = new Date().toISOString();
+  const { error: ensureErr } = await db.from('payments').upsert({
+    inv_id:  invId,
+    user_id: shpUserId,
+    amount:  parseFloat(outSum),
+    plan:    shpPlan,
+    paid_at: confirmedIso,
+  }, { onConflict: 'inv_id', ignoreDuplicates: true });
+  if (ensureErr) {
+    console.error('[robokassa-webhook] payments ensure failed:', ensureErr.message);
+    return text(500, 'ERROR: payments ensure failed');
+  }
+  const { data: claimed, error: claimErr } = await db.from('payments')
+    .update({ confirmed_at: confirmedIso })
+    .eq('inv_id', invId)
+    .is('confirmed_at', null)
+    .select('inv_id');
+  if (claimErr) {
+    console.error('[robokassa-webhook] confirm claim failed:', claimErr.message);
+    return text(500, 'ERROR: claim failed');
+  }
+  if (!claimed?.length) {
+    console.log(`[robokassa-webhook] duplicate delivery invId=${invId}, acking without mutation`);
+    return text(200, `OK${invId}`);
+  }
+  // Откат захвата при сбое мутации ниже — чтобы повтор Robokassa смог переобработать платёж.
+  const releaseClaim = async () => {
+    const { error } = await db.from('payments').update({ confirmed_at: null }).eq('inv_id', invId);
+    if (error) console.error('[robokassa-webhook] claim rollback failed:', error.message);
+  };
+
   let userEmail: string | null = null;
   try {
     const { data } = await db.auth.admin.getUserById(shpUserId);
@@ -148,10 +184,12 @@ Deno.serve(async (req) => {
     const { data: slotOk, error: slotErr } = await db.rpc('decrement_lifetime_slot');
     if (slotErr) {
       console.error('[robokassa-webhook] slot decrement failed:', slotErr.message);
+      await releaseClaim();
       return text(500, 'ERROR: slot decrement failed');
     }
     if (!slotOk) {
       console.error('[robokassa-webhook] no lifetime slots remaining for user:', shpUserId);
+      await releaseClaim();
       return text(500, 'ERROR: no lifetime slots');
     }
 
@@ -162,6 +200,7 @@ Deno.serve(async (req) => {
       .select('user_id');
     if (error || !updatedLifetime?.length) {
       console.error('[robokassa-webhook] profiles update failed (lifetime):', error?.message ?? '0 rows', 'user:', shpUserId);
+      await releaseClaim();
       return text(500, 'ERROR: profiles update failed');
     }
 
@@ -206,11 +245,13 @@ Deno.serve(async (req) => {
       .select('user_id');
     if (error || !updatedPro?.length) {
       console.error('[robokassa-webhook] profiles update failed (pro):', error?.message ?? '0 rows', 'user:', shpUserId);
+      await releaseClaim();
       return text(500, 'ERROR: profiles update failed');
     }
 
   } else {
     console.error('[robokassa-webhook] unknown plan:', shpPlan);
+    await releaseClaim();
     return text(200, `ERROR: unknown plan ${shpPlan}`);
   }
 
@@ -238,15 +279,14 @@ Deno.serve(async (req) => {
     console.warn('[robokassa-webhook] ROBOKASSA_MERCHANT_LOGIN not set — skipping OpKey fetch');
   }
 
-  const { error: paymentErr } = await db.from('payments').upsert({
-    inv_id:  invId,
-    user_id: shpUserId,
-    amount:  parseFloat(outSum),
-    plan:    shpPlan,
-    paid_at: new Date().toISOString(),
+  // Строка уже создана и захвачена (confirmed_at) в начале обработки — обновляем
+  // авторитетные plan/amount (важно для pro_annual: scheduler пред-создаёт с plan='pro') и op_key.
+  const { error: paymentErr } = await db.from('payments').update({
+    amount: parseFloat(outSum),
+    plan:   shpPlan,
     ...(opKey ? { op_key: opKey } : {}),
-  }, { onConflict: 'inv_id' });
-  if (paymentErr) console.error('[robokassa-webhook] payments upsert failed:', paymentErr.message);
+  }).eq('inv_id', invId);
+  if (paymentErr) console.error('[robokassa-webhook] payments update failed:', paymentErr.message);
 
   if (userEmail) {
     const confirmationUrl = `${supabaseUrl}/functions/v1/payment-confirmation`;

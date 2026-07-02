@@ -12,15 +12,6 @@ _Обновлён: 2026-06-30_ — §1 монетизация закрыта (о
 
 > Самый критичный — первый в списке.
 
-### Идемпотентность денежных edge-функций (webhook / refund) — ждём техподдержку Robokassa
-
-**#3 `robokassa-webhook`:** нет guard по `inv_id` — повторная доставка ResultURL (при partial-success без ответа `OK`) стекает подписку (`baseDate` читает уже продлённый `plan_expires_at` +31/365д) и повторно вызывает `decrement_lifetime_slot()`. Фикс (колонка `payments.confirmed_at` + atomic claim, мутации после захвата) готов концептуально, **не применён**: необходимость зависит от механики ретраев ResultURL, которой нет в документации.
-**#2 `process-refund`:** `refunded_at` пишется best-effort после возврата, при ошибке апдейта возвращается `200` → платёж остаётся refund-eligible. Robokassa гасит балансом (`NotEnoughOperationFunds`), так что двойного вывода денег, вероятно, нет — фикс нужен как defense-in-depth + консистентность локального состояния.
-**Блокер:** запрос в техподдержку Robokassa (ретраи ResultURL; идемпотентность возврата по `OpKey`). После ответа — реализовать `confirmed_at`-guard и claim-first refund.
-**Файлы:** `supabase/functions/robokassa-webhook/index.ts`, `supabase/functions/process-refund/index.ts`.
-
----
-
 ### Локальная разработка: оба Supabase-прокси блокируют CORS для 127.0.0.1
 
 **Симптом:** `npm run dev` на `127.0.0.1:5273` не может авторизоваться и не может прочитать `feature_flags` — оба `VITE_SUPABASE_URL` из `.env` (`api.avtorstudio.com`) и `.env.local` (`avtorstudio.com/sb`) отдают `Access-Control-Allow-Origin: https://avtorstudio.com`, из-за чего preflight-запрос с origin `127.0.0.1` падает.

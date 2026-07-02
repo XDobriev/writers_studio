@@ -57,11 +57,14 @@
 ### `robokassa-webhook` (ResultUrl1)
 Основной вебхук — активирует план пользователя:
 1. Проверяет подпись (Password2 для боевых, TEST_PASSWORD2 для тестовых)
-2. Для `lifetime`: декрементирует слоты → обновляет `profiles.plan`
-3. Для `pro` / `pro_annual`: выставляет `plan_expires_at`
-4. Пишет в `admin_audit_log`
-5. Делает upsert в `payments`
-6. Fire-and-forget → `payment-confirmation` (email-подтверждение)
+2. **Захватывает `payments.confirmed_at`** (idempotency): upsert-ensure строки + атомарный `UPDATE ... WHERE confirmed_at IS NULL`. Если 0 строк — повторная доставка, отвечает `OK{InvId}` **без мутаций**.
+3. Для `lifetime`: декрементирует слоты → обновляет `profiles.plan`
+4. Для `pro` / `pro_annual`: выставляет `plan_expires_at`
+5. Пишет в `admin_audit_log`
+6. Обновляет `payments` (авторитетные `plan`/`amount` + `op_key`)
+7. Fire-and-forget → `payment-confirmation` (email-подтверждение)
+
+**Идемпотентность (критично):** Robokassa повторяет ResultURL **4 раза с интервалом 1 мин**, если не получила `OK{InvId}` (подтверждено поддержкой 02.07.2026). Без guard'а повтор после partial-success (профиль обновлён, но `OK` не вернулся) стекал бы подписку (`baseDate` читает уже продлённый `plan_expires_at`) и повторно вызывал `decrement_lifetime_slot()`. Захват `confirmed_at` гарантирует ровно одну обработку на `inv_id`; при сбое мутации — откат захвата (`releaseClaim`), чтобы повтор переобработал платёж.
 
 **Критично:** `.update().select('user_id')` — без `.select()` supabase-js не видит 0 обновлённых строк и не возвращает ошибку.
 
@@ -112,6 +115,8 @@ Push-механизм ResultUrl2 (JWS на ResultUrl2) оказался нена
 
 JWT payload: только `OpKey`. `InvoiceItems` и `RefundSum` не передаются — подтверждено поддержкой Робокассы 22.06.2026.
 
+**Идемпотентность (claim-first):** `refunded_at` помечается атомарным `UPDATE ... WHERE refunded_at IS NULL` **до** вызова Robokassa. Конкурентный/повторный вызов получает 0 строк → `409 refund_already_processing`. На успехе маркер остаётся (исходный баг — best-effort запись после возврата оставляла платёж refund-eligible при сбое апдейта); на сбое (`robokassa_error`/`unreachable`/`canceled`) — откат `releaseRefundClaim`, чтобы юзер мог повторить. Двойной возврат денег невозможен: Robokassa отклоняет второй полный возврат по одному `OpKey` (подтверждено поддержкой 02.07.2026).
+
 > **Формат запроса (критично, проверено 22.06.2026):** `Content-Type: application/json`, тело — JWT как **JSON-строка в кавычках** (`body = JSON.stringify(jwt)`, ASP.NET `[FromBody] string`). Распространённые ошибки: сырой JWT + `text/plain` → **415**; сырой JWT + `application/json` → **400 BadRequest**.
 
 > **E2E-возврат проверен 22.06.2026:** `inv_id=1782137651847` → `Refund/Create` вернул `success:true` + `requestId`, `GetState` → `processing`, `payments.refunded_at`/`refund_request_id` заполнены, `profiles.plan='free'`.
@@ -127,7 +132,8 @@ op_key text                   -- заполняется через OpStateExt (w
 amount numeric(10,2)
 plan text
 paid_at timestamptz
-refunded_at timestamptz
+confirmed_at timestamptz       -- захватывается webhook'ом (idempotency); NULL = pending-строка scheduler'а
+refunded_at timestamptz        -- claim-first: ставится ДО вызова Refund API, откат при сбое
 refund_request_id text
 ```
 RLS: пользователь видит только свои строки (SELECT). INSERT/UPDATE через service_role.
