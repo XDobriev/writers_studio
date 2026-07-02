@@ -115,10 +115,11 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
     if (activeSound === id && isPlayingRef.current) {
       const audio = audioRef.current;
       if (audio) {
+        // Сбрасываем сразу, чтобы visibilitychange не возобновил звук во время fade
+        isPlayingRef.current = false;
         doFadeOut(audio, () => {
           audio.pause();
           audioRef.current = null;
-          isPlayingRef.current = false;
           setIsPlaying(false);
           setActiveSound(null);
           localStorage.removeItem('ambient-sound');

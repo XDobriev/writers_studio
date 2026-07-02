@@ -47,12 +47,14 @@ export function useVkAuth() {
   useEffect(() => {
     if (!vkSlotRef.current) return;
     const slot = vkSlotRef.current;
+    let cancelled = false;
 
     const script = document.createElement('script');
     script.async = true;
     script.src = 'https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js';
-    script.onerror = () => { setSdkFailed(true); };
+    script.onerror = () => { if (!cancelled) setSdkFailed(true); };
     script.onload = () => {
+      if (cancelled) return;
       const VKID = window.VKIDSDK;
       if (!VKID) return;
 
@@ -92,7 +94,7 @@ export function useVkAuth() {
     };
 
     slot.appendChild(script);
-    return () => { slot.innerHTML = ''; };
+    return () => { cancelled = true; slot.innerHTML = ''; };
   }, [signInWithVk]);
 
   return { vkSlotRef, vkHasClickedRef, sdkFailed, busy, error, clearError: () => setError(null) };

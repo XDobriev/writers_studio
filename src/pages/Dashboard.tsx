@@ -15,6 +15,7 @@ import { plural, pluralDays, fmtNumber } from '../lib/i18n';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useWritingSnapshots } from '../lib/queries';
 import { useResponsive } from '../lib/useResponsive';
 import { computeActivityData } from '../lib/activity';
+import { toLocalISODate } from '../lib/dates';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
 
 const STATUS_LABEL: Record<Chapter['status'], string> = {
@@ -108,7 +109,7 @@ export default function Dashboard() {
     if (!activityData || activityData.lastWeekWords <= 0) return;
     const today = new Date();
     if (today.getDay() !== 1) return;
-    const key = `weekly-toast-${today.toISOString().slice(0, 10)}`;
+    const key = `weekly-toast-${toLocalISODate(today)}`;
     if (localStorage.getItem(key)) return;
     localStorage.setItem(key, '1');
     setWeeklyToast(`На прошлой неделе — ${fmtNumber(activityData.lastWeekWords)} ${plural(activityData.lastWeekWords, 'слово', 'слова', 'слов')}`);

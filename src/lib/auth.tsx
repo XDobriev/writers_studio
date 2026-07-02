@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
@@ -151,16 +151,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
-  const signInWithTelegram: AuthContextValue['signInWithTelegram'] = async (data) => {
+  // Мемоизированы: useTelegramAuth/useVkAuth держат их в deps эффекта, монтирующего
+  // SDK-виджет. Нестабильная идентичность → эффект перезапускается на каждый рендер
+  // AuthProvider (в т.ч. на SIGNED_IN, вызванном самим логином) → повторный монтаж
+  // виджета и риск двойного входа.
+  const signInWithTelegram = useCallback<AuthContextValue['signInWithTelegram']>(async (data) => {
     const { data: res, error } = await supabase.functions.invoke('telegram-auth', { body: data });
     if (error) return { error: error.message };
     const token_hash = (res as { token_hash?: string } | null)?.token_hash;
     if (!token_hash) return { error: 'telegram-auth: token_hash отсутствует' };
     const { error: verifyErr } = await supabase.auth.verifyOtp({ token_hash, type: 'magiclink' });
     return { error: verifyErr?.message ?? null };
-  };
+  }, []);
 
-  const signInWithVk: AuthContextValue['signInWithVk'] = async (accessToken, userId) => {
+  const signInWithVk = useCallback<AuthContextValue['signInWithVk']>(async (accessToken, userId) => {
     const { data: res, error } = await supabase.functions.invoke('vk-auth', {
       body: { access_token: accessToken, user_id: userId },
     });
@@ -177,7 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token_hash) return { error: 'vk-auth: token_hash отсутствует' };
     const { error: verifyErr } = await supabase.auth.verifyOtp({ token_hash, type: 'magiclink' });
     return { error: verifyErr?.message ?? null };
-  };
+  }, []);
 
   const signOut = async () => {
     deliberateSignOut.current = true;

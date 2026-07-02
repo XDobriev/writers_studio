@@ -43,12 +43,15 @@ export default function Dictionary() {
     const word = newWord.trim().toLowerCase();
     if (words.includes(word)) { setNewWord(''); return; }
     setAdding(true);
+    const prev = queryClient.getQueryData<Profile>(QUERY_KEYS.profile(user.id));
     queryClient.setQueryData<Profile>(QUERY_KEYS.profile(user.id), old =>
       old ? { ...old, user_dictionary: [...old.user_dictionary, word] } : old
     );
     setNewWord('');
     try {
       await addWordToDictionary(user.id, word);
+    } catch {
+      if (prev) queryClient.setQueryData<Profile>(QUERY_KEYS.profile(user.id), prev);
     } finally {
       setAdding(false);
     }

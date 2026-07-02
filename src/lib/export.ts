@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import { isImageUrl } from '../components/CoverPicker';
 import { type Book } from './supabase';
 import { type Chapter } from './chapters';
@@ -184,7 +185,8 @@ export function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): 
   const body = chapters.map((ch) => {
     const title = opts.includeChapterTitles ? `<h2 class="chapter-title">${escapeHtml(ch.title)}</h2>` : '';
     const notesHtml = opts.includeNotes ? notesBlockHtml(chapterNotes(opts.notes, ch.id)) : '';
-    const content = opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(ch.content || '') : (ch.content || '');
+    const sanitized = DOMPurify.sanitize(ch.content || '');
+    const content = opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(sanitized) : sanitized;
     return title + content + notesHtml;
   }).join('\n');
   const bookNotesHtml = opts.includeNotes ? notesBlockHtml(bookNotes(opts.notes)) : '';

@@ -54,7 +54,7 @@ export async function addWordToDictionary(userId: string, word: string): Promise
     p_user_id: userId,
     p_word: word.toLowerCase(),
   });
-  if (error) console.error('[profiles] addWordToDictionary failed:', error.message);
+  if (error) throw error;
 }
 
 export async function removeWordFromDictionary(userId: string, word: string): Promise<void> {
@@ -62,7 +62,7 @@ export async function removeWordFromDictionary(userId: string, word: string): Pr
     p_user_id: userId,
     p_word: word,
   });
-  if (error) console.error('[profiles] removeWordFromDictionary failed:', error.message);
+  if (error) throw error;
 }
 
 export async function getRegistrationOpen(): Promise<boolean> {

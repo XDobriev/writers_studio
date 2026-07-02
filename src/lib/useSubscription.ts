@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
 import { getProfile } from './profiles';
+import { QUERY_KEYS } from './queries';
 
 export type Plan = 'free' | 'pro' | 'lifetime';
 
@@ -29,6 +31,7 @@ export interface UseSubscriptionResult {
 }
 
 export function useSubscription(userId: string | undefined, fetchPayments: boolean): UseSubscriptionResult {
+  const queryClient = useQueryClient();
   const [plan, setPlan] = useState<Plan>('free');
   const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
   const [grandfathered, setGrandfathered] = useState(false);
@@ -91,6 +94,7 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
       setPlanExpiresAt(null);
       setLastProPayment(null);
       setRefundDone(true);
+      if (userId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.profile(userId) });
     } catch (e) {
       setRefundError(e instanceof Error ? e.message : 'Ошибка возврата');
     } finally {

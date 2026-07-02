@@ -3,13 +3,17 @@ import type { Character } from './characters';
 import { htmlToText } from './htmlUtils';
 import { makeAliasPattern } from './characterMatching';
 
-export function extractCharacterMentions(content: string, aliases: string[]): boolean {
-  const text = htmlToText(content);
+// Проверка по уже подготовленному plain-тексту (без повторного htmlToText).
+function textMentionsAny(text: string, aliases: string[]): boolean {
   for (const alias of aliases) {
     const pattern = makeAliasPattern(alias);
     if (pattern && pattern.test(text)) return true;
   }
   return false;
+}
+
+export function extractCharacterMentions(content: string, aliases: string[]): boolean {
+  return textMentionsAny(htmlToText(content), aliases);
 }
 
 export interface ChapterCharacterRow {
@@ -110,9 +114,12 @@ export async function syncBacklinks(
   const foundRows: { book_id: string; user_id: string; chapter_id: string; character_id: string; auto_detected: boolean }[] = [];
   const notFoundIds: string[] = [];
 
+  // htmlToText один раз на всю главу, а не на каждого персонажа.
+  const text = htmlToText(content);
+
   for (const character of characters) {
     const aliases = [character.name, ...(character.aliases ?? [])].filter(Boolean);
-    if (extractCharacterMentions(content, aliases)) {
+    if (textMentionsAny(text, aliases)) {
       foundRows.push({
         book_id: bookId,
         user_id: character.user_id,
