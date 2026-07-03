@@ -656,7 +656,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   background: var(--bg-deep);
   border-left: 1px solid var(--border);
   display: flex; flex-direction: column;
-  min-width: 0; min-height: 0;
+  min-width: 0; min-height: 0; height: 100%;
 }
 .rp-head {
   height: 44px; flex-shrink: 0;
