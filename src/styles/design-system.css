@@ -1001,10 +1001,12 @@ select.input {
 }
 .note-card__drag { width: 20px; height: 20px; }
 .cork-card__drag { width: 20px; height: 20px; }
-/* Touch: увеличиваем drag-хендлы до WCAG-минимума (absolute — без сдвига вёрстки) */
+.outline-menu-btn { width: 22px; height: 22px; }
+/* Touch: увеличиваем drag-хендлы/меню до WCAG-минимума (absolute — без сдвига вёрстки) */
 @media (hover: none) {
   .note-card__drag { width: 28px; height: 28px; }
   .cork-card__drag { width: 28px; height: 28px; }
+  .outline-menu-btn { width: 28px; height: 28px; }
 }
 
 /* ── Note modal ── */

@@ -476,9 +476,9 @@ function SortableChapterRow({
           ref={menuFor === c.id ? menuRef : null}
           type="button"
           onClick={() => setMenuFor(menuFor === c.id ? null : c.id)}
+          className="outline-menu-btn"
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 22, height: 22,
             background: menuFor === c.id ? 'var(--bg-deep)' : 'transparent',
             border: 'none', cursor: 'pointer', borderRadius: 4, color: 'var(--ink-3)',
           }}
