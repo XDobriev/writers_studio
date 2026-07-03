@@ -9,6 +9,7 @@ import {
   bookNotes,
   noteLabel,
 } from './export';
+import { todayLocalISODate } from './dates';
 
 function notesBlockFb2(notes: Note[]): string {
   if (!notes.length) return '';
@@ -27,7 +28,6 @@ function inlineToFb2(node: Node): string {
   if (tag === 'strong' || tag === 'b') return `<strong>${inner}</strong>`;
   if (tag === 'em' || tag === 'i') return `<emphasis>${inner}</emphasis>`;
   if (tag === 's' || tag === 'del') return `<strikethrough>${inner}</strikethrough>`;
-  if (tag === 'code') return `<code>${inner}</code>`;
   if (tag === 'br') return '\n';
   return inner;
 }
@@ -59,6 +59,15 @@ function htmlToFb2Content(html: string): string {
   return Array.from(doc.querySelector('div')!.children).map(blockToFb2).join('\n');
 }
 
+function authorToFb2(author: string | null | undefined): string {
+  const parts = (author ?? '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `<first-name>${escapeXml(parts[0])}</first-name>\n      <last-name>${escapeXml(parts.slice(1).join(' '))}</last-name>`;
+  }
+  if (parts.length === 1) return `<nickname>${escapeXml(parts[0])}</nickname>`;
+  return `<nickname>Автор</nickname>`;
+}
+
 export function buildFb2Doc(book: Book, chapters: Chapter[], opts: BuildOpts): string {
   const mapSection = opts.mapImage
     ? `\n<section>\n<title><p>Карта мира</p></title>\n<image l:href="#map-img"/>\n</section>`
@@ -66,9 +75,7 @@ export function buildFb2Doc(book: Book, chapters: Chapter[], opts: BuildOpts): s
   const mapBinary = opts.mapImage
     ? `\n<binary id="map-img" content-type="image/png">\n${arrayBufferToBase64(opts.mapImage)}\n</binary>`
     : '';
-  const today = new Date().toISOString().slice(0, 10);
-  const [firstName, ...rest] = (book.author ?? '').split(' ');
-  const lastName = rest.join(' ');
+  const today = todayLocalISODate();
   const sections = chapters.map((ch) => {
     const title = opts.includeChapterTitles ? `<title><p>${escapeXml(ch.title)}</p></title>\n` : '';
     const notesBlock = opts.includeNotes ? notesBlockFb2(chapterNotes(opts.notes, ch.id)) : '';
@@ -85,8 +92,7 @@ export function buildFb2Doc(book: Book, chapters: Chapter[], opts: BuildOpts): s
   <title-info>
     <genre>other</genre>
     <author>
-      <first-name>${escapeXml(firstName)}</first-name>
-      <last-name>${escapeXml(lastName)}</last-name>
+      ${authorToFb2(book.author)}
     </author>
     <book-title>${escapeXml(book.title)}</book-title>
     <lang>${opts.language.split('-')[0]}</lang>

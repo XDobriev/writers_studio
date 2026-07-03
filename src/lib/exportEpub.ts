@@ -12,6 +12,7 @@ import {
   bookNotes,
   notesBlockHtml,
 } from './export';
+import { todayLocalISODate } from './dates';
 
 function getEpubCss(paragraphStyle: ParagraphStyle): string {
   const pRule = paragraphStyle === 'indent'
@@ -64,7 +65,7 @@ export async function buildEpubBlob(book: Book, chapters: Chapter[], opts: Build
   const hasCover = !!opts.cover;
   const coverMime = opts.cover?.mime ?? 'image/jpeg';
   const coverExt = opts.cover?.ext ?? 'jpg';
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalISODate();
   const lang = opts.language;
 
   const chs = chapters.map((ch, i) => ({

@@ -53,7 +53,7 @@ export function slugify(s: string): string {
   return (
     s
       .toLowerCase()
-      .replace(/[^a-zа-яё0-9\s-]/gi, '')
+      .replace(/[^\p{L}0-9\s-]/gu, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-+|-+$/g, '') || 'manuscript'
