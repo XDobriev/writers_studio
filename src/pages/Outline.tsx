@@ -195,6 +195,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
             border: '1px dashed var(--border)',
             font: '500 10px var(--font-mono)',
             color: 'var(--ink-4)', letterSpacing: '0.08em',
+            whiteSpace: 'nowrap',
           }}
         >
           + POV
@@ -384,6 +385,7 @@ function SortableChapterRow({
         display: 'flex',
         alignItems: 'center',
         borderRadius: 8,
+        touchAction: 'none',
       }}
     >
       <button
@@ -428,7 +430,7 @@ function SortableChapterRow({
         <Link
           to={`/books/${bookId}/editor?chapter=${c.id}`}
           style={{
-            flex: 1, display: 'flex', alignItems: 'flex-start', gap: 14,
+            flex: 1, minWidth: 0, display: 'flex', alignItems: 'flex-start', gap: 14,
             padding: '12px 8px 12px 0', borderRadius: 8, textDecoration: 'none',
           }}
         >
@@ -436,7 +438,7 @@ function SortableChapterRow({
             {String(i + 1).padStart(2, '0')}
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ font: '500 15px var(--font-serif)', color: c.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)' }}>
+            <div style={{ font: '500 15px var(--font-serif)', color: c.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
               {c.title || 'Без названия'}
             </div>
             {pct > 0 && (
@@ -446,7 +448,7 @@ function SortableChapterRow({
               </div>
             )}
           </div>
-          <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 4 }}>
+          <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>
             {c.words.toLocaleString('ru')} сл
           </span>
           <span
@@ -456,7 +458,7 @@ function SortableChapterRow({
         </Link>
       )}
 
-      <div style={{ marginRight: 34 }}>
+      <div style={{ marginRight: 34, flexShrink: 0 }}>
         <PovBadge
           chapterId={c.id}
           bookId={bookId}
@@ -677,7 +679,7 @@ export default function Outline() {
             </div>
           </div>
 
-          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '28px 40px' }}>
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '16px 16px 28px' : '28px 40px' }}>
             {error && (
               <ErrorBanner message={error} style={{ marginBottom: 16 }} />
             )}

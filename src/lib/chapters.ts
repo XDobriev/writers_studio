@@ -115,7 +115,7 @@ export async function reorderChapters(updates: { id: string; position: number }[
   if (error) throw error;
 }
 
-export async function renumberChapters(updates: Array<{ id: string; title: string }>): Promise<void> {
+export async function renumberChapters(updates: Array<{ id: string; title: string; book_id: string; user_id: string }>): Promise<void> {
   if (updates.length === 0) return;
   const { error } = await supabase.from('chapters').upsert(updates);
   if (error) throw error;

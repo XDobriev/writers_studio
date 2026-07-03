@@ -155,6 +155,7 @@ export default function Characters() {
     userId: user?.id,
     characters,
     active,
+    hasNextPage,
     cancelSave,
     onError: setError,
     onCreated: handleCreated,
@@ -360,8 +361,8 @@ export default function Characters() {
 
           {/* Основное содержимое */}
           {!showGrid && active ? (
-            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
-              <CharacterHeroBlock character={active} bookId={bookId!} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} />
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '20px 16px' : '32px 48px' }}>
+              <CharacterHeroBlock character={active} bookId={bookId!} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} isMobile={isMobile} />
 
               {/* Вкладки */}
               <div className="char-tabs" role="tablist" aria-label="Вкладки персонажа">
@@ -381,7 +382,7 @@ export default function Characters() {
 
               {detailTab === 'info' ? (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, marginBottom: 24 }}>
                     <CharacterFieldCard
                       label="Внешность"
                       hint="Внешний вид, манера держаться, первое впечатление"

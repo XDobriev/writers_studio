@@ -5,13 +5,15 @@ import { supabase } from './supabase';
 import { getProfile } from './profiles';
 
 export function usePostAuthRedirect() {
-  const { session } = useAuth();
+  const { session, initializing } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [redirectingToPay, setRedirectingToPay] = useState(false);
 
   useEffect(() => {
-    if (!session) return;
+    // Ждём подтверждения сессии сервером (getSession()) — иначе локально
+    // восстановленная, но невалидная сессия может дойти до редиректа на оплату.
+    if (initializing || !session) return;
     const params = new URLSearchParams(location.search);
     const urlPlan = params.get('plan');
     const storedPlan = sessionStorage.getItem('pending_plan');
@@ -30,7 +32,14 @@ export function usePostAuthRedirect() {
       void (async () => {
         try {
           const profile = await getProfile(session.user.id);
-          if (profile && (profile.plan === 'pro' || profile.plan === 'pro_annual' || profile.plan === 'lifetime')) {
+          // profile === null означает либо реальное отсутствие строки, либо сбой запроса
+          // (getProfile глотает ошибку) — в обоих случаях не продолжаем на оплату вслепую.
+          if (!profile) {
+            setRedirectingToPay(false);
+            navigate('/books', { replace: true });
+            return;
+          }
+          if (profile.plan === 'pro' || profile.plan === 'pro_annual' || profile.plan === 'lifetime') {
             setRedirectingToPay(false);
             navigate('/books', { replace: true });
             return;
@@ -53,7 +62,7 @@ export function usePostAuthRedirect() {
     const from = rawFrom.startsWith('/books/') ? '/books' : rawFrom;
     navigate(from, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
+  }, [session, initializing]);
 
   return { redirectingToPay };
 }

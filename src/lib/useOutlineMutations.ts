@@ -90,13 +90,13 @@ export function useOutlineMutations({
 
   const onRenumber = useCallback(async () => {
     if (!bookId || !chapters) return;
-    const toUpdate: Array<{ id: string; title: string }> = [];
+    const toUpdate: Array<{ id: string; title: string; book_id: string; user_id: string }> = [];
     let rank = 0;
     chapters.forEach((c) => {
       if (/^Глава \d+$/.test(c.title)) {
         rank += 1;
         const next = `Глава ${rank}`;
-        if (next !== c.title) toUpdate.push({ id: c.id, title: next });
+        if (next !== c.title) toUpdate.push({ id: c.id, title: next, book_id: c.book_id, user_id: c.user_id });
       }
     });
     if (toUpdate.length === 0) return;

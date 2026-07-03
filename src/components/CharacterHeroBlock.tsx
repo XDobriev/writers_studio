@@ -13,11 +13,12 @@ import { Icon } from './Icon';
 
 const AVATAR_MAX_FILE_BYTES = 2 * 1024 * 1024;
 
-export function CharacterHeroBlock({ character, bookId, onChange, onError }: {
+export function CharacterHeroBlock({ character, bookId, onChange, onError, isMobile = false }: {
   character: Character;
   bookId: string;
   onChange: (patch: CharacterPatch) => void;
   onError: (msg: string) => void;
+  isMobile?: boolean;
 }) {
   const [name, setName] = useState(character.name);
   const [quote, setQuote] = useState(character.quote);
@@ -146,13 +147,13 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError }: {
   };
 
   return (
-    <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start', marginBottom: 36 }}>
+    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 16 : 32, alignItems: isMobile ? 'center' : 'flex-start', marginBottom: 36 }}>
       <div
         onClick={() => fileInputRef.current?.click()}
         onMouseEnter={() => setAvatarHovered(true)}
         onMouseLeave={() => setAvatarHovered(false)}
         title={character.avatar_url ? 'Сменить портрет' : 'Загрузить портрет'}
-        style={{ width: 160, height: 200, borderRadius: 8, background: 'linear-gradient(160deg, oklch(0.45 0.04 50), oklch(0.25 0.02 50))', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 18, position: 'relative', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}
+        style={{ width: isMobile ? 120 : 160, height: isMobile ? 150 : 200, borderRadius: 8, background: 'linear-gradient(160deg, oklch(0.45 0.04 50), oklch(0.25 0.02 50))', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 18, position: 'relative', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}
       >
         {!character.avatar_url && (
           <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(135deg, oklch(0.40 0.04 50) 0 6px, oklch(0.36 0.04 50) 6px 12px)', opacity: 0.4 }} />
@@ -186,8 +187,8 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError }: {
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={(e) => { void onFileChange(e); }} />
       </div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+      <div style={{ flex: 1, minWidth: 0, width: isMobile ? '100%' : undefined }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
           {(['protagonist', 'secondary', 'minor'] as const).map((r) => (
             <button
               key={r}
@@ -205,17 +206,19 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError }: {
           placeholder="Имя персонажа"
           aria-label="Имя персонажа"
           maxLength={100}
-          style={{ width: '100%', font: '600 44px var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 6, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', padding: '4px 0' }}
+          style={{ width: '100%', font: `600 ${isMobile ? 28 : 44}px var(--font-serif)`, letterSpacing: '-0.018em', marginBottom: 6, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', padding: '4px 0', textAlign: isMobile ? 'center' : 'left' }}
         />
 
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 10, marginBottom: 6 }}>
             <span style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
               Другие имена
             </span>
-            <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)' }}>
-              — система найдёт упоминания в главах автоматически
-            </span>
+            {!isMobile && (
+              <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)' }}>
+                — система найдёт упоминания в главах автоматически
+              </span>
+            )}
             <button
               type="button"
               onClick={() => { void loadSuggestions(); }}

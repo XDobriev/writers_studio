@@ -60,6 +60,7 @@ interface UseCharacterMutationsOptions {
   userId: string | undefined;
   characters: Character[] | undefined;
   active: Character | null;
+  hasNextPage?: boolean;
   cancelSave: () => void;
   onError: (msg: string) => void;
   onCreated: (id: string) => void;
@@ -71,6 +72,7 @@ export function useCharacterMutations({
   userId,
   characters,
   active,
+  hasNextPage,
   cancelSave,
   onError,
   onCreated,
@@ -88,9 +90,16 @@ export function useCharacterMutations({
         role: 'protagonist',
         position,
       });
-      queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) =>
-        charInfiniteAppend(prev, created),
-      );
+      if (hasNextPage) {
+        // Аппенд в последнюю ЗАГРУЖЕННУЮ страницу сломал бы getNextPageParam
+        // (offset = сумма длин страниц в кэше) — при недогруженных страницах
+        // следующий fetchNextPage пропустит один реальный персонаж.
+        void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.characters(bookId) });
+      } else {
+        queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) =>
+          charInfiniteAppend(prev, created),
+        );
+      }
       if (!localStorage.getItem('as_checklist_char')) {
         localStorage.setItem('as_checklist_char', '1');
       }
@@ -100,7 +109,7 @@ export function useCharacterMutations({
     } finally {
       creatingRef.current = false;
     }
-  }, [bookId, userId, characters, queryClient, onCreated, onError]);
+  }, [bookId, userId, characters, hasNextPage, queryClient, onCreated, onError]);
 
   const onDeleteConfirmed = useCallback(async (characterId: string) => {
     if (!characters || !bookId) return;

@@ -12,7 +12,8 @@ interface UseNoteMutationsOptions {
 
 export function useNoteMutations({ bookId, setError }: UseNoteMutationsOptions) {
   const queryClient = useQueryClient();
-  const savingRef = useRef(false);
+  const addingRef = useRef(false);
+  const updatingRef = useRef<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
 
   const onAdd = useCallback(async (
@@ -22,8 +23,8 @@ export function useNoteMutations({ bookId, setError }: UseNoteMutationsOptions) 
     customColor?: string,
     chapterId?: string,
   ): Promise<Note | undefined> => {
-    if (savingRef.current || !bookId || !text.trim()) return;
-    savingRef.current = true;
+    if (addingRef.current || !bookId || !text.trim()) return;
+    addingRef.current = true;
     setIsSaving(true);
     try {
       const note = await createNote(bookId, kind, text.trim(), customLabel, customColor, chapterId);
@@ -32,7 +33,7 @@ export function useNoteMutations({ bookId, setError }: UseNoteMutationsOptions) 
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
-      savingRef.current = false;
+      addingRef.current = false;
       setIsSaving(false);
     }
   }, [bookId, queryClient, setError]);
@@ -44,8 +45,8 @@ export function useNoteMutations({ bookId, setError }: UseNoteMutationsOptions) 
     customLabel?: string,
     customColor?: string,
   ): Promise<Note | undefined> => {
-    if (savingRef.current || !bookId || !text.trim()) return;
-    savingRef.current = true;
+    if (updatingRef.current.has(id) || !bookId || !text.trim()) return;
+    updatingRef.current.add(id);
     setIsSaving(true);
     try {
       const updated = await updateNote(id, kind, text.trim(), customLabel, customColor);
@@ -56,7 +57,7 @@ export function useNoteMutations({ bookId, setError }: UseNoteMutationsOptions) 
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
-      savingRef.current = false;
+      updatingRef.current.delete(id);
       setIsSaving(false);
     }
   }, [bookId, queryClient, setError]);
