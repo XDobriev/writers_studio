@@ -119,7 +119,7 @@ function BulkPovButton({
                     className="ctx-item"
                     style={{ padding: '5px 6px', borderRadius: 5, gap: 7 }}
                   >
-                    <CharacterAvatar name={displayName} color={color} />
+                    <CharacterAvatar name={char.name} color={color} />
                     <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-2)', flex: 1 }}>
                       {displayName}
                     </span>
@@ -293,7 +293,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
                   ...(isPov ? { background: `color-mix(in oklch, ${color} 12%, transparent)` } : {}),
                 }}
               >
-                <CharacterAvatar name={displayName} color={color} />
+                <CharacterAvatar name={char.name} color={color} />
                 <span style={{ font: '400 12px var(--font-ui)', color: isPov ? color : 'var(--ink-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                   {displayName}
                 </span>
