@@ -1,21 +1,11 @@
 import { supabase } from './supabase';
+import type { Tables } from './database.types';
 
 export type ChapterStatus = 'draft' | 'progress' | 'done';
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
-export interface Chapter {
-  id: string;
-  book_id: string;
-  user_id: string;
-  title: string;
-  position: number;
-  content: string;
-  synopsis: string;
-  words: number;
-  status: ChapterStatus;
-  created_at: string;
-  updated_at: string;
-}
+// Выведено из БД (Tables<'chapters'>); status сужен до union.
+export type Chapter = Omit<Tables<'chapters'>, 'status'> & { status: ChapterStatus };
 
 export type ChapterMeta = Omit<Chapter, 'content'>;
 export type ChapterPatch = Partial<Pick<Chapter, 'title' | 'content' | 'words' | 'status' | 'position' | 'synopsis'>>;

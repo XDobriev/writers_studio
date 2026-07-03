@@ -311,20 +311,17 @@ MVP закрыт: кнопка «Отменить подписку», банне
 ## Технический долг — масштабирование
 
 
-### §TS-1. Типизированный Supabase-клиент — убрать `as` на внешних данных
+### §TS-1 (Tier 2). Типизировать сам клиент `createClient<Database>`
 
-**Приоритет:** низкий (защита от будущих регрессий, не текущий баг). **Когда делать:** отдельным заходом, не в составе багфиксов.
+**Приоритет:** низкий. **Когда делать:** отдельным заходом.
 
-**Проблема:** `supabase-js` без сгенерированных типов возвращает `data` как `any`. В самодельных запросах (не через `createRepository`) форма ответа приводится к типу вручную через `as`: `books.ts` (`data as Book`, `as Book[]`, `as WritingSnapshot[]`), `profiles.ts` (`data as Profile | null`). `as` снимает проверку типов — никто (ни компилятор, ни рантайм) не гарантирует, что ответ реально соответствует типу. При изменении схемы таблицы (добавил/удалил/переименовал колонку) код останется зелёным, а упадёт в рантайме у пользователя (`undefined.foo()`), в неожиданном месте. Нарушает конвенцию CLAUDE.md: `as` на внешних данных разрешён только внутри `repository.ts` — единственной точки приведения.
+**Сделано (Tier 1):** добавлен `src/lib/database.types.ts` (сген. типы), ручные доменные типы (`Book`, `Character`, `Note`, `Location`, `TimelineEvent`, `LocationConnection`, `MapStamp`, `Chapter`, `Profile`, `WritingSnapshot`, `ChapterVersionMeta`, `CharacterRelationship`) переопределены как `Tables<'x'>` / `Omit<Tables<'x'>, 'field'> & { field: Union }`. Теперь `DROP`/`RENAME COLUMN` в миграции ломает сборку. Union-сужения (`role`/`type`/`kind`/`style`) сохранены.
 
-**Почему не точечный фикс:** просто убрать `as` нельзя — тогда `data` станет `any` и будет только хуже. Правильный путь — сделать так, чтобы `data` приходил уже типизированным:
-  1. Сгенерировать типы БД: Supabase MCP `generate_typescript_types` → `database.types.ts`.
-  2. Подключить в клиент: `createClient<Database>(...)` в `supabase.ts`.
-  3. `as` в `books.ts`/`profiles.ts` убираются естественно — TS сам выводит форму `.select()`.
+**Осталось (Tier 2):** типизировать клиент `createClient<Database>(...)` в `supabase.ts`. Даст ловлю опечаток в именах колонок внутри query builder (`.eq('titel', …)`). Оставшиеся `as Book`/`as Character[]` на `.select()` при этом не исчезнут (Row отдаёт `role: string`, а доменный тип узкий — нужно сужающее приведение), но станут проверенными.
 
-**Риск:** шаг 2 трогает `supabase.ts` (сердце приложения) и вручную определённый тип `Book` — сгенерированные типы могут разойтись с ручными, посыплются ошибки типов по всему проекту разом. Делать с полным `typecheck`-прогоном, чтобы отловить все расхождения за один заход.
+**Риск Tier 2:** каскад на `repository.ts` — `createRepository<T>(table: string)` требует, чтобы `table` стал union имён таблиц (`keyof Database['public']['Tables']`), а `.update(patch as Record<string, unknown>)` → `TablesUpdate<N>`. Центральная абстракция, используется 5 сущностями. Делать с полным `typecheck`-прогоном.
 
-**Файлы:** `src/lib/supabase.ts`, `src/lib/books.ts`, `src/lib/profiles.ts`, новый `src/lib/database.types.ts`.
+**Файлы:** `src/lib/supabase.ts`, `src/lib/repository.ts`.
 
 ---
 

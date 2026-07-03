@@ -1,4 +1,5 @@
 import { supabase, type Book } from './supabase';
+import type { Tables } from './database.types';
 
 export type BookPatch = Partial<
   Pick<Book, 'title' | 'author' | 'genre' | 'genres' | 'words' | 'goal' | 'daily_goal' | 'cover' | 'share_token' | 'map_bg_url' | 'map_template'>
@@ -55,10 +56,7 @@ export async function deleteBook(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export interface WritingSnapshot {
-  date: string;
-  words: number;
-}
+export type WritingSnapshot = Pick<Tables<'writing_snapshots'>, 'date' | 'words'>;
 
 export async function listWritingSnapshots(bookId: string, fromDate: string): Promise<WritingSnapshot[]> {
   const { data, error } = await supabase

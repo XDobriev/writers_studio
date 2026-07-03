@@ -1,22 +1,10 @@
 import { createRepository } from './repository';
+import type { Tables } from './database.types';
 
 export type LocationType = 'city' | 'village' | 'forest' | 'sea' | 'castle' | 'other';
 
-export interface Location {
-  id: string;
-  book_id: string;
-  user_id: string;
-  name: string;
-  type: LocationType;
-  role: string;
-  description: string;
-  x: number | null;
-  y: number | null;
-  size: number;
-  position: number;
-  created_at: string;
-  updated_at: string;
-}
+// Выведено из БД (Tables<'locations'>); type сужен до union.
+export type Location = Omit<Tables<'locations'>, 'type'> & { type: LocationType };
 
 export type LocationPatch = Partial<
   Pick<Location, 'name' | 'type' | 'role' | 'description' | 'x' | 'y' | 'size' | 'position'>

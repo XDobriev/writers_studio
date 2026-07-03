@@ -1,17 +1,10 @@
 import { createRepository } from './repository';
+import type { Tables } from './database.types';
 
 export type ConnectionStyle = 'road' | 'river' | 'path' | 'border';
 
-export interface LocationConnection {
-  id: string;
-  book_id: string;
-  user_id: string;
-  from_id: string;
-  to_id: string;
-  label: string;
-  style: ConnectionStyle;
-  created_at: string;
-}
+// Выведено из БД (Tables<'location_connections'>); style сужен до union.
+export type LocationConnection = Omit<Tables<'location_connections'>, 'style'> & { style: ConnectionStyle };
 
 export type ConnectionPatch = Partial<Pick<LocationConnection, 'label' | 'style'>>;
 

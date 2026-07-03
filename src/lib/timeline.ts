@@ -1,21 +1,11 @@
 import { supabase } from './supabase';
 import { createRepository } from './repository';
+import type { Tables } from './database.types';
 
 export type TimelineEventType = 'plot' | 'character' | 'world' | 'other';
 
-export interface TimelineEvent {
-  id: string;
-  book_id: string;
-  user_id: string;
-  era: string;
-  title: string;
-  description: string;
-  type: TimelineEventType;
-  chapter_id: string | null;
-  position: number;
-  created_at: string;
-  updated_at: string;
-}
+// Выведено из БД (Tables<'timeline_events'>); type сужен до union.
+export type TimelineEvent = Omit<Tables<'timeline_events'>, 'type'> & { type: TimelineEventType };
 
 export type TimelineEventPatch = Partial<
   Pick<TimelineEvent, 'era' | 'title' | 'description' | 'type' | 'chapter_id' | 'position'>

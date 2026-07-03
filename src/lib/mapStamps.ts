@@ -1,19 +1,15 @@
 import { createRepository } from './repository';
+import type { Tables } from './database.types';
 
 export type StampType =
   | 'mountain' | 'hills' | 'forest' | 'tree' | 'lake'
   | 'desert' | 'snow' | 'swamp' | 'ruins' | 'cave';
 
-export interface MapStamp {
-  id: string;
-  book_id: string;
-  user_id: string;
+// Выведено из БД (Tables<'map_stamps'>); type сужен до union, created_at — non-null (контракт приложения).
+export type MapStamp = Omit<Tables<'map_stamps'>, 'type' | 'created_at'> & {
   type: StampType;
-  x: number;
-  y: number;
-  size: number;
   created_at: string;
-}
+};
 
 export type StampPatch = Partial<Pick<MapStamp, 'type' | 'x' | 'y' | 'size'>>;
 

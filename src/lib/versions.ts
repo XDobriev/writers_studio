@@ -1,16 +1,12 @@
 import { supabase } from './supabase';
+import type { Tables } from './database.types';
 
 export type VersionTrigger = 'beforeunload' | 'chapter_switch' | 'timer' | 'manual';
 
-export interface ChapterVersionMeta {
-  id: string;
-  chapter_id: string;
-  user_id: string;
-  word_count: number | null;
-  label: string | null;
+// Выведено из БД (Tables<'chapter_versions'>) без content; trigger сужен до union.
+export type ChapterVersionMeta = Omit<Tables<'chapter_versions'>, 'content' | 'trigger'> & {
   trigger: VersionTrigger;
-  created_at: string;
-}
+};
 
 export async function listVersions(chapterId: string): Promise<ChapterVersionMeta[]> {
   const { data, error } = await supabase

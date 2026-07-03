@@ -1,18 +1,10 @@
 import { createRepository } from './repository';
+import type { Tables } from './database.types';
 
 // --- Bilateral relationships (character_relationships: charIdA < charIdB canonical) ---
 
-export interface CharacterRelationship {
-  id: string;
-  book_id: string;
-  user_id: string;
-  char_a_id: string;
-  char_b_id: string;
-  label_a: string;
-  label_b: string;
-  created_at: string;
-  updated_at: string;
-}
+// Выведено из БД (Tables<'character_relationships'>) — сужений нет.
+export type CharacterRelationship = Tables<'character_relationships'>;
 
 const relationshipsRepo = createRepository<CharacterRelationship>(
   'character_relationships',

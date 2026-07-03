@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { Tables } from './database.types';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -19,20 +20,5 @@ export const supabase = createClient(url ?? '', anonKey ?? '', {
 
 export const supabaseConfigured = Boolean(url && anonKey);
 
-export interface Book {
-  id: string;
-  user_id: string;
-  title: string;
-  author: string | null;
-  genre: string | null;
-  genres: string[];
-  words: number;
-  goal: number;
-  daily_goal: number;
-  cover: string | null;
-  share_token: string | null;
-  map_bg_url: string | null;
-  map_template: string | null;
-  created_at: string;
-  updated_at: string;
-}
+// Выведено из БД (Tables<'books'>); genres сужен до non-null — таков контракт приложения.
+export type Book = Omit<Tables<'books'>, 'genres'> & { genres: string[] };

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { Tables } from './database.types';
 
 export interface PlanLimits {
   maxBooks: number;
@@ -14,17 +15,11 @@ export function getPlanLimits(plan: string | undefined): PlanLimits {
   return { maxBooks: Infinity, maxCharacters: Infinity, maxTimelineEvents: Infinity, canExportRich: true };
 }
 
-export interface Profile {
-  user_id: string;
-  plan: string;
-  plan_expires_at: string | null;
-  onboarded_at: string | null;
-  user_dictionary: string[];
-  grandfathered: boolean;
-  recurring_inv_id: string | null;
-  cancel_at_period_end: boolean;
-  display_name: string | null;
-}
+// Частичная выборка из БД (Tables<'profiles'>); user_dictionary — non-null (контракт приложения).
+export type Profile = Pick<
+  Tables<'profiles'>,
+  'user_id' | 'plan' | 'plan_expires_at' | 'onboarded_at' | 'grandfathered' | 'recurring_inv_id' | 'cancel_at_period_end' | 'display_name'
+> & { user_dictionary: string[] };
 
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase

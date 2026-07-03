@@ -1,30 +1,12 @@
 import { supabase } from './supabase';
 import { createRepository, DbError } from './repository';
 import { optimizeImage, AVATAR_OPTS } from './imageOptimize';
+import type { Tables } from './database.types';
 
 export type CharacterRole = 'protagonist' | 'secondary' | 'minor';
 
-export interface Character {
-  id: string;
-  book_id: string;
-  user_id: string;
-  name: string;
-  role: CharacterRole;
-  age: number | null;
-  quote: string;
-  appearance: string;
-  personality: string;
-  interior_life: string;
-  exterior_life: string;
-  gap: string;
-  backstory: string;
-  notes: string;
-  position: number;
-  avatar_url: string | null;
-  aliases: string[];
-  created_at: string;
-  updated_at: string;
-}
+// Выведено из БД (Tables<'characters'>); role сужен до union для ROLE_LABELS/exhaustive-проверок.
+export type Character = Omit<Tables<'characters'>, 'role'> & { role: CharacterRole };
 
 export type CharacterPatch = Partial<
   Pick<Character, 'name' | 'role' | 'age' | 'quote' | 'appearance' | 'personality' | 'interior_life' | 'exterior_life' | 'gap' | 'backstory' | 'notes' | 'position' | 'avatar_url' | 'aliases'>

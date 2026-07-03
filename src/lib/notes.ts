@@ -1,20 +1,11 @@
 import { supabase } from './supabase';
 import { createRepository } from './repository';
+import type { Tables } from './database.types';
 
 export type NoteKind = 'idea' | 'question' | 'todo' | 'important' | 'custom';
 
-export interface Note {
-  id: string;
-  user_id: string;
-  book_id: string;
-  chapter_id?: string | null;
-  kind: NoteKind;
-  text: string;
-  custom_label?: string | null;
-  custom_color?: string | null;
-  position: number;
-  created_at: string;
-}
+// Выведено из БД (Tables<'notes'>); kind сужен до union.
+export type Note = Omit<Tables<'notes'>, 'kind'> & { kind: NoteKind };
 
 const repo = createRepository<Note>(
   'notes',
