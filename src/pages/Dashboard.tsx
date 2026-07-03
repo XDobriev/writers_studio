@@ -371,7 +371,7 @@ export default function Dashboard() {
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
                 <div style={{ font: '500 13px var(--font-ui)' }}>Последние правки</div>
-                <Link to={navTo('/editor')} className="btn btn--ghost" style={{ textDecoration: 'none', fontSize: 12 }}>все главы →</Link>
+                <Link to={navTo('/outline')} className="btn btn--ghost" style={{ textDecoration: 'none', fontSize: 12 }}>все главы →</Link>
               </div>
               {recentChapters.length === 0 ? (
                 <div style={{ padding: '24px 0', color: 'var(--ink-3)', fontSize: 13, textAlign: 'center' }}>
