@@ -18,11 +18,6 @@ import { computeActivityData } from '../lib/activity';
 import { toLocalISODate } from '../lib/dates';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
 
-const STATUS_LABEL: Record<Chapter['status'], string> = {
-  draft: 'черновик',
-  progress: 'в работе',
-  done: 'готова',
-};
 const STATUS_DOT: Record<Chapter['status'], string> = {
   draft: 'var(--ink-4)',
   progress: 'var(--accent-2)',
@@ -389,7 +384,7 @@ export default function Dashboard() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ font: '500 13px var(--font-ui)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ch.title}</div>
                         <div style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.04em' }}>
-                          {STATUS_LABEL[ch.status]} · {fmtNumber(ch.words)} {plural(ch.words, 'слово', 'слова', 'слов')} · {new Date(ch.updated_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                          {fmtNumber(ch.words)} {plural(ch.words, 'слово', 'слова', 'слов')} · {new Date(ch.updated_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
                         </div>
                       </div>
                     </Link>
