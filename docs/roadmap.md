@@ -14,17 +14,6 @@ _Ранее (2026-06-30):_ §1 монетизация закрыта (оплат
 
 > Самый критичный — первый в списке.
 
-### Локальная разработка: оба Supabase-прокси блокируют CORS для 127.0.0.1
-
-**Симптом:** `npm run dev` на `127.0.0.1:5273` не может авторизоваться и не может прочитать `feature_flags` — оба `VITE_SUPABASE_URL` из `.env` (`api.avtorstudio.com`) и `.env.local` (`avtorstudio.com/sb`) отдают `Access-Control-Allow-Origin: https://avtorstudio.com`, из-за чего preflight-запрос с origin `127.0.0.1` падает.
-**Воспроизвести:** 1. `npm run dev` → 2. открыть `/login`, ввести реальные креды → 3. ожидаю вход, вижу `AuthRetryableFetchError: Failed to fetch` в консоли и зависшую кнопку «Входим…».
-**Побочный эффект (уже пофикшен отдельно):** пока фетч `feature_flags` падает по CORS, `useFeatureFlag('maintenance_mode', false)` до правки в этой сессии возвращал `true` вместо `defaultValue` — весь прод мог показать «Технические работы» любому юзеру при простом сетевом сбое. Исправлено в `src/lib/useFeatureFlag.ts`: `fetchFlag` теперь возвращает `null` при ошибке/сетевом сбое, и `useQuery` корректно откатывается на `defaultValue`.
-**Файлы:** `.env`, `.env.local`, nginx-конфиг прокси `/sb/` (не в репо), `src/lib/useFeatureFlag.ts` (фикс применён).
-**Проверить:** добавить `127.0.0.1` (или `*` для non-prod) в допустимые CORS-origin прокси на VPS; либо явно задокументировать, что для локальной разработки нужен `VITE_SUPABASE_URL=https://<ref>.supabase.co` через VPN (см. [project_supabase_russia.md] в памяти — прямой supabase.co блокируется российскими ISP без VPN).
-**Статус (2026-07-03):** обходной путь через `.env.local` + VPN задокументирован в CLAUDE.md → «Локальная разработка: CORS для 127.0.0.1». Остаётся опциональный постоянный фикс на VPS (добавить `127.0.0.1` в CORS-origin прокси `/sb/`) — требует доступа к nginx, вне репо.
-
----
-
 ### Security-хардениг после публикации репо (анон-ключ открыт)
 
 **Контекст:** репозиторий публичный → `VITE_SUPABASE_ANON_KEY` открыт. Полный security review проведён 2026-06-29 и 2026-07-02.
@@ -32,7 +21,6 @@ _Ранее (2026-06-30):_ §1 монетизация закрыта (оплат
 **Закрыто:** все находки review 2026-06-29/07-02 устранены и задеплоены (H1-справочный CSP — см. backlog ниже — единственный незакрытый). Кратко: RLS `book_id`-ownership на INSERT+UPDATE (M3/M3b), блокировка привилегированных колонок `profiles` (M14), pre-hijack telegram-auth (H5), admin-гейт по `app_metadata.role` (L11), REVOKE admin/`character_relationships`/`feature_flags`/`admin_audit_log` от anon (M2/M5/M12/M13/L12), column-level GRANT, generic error-сообщения (L1/L2), `timingSafeEqual` в webhook-функциях (M6/M8), DOMPurify в `exportPdf`, nginx-харденинг (rate-limit, security headers, SSL ciphers/stapling, `server_tokens off`), GitHub Actions SHA-pinning + `permissions`, SSH host-key pinning, waitlist email-CHECK. Детали каждой находки — в git-истории миграций `20260627…20260702` и коммитах security-батча.
 
 **Требует внимания после security-сессии 2026-07-02 (не «баги», но незавершённые хвосты):**
-- **⚠️ Ручной шаг L11 — релогин админа.** Claim `app_metadata.role='admin'` проставлен аккаунту `xdobriev@yandex.ru` в БД, но в JWT он попадает только при выдаче нового токена. **Пока админ не разлогинится и не войдёт заново — админ-панель отдаёт «Access denied» и редиректит на `/books`** (`useAdminData` гейтит по RPC). Логин работает штатно; после релогина всё восстановится. Разовое действие, не автоматизируется миграцией.
 - **L11 — мёртвый код в 14 admin-RPC.** После regexp-swap условие guard-а теперь `NOT public.is_admin()`, но строка `SELECT LOWER(value) INTO v_admin_email FROM app_config WHERE key='admin_email'` осталась в каждой функции — инертна (значение не используется), оставлена сознательно ради надёжности массовой регенерации. При следующем касании admin-RPC можно вычистить `v_admin_email` + `DECLARE`. `app_config.admin_email` на доступ больше не влияет (используется только UI, см. L7).
 - **H5 — остаточная неопределённость по `tg-414368250`.** По данным нельзя на 100% отличить «легитимный старый telegram-аккаунт» от «давно слитого pre-hijack» (`has_password=true` оказался неинформативным — есть и у гарантированно-легитимного vk-аккаунта). Признаков активной компрометации нет. **Сброс пароля/сессий этому аккаунту НЕ делался** (предложено, ждёт решения). Если нужна перестраховка — инвалидировать его сессии и сбросить пароль.
 
@@ -270,7 +258,7 @@ MVP закрыт: кнопка «Отменить подписку», банне
 5. Экспортировать только схему `public` из Cloud: `pg_dump --schema=public --no-privileges --no-owner`
 6. Импортировать в self-hosted через `docker exec`
 7. Запустить оба варианта параллельно (Cloud продолжает работать)
-8. Переключить nginx `proxy_pass /sb/` с Cloud URL на `http://127.0.0.1:8000` → `nginx -s reload` (~0.5 сек переключения, пользователи не почувствуют)
+8. Переключить nginx `proxy_pass /sb/` с Cloud URL на `http://127.0.0.1:8000` → `nginx -s reload` (~0.5 сек переключения, пользователи не почувствуют). Заодно (опционально) добавить `127.0.0.1`/`localhost` в разрешённые CORS-origin прокси `/sb/` — тогда `npm run dev` сможет ходить на `avtorstudio.com/sb` без VPN и без `.env.local` с прямым `supabase.co`. Сейчас для локальной разработки используется обход `.env.local` + VPN (задокументирован в CLAUDE.md → «Локальная разработка: CORS для 127.0.0.1»).
 9. Мониторить 24–48 часов → отключить Cloud через неделю
 10. Обновить `VITE_SUPABASE_ANON_KEY` в Vercel и `.env` на новый сгенерированный ключ
 11. Обновить `site_url` / OAuth redirect URLs (Google, Telegram) в self-hosted дашборде
