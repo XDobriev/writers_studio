@@ -660,7 +660,7 @@ function CharacterCard({ character: c, onSelect, onDelete }: { character: Charac
             />
           ) : (
             <span className="char-card__initials">
-              {initialsFromName(c.name || 'Без имени')}
+              {initialsFromName(c.name)}
             </span>
           )}
         </div>
