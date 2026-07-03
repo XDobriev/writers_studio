@@ -247,7 +247,7 @@ export default function Characters() {
                 </button>
               )}
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>
-                {!isMobile && viewMode === 'detail' && active ? (active.name || 'Без имени') : 'Картотека персонажей'}
+                {!isMobile && viewMode === 'detail' && active ? (active.name || 'Без имени') : (isMobile ? 'Персонажи' : 'Картотека персонажей')}
               </span>
             </div>
 

@@ -252,7 +252,6 @@ html, body, #root {
 /* ── Мобильный: touch-targets до WCAG 2.5.5 ── */
 @media (max-width: 767px) {
   .sb-section-add { width: 44px; height: 44px; }
-  .char-card__del { width: 36px; height: 36px; border-radius: 8px; }
   .bubble-btn { width: 36px; height: 36px; border-radius: 8px; }
 }
 
@@ -1115,6 +1114,10 @@ select.input {
 }
 .char-card-wrap:hover .char-card__del { opacity: 1; }
 .char-card__del:hover { background: color-mix(in oklch, var(--danger) 22%, transparent); }
+/* Touch: нет hover, чтобы раскрыть кнопку — показываем всегда и до touch-размера */
+@media (hover: none) {
+  .char-card__del { opacity: 1; width: 36px; height: 36px; border-radius: 8px; }
+}
 
 /* ── add character card ── */
 .add-card {
@@ -1835,3 +1838,5 @@ select.input {
 }
 .dict-row:hover .dict-del { opacity: 1; }
 .dict-del:hover { color: var(--danger); background: oklch(0.65 0.18 25 / 0.10); }
+/* Touch: нет hover — показываем кнопку удаления полностью */
+@media (hover: none) { .dict-del { opacity: 1; } }
