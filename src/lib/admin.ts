@@ -99,7 +99,7 @@ export class AdminRpcError extends Error {
 export async function fetchAdminStats(): Promise<AdminStats> {
   const { data, error } = await supabase.rpc('get_admin_stats');
   if (error) throw new AdminRpcError(error.message, error.code);
-  return data as AdminStats;
+  return data as unknown as AdminStats;
 }
 
 export async function fetchAdminUsers(): Promise<AdminUser[]> {
@@ -117,7 +117,7 @@ export async function fetchAuditLog(): Promise<AuditEntry[]> {
 export async function fetchRevenue(): Promise<AdminRevenue> {
   const { data, error } = await supabase.rpc('get_admin_revenue');
   if (error) throw new AdminRpcError(error.message, error.code);
-  return data as AdminRevenue;
+  return data as unknown as AdminRevenue;
 }
 
 export async function fetchFeatureFlags(): Promise<FeatureFlag[]> {

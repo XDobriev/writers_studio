@@ -82,7 +82,7 @@ export default function AdminUserDetail() {
       if (err?.code === '42501') { setIsAdmin(false); return; }
       setIsAdmin(true);
       if (err) { setError(err.message); return; }
-      const d = data as UserDetail;
+      const d = data as unknown as UserDetail;
       setDetail(d);
       if (d.email) setUserEmail(d.email);
     });

@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { createRepository } from './repository';
-import type { Tables } from './database.types';
+import type { Tables, TablesInsert } from './database.types';
 
 export type NoteKind = 'idea' | 'question' | 'todo' | 'important' | 'custom';
 
@@ -67,6 +67,8 @@ export async function reorderNotes(updates: { id: string; position: number }[]):
   if (updates.length === 0) return;
   const { error } = await supabase
     .from('notes')
-    .upsert(updates, { onConflict: 'id' });
+    // Частичный upsert по id: onConflict обновляет только position у существующих
+    // строк, поэтому book_id/user_id/text не передаём (их дал бы полный Insert).
+    .upsert(updates as unknown as TablesInsert<'notes'>[], { onConflict: 'id' });
   if (error) throw error;
 }

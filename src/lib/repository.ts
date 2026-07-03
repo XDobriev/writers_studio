@@ -1,5 +1,15 @@
 import * as Sentry from '@sentry/react';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from './database.types';
 import { supabase } from './supabase';
+
+type TableName = keyof Database['public']['Tables'];
+
+// Единственная точка приведения дженерик-репозитория. Имена колонок здесь
+// динамические (book_id/id/orderBy/patch) и не выводятся из T, поэтому операции
+// идут через нетипизированное представление клиента. Имя таблицы при этом сужено
+// до реального (TableName) — опечатка в createRepository ломает сборку.
+const db = supabase as unknown as SupabaseClient;
 
 export class DbError extends Error {
   constructor(
@@ -29,7 +39,7 @@ export interface Repository<T> {
 }
 
 export function createRepository<T>(
-  table: string,
+  table: TableName,
   defaults: Record<string, unknown> = {},
   orderBy: OrderClause[] = [{ column: 'created_at', ascending: true }],
 ): Repository<T> {
@@ -41,7 +51,7 @@ export function createRepository<T>(
       const measureName = `repo.${table}.${op}`;
       performance.mark(startMark);
       try {
-        const base = supabase.from(table).select('*').eq('book_id', bookId);
+        const base = db.from(table).select('*').eq('book_id', bookId);
         let q = orderBy.reduce((acc, o) => acc.order(o.column, { ascending: o.ascending }), base);
         if (options.limit) q = q.limit(options.limit);
         const { data, error } = await q;
@@ -67,7 +77,7 @@ export function createRepository<T>(
       const measureName = `repo.${table}.${op}`;
       performance.mark(startMark);
       try {
-        const { data, error } = await supabase
+        const { data, error } = await db
           .from(table)
           .insert({ book_id: bookId, user_id: userId, ...defaults, ...patch })
           .select('*')
@@ -94,7 +104,7 @@ export function createRepository<T>(
       const measureName = `repo.${table}.${op}`;
       performance.mark(startMark);
       try {
-        const { data, error } = await supabase
+        const { data, error } = await db
           .from(table)
           .update(patch as Record<string, unknown>)
           .eq('id', id)
@@ -122,7 +132,7 @@ export function createRepository<T>(
       const measureName = `repo.${table}.${op}`;
       performance.mark(startMark);
       try {
-        const { error } = await supabase.from(table).delete().eq('id', id);
+        const { error } = await db.from(table).delete().eq('id', id);
         if (error) {
           Sentry.addBreadcrumb({ category: 'db', message: `${table}.${op}.error`, level: 'error', data: { code: error.code } });
           throw toDbError(error, table);

@@ -21,6 +21,7 @@ _Ранее (2026-06-30):_ §1 монетизация закрыта (оплат
 **Побочный эффект (уже пофикшен отдельно):** пока фетч `feature_flags` падает по CORS, `useFeatureFlag('maintenance_mode', false)` до правки в этой сессии возвращал `true` вместо `defaultValue` — весь прод мог показать «Технические работы» любому юзеру при простом сетевом сбое. Исправлено в `src/lib/useFeatureFlag.ts`: `fetchFlag` теперь возвращает `null` при ошибке/сетевом сбое, и `useQuery` корректно откатывается на `defaultValue`.
 **Файлы:** `.env`, `.env.local`, nginx-конфиг прокси `/sb/` (не в репо), `src/lib/useFeatureFlag.ts` (фикс применён).
 **Проверить:** добавить `127.0.0.1` (или `*` для non-prod) в допустимые CORS-origin прокси на VPS; либо явно задокументировать, что для локальной разработки нужен `VITE_SUPABASE_URL=https://<ref>.supabase.co` через VPN (см. [project_supabase_russia.md] в памяти — прямой supabase.co блокируется российскими ISP без VPN).
+**Статус (2026-07-03):** обходной путь через `.env.local` + VPN задокументирован в CLAUDE.md → «Локальная разработка: CORS для 127.0.0.1». Остаётся опциональный постоянный фикс на VPS (добавить `127.0.0.1` в CORS-origin прокси `/sb/`) — требует доступа к nginx, вне репо.
 
 ---
 
@@ -77,6 +78,16 @@ _Ранее (2026-06-30):_ §1 монетизация закрыта (оплат
   **Риск без плана:** включить строгий CSP сразу на блокировку может сломать вход через VK/Telegram без предупреждения.
 - _(информационные, без действия)_ L4 (X-XSS-Protection deprecated), L8 (profiles без DELETE policy), L9 (listUsers пагинация O(N)), L10 (waitlist email enumeration — типично для форм).
 - **Leaked password protection** — требует Supabase Pro план.
+
+---
+
+### recurring_consents — согласие на рекуррент не логировалось (исправлено, проверить после деплоя)
+
+**Симптом:** таблица `recurring_consents` пуста (0 строк). При Pro-покупке `UpgradeModal.handlePurchase` делал `insert({ plan, user_agent })` без `user_id` (колонка NOT NULL, без дефолта и триггера — проверено в БД). Ошибка `.error` не читалась (`await` без проверки), поэтому падение проглатывалось молча и оплата шла дальше — юридически значимое согласие на рекуррентные списания не сохранялось.
+**Как найден:** типизация клиента `createClient<Database>` (§TS-1 Tier 2) вскрыла отсутствие обязательного `user_id`.
+**Фикс (2026-07-03):** `UpgradeModal.tsx` — `user_id: user.id` из `useAuth()`, гейт `plan === 'pro' && user`, `.error` теперь логируется в консоль (не блокирует оплату).
+**Проверить:** боевая Pro-покупка → в `recurring_consents` появляется строка с `user_id`. **Не задеплоено** (в батче на ревью).
+**Файлы:** `src/components/UpgradeModal.tsx`
 
 ---
 
@@ -314,20 +325,6 @@ MVP закрыт: кнопка «Отменить подписку», банне
 
 ## Технический долг — масштабирование
 
-
-### §TS-1 (Tier 2). Типизировать сам клиент `createClient<Database>`
-
-**Приоритет:** низкий. **Когда делать:** отдельным заходом.
-
-**Сделано (Tier 1):** добавлен `src/lib/database.types.ts` (сген. типы), ручные доменные типы (`Book`, `Character`, `Note`, `Location`, `TimelineEvent`, `LocationConnection`, `MapStamp`, `Chapter`, `Profile`, `WritingSnapshot`, `ChapterVersionMeta`, `CharacterRelationship`) переопределены как `Tables<'x'>` / `Omit<Tables<'x'>, 'field'> & { field: Union }`. Теперь `DROP`/`RENAME COLUMN` в миграции ломает сборку. Union-сужения (`role`/`type`/`kind`/`style`) сохранены.
-
-**Осталось (Tier 2):** типизировать клиент `createClient<Database>(...)` в `supabase.ts`. Даст ловлю опечаток в именах колонок внутри query builder (`.eq('titel', …)`). Оставшиеся `as Book`/`as Character[]` на `.select()` при этом не исчезнут (Row отдаёт `role: string`, а доменный тип узкий — нужно сужающее приведение), но станут проверенными.
-
-**Риск Tier 2:** каскад на `repository.ts` — `createRepository<T>(table: string)` требует, чтобы `table` стал union имён таблиц (`keyof Database['public']['Tables']`), а `.update(patch as Record<string, unknown>)` → `TablesUpdate<N>`. Центральная абстракция, используется 5 сущностями. Делать с полным `typecheck`-прогоном.
-
-**Файлы:** `src/lib/supabase.ts`, `src/lib/repository.ts`.
-
----
 
 ### §INFRA-1. Объектное хранилище для снимков глав (S3/Blob)
 

@@ -26,13 +26,13 @@ export default function ShareBook() {
     if (!token) { setState('not_found'); return; }
 
     let cancelled = false;
-    async function load() {
-      const { data, error } = await supabase.rpc('get_shared_book', { p_token: token });
+    async function load(p_token: string) {
+      const { data, error } = await supabase.rpc('get_shared_book', { p_token });
 
       if (cancelled) return;
       if (error || !data) { setState(error ? 'error' : 'not_found'); return; }
 
-      const { book: bookData, chapters: chapData } = data as { book: Book; chapters: Chapter[] };
+      const { book: bookData, chapters: chapData } = data as unknown as { book: Book; chapters: Chapter[] };
       setBook(bookData);
       const chaps = chapData ?? [];
       setChapters(chaps);
@@ -40,7 +40,7 @@ export default function ShareBook() {
       setState('found');
     }
 
-    load();
+    load(token);
     return () => { cancelled = true; };
   }, [token]);
 

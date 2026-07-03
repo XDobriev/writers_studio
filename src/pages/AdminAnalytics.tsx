@@ -141,8 +141,8 @@ export default function AdminAnalytics({ topUsers }: Props) {
       const firstErr = dauRes.error?.message ?? retRes.error?.message ?? anRes.error?.message ?? null;
       if (firstErr) setErr(firstErr);
       if (!dauRes.error) setDau((dauRes.data as DauPoint[]) ?? []);
-      if (!retRes.error) setRetention(retRes.data as RetentionData);
-      if (!anRes.error) setAnomalies(anRes.data as AnomaliesData);
+      if (!retRes.error) setRetention(retRes.data as unknown as RetentionData);
+      if (!anRes.error) setAnomalies(anRes.data as unknown as AnomaliesData);
     });
   }, [setErr]);
 

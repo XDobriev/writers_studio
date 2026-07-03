@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 import { getLifetimeSlotsRemaining } from '../lib/profiles';
 import { useFeatureFlag } from '../lib/useFeatureFlag';
 
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }: Props) {
+  const { user } = useAuth();
   const overlayRef = useRef<HTMLDivElement>(null);
   const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,11 +31,16 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
     setIsLoading(true);
     setPurchaseError(null);
     try {
-      if (plan === 'pro') {
-        await supabase.from('recurring_consents').insert({
+      if (plan === 'pro' && user) {
+        // user_id обязателен (NOT NULL, без дефолта/триггера) — без него insert
+        // молча падал и согласие на рекуррент не логировалось. Ошибку не блокируем
+        // оплатой, но фиксируем в консоли.
+        const { error: consentError } = await supabase.from('recurring_consents').insert({
+          user_id: user.id,
           plan,
           user_agent: navigator.userAgent,
         });
+        if (consentError) console.error('[recurring_consents] insert failed', consentError);
       }
       const { data, error } = await supabase.functions.invoke('create-payment-url', {
         body: { plan },
