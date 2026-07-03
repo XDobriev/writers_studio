@@ -999,6 +999,13 @@ select.input {
 .note-card:hover {
   border-color: var(--border-strong) !important;
 }
+.note-card__drag { width: 20px; height: 20px; }
+.cork-card__drag { width: 20px; height: 20px; }
+/* Touch: увеличиваем drag-хендлы до WCAG-минимума (absolute — без сдвига вёрстки) */
+@media (hover: none) {
+  .note-card__drag { width: 28px; height: 28px; }
+  .cork-card__drag { width: 28px; height: 28px; }
+}
 
 /* ── Note modal ── */
 .note-modal-overlay {

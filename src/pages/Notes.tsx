@@ -124,10 +124,10 @@ function SortableNoteCard({ note, chapterTitle, color, colorSoft, label, onOpen 
           onClick={(e) => e.stopPropagation()}
           aria-label="Переместить"
           title="Переместить"
+          className="note-card__drag"
           style={{
             position: 'absolute', top: 10, right: 10,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 20, height: 20,
             background: 'none', border: 'none',
             color: 'var(--ink-4)', cursor: 'grab',
             padding: 0, borderRadius: 4,

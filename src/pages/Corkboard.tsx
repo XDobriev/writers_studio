@@ -127,6 +127,7 @@ function SortableCorkCard({
         <button
           type="button"
           {...listeners}
+          className="cork-card__drag"
           style={{
             position: 'absolute',
             top: 8,
@@ -134,8 +135,6 @@ function SortableCorkCard({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: 20,
-            height: 20,
             background: 'transparent',
             border: 'none',
             cursor: isDragging ? 'grabbing' : 'grab',
