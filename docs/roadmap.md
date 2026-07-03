@@ -1,6 +1,8 @@
 # Roadmap — Авторская студия
 
-_Обновлён: 2026-06-30_ — §1 монетизация закрыта (оплата, возврат, рекурренты E2E). §1.7 рекурренты закрыты (E2E боевая проверка 1₽ → webhook → plan_expires_at +30 дней). §7 отмена подписки MVP закрыта. `GRANDFATHERING_ENDS_AT=2026-09-01` выставлен. Ближайшее пред-запусковое действие — ручное тестирование (§2).
+_Обновлён: 2026-07-03_ — батч-сессия 02–03.07: security-хвосты (M3b UPDATE book_id-bypass, блокировка привилегированных колонок `profiles`, pre-hijack telegram-auth H5, admin-гейт по `app_metadata.role`), billing (идемпотентность webhook/возврата/рекуррента по `inv_id`/`op_key`, гейтинг тест-суммы, сверка OutSum, dunning-сигнал), редактор (три бага потери/затирания текста), карта (pinch/pan/drag-конфликты, cross-origin canvas), stats (streak по разрежённым снапшотам), export (юникод-slugify, локальная дата, ФИО автора EPUB/FB2), mutations (потеря данных в note/character, небезопасный редирект на оплату). Ближайшее пред-запусковое действие — ручное тестирование (§2).
+
+_Ранее (2026-06-30):_ §1 монетизация закрыта (оплата, возврат, рекурренты E2E). §1.7 рекурренты закрыты (E2E боевая проверка 1₽ → webhook → plan_expires_at +30 дней). §7 отмена подписки MVP закрыта. `GRANDFATHERING_ENDS_AT=2026-09-01` выставлен.
 
 История: Robokassa полный цикл (оплата → план → `op_key` → возврат → рекурренты → отмена); VK ID авторизация (OAuth 2.1 + PKCE). RLS initplan fix на 10 таблицах (ARCH-7 ✅). Sentry metrics & source maps (ARCH-4 ✅). Crossrefs в PostgreSQL RPC (ARCH-3 ✅). Unit-тесты repository/crossrefs/queries (ARCH-6 ✅). Landing 1106→548 строк, Characters 1192→669, Timeline 1221→965 (ARCH-5 ✅). Ранее: CharacterGrid виртуализация, cursor-based пагинация, Export dynamic imports (490 KB → 25 KB), 7 FK-индексов.
 
@@ -57,6 +59,8 @@ _Обновлён: 2026-06-30_ — §1 монетизация закрыта (о
 - ~~M13: `admin_audit_log` избыточные GRANT анону/authenticated~~ — RLS уже давала default-deny (0 политик), но `REVOKE ALL` для defense-in-depth: страховка на случай случайного отключения RLS. Чтение только через `get_admin_audit_log()`.
 - ~~L12: `get_feature_flags()` избыточный `SECURITY DEFINER`~~ — снят, функция теперь `SECURITY INVOKER` (публично читаемая таблица прав не требует); anon и так не был в ACL.
 - ~~L13: `waitlist` — anon insert без валидации email + лишние UPDATE/DELETE/TRUNCATE гранты~~ — `CHECK (email ~* ...)` + права сужены до `INSERT`. `WITH CHECK(true)` в политике остаётся (advisor помечает informational) — формат теперь валидируется constraint-ом на таблице.
+- ~~M3b: FK bypass `book_id` на UPDATE~~ — `WITH CHECK` на 9 UPDATE-политиках + INSERT/UPDATE `character_relationships`: нельзя перепривязать запись на чужой `book_id`. Миграция `20260702_rls_book_id_update_ownership.sql` (дополняет M3 INSERT).
+- ~~M14: privilege escalation через `profiles` UPDATE~~ — клиент мог править `plan`/`grandfathered`/`is_test` напрямую. `REVOKE` полного UPDATE/INSERT/DELETE у `authenticated`/`anon`, `GRANT UPDATE` только на `display_name`, `onboarded_at`. Миграция `20260702_profiles_lock_privileged_columns.sql`.
 
 **Требует внимания после security-сессии 2026-07-02 (не «баги», но незавершённые хвосты):**
 - **⚠️ Ручной шаг L11 — релогин админа.** Claim `app_metadata.role='admin'` проставлен аккаунту `xdobriev@yandex.ru` в БД, но в JWT он попадает только при выдаче нового токена. **Пока админ не разлогинится и не войдёт заново — админ-панель отдаёт «Access denied» и редиректит на `/books`** (`useAdminData` гейтит по RPC). Логин работает штатно; после релогина всё восстановится. Разовое действие, не автоматизируется миграцией.
