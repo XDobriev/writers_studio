@@ -27,41 +27,9 @@ _Ранее (2026-06-30):_ §1 монетизация закрыта (оплат
 
 ### Security-хардениг после публикации репо (анон-ключ открыт)
 
-**Контекст:** репозиторий публичный → `VITE_SUPABASE_ANON_KEY` открыт. Полный security review проведён 2026-06-29.
+**Контекст:** репозиторий публичный → `VITE_SUPABASE_ANON_KEY` открыт. Полный security review проведён 2026-06-29 и 2026-07-02.
 
-**Закрыто:**
-- ~~`decrement_lifetime_slot` + `get_inactive_users_for_retention`~~ — REVOKE в `20260627`.
-- ~~Storage buckets listing~~ — DROP POLICY (2026-06-28).
-- ~~SSH~~ — fail2ban + PasswordAuthentication no.
-- ~~H3: GitHub Actions SHA pinning~~ — все actions привязаны к SHA (2026-06-29).
-- ~~H2: Rate limiting `/sb/auth/`~~ — `limit_req_zone sb_auth 5r/s` в nginx (2026-06-29).
-- ~~H4: GRANT TO authenticated 12 таблиц~~ — миграция `20260629_security_hardening.sql`.
-- ~~M1: Security headers в static/fallback locations~~ — продублированы в nginx (2026-06-29).
-- ~~M2: REVOKE admin DEFINER от anon~~ — 16 функций, миграция `20260629`.
-- ~~M5: REVOKE `character_relationships` от anon~~ — миграция `20260629`.
-- ~~M11: `server_tokens off`~~ — nginx (2026-06-29).
-- ~~M3: FK bypass `book_id` на INSERT~~ — миграция `20260630_rls_book_id_ownership.sql`, 11 таблиц (включая `map_stamps`/`writing_snapshots`, проверенные дополнительно), `chapter_versions` через `chapter_id`. Верифицировано симулированными INSERT (своя книга проходит, чужая — `42501`).
-
-**Закрыто (продолжение):**
-- ~~M9: GitHub Actions `permissions: { contents: read }`~~ — добавлено во все 4 workflow-файла.
-- ~~M10: SSH host key pinning~~ — `deploy-timeweb.yml` использует `VPS_HOST_KEY` secret вместо `ssh-keyscan`.
-- ~~L1: `process-refund` — generic-сообщение~~ — `message: data.message` убран из ответа, детали только в `console.error`. Задеплоено.
-- ~~L2: `telegram-auth`/`vk-auth` — generic-сообщения~~ — все 7 мест (`listUsers`/`createUser`/`updateUser`/`generateLink` failed) больше не пробрасывают `error.message` клиенту. Задеплоено.
-- ~~L3: непредсказуемый InvId в `create-payment-url`~~ — добавлен случайный 3-значный суффикс (тот же паттерн, что уже в `billing-scheduler`). **Не переходили на `crypto.randomUUID()`** — Робокасса требует числовой InvId, UUID сломал бы подпись. Задеплоено.
-- ~~L5: SSL ciphers в nginx~~ — Mozilla recommended cipher suite добавлен.
-- ~~L6: `ssl_stapling`/`ssl_session_cache`~~ — добавлены вместе с `ssl_trusted_certificate` (chain.pem) и `resolver`, без которых `ssl_stapling_verify` не работает.
-- ~~M4: `exportPdf.ts` — `DOMPurify.sanitize(ch.content)`~~ — добавлено (2026-06-30). Задеплоено через git push.
-- ~~M6: `retention-email` — `timingSafeEqual`~~ — заменил `!==` на `timingSafeEqual` из `node:crypto`. Задеплоено.
-- ~~M7: `retention-email` — убрать PII из ответа~~ — возвращает `{ sent, failed_count }`, массив email больше не раскрывается. Задеплоено.
-- ~~M8: `payment-confirmation` — ограничить вызов service_role~~ — `timingSafeEqual(token, serviceKey)`: только вызовы с `SUPABASE_SERVICE_ROLE_KEY` проходят. Задеплоено.
-- ~~L11: admin RPC идентифицировал админа по `auth.jwt()->>'email'`~~ — переведено на `app_metadata.role='admin'` (пишет только service_role, подделать через updateUser нельзя). Миграция `20260702_admin_role_claim_guard.sql`: хелпер `public.is_admin()` + regexp-регенерация 14 SECURITY DEFINER admin-RPC (guard → `NOT public.is_admin()`). Claim проставлен админу. Верифицировано симуляцией claims: `role=admin`→доступ, `email=admin без role`→отказ. **Требует одного релогина админа** (свежий JWT с claim). Не эксплуатировалось и раньше (email уникален), это укрепление.
-- ~~H5: pre-hijack в `telegram-auth`~~ — при отключённом confirm email атакующий заранее регистрировал `tg-<id>@telegram.local` через публичный `signUp` (подтверждено эмпирически: HTTP 200 + мгновенный `email_confirmed_at`), после чего вход жертвы через Telegram сливался в его аккаунт. Фикс: `createUser`/`updateUserById` пишут `app_metadata.telegram_id`, при существующем аккаунте — guard `409`, если `app_metadata.telegram_id` отсутствует/не совпадает (публичный signUp не может писать `app_metadata`). По образцу vk-auth. Существующему аккаунту `tg-414368250` `app_metadata.telegram_id` бэкфилл-нут. Задеплоено (v28).
-- ~~M12: `feature_flags` полный SELECT анону (`description` утекал)~~ — column-level `GRANT SELECT (key, enabled)` вместо `GRANT SELECT` на всю таблицу; запись только через `set_feature_flag()` (уже guard `is_admin()`). Миграция `harden_flags_audit_waitlist_grants`.
-- ~~M13: `admin_audit_log` избыточные GRANT анону/authenticated~~ — RLS уже давала default-deny (0 политик), но `REVOKE ALL` для defense-in-depth: страховка на случай случайного отключения RLS. Чтение только через `get_admin_audit_log()`.
-- ~~L12: `get_feature_flags()` избыточный `SECURITY DEFINER`~~ — снят, функция теперь `SECURITY INVOKER` (публично читаемая таблица прав не требует); anon и так не был в ACL.
-- ~~L13: `waitlist` — anon insert без валидации email + лишние UPDATE/DELETE/TRUNCATE гранты~~ — `CHECK (email ~* ...)` + права сужены до `INSERT`. `WITH CHECK(true)` в политике остаётся (advisor помечает informational) — формат теперь валидируется constraint-ом на таблице.
-- ~~M3b: FK bypass `book_id` на UPDATE~~ — `WITH CHECK` на 9 UPDATE-политиках + INSERT/UPDATE `character_relationships`: нельзя перепривязать запись на чужой `book_id`. Миграция `20260702_rls_book_id_update_ownership.sql` (дополняет M3 INSERT).
-- ~~M14: privilege escalation через `profiles` UPDATE~~ — клиент мог править `plan`/`grandfathered`/`is_test` напрямую. `REVOKE` полного UPDATE/INSERT/DELETE у `authenticated`/`anon`, `GRANT UPDATE` только на `display_name`, `onboarded_at`. Миграция `20260702_profiles_lock_privileged_columns.sql`.
+**Закрыто:** все находки review 2026-06-29/07-02 устранены и задеплоены (H1-справочный CSP — см. backlog ниже — единственный незакрытый). Кратко: RLS `book_id`-ownership на INSERT+UPDATE (M3/M3b), блокировка привилегированных колонок `profiles` (M14), pre-hijack telegram-auth (H5), admin-гейт по `app_metadata.role` (L11), REVOKE admin/`character_relationships`/`feature_flags`/`admin_audit_log` от anon (M2/M5/M12/M13/L12), column-level GRANT, generic error-сообщения (L1/L2), `timingSafeEqual` в webhook-функциях (M6/M8), DOMPurify в `exportPdf`, nginx-харденинг (rate-limit, security headers, SSL ciphers/stapling, `server_tokens off`), GitHub Actions SHA-pinning + `permissions`, SSH host-key pinning, waitlist email-CHECK. Детали каждой находки — в git-истории миграций `20260627…20260702` и коммитах security-батча.
 
 **Требует внимания после security-сессии 2026-07-02 (не «баги», но незавершённые хвосты):**
 - **⚠️ Ручной шаг L11 — релогин админа.** Claim `app_metadata.role='admin'` проставлен аккаунту `xdobriev@yandex.ru` в БД, но в JWT он попадает только при выдаче нового токена. **Пока админ не разлогинится и не войдёт заново — админ-панель отдаёт «Access denied» и редиректит на `/books`** (`useAdminData` гейтит по RPC). Логин работает штатно; после релогина всё восстановится. Разовое действие, не автоматизируется миграцией.
@@ -76,7 +44,10 @@ _Ранее (2026-06-30):_ §1 монетизация закрыта (оплат
   4. Переключить на enforcement (`Content-Security-Policy`) только после отсутствия ложных срабатываний
   5. Продублировать заголовок в `vercel.json` — иначе резервный прод на Vercel останется без защиты
   **Риск без плана:** включить строгий CSP сразу на блокировку может сломать вход через VK/Telegram без предупреждения.
-- _(информационные, без действия)_ L4 (X-XSS-Protection deprecated), L8 (profiles без DELETE policy), L9 (listUsers пагинация O(N)), L10 (waitlist email enumeration — типично для форм).
+- ~~**A1: `is_admin()` + 6 функций без `SET search_path`**~~ — миграция `20260703_advisor_hardening.sql`, `SET search_path = pg_catalog, public`. Верифицировано advisor (2026-07-03, warn исчез).
+- ~~**A2: триггер-функции исполнимы через REST анону**~~ — `REVOKE EXECUTE` на `handle_new_user_profile`/`snapshot_book_on_create`/`snapshot_book_words`/`recount_book_words` (в коде через `.rpc()` не зовутся). Та же миграция. Верифицировано advisor.
+- **A3 (🟡): `auth_rls_initplan` на `payments` + `recurring_consents`** — 3 политики (`users see own payments`, `own consents insert/read`) переоценивают `auth.uid()` на каждую строку — хвост ARCH-7, пропущенный на этих таблицах. Фикс: `auth.uid()` → `(select auth.uid())` через `ALTER POLICY`. Требует выборки текущих тел политик перед применением.
+- _(информационные, без действия)_ L4 (X-XSS-Protection deprecated), L8 (profiles без DELETE policy), L9 (listUsers пагинация O(N)), L10 (waitlist email enumeration — типично для форм). **A4:** `map_stamps.user_id` без индекса + 11 unused-index (advisor performance) — при текущем трафике преждевременно; индекс `map_stamps(user_id)` добавить при росте. **A5:** `pg_net` в `public` schema, `admin_audit_log`/`app_config` RLS-enabled без политик (намеренный default-deny) — без действия.
 - **Leaked password protection** — требует Supabase Pro план.
 
 ---
