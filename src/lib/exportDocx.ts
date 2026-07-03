@@ -142,26 +142,56 @@ function notesParagraphs(notes: Note[]): Paragraph[] {
   return result;
 }
 
+// docx ImageRun поддерживает только jpg/png/gif/bmp — WebP нужно перекодировать в PNG.
+async function bitmapToPngBytes(bmp: ImageBitmap): Promise<Uint8Array | null> {
+  try {
+    let blob: Blob;
+    if (typeof OffscreenCanvas !== 'undefined') {
+      const canvas = new OffscreenCanvas(bmp.width, bmp.height);
+      canvas.getContext('2d')!.drawImage(bmp, 0, 0);
+      blob = await canvas.convertToBlob({ type: 'image/png' });
+    } else {
+      const canvas = document.createElement('canvas');
+      canvas.width = bmp.width;
+      canvas.height = bmp.height;
+      canvas.getContext('2d')!.drawImage(bmp, 0, 0);
+      blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png'));
+    }
+    return new Uint8Array(await blob.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
 export async function buildDocxBlob(book: Book, chapters: Chapter[], opts: BuildOpts): Promise<Blob> {
   const children: Paragraph[] = [];
 
-  if (opts.cover && opts.cover.ext !== 'webp') {
+  if (opts.cover) {
+    const isNativeFmt = opts.cover.ext === 'png' || opts.cover.ext === 'jpg' || opts.cover.ext === 'jpeg';
     let coverW = 400, coverH = 600;
+    let coverData: ArrayBuffer | Uint8Array | null = isNativeFmt ? opts.cover.data : null;
+    let docxImgType: 'png' | 'jpg' = opts.cover.ext === 'png' ? 'png' : 'jpg';
     try {
       const coverBlob = new Blob([opts.cover.data], { type: opts.cover.mime });
       const bmp = await createImageBitmap(coverBlob);
       ({ width: coverW, height: coverH } = scaleToFit(bmp.width, bmp.height, 500, 750));
+      if (!isNativeFmt) {
+        const png = await bitmapToPngBytes(bmp);
+        if (png) { coverData = png; docxImgType = 'png'; }
+      }
       bmp.close();
-    } catch { /* fallback 400×600 */ }
-    const docxImgType = opts.cover.ext === 'png' ? 'png' : 'jpg';
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [new ImageRun({ data: opts.cover.data, transformation: { width: coverW, height: coverH }, type: docxImgType })],
-        spacing: { before: 720, after: 720 },
-      }),
-      new Paragraph({ children: [new PageBreak()] }),
-    );
+    } catch { /* fallback 400×600, coverData остаётся как есть */ }
+    if (coverData) {
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new ImageRun({ data: coverData, transformation: { width: coverW, height: coverH }, type: docxImgType })],
+          spacing: { before: 720, after: 720 },
+        }),
+        new Paragraph({ children: [new PageBreak()] }),
+      );
+    }
   }
 
   if (opts.mapImage) {
