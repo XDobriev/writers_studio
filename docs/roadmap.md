@@ -20,10 +20,6 @@ _Ранее (2026-06-30):_ §1 монетизация закрыта (оплат
 
 **Закрыто:** все находки review 2026-06-29/07-02 устранены и задеплоены (H1-справочный CSP — см. backlog ниже — единственный незакрытый). Кратко: RLS `book_id`-ownership на INSERT+UPDATE (M3/M3b), блокировка привилегированных колонок `profiles` (M14), pre-hijack telegram-auth (H5), admin-гейт по `app_metadata.role` (L11), REVOKE admin/`character_relationships`/`feature_flags`/`admin_audit_log` от anon (M2/M5/M12/M13/L12), column-level GRANT, generic error-сообщения (L1/L2), `timingSafeEqual` в webhook-функциях (M6/M8), DOMPurify в `exportPdf`, nginx-харденинг (rate-limit, security headers, SSL ciphers/stapling, `server_tokens off`), GitHub Actions SHA-pinning + `permissions`, SSH host-key pinning, waitlist email-CHECK. Детали каждой находки — в git-истории миграций `20260627…20260702` и коммитах security-батча.
 
-**Требует внимания после security-сессии 2026-07-02 (не «баги», но незавершённые хвосты):**
-- **L11 — мёртвый код в 14 admin-RPC.** После regexp-swap условие guard-а теперь `NOT public.is_admin()`, но строка `SELECT LOWER(value) INTO v_admin_email FROM app_config WHERE key='admin_email'` осталась в каждой функции — инертна (значение не используется), оставлена сознательно ради надёжности массовой регенерации. При следующем касании admin-RPC можно вычистить `v_admin_email` + `DECLARE`. `app_config.admin_email` на доступ больше не влияет (используется только UI, см. L7).
-- **H5 — остаточная неопределённость по `tg-414368250`.** По данным нельзя на 100% отличить «легитимный старый telegram-аккаунт» от «давно слитого pre-hijack» (`has_password=true` оказался неинформативным — есть и у гарантированно-легитимного vk-аккаунта). Признаков активной компрометации нет. **Сброс пароля/сессий этому аккаунту НЕ делался** (предложено, ждёт решения). Если нужна перестраховка — инвалидировать его сессии и сбросить пароль.
-
 **Осталось (backlog, по приоритету):**
 - **H1: CSP header** — nginx + Vercel. План:
   1. Составить CSP с `Content-Security-Policy-Report-Only` → задеплоить
