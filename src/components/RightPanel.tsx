@@ -272,8 +272,11 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
               </div>
             )}
             {notes.length === 0 && !showForm && (
-              <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>
+              <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                 {chapterId ? 'Заметок для этой главы нет' : 'Нет заметок'}
+                <button className="btn btn--primary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowForm(true)}>
+                  <Icon name="plus" size={13} /> Добавить заметку
+                </button>
               </div>
             )}
           </>
