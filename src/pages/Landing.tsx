@@ -311,7 +311,7 @@ function LandingEmailCapture() {
         <h2 style={{ font: '600 clamp(26px,3vw,40px)/1.08 var(--font-serif)', letterSpacing: '-0.018em', marginBottom: 12, color: 'var(--ink)' }}>
           Письма для авторов.
         </h2>
-        <p style={{ font: '400 15px/1.6 var(--font-serif)', color: 'var(--ink-2)', marginBottom: 28 }}>
+        <p style={{ font: '400 15px/1.6 var(--font-serif)', color: 'var(--ink-2)', marginBottom: 20 }}>
           Обновления, новые фичи, закрытые приглашения. Не чаще раза в месяц.
         </p>
         {status === 'done' ? (
@@ -319,7 +319,7 @@ function LandingEmailCapture() {
             Готово — будем писать.
           </p>
         ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 10, maxWidth: 400, margin: '0 auto', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 14, maxWidth: 400, margin: '0 auto', flexWrap: 'wrap', justifyContent: 'center' }}>
             <input
               type="email"
               required
