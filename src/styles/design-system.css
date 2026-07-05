@@ -1592,8 +1592,11 @@ select.input {
 }
 @media (max-width: 639px) {
   .lnd-manifesto-row { grid-template-columns: 40px 1fr; gap: 20px; padding: 20px 0; }
-  .lnd-mock-content { height: 240px !important; }
+  .lnd-mock-content { height: 340px !important; }
   .lnd-cta-deco { opacity: 0.18; }
+}
+@media (max-width: 479px) {
+  .lnd-nav-word { display: none; }
 }
 
 /* Cookie-баннер: на узких экранах — текст сверху, кнопки ровным рядом под ним */

@@ -58,9 +58,9 @@ function LandingNav() {
       borderBottom: `1px solid ${scrolled ? 'var(--border-soft)' : 'transparent'}`,
       transition: 'background 0.25s ease-out, border-color 0.25s ease-out',
     }}>
-      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
         <LogoMark size={22} />
-        <span style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink)' }}>авторская студия</span>
+        <span className="lnd-nav-word" style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink)', whiteSpace: 'nowrap' }}>авторская студия</span>
       </Link>
       <div style={{ flex: 1 }} />
       <nav className="lnd-nav-links">
@@ -69,9 +69,9 @@ function LandingNav() {
         <a href="#pricing" style={{ textDecoration: 'none', color: 'inherit' }}>Цены</a>
         <a href="#faq" style={{ textDecoration: 'none', color: 'inherit' }}>Вопросы</a>
       </nav>
-      <span style={{ width: 1, height: 18, background: 'var(--border-soft)' }} />
-      <Link to="/login" className="lnd-nav-login" style={{ fontSize: 13.5, textDecoration: 'none', padding: '12px 6px', margin: '-12px -6px' }}>Войти</Link>
-      <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 44, padding: '0 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>Начать свою книгу</Link>
+      <span className="lnd-nav-sep" style={{ width: 1, height: 18, background: 'var(--border-soft)', flexShrink: 0 }} />
+      <Link to="/login" className="lnd-nav-login" style={{ fontSize: 13.5, textDecoration: 'none', padding: '12px 6px', margin: '-12px -6px', whiteSpace: 'nowrap' }}>Войти</Link>
+      <Link to="/login?tab=signup" className="btn btn--primary" style={{ height: 44, padding: '0 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>Начать свою книгу</Link>
     </header>
   );
 }
@@ -141,7 +141,7 @@ function LandingHero() {
               <SpotlightButton className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center' }} onClick={() => navigate('/login?tab=signup')}>
                 Начать свою книгу
               </SpotlightButton>
-              <button type="button" className="btn btn--ghost" style={{ height: 46, padding: '0 18px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center' }} onClick={() => navigate('/demo')}>
+              <button type="button" className="btn" style={{ height: 46, padding: '0 18px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }} onClick={() => navigate('/demo')}>
                 Посмотреть, как выглядит →
               </button>
             </motion.div>

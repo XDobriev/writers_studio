@@ -84,28 +84,39 @@ function MockStatusBar() {
   const [activeFont, setActiveFont] = useState(0);
   const [activeSound, setActiveSound] = useState<string | null>('Костёр');
   const [volume, setVolume]         = useState(0.4);
+  const isNarrow = useMediaQuery('(max-width: 639px)');
 
   return (
-    <div style={{ position: 'relative', height: 28, background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 10, flexShrink: 0, font: '400 10.5px var(--font-ui)', color: 'var(--ink-2)' }}>
+    <div style={{ position: 'relative', height: 28, background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 10, flexShrink: 0, font: '400 10.5px var(--font-ui)', color: 'var(--ink-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
 
       {/* Left */}
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
         <span style={{ width: 5, height: 5, borderRadius: 999, background: 'var(--ok)', display: 'inline-block', flexShrink: 0 }} />
         Сохранено
       </span>
-      <span style={{ color: 'var(--ink-4)' }}>·</span>
-      <span>Слов: 1 247</span>
-      <span style={{ color: 'var(--ink-4)' }}>·</span>
-      <span>Знаков: 7 043</span>
-      <span style={{ color: 'var(--ink-4)' }}>·</span>
-      <span style={{ color: 'var(--ink-3)' }}>~6 мин чтения</span>
+      {!isNarrow && (
+        <>
+          <span style={{ color: 'var(--ink-4)' }}>·</span>
+          <span>Слов: 1 247</span>
+          <span style={{ color: 'var(--ink-4)' }}>·</span>
+          <span>Знаков: 7 043</span>
+          <span style={{ color: 'var(--ink-4)' }}>·</span>
+          <span style={{ color: 'var(--ink-3)' }}>~6 мин чтения</span>
+        </>
+      )}
 
       <span style={{ flex: 1 }} />
 
       {/* Right */}
-      <span style={{ color: 'var(--ink-3)' }}>сегодня · 312/1 000 слов</span>
-      <span style={{ color: 'var(--ink-4)' }}>·</span>
-      <span style={{ color: 'var(--accent-2)' }}>серия 5 дней</span>
+      {isNarrow ? (
+        <span style={{ color: 'var(--ink-3)', flexShrink: 0 }}>312/1 000 слов</span>
+      ) : (
+        <>
+          <span style={{ color: 'var(--ink-3)' }}>сегодня · 312/1 000 слов</span>
+          <span style={{ color: 'var(--ink-4)' }}>·</span>
+          <span style={{ color: 'var(--accent-2)' }}>серия 5 дней</span>
+        </>
+      )}
 
       {/* Focus mode */}
       <button
