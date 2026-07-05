@@ -260,9 +260,14 @@ export default function Dashboard() {
             </span>
             <div style={{ display: 'flex', gap: isMobile ? 4 : 8, alignItems: 'center', flexShrink: 0 }}>
               {isMobile ? (
-                <button className="tb-btn" onClick={openEdit} title="Изменить книгу" aria-label="Изменить книгу">
-                  <Icon name="pencil" size={15} />
-                </button>
+                <>
+                  <button className="tb-btn" onClick={openEdit} title="Изменить книгу" aria-label="Изменить книгу">
+                    <Icon name="pencil" size={15} />
+                  </button>
+                  <Link to={navTo('/export')} className="tb-btn" title="Экспорт" aria-label="Экспорт">
+                    <Icon name="download" size={15} />
+                  </Link>
+                </>
               ) : (
                 <>
                   <button className="btn btn--ghost" onClick={openEdit}><Icon name="pencil" size={14} /> Изменить</button>

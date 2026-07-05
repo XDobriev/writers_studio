@@ -16,7 +16,6 @@ export function SidebarNav({ bookId }: SidebarNavProps) {
     ['note',   'Заметки',    bookId ? `/books/${bookId}/notes` : null],
     ['tree',   'Структура',  bookId ? `/books/${bookId}/outline` : null],
     ['map',    'Карта мира', bookId ? `/books/${bookId}/map` : null],
-    ['download', 'Экспорт',  bookId ? `/books/${bookId}/export` : null],
   ], [bookId]);
 
   function isNavActive(href: string | null): boolean {
