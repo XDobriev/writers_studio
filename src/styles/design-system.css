@@ -1576,6 +1576,7 @@ select.input {
 .lnd-manifesto-row::before { content: ''; position: absolute; top: 0; left: 0; height: 1px; background: var(--border-soft); width: 100%; }
 .lnd-footer-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 40px; }
 .lnd-hero-mobile-card { display: none; }
+.lnd-cta-deco { font: 600 clamp(96px, 26vw, 280px)/1 var(--font-serif); opacity: 0.4; }
 @media (max-width: 1023px) {
   .lnd-hero-grid { grid-template-columns: 1fr; }
   .lnd-hero-sheet { display: none; }
@@ -1592,6 +1593,7 @@ select.input {
 @media (max-width: 639px) {
   .lnd-manifesto-row { grid-template-columns: 40px 1fr; gap: 20px; padding: 20px 0; }
   .lnd-mock-content { height: 240px !important; }
+  .lnd-cta-deco { opacity: 0.18; }
 }
 @media (max-width: 479px) {
   .lnd-footer-grid { grid-template-columns: 1fr; }

@@ -125,24 +125,29 @@ function LandingHero() {
           >
             <motion.div variants={heroItemVariants} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 999, marginBottom: 28 }}>
               <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />
-              <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Ранний доступ · 2026</span>
+              <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Студия для писателей · Ранний доступ</span>
             </motion.div>
-            <motion.h1 variants={heroItemVariants} style={{ font: '600 clamp(52px,6vw,88px)/0.98 var(--font-serif)', letterSpacing: '-0.025em', marginBottom: 28, color: 'var(--ink)' }}>
-              Здесь пишете
+            <motion.h1 variants={heroItemVariants} style={{ font: '600 clamp(38px,4.6vw,64px)/1.03 var(--font-serif)', letterSpacing: '-0.025em', marginBottom: 28, color: 'var(--ink)' }}>
+              Пишите роман целиком —
               <br />
-              <em style={{ fontStyle: 'italic', fontWeight: 500, color: 'var(--accent-2)' }}>только вы</em>.
+              от первого предложения
+              <br />
+              до <em style={{ fontStyle: 'italic', fontWeight: 500, color: 'var(--accent-2)' }}>готовой книги</em>.
             </motion.h1>
             <motion.p variants={heroItemVariants} style={{ font: '400 clamp(16px,1.5vw,19px)/1.6 var(--font-serif)', color: 'var(--ink-2)', maxWidth: 520, marginBottom: 36 }}>
-              Рукопись, картотека персонажей, карта мира и хронология — в одном чистом редакторе. Без нейросети, которая дописывает за вас.
+              Хватит собирать книгу из заметок, таблиц и чатов. Рукопись, персонажи, карта мира и хронология — рядом, в одном чистом редакторе. А писать будете вы, не нейросеть.
             </motion.p>
             <motion.div variants={heroItemVariants} style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
               <SpotlightButton className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center' }} onClick={() => navigate('/login?tab=signup')}>
                 Начать свою книгу
               </SpotlightButton>
+              <a href="#features" className="btn btn--ghost" style={{ height: 46, padding: '0 18px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+                Посмотреть, как выглядит →
+              </a>
             </motion.div>
             <motion.div variants={heroItemVariants}>
               <p style={{ font: '400 13px/1.5 var(--font-ui)', color: 'var(--ink-2)', margin: 0 }}>
-                Бесплатный план — навсегда. Без привязки карты, без триала.
+                Бесплатный план — навсегда. Без привязки карты, без пробного периода.
               </p>
             </motion.div>
             <div className="lnd-hero-mobile-card" aria-hidden="true">
@@ -432,7 +437,7 @@ function LandingCTA() {
 
   return (
     <section style={{ padding: 'clamp(48px,12vw,140px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)', borderTop: '1px solid var(--border-soft)', position: 'relative', overflow: 'hidden' }}>
-      <div ref={decoRef} style={{ position: 'absolute', right: -100, top: '50%', transform: 'translateY(-50%) rotate(-8deg)', font: '600 280px/1 var(--font-serif)', color: 'var(--surface-2)', opacity: 0.4, pointerEvents: 'none', letterSpacing: '-0.04em', userSelect: 'none' }} aria-hidden="true">книга</div>
+      <div ref={decoRef} className="lnd-cta-deco" style={{ position: 'absolute', right: -100, top: '50%', transform: 'translateY(-50%) rotate(-8deg)', color: 'var(--surface-2)', pointerEvents: 'none', letterSpacing: '-0.04em', userSelect: 'none' }} aria-hidden="true">книга</div>
       <motion.div
         style={{ position: 'relative', maxWidth: 880, margin: '0 auto', textAlign: 'center' }}
         variants={revealVariants}
