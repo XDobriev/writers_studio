@@ -114,7 +114,7 @@ function LandingHero() {
       onMouseLeave={handleMouseLeave}
       style={{ position: 'relative', padding: 'clamp(120px,14vw,160px) clamp(20px,4vw,56px) clamp(64px,8vw,80px)', background: 'var(--bg-deep)', overflow: 'hidden' }}
     >
-      <div style={{ position: 'absolute', inset: 0, opacity: 0.08, backgroundImage: 'linear-gradient(oklch(0.95 0.01 80) 1px,transparent 1px),linear-gradient(90deg,oklch(0.95 0.01 80) 1px,transparent 1px)', backgroundSize: '56px 56px', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, opacity: 0.08, backgroundImage: 'linear-gradient(oklch(0.95 0.01 80) 1px,transparent 1px),linear-gradient(90deg,oklch(0.95 0.01 80) 1px,transparent 1px)', backgroundSize: '56px 56px', pointerEvents: 'none', maskImage: 'radial-gradient(120% 90% at 78% 30%, #000 40%, transparent 78%)', WebkitMaskImage: 'radial-gradient(120% 90% at 78% 30%, #000 40%, transparent 78%)' }} />
       <div className="lnd-max" style={{ position: 'relative' }}>
         <div className="lnd-hero-grid">
           <motion.div
@@ -123,9 +123,9 @@ function LandingHero() {
             initial="initial"
             animate="animate"
           >
-            <motion.div variants={heroItemVariants} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 999, marginBottom: 28 }}>
+            <motion.div variants={heroItemVariants} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 999, background: 'var(--bg-deep)', marginBottom: 28 }}>
               <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />
-              <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Студия для писателей · Ранний доступ</span>
+              <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink)' }}>Студия для писателей · Ранний доступ</span>
             </motion.div>
             <motion.h1 variants={heroItemVariants} style={{ font: '600 clamp(38px,4.6vw,64px)/1.03 var(--font-serif)', letterSpacing: '-0.025em', marginBottom: 28, color: 'var(--ink)' }}>
               Пишите роман целиком —
