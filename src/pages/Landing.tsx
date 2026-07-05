@@ -141,9 +141,9 @@ function LandingHero() {
               <SpotlightButton className="btn btn--primary" style={{ height: 46, padding: '0 22px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center' }} onClick={() => navigate('/login?tab=signup')}>
                 Начать свою книгу
               </SpotlightButton>
-              <a href="#features" className="btn btn--ghost" style={{ height: 46, padding: '0 18px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+              <button type="button" className="btn btn--ghost" style={{ height: 46, padding: '0 18px', fontSize: 14.5, display: 'inline-flex', alignItems: 'center' }} onClick={() => navigate('/demo')}>
                 Посмотреть, как выглядит →
-              </a>
+              </button>
             </motion.div>
             <motion.div variants={heroItemVariants}>
               <p style={{ font: '400 13px/1.5 var(--font-ui)', color: 'var(--ink-2)', margin: 0 }}>

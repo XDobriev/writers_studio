@@ -105,6 +105,8 @@ interface EditorHybridProps {
   /** Отменить pending-автосейв перед восстановлением версии (защита от затирания) */
   onBeforeRestore?: () => void;
   versionToast?: boolean;
+  /** Демо-режим на /demo: скрывает share (данные не сохраняются). */
+  demo?: boolean;
 }
 
 export function EditorHybrid({
@@ -123,6 +125,7 @@ export function EditorHybrid({
   onSave,
   onBeforeRestore,
   versionToast = false,
+  demo = false,
 }: EditorHybridProps) {
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [focusMode, setFocusMode] = useState(false);
@@ -204,6 +207,7 @@ export function EditorHybrid({
             chapters={chapters}
             activeChapterId={activeChapter?.id ?? null}
             chapterActions={chapterActions}
+            demo={demo}
           />
         </div>
       )}
@@ -405,6 +409,7 @@ export function EditorHybrid({
                 ...chapterActions,
                 onSelectChapter: (id) => { chapterActions.onSelectChapter?.(id); sidebar.close(); },
               } : undefined}
+              demo={demo}
             />
           </div>
         </>

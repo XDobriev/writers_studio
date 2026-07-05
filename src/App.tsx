@@ -29,6 +29,7 @@ function MaintenancePage() {
 const Auth          = lazy(() => import('./pages/Auth'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Landing    = lazy(() => import('./pages/Landing'));
+const Demo       = lazy(() => import('./pages/Demo'));
 const Home       = lazy(() => import('./pages/Home'));
 const Dashboard  = lazy(() => import('./pages/Dashboard'));
 const Editor     = lazy(() => import('./pages/Editor'));
@@ -89,6 +90,7 @@ function AnimatedRoutes() {
     <AnimatePresence mode="sync">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PageMotion><Landing /></PageMotion>} />
+        <Route path="/demo" element={<PageMotion><Demo /></PageMotion>} />
         <Route path="/login" element={<PageMotion><Auth /></PageMotion>} />
         <Route path="/reset-password" element={<PageMotion><ResetPassword /></PageMotion>} />
 

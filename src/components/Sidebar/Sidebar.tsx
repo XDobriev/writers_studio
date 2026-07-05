@@ -32,6 +32,8 @@ interface SidebarProps {
   chapterActions?: ChapterActions;
   subtitle?: string;
   children?: ReactNode;
+  /** Демо-режим: скрывает share (книга не сохраняется). */
+  demo?: boolean;
 }
 
 export function Sidebar({
@@ -41,6 +43,7 @@ export function Sidebar({
   chapterActions,
   subtitle,
   children,
+  demo = false,
 }: SidebarProps) {
   const { onSelectChapter, onCreateChapter, onStatusChange, onDeleteChapter, onChapterHover } = chapterActions ?? {};
   const isReal = Boolean(chapters);
@@ -120,7 +123,7 @@ export function Sidebar({
         <div className="sb-book-author">
           {subtitle ?? (book ? [book.author, book.genres?.length ? book.genres.join(', ') : book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`)}
         </div>
-        {book?.id && shareEnabled && (
+        {!demo && book?.id && shareEnabled && (
           <div style={{ marginTop: 8, display: 'flex', gap: 4 }}>
             {shareToken ? (
               <>

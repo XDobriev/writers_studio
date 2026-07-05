@@ -4,9 +4,11 @@ interface PageMeta {
   title: string;
   description: string;
   path: string;
+  /** Ставит <meta name="robots" content="noindex,nofollow"> на время жизни страницы. */
+  noindex?: boolean;
 }
 
-export function usePageMeta({ title, description, path }: PageMeta) {
+export function usePageMeta({ title, description, path, noindex }: PageMeta) {
   useEffect(() => {
     const prev = document.title;
     document.title = title;
@@ -26,6 +28,26 @@ export function usePageMeta({ title, description, path }: PageMeta) {
     setAttr('meta[name="twitter:title"]', 'content', title);
     setAttr('meta[name="twitter:description"]', 'content', description);
 
-    return () => { document.title = prev; };
-  }, [title, description, path]);
+    // robots: демо-режим не индексируется (интерактивный инструмент, не контент)
+    let robots = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
+    const prevRobots = robots?.getAttribute('content') ?? null;
+    let createdRobots = false;
+    if (noindex) {
+      if (!robots) {
+        robots = document.createElement('meta');
+        robots.setAttribute('name', 'robots');
+        document.head.appendChild(robots);
+        createdRobots = true;
+      }
+      robots.setAttribute('content', 'noindex,nofollow');
+    }
+
+    return () => {
+      document.title = prev;
+      if (noindex && robots) {
+        if (createdRobots) robots.remove();
+        else if (prevRobots !== null) robots.setAttribute('content', prevRobots);
+      }
+    };
+  }, [title, description, path, noindex]);
 }
