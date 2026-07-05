@@ -7,7 +7,7 @@ const BREAKPOINTS = {
   WIDE: 1200,
 } as const;
 
-function useMediaQuery(query: string): boolean {
+export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
   useEffect(() => {
     const mq = window.matchMedia(query);

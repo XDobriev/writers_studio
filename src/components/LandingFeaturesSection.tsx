@@ -6,6 +6,7 @@ import {
   revealVariants,
 } from '../lib/motion';
 import { SectionLabel } from './LandingSectionLabel';
+import { useMediaQuery } from '../lib/useResponsive';
 
 const MC = [
   { num: 1, title: 'Город, которого нет', status: 'done' as const },
@@ -340,22 +341,23 @@ function MockRightPanel({ activeTab, onTabChange }: { activeTab: RightTab; onTab
 function MockStudioFull() {
   const [mode, setMode] = useState<EditorMode>('Студия');
   const [rightTab, setRightTab] = useState<RightTab>('Заметки');
+  const isNarrow = useMediaQuery('(max-width: 639px)');
 
-  const showSidebar = mode === 'Студия' || mode === 'Рукопись';
-  const showRight   = mode === 'Студия' || mode === 'Сплит';
+  const showSidebar = !isNarrow && (mode === 'Студия' || mode === 'Рукопись');
+  const showRight   = !isNarrow && (mode === 'Студия' || mode === 'Сплит');
 
   return (
     <BrowserMock mockHeight={500}>
       <div data-theme="dark" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
 
         {/* Mode tabs */}
-        <div style={{ height: 36, background: 'var(--bg-deep)', borderBottom: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', padding: '0 10px', gap: 2, flexShrink: 0 }}>
+        <div style={{ height: 36, background: 'var(--bg-deep)', borderBottom: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', padding: '0 10px', gap: 2, flexShrink: 0, overflowX: 'auto' }}>
           {(['Студия', 'Рукопись', 'Сплит', 'Фокус'] as EditorMode[]).map(m => (
             <button
               key={m}
               onClick={() => setMode(m)}
               tabIndex={-1}
-              style={{ height: 26, padding: '0 11px', borderRadius: 5, display: 'flex', alignItems: 'center', gap: 5, font: '500 11px var(--font-ui)', color: mode === m ? 'var(--ink)' : 'var(--ink-4)', background: mode === m ? 'var(--surface)' : 'transparent', border: mode === m ? '1px solid var(--border-soft)' : '1px solid transparent', cursor: 'pointer', transition: 'all 150ms' }}
+              style={{ height: 26, padding: '0 11px', borderRadius: 5, display: 'flex', alignItems: 'center', gap: 5, font: '500 11px var(--font-ui)', color: mode === m ? 'var(--ink)' : 'var(--ink-4)', background: mode === m ? 'var(--surface)' : 'transparent', border: mode === m ? '1px solid var(--border-soft)' : '1px solid transparent', cursor: 'pointer', transition: 'all 150ms', flexShrink: 0 }}
             >
               {mode === m && <span style={{ width: 5, height: 5, borderRadius: 999, background: 'var(--accent)', display: 'inline-block' }} />}
               {m}
@@ -364,12 +366,16 @@ function MockStudioFull() {
         </div>
 
         {/* Layout */}
-        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: MODE_COLUMNS[mode], minHeight: 0, transition: 'grid-template-columns 220ms ease-out', overflow: 'hidden' }}>
-          {showSidebar && <MockSidebar />}
-          {!showSidebar && <div />}
-          <MockPaper wide={mode === 'Фокус'} />
-          {showRight && <MockRightPanel activeTab={rightTab} onTabChange={setRightTab} />}
-          {!showRight && <div />}
+        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : MODE_COLUMNS[mode], minHeight: 0, transition: 'grid-template-columns 220ms ease-out', overflow: 'hidden' }}>
+          {isNarrow ? (
+            <MockPaper wide={mode === 'Фокус'} />
+          ) : (
+            <>
+              {showSidebar ? <MockSidebar /> : <div />}
+              <MockPaper wide={mode === 'Фокус'} />
+              {showRight ? <MockRightPanel activeTab={rightTab} onTabChange={setRightTab} /> : <div />}
+            </>
+          )}
         </div>
 
         {/* Status bar */}
