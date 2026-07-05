@@ -251,7 +251,7 @@ const PRINCIPLES = [
 
 function LandingPrinciples() {
   return (
-    <section style={{ padding: 'clamp(36px,5vw,64px) clamp(20px,4vw,56px)', background: 'oklch(0.21 0.016 55)' }}>
+    <section style={{ padding: 'clamp(36px,5vw,64px) clamp(20px,4vw,56px)', background: 'var(--bg-deep)' }}>
       <div className="lnd-max">
         <div style={{ marginBottom: 40, maxWidth: 640 }}>
           <h2 style={{ font: '600 clamp(48px,5.5vw,76px)/1.02 var(--font-serif)', letterSpacing: '-0.022em', color: 'var(--ink)' }}>
