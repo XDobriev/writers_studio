@@ -237,10 +237,10 @@ function MockSidebar() {
         ))}
       </div>
       <div style={{ padding: '8px 10px', borderTop: '1px solid var(--border-soft)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
-        <div style={{ width: 22, height: 22, borderRadius: 999, background: 'var(--surface-2)', flexShrink: 0 }} />
+        <div style={{ width: 22, height: 22, borderRadius: 999, background: 'color-mix(in oklch, var(--accent-2) 22%, var(--surface-2))', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', font: '600 9px var(--font-ui)', color: 'var(--ink)', letterSpacing: '0.02em' }}>АВ</div>
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <div style={{ font: '500 10px var(--font-ui)', color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Аней Ворон</div>
-          <div style={{ font: '400 9px var(--font-mono)', color: 'var(--ink-4)' }}>Ранний доступ</div>
+          <div style={{ font: '400 9px var(--font-mono)', color: 'var(--accent)' }}>Pro</div>
         </div>
       </div>
     </div>
