@@ -22,6 +22,7 @@ export function CookieBanner() {
     <div
       role="region"
       aria-label="Уведомление об использовании куки"
+      className="cookie-banner"
       style={{
         position: 'fixed',
         bottom: 16,
@@ -35,7 +36,6 @@ export function CookieBanner() {
         padding: '10px 12px 10px 16px',
         display: 'flex',
         alignItems: 'center',
-        flexWrap: 'wrap',
         gap: 10,
         maxWidth: 520,
         width: 'calc(100% - 32px)',
@@ -50,20 +50,22 @@ export function CookieBanner() {
           Политика&nbsp;конфиденциальности
         </Link>
       </span>
-      <button
-        onClick={reject}
-        className="btn btn--ghost"
-        style={{ flexShrink: 0, fontSize: 12.5, height: 44, padding: '0 12px' }}
-      >
-        Отклонить
-      </button>
-      <button
-        onClick={accept}
-        className="btn btn--primary"
-        style={{ flexShrink: 0, fontSize: 12.5, height: 44, padding: '0 14px' }}
-      >
-        Принять
-      </button>
+      <div className="cookie-banner__actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <button
+          onClick={reject}
+          className="btn btn--ghost"
+          style={{ fontSize: 12.5, height: 44, padding: '0 12px' }}
+        >
+          Отклонить
+        </button>
+        <button
+          onClick={accept}
+          className="btn btn--primary"
+          style={{ fontSize: 12.5, height: 44, padding: '0 14px' }}
+        >
+          Принять
+        </button>
+      </div>
     </div>
   );
 }
