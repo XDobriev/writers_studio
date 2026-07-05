@@ -149,6 +149,9 @@ function LandingHero() {
               <p style={{ font: '400 13px/1.5 var(--font-ui)', color: 'var(--ink-2)', margin: 0 }}>
                 Бесплатный план — навсегда. Без привязки карты, без пробного периода.
               </p>
+              <p style={{ font: '400 12px/1.6 var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.02em', margin: '10px 0 0' }}>
+                4 режима письма · 7 форматов экспорта · карта мира · хронология · автосохранение
+              </p>
             </motion.div>
             <div className="lnd-hero-mobile-card" aria-hidden="true">
               <div style={{ background: 'var(--paper)', padding: '24px 28px', color: 'var(--paper-ink)', fontFamily: 'var(--font-serif)', fontSize: 14, lineHeight: 1.8 }}>
