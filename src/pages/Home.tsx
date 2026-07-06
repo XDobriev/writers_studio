@@ -11,7 +11,7 @@ import { BookCard } from '../components/BookCard';
 import { CoverPicker, COVERS } from '../components/CoverPicker';
 import { GenrePicker } from '../components/GenrePicker';
 import { OnboardingChecklist } from '../components/OnboardingChecklist';
-import { supabase, type Book } from '../lib/supabase';
+import { supabase, ensureAuthReady, type Book } from '../lib/supabase';
 import { createBook, updateBook, deleteBook as deleteBookApi } from '../lib/books';
 import { createChapter } from '../lib/chapters';
 import { getPlanLimits } from '../lib/profiles';
@@ -69,6 +69,7 @@ export default function Home() {
   ) => {
     setUploading(true);
     try {
+      await ensureAuthReady();
       const optimized = await optimizeImage(file, COVER_OPTS);
       const ext = optimized.type === 'image/webp' ? 'webp' : 'jpg';
       const path = `${user!.id}/${Date.now()}.${ext}`;

@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, ensureAuthReady } from './supabase';
 import { createRepository, DbError } from './repository';
 import { optimizeImage, AVATAR_OPTS } from './imageOptimize';
 import type { Tables } from './database.types';
@@ -49,6 +49,7 @@ export function deleteCharacter(id: string): Promise<void> {
 }
 
 export async function uploadCharacterAvatar(characterId: string, userId: string, file: File): Promise<string> {
+  await ensureAuthReady();
   const optimized = await optimizeImage(file, AVATAR_OPTS);
   const ext = optimized.type === 'image/webp' ? 'webp' : 'jpg';
   const path = `${userId}/${characterId}.${ext}`;

@@ -5,7 +5,7 @@ import { createLocation, updateLocation, deleteLocation, type Location, type Loc
 import { createConnection, updateConnection, deleteConnection, type LocationConnection, type ConnectionPatch } from './connections';
 import { createStamp, updateStamp, deleteStamp, type MapStamp, type StampPatch, type StampType } from './mapStamps';
 import { updateBook } from './books';
-import { supabase } from './supabase';
+import { supabase, ensureAuthReady } from './supabase';
 import { QUERY_KEYS } from './queries';
 import { optimizeImage, MAP_BG_OPTS } from './imageOptimize';
 
@@ -141,6 +141,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     if (!file || !bookId || !userId) return;
     e.target.value = '';
     try {
+      await ensureAuthReady();
       const optimized = await optimizeImage(file, MAP_BG_OPTS);
       const path = `${userId}/${bookId}/background`;
       const { error: uploadError } = await supabase.storage
