@@ -192,12 +192,12 @@ function FloatingSheet({ tiltRef }: { tiltRef: React.RefObject<HTMLDivElement> }
         style={{ position: 'absolute', inset: 0, transform: 'rotateY(-9deg) rotateX(2deg)', transformOrigin: 'center center', transformStyle: 'preserve-3d', willChange: 'transform' }}
       >
       <div className="lnd-sheet-float" style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', transformOrigin: 'center center', boxShadow: '-40px 60px 120px oklch(0 0 0 / 0.5)' }}>
-        <div style={{ background: 'var(--paper)', borderRadius: '6px 6px 0 0', padding: '48px 56px', height: '100%', color: 'var(--paper-ink)', fontFamily: 'var(--font-serif)', fontSize: 14.5, lineHeight: 1.85, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--paper)', borderRadius: 'var(--r-6) var(--r-6) 0 0', padding: '48px 56px', height: '100%', color: 'var(--paper-ink)', fontFamily: 'var(--font-serif)', fontSize: 14.5, lineHeight: 1.85, overflow: 'hidden' }}>
           <div style={{ font: '500 9.5px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--paper-ink-2)', marginBottom: 10 }}>Глава первая</div>
           <div style={{ font: '600 26px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6, color: 'var(--paper-ink)' }}>Город, которого нет</div>
           <div style={{ width: 30, height: 1, background: 'var(--paper-ink)', opacity: 0.3, marginBottom: 20 }} />
           <p style={{ margin: '0 0 0.9em' }}>Ворна исчезла за одну ночь, и никто из тех, кто жил в Терее, не желал в это верить.</p>
-          <p style={{ margin: '0 0 0.9em', textIndent: '1.4em' }}>Аней Ворон узнала об этом в архиве, на третьем этаже башни, где пахло железом и устым мхом. <span style={{ background: 'oklch(0.84 0.13 90 / 0.45)', padding: '1px 2px', borderRadius: 2 }}>Она перечерчивала контуры озера, которого никогда не видела</span>, когда чьи-то шаги остановились за её спиной.</p>
+          <p style={{ margin: '0 0 0.9em', textIndent: '1.4em' }}>Аней Ворон узнала об этом в архиве, на третьем этаже башни, где пахло железом и устым мхом. <span style={{ background: 'color-mix(in oklch, var(--tab-idea) 45%, transparent)', padding: '1px 2px', borderRadius: 'var(--r-1)' }}>Она перечерчивала контуры озера, которого никогда не видела</span>, когда чьи-то шаги остановились за её спиной.</p>
           <p style={{ margin: '0 0 0.9em', textIndent: '1.4em' }}>— Картограф Ворон, — сказал голос. Голос был старый и строгий, как страница. — Магистр требует вас немедленно.</p>
           <p style={{ margin: 0, textIndent: '1.4em' }}>Аней не подняла голову. Кисть вела мягкую кривую — северный край озера, мнимый, но обязательный для атласа.<span style={{ display: 'inline-block', width: 2, height: '1em', background: 'var(--accent)', marginLeft: 1, verticalAlign: 'middle', animation: 'blink 1s step-end infinite' }} /></p>
         </div>

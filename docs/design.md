@@ -181,6 +181,11 @@ Used exclusively in system feedback. Never repurposed as brand or decorative col
 - **Danger** (`oklch(0.65 0.18 25)`): Errors, spell-check underlines, destructive actions.
 - **Info** (`oklch(0.72 0.10 230)`): Informational callouts, grammar-check underlines.
 
+**Deep semantic surfaces.** Where a semantic hue needs a filled surface with legible text (not just an accent line), use the deep-tint tokens rather than transparency of the base:
+
+- **Error toast** — `--danger-bg` (`oklch(0.28 0.06 25)`) fill, `--danger-border` (`oklch(0.45 0.12 25)`), `--danger-ink` (`oklch(0.92 0.04 25)`) text.
+- **Diff text on paper** — `--diff-ins-ink` (`oklch(0.40 0.18 145)`) for insertions, `--diff-del-ink` (`oklch(0.50 0.20 25)`) for deletions; darker than the base Ok/Danger hues so the text stays readable on the light manuscript surface.
+
 ### Named Rules
 
 **The Rarity Doctrine.** Sienna Ink occupies ≤10% of any given screen. Active chapter number, focus ring, one button, one tab underline. Its scarcity is the point. The moment it appears everywhere, it appears nowhere.
@@ -233,8 +238,8 @@ Box shadows appear only when an element has physically left its containing surfa
 The interface does not demand attention. Buttons are quiet instruments.
 
 - **Shape:** Gently rounded edges (8px, `--r-2`). Not sharp, not pill-shaped. Controlled.
-- **Primary:** Sienna Ink fill (`oklch(0.63 0.16 30)`), near-white text (`oklch(0.98 0 0)`), 30px height, 12px horizontal padding. Used for the single most important action on a given surface: Save, Publish, Confirm.
-- **Hover:** Primary lightens by one step (`oklch(0.68 0.16 30)`), 120ms transition. No transform, no scale, no shadow.
+- **Primary:** Deepened Sienna Ink fill (`--accent-deep` = `oklch(0.46 0.16 30)`), near-white text (`oklch(0.98 0 0)`), 30px height, 12px horizontal padding. The fill is darker than the `--accent` brand tone on purpose — it keeps white text at WCAG AA (light Sienna Ink would drop below the 4.5:1 body threshold). Used for the single most important action on a given surface: Save, Publish, Confirm.
+- **Hover:** Primary lightens by one step to `--accent-deep-hover` (`oklch(0.52 0.16 30)`), 120ms transition. No transform, no scale, no shadow.
 - **Default (border):** Transparent background, `oak-border` (1px) stroke, `ink` text. The workhorse button for secondary actions: Export, Share, Cancel.
 - **Ghost:** Transparent background, no border, `ink-secondary` text. For toolbar-area actions where even a border would be too loud.
 - **Disabled:** 50% opacity. No cursor change to pointer. Never misleadingly enabled.

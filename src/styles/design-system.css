@@ -21,12 +21,21 @@
   /* accents */
   --accent: oklch(0.63 0.16 30);
   --accent-soft: oklch(0.63 0.16 30 / 0.16);
+  --accent-deep: oklch(0.46 0.16 30);       /* primary-button fill: darker accent for white-text contrast */
+  --accent-deep-hover: oklch(0.52 0.16 30);
   --accent-2: oklch(0.78 0.10 90);
   --accent-2-soft: oklch(0.78 0.10 90 / 0.18);
   --ok: oklch(0.72 0.14 145);
   --warn: oklch(0.80 0.14 80);
   --danger: oklch(0.65 0.18 25);
   --info: oklch(0.72 0.10 230);
+
+  /* semantic surfaces — deep tints for error toast + diff text */
+  --danger-bg: oklch(0.28 0.06 25);         /* error-toast fill */
+  --danger-border: oklch(0.45 0.12 25);     /* error-toast border */
+  --danger-ink: oklch(0.92 0.04 25);        /* error-toast text */
+  --diff-ins-ink: oklch(0.40 0.18 145);     /* inserted-diff text on paper */
+  --diff-del-ink: oklch(0.50 0.20 25);      /* deleted-diff text on paper */
 
   /* note kind palette */
   --note-idea: oklch(0.82 0.16 75);
@@ -55,6 +64,8 @@
   --r-2: 8px;
   --r-3: 12px;
   --r-4: 16px;
+  --r-6: 6px;    /* small controls: bubble/tool buttons, code blocks, chips */
+  --r-10: 10px;  /* medium cards & panels */
 
   --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
   --font-serif: 'Source Serif 4', Georgia, serif;
@@ -119,7 +130,7 @@
 
 /* Bubble menu имеет hard-coded тёмный фон — text должен быть светлым */
 [data-theme="light"] .bubble-btn { color: oklch(0.88 0.008 80); }
-[data-theme="light"] .bubble-sep { background: oklch(100% 0 0 / 0.13); }
+[data-theme="light"] .bubble-sep { background: oklch(1 0 0 / 0.13); }
 
 [data-theme="light"] .skeleton::after {
   background: linear-gradient(90deg,
@@ -287,7 +298,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   font: 500 11px var(--font-ui);
   background: var(--bg-deep);
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: var(--r-1);
   padding: 4px 8px;
   cursor: pointer;
 }
@@ -381,7 +392,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .sb-foot-meta { font-size: 11px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-dropdown-item {
   display: flex; align-items: center; gap: 8px;
-  padding: 7px 10px; width: 100%; border-radius: 5px;
+  padding: 7px 10px; width: 100%; border-radius: var(--r-1);
   background: transparent; cursor: pointer;
   font: 400 12.5px/1.4 var(--font-ui); color: var(--ink);
   border: none; text-align: left; text-decoration: none;
@@ -433,9 +444,9 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   display: flex; align-items: center; gap: 6px;
   padding: 5px 8px;
   background: oklch(11% 0.014 50 / 0.97);
-  border: 1px solid oklch(100% 0 0 / 0.1);
-  border-radius: 11px;
-  box-shadow: 0 12px 32px oklch(0% 0 0 / 0.5), 0 1px 0 oklch(100% 0 0 / 0.07) inset;
+  border: 1px solid oklch(1 0 0 / 0.1);
+  border-radius: var(--r-3);
+  box-shadow: 0 12px 32px oklch(0% 0 0 / 0.5), 0 1px 0 oklch(1 0 0 / 0.07) inset;
   animation: bubble-in var(--dur-spring) var(--ease-spring) both;
   transition: opacity 0.08s ease-in;
 }
@@ -461,14 +472,14 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .bubble-btn {
   width: 28px; height: 28px; padding: 0;
-  border-radius: 6px;
+  border-radius: var(--r-6);
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--ink-2); cursor: pointer;
   transition: background var(--dur-instant), color var(--dur-instant);
 }
-.bubble-btn:hover { background: oklch(100% 0 0 / 0.1); color: var(--ink); }
+.bubble-btn:hover { background: oklch(1 0 0 / 0.1); color: var(--ink); }
 .bubble-btn--on { background: var(--accent); color: oklch(0.98 0 0); }
-.bubble-sep { width: 1px; height: 18px; background: oklch(100% 0 0 / 0.13); flex-shrink: 0; }
+.bubble-sep { width: 1px; height: 18px; background: oklch(1 0 0 / 0.13); flex-shrink: 0; }
 .bubble-colors { display: flex; align-items: center; gap: 5px; }
 .bubble-color {
   width: 16px; height: 16px; padding: 0;
@@ -485,8 +496,8 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   pointer-events: none;
 }
 .bubble-color--clear {
-  background: oklch(100% 0 0 / 0.1) !important;
-  border: 1px solid oklch(100% 0 0 / 0.22);
+  background: oklch(1 0 0 / 0.1) !important;
+  border: 1px solid oklch(1 0 0 / 0.22);
   box-shadow: none;
 }
 .tb-sel {
@@ -555,10 +566,10 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .sheet strong { font-weight: 600; }
 
 /* margin highlight */
-.mh { background: oklch(0.84 0.13 90 / 0.45); padding: 1px 2px; border-radius: 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-.mh--question { background: oklch(0.78 0.10 230 / 0.32); }
-.mh--todo { background: oklch(0.78 0.13 55 / 0.42); }
-.mh--important { background: oklch(0.70 0.16 25 / 0.30); }
+.mh { background: color-mix(in oklch, var(--tab-idea) 45%, transparent); padding: 1px 2px; border-radius: var(--r-1); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.mh--question { background: color-mix(in oklch, var(--tab-question) 32%, transparent); }
+.mh--todo { background: color-mix(in oklch, var(--tab-todo) 42%, transparent); }
+.mh--important { background: color-mix(in oklch, var(--tab-important) 30%, transparent); }
 
 .spell {
   text-decoration: underline wavy oklch(0.65 0.18 25);
@@ -582,7 +593,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 
 .spell-popup__item {
   padding: 5px 10px;
-  border-radius: 5px;
+  border-radius: var(--r-1);
   text-align: left;
   font-size: 14px;
   cursor: pointer;
@@ -625,8 +636,8 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   cursor: default;
 }
 
-.ins { background: oklch(0.72 0.14 145 / 0.20); color: oklch(0.40 0.18 145); }
-.del { background: oklch(0.65 0.18 25 / 0.18); color: oklch(0.50 0.20 25); text-decoration: line-through; }
+.ins { background: oklch(0.72 0.14 145 / 0.20); color: var(--diff-ins-ink); }
+.del { background: oklch(0.65 0.18 25 / 0.18); color: var(--diff-del-ink); text-decoration: line-through; }
 
 /* status bar */
 .status {
@@ -734,10 +745,10 @@ button.chip:not(.chip--accent):hover { background: var(--surface-2); }
 .btn:hover { background: var(--surface); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn--primary {
-  background: oklch(0.46 0.16 30); border-color: oklch(0.46 0.16 30);
+  background: var(--accent-deep); border-color: var(--accent-deep);
   color: oklch(0.98 0 0);
 }
-.btn--primary:hover { background: oklch(0.52 0.16 30); border-color: oklch(0.52 0.16 30); }
+.btn--primary:hover { background: var(--accent-deep-hover); border-color: var(--accent-deep-hover); }
 .btn--ghost { border-color: transparent; color: var(--ink-2); }
 .btn--lg { height: 42px; padding: 0 24px; font-size: 14px; }
 .btn-spinner {
@@ -783,7 +794,7 @@ button.chip:not(.chip--accent):hover { background: var(--surface-2); }
 .modal-panel {
   background: var(--bg-deep);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-4);
   padding: 24px 28px;
   display: flex; flex-direction: column; gap: 18px;
   box-shadow: 0 24px 60px oklch(0.05 0.01 50 / 0.4);
@@ -798,7 +809,7 @@ button.chip:not(.chip--accent):hover { background: var(--surface-2); }
   box-shadow: 0 24px 60px oklch(0.05 0.01 50 / 0.5);
 }
 .modal-panel--xl {
-  border-radius: 18px;
+  border-radius: var(--r-4);
   padding: 36px 40px;
   box-shadow: 0 32px 80px oklch(0 0 0 / 0.55);
 }
@@ -887,7 +898,7 @@ select.input {
   font: 400 0.9em var(--font-mono);
   background: var(--surface-2);
   padding: 0.1em 0.35em;
-  border-radius: 3px;
+  border-radius: var(--r-1);
 }
 .tiptap strong { font-weight: 600; }
 .tiptap em { font-style: italic; }
@@ -903,7 +914,7 @@ select.input {
   pointer-events: none;
 }
 .tiptap a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
-.tiptap mark { background: oklch(0.86 0.13 90 / 0.5); padding: 0.05em 0.15em; border-radius: 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.tiptap mark { background: color-mix(in oklch, var(--tab-idea) 45%, transparent); padding: 0.05em 0.15em; border-radius: var(--r-1); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .tiptap hr {
   border: none;
   border-top: 1px solid var(--paper-ink-2);
@@ -913,7 +924,7 @@ select.input {
 .tiptap pre {
   background: var(--surface-2);
   padding: 12px 16px;
-  border-radius: 6px;
+  border-radius: var(--r-6);
   font: 400 13px/1.55 var(--font-mono);
   overflow-x: auto;
   margin: 1em 0;
@@ -986,7 +997,7 @@ select.input {
 
 /* ── Note kind-selector chip button ── */
 .note-kind-chip {
-  border-radius: 20px; cursor: pointer;
+  border-radius: var(--r-4); cursor: pointer;
   background: none;
   transition: background var(--dur-hover);
 }
@@ -1069,7 +1080,7 @@ select.input {
 .char-card {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 10px;
+  border-radius: var(--r-10);
   overflow: hidden;
   cursor: pointer;
   text-align: left;
@@ -1111,7 +1122,7 @@ select.input {
   position: absolute;
   top: 6px; right: 6px;
   width: 28px; height: 28px;
-  border-radius: 6px;
+  border-radius: var(--r-6);
   background: color-mix(in oklch, var(--danger) 12%, transparent);
   color: var(--danger);
   border: 1px solid color-mix(in oklch, var(--danger) 28%, transparent);
@@ -1134,7 +1145,7 @@ select.input {
 .add-card {
   background: color-mix(in oklch, var(--accent) 6%, var(--surface));
   border: 1px dashed var(--border-soft);
-  border-radius: 10px;
+  border-radius: var(--r-10);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 6px;
   align-self: stretch; min-height: 120px;
@@ -1188,7 +1199,7 @@ select.input {
 /* ── onboarding feature item (Home › Welcome modal) ── */
 .feature-item {
   display: flex; align-items: flex-start; gap: 14px;
-  padding: 10px 12px; border-radius: 10px;
+  padding: 10px 12px; border-radius: var(--r-10);
   background: var(--surface);
 }
 .feature-item__icon {
@@ -1220,7 +1231,7 @@ select.input {
   border: 1px solid oklch(0.65 0.18 25 / 0.25);
   color: var(--danger); font-size: 13px;
 }
-.error-banner--sm { gap: 8px; padding: 6px 10px; border-radius: 6px; font-size: 12px; }
+.error-banner--sm { gap: 8px; padding: 6px 10px; border-radius: var(--r-6); font-size: 12px; }
 .error-banner__msg { min-width: 0; }
 .error-banner__close {
   background: none; border: none; cursor: pointer;
@@ -1232,7 +1243,7 @@ select.input {
 /* ── Toolbar search ── */
 .tb-search {
   height: 28px; padding: 0 9px;
-  border: 1px solid var(--border-soft); border-radius: 6px;
+  border: 1px solid var(--border-soft); border-radius: var(--r-6);
   display: flex; align-items: center; gap: 5px;
   color: var(--ink-3); flex-shrink: 0;
 }
@@ -1264,7 +1275,7 @@ select.input {
 /* ── Toast notifications (fixed bottom) ── */
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-  border-radius: 10px; padding: 10px 18px;
+  border-radius: var(--r-10); padding: 10px 18px;
   display: flex; align-items: center; gap: 10px;
   font: 500 13px var(--font-ui);
   box-shadow: 0 4px 24px oklch(0 0 0 / 0.28);
@@ -1273,8 +1284,8 @@ select.input {
   max-width: 360px; white-space: pre-wrap; text-align: center;
 }
 .toast--error {
-  background: oklch(0.28 0.06 25); border: 1px solid oklch(0.45 0.12 25);
-  color: oklch(0.92 0.04 25); cursor: pointer;
+  background: var(--danger-bg); border: 1px solid var(--danger-border);
+  color: var(--danger-ink); cursor: pointer;
 }
 .toast--info {
   background: var(--surface-2); border: 1px solid var(--border);
@@ -1300,7 +1311,7 @@ select.input {
 /* ── Font picker item (StatusBar dropdown) ── */
 .status-font-item {
   display: flex; align-items: center; justify-content: space-between;
-  width: 100%; padding: 7px 10px; border-radius: 6px;
+  width: 100%; padding: 7px 10px; border-radius: var(--r-6);
   border: none; cursor: pointer;
   background: transparent;
   transition: background var(--dur-hover);
@@ -1432,14 +1443,14 @@ select.input {
 .icon-close-btn--round:hover { border-color: var(--border-strong); }
 .map-popup-btn {
   background: none; border: none; cursor: pointer;
-  padding: 2px 4px; line-height: 1; border-radius: 3px;
+  padding: 2px 4px; line-height: 1; border-radius: var(--r-1);
   color: var(--ink-4); font: 400 10px var(--font-ui);
   transition: color var(--dur-hover), background var(--dur-hover);
 }
 .map-popup-btn:hover { color: var(--ink-2); background: var(--surface-2); }
 .map-loc-btn {
   flex: 1; height: 36px;
-  background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-2);
   color: var(--ink-3); font: 400 12px var(--font-ui); cursor: pointer;
   transition: background var(--dur-hover), color var(--dur-hover);
 }
@@ -1690,7 +1701,7 @@ select.input {
   color: var(--accent);
   background: color-mix(in oklch, var(--accent) 12%, var(--surface));
   border: 1px solid color-mix(in oklch, var(--accent) 25%, var(--border-soft));
-  border-radius: 3px;
+  border-radius: var(--r-1);
   padding: 1px 4px;
   flex-shrink: 0;
 }
@@ -1728,7 +1739,7 @@ select.input {
 .admin-table-wrap {
   background: var(--surface);
   border: 1px solid var(--border-soft);
-  border-radius: 10px;
+  border-radius: var(--r-10);
   overflow: hidden;
 }
 .admin-table {
@@ -1828,7 +1839,7 @@ select.input {
   height: 32px;
   padding: 0 28px 0 9px;
   border: 1px solid var(--border-soft);
-  border-radius: 6px;
+  border-radius: var(--r-6);
   background-color: var(--surface-2);
   color: var(--ink-2);
   font: 400 12px var(--font-ui);
