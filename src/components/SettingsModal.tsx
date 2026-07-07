@@ -103,7 +103,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
                     color: activeTab === t.key ? 'var(--ink)' : 'var(--ink-4)',
                     background: 'none', border: 'none',
                     borderBottom: activeTab === t.key ? '2px solid var(--accent)' : '2px solid transparent',
-                    padding: '0 2px 10px', marginRight: 20, cursor: 'pointer',
+                    padding: '0 2px 10px', marginRight: 12, cursor: 'pointer',
                     transition: 'color 0.15s, border-color 0.15s',
                     letterSpacing: '-0.01em', flexShrink: 0,
                   }}
