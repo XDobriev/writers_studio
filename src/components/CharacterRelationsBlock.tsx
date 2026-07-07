@@ -53,14 +53,10 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, o
     setLabelTheirs('');
   };
 
-  const wrapStyle = panel
-    ? { padding: 0 }
-    : { background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 22px', marginBottom: 16 };
-
   return (
-    <div style={wrapStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <span style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Связи</span>
+    <div className={panel ? 'rel-block rel-block--panel' : 'rel-block'}>
+      <div className="rel-block__head">
+        <span className="rel-block__title">Связи</span>
         {!adding && (
           <button onClick={startAdd} disabled={candidates.length === 0} className="btn btn--ghost btn--sm">
             <Icon name="plus" size={12} /> Добавить связь
@@ -69,20 +65,19 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, o
       </div>
 
       {adding && (
-        <div style={{ marginBottom: 14, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="rel-form">
           <select
             value={toId}
             onChange={(e) => setToId(e.target.value)}
-            className="input input--sm"
+            className="input input--sm rel-form__select"
             aria-label="Персонаж для связи"
-            style={{ alignSelf: 'flex-start', minWidth: 200 }}
           >
             {candidates.map((c) => (
               <option key={c.id} value={c.id}>{c.name || 'Без имени'}</option>
             ))}
           </select>
 
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div className="rel-presets">
             {RELATION_PRESETS.map((p) => (
               <button
                 key={p}
@@ -95,9 +90,9 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, o
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Как вы видите их</div>
+          <div className="rel-fields">
+            <div className="rel-field">
+              <div className="rel-field__label">Как вы видите их</div>
               <input
                 value={labelMine}
                 onChange={(e) => setLabelMine(e.target.value)}
@@ -108,8 +103,8 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, o
                 className="input input--sm"
               />
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Как они видят вас <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(если отличается)</span></div>
+            <div className="rel-field">
+              <div className="rel-field__label">Как они видят вас <span className="rel-field__label-opt">(если отличается)</span></div>
               <input
                 value={labelTheirs}
                 onChange={(e) => setLabelTheirs(e.target.value)}
@@ -121,7 +116,7 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, o
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="rel-form__actions">
             <button onClick={submit} className="btn btn--primary btn--sm">Добавить</button>
             <button onClick={() => setAdding(false)} className="btn btn--ghost btn--sm">Отмена</button>
           </div>
@@ -129,11 +124,11 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, o
       )}
 
       {myRels.length === 0 && !adding ? (
-        <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
+        <div className="rel-empty">
           {candidates.length === 0 ? 'Нет других персонажей для связи.' : 'Связей пока нет.'}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="rel-list">
           {myRels.map((rel) => {
             const iAmA = rel.char_a_id === activeId;
             const partnerId = iAmA ? rel.char_b_id : rel.char_a_id;
@@ -191,33 +186,33 @@ function RelationRow({ relId, partner, labelMine, labelTheirs, onDelete, onLabel
   const symmetric = !theirs || theirs === mine;
 
   return (
-    <div style={{ padding: '10px 12px', border: '1px solid var(--border-soft)', borderRadius: 8, display: 'flex', gap: 12 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 12px var(--font-ui)', color: 'var(--ink-2)', flexShrink: 0, overflow: 'hidden' }}>
+    <div className="rel-row">
+      <div className="rel-row__avatar">
         {partner.avatar_url
-          ? <img src={partner.avatar_url} alt={partner.name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <img src={partner.avatar_url} alt={partner.name} loading="lazy" decoding="async" />
           : initialsFromName(partner.name)}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ font: '500 13px var(--font-ui)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 6 }}>{partner.name || 'Без имени'}</div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ font: '500 9.5px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>Вы видите их</div>
+      <div className="rel-row__body">
+        <div className="rel-row__name">{partner.name || 'Без имени'}</div>
+        <div className="rel-row__fields">
+          <div className="rel-field">
+            <div className="rel-row__label">Вы видите их</div>
             <input
               value={mine}
               onChange={onMineChange}
               placeholder="кем приходятся"
               aria-label="Вы видите их"
-              style={{ width: '100%', font: '400 12px var(--font-ui)', color: 'var(--ink-2)', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-soft)', outline: 'none', padding: '2px 0' }}
+              className="rel-row__input"
             />
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ font: '500 9.5px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>Они видят вас</div>
+          <div className="rel-field">
+            <div className="rel-row__label">Они видят вас</div>
             <input
               value={theirs}
               onChange={onTheirsChange}
               placeholder={symmetric ? '(взаимная)' : 'кем вы им приходитесь'}
               aria-label="Они видят вас"
-              style={{ width: '100%', font: '400 12px var(--font-ui)', color: symmetric ? 'var(--ink-4)' : 'var(--ink-2)', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-soft)', outline: 'none', padding: '2px 0' }}
+              className={symmetric ? 'rel-row__input rel-row__input--muted' : 'rel-row__input'}
             />
           </div>
         </div>
