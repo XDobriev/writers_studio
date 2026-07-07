@@ -260,7 +260,7 @@ export default function Export() {
 
           {/* Main format cards */}
           <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Формат</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 12 }}>
+          <div className="export-fmt-grid">
             {FORMAT_MAIN.map((o) => {
               const active = o.value === format;
               const locked = !limits.canExportRich;

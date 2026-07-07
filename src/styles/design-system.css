@@ -1414,6 +1414,15 @@ select.input {
 .map-popup-del:hover { color: var(--danger); }
 
 /* ── Export format selection cards and strip buttons ── */
+.export-fmt-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+@media (max-width: 560px) {
+  .export-fmt-grid { grid-template-columns: repeat(2, 1fr); }
+}
 .export-fmt-card {
   background: var(--surface);
   transition: background var(--dur-hover);
