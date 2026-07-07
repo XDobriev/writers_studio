@@ -57,7 +57,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
             variants={modalPanelVariants}
             style={{
               background: 'var(--bg)', border: '1px solid var(--border)',
-              borderRadius: 14, width: 440, maxWidth: '100%', maxHeight: '90vh',
+              borderRadius: 14, width: 440, maxWidth: '100%', minWidth: 0, maxHeight: '90vh',
               display: 'flex', flexDirection: 'column',
               boxShadow: '0 32px 80px oklch(0.05 0.01 50 / 0.55)',
             }}
