@@ -142,9 +142,11 @@ interface PovBadgeProps {
   allCharacters: Array<{ id: string; name: string; position: number }>;
   userId: string;
   onChanged: () => void;
+  /** На мобиле — только аватар-кружок, без имени; тап открывает дропдаун. */
+  compact?: boolean;
 }
 
-function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChanged }: PovBadgeProps) {
+function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChanged, compact = false }: PovBadgeProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownStyle = useDropdownPosition(triggerRef, open ? 'open' : null, 300);
@@ -189,7 +191,12 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
           aria-expanded={open}
           aria-label="Добавить POV-персонажа"
           className="pov-pill"
-          style={{
+          style={compact ? {
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 22, height: 22, padding: 0, borderRadius: 999,
+            border: '1px dashed var(--border)',
+            font: '500 12px var(--font-mono)', color: 'var(--ink-4)',
+          } : {
             display: 'flex', alignItems: 'center',
             height: 22, padding: '0 8px', borderRadius: 999,
             border: '1px dashed var(--border)',
@@ -198,7 +205,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
             whiteSpace: 'nowrap',
           }}
         >
-          + POV
+          {compact ? '+' : '+ POV'}
         </button>
       ) : povEntries.length === 1 ? (
         <button
@@ -208,7 +215,11 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
           aria-haspopup="true"
           aria-expanded={open}
           aria-label={`POV: ${povEntries[0].character_name}`}
-          style={{
+          style={compact ? {
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 0, background: 'transparent', border: 'none',
+            cursor: 'pointer', flexShrink: 0,
+          } : {
             display: 'flex', alignItems: 'center', gap: 5,
             height: 22, padding: '0 8px 0 4px', borderRadius: 999,
             border: `1px solid ${getCharacterColor(povEntries[0].character_index)}`,
@@ -216,14 +227,16 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
             cursor: 'pointer', maxWidth: 140, minWidth: 0,
           }}
         >
-          <CharacterAvatar name={povEntries[0].character_name} color={getCharacterColor(povEntries[0].character_index)} size={16} />
-          <span style={{
-            font: '500 10px var(--font-mono)', letterSpacing: '0.03em',
-            color: getCharacterColor(povEntries[0].character_index),
-            overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', minWidth: 0,
-          }}>
-            {povEntries[0].character_name}
-          </span>
+          <CharacterAvatar name={povEntries[0].character_name} color={getCharacterColor(povEntries[0].character_index)} size={compact ? 22 : 16} />
+          {!compact && (
+            <span style={{
+              font: '500 10px var(--font-mono)', letterSpacing: '0.03em',
+              color: getCharacterColor(povEntries[0].character_index),
+              overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', minWidth: 0,
+            }}>
+              {povEntries[0].character_name}
+            </span>
+          )}
         </button>
       ) : (
         <button
@@ -234,7 +247,10 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
           aria-expanded={open}
           aria-label={`POV: ${povEntries.map(e => e.character_name).join(', ')}`}
           className="pov-pill"
-          style={{
+          style={compact ? {
+            display: 'flex', alignItems: 'center',
+            padding: 0, background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0,
+          } : {
             display: 'flex', alignItems: 'center', gap: 5,
             height: 22, padding: '0 8px 0 4px', borderRadius: 999,
             border: '1px solid var(--border)',
@@ -243,10 +259,10 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
           <div style={{ display: 'flex' }}>
             {povEntries.slice(0, 3).map((e, idx) => (
               <span key={e.character_id} style={{
-                width: 18, height: 18, borderRadius: '50%',
+                width: compact ? 22 : 18, height: compact ? 22 : 18, borderRadius: '50%',
                 background: getCharacterColor(e.character_index),
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 8, color: 'oklch(0.98 0 0)', fontWeight: 600, flexShrink: 0,
+                fontSize: compact ? 10 : 8, color: 'oklch(0.98 0 0)', fontWeight: 600, flexShrink: 0,
                 marginLeft: idx > 0 ? -5 : 0,
                 border: '2px solid var(--bg-deep)',
               }}>
@@ -254,9 +270,11 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
               </span>
             ))}
           </div>
-          <span style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)' }}>
-            {povEntries.length} POV
-          </span>
+          {!compact && (
+            <span style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)' }}>
+              {povEntries.length} POV
+            </span>
+          )}
         </button>
       )}
 
@@ -330,6 +348,7 @@ interface RowProps {
   allCharacters: Array<{ id: string; name: string; position: number }>;
   userId: string;
   onPovChanged: () => void;
+  compact: boolean;
 }
 
 
@@ -352,6 +371,7 @@ function SortableChapterRow({
   allCharacters,
   userId,
   onPovChanged,
+  compact,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id });
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -385,7 +405,6 @@ function SortableChapterRow({
         display: 'flex',
         alignItems: 'center',
         borderRadius: 8,
-        touchAction: 'none',
       }}
     >
       <button
@@ -397,6 +416,7 @@ function SortableChapterRow({
           background: 'transparent', border: 'none',
           cursor: isDragging ? 'grabbing' : 'grab',
           color: 'var(--ink-4)', padding: 0,
+          touchAction: 'none',
         }}
         title="Перетащить"
         aria-label="Перетащить"
@@ -466,6 +486,7 @@ function SortableChapterRow({
           allCharacters={allCharacters}
           userId={userId}
           onChanged={onPovChanged}
+          compact={compact}
         />
       </div>
 
@@ -729,6 +750,7 @@ export default function Outline() {
                         allCharacters={characters}
                         userId={user.id}
                         onPovChanged={onPovChanged}
+                        compact={isMobile}
                       />
                     ))}
                   </SortableContext>
