@@ -120,7 +120,6 @@ function SortableCorkCard({
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.45 : 1,
-        touchAction: 'none',
       }}
     >
       {dragEnabled && (
@@ -142,6 +141,7 @@ function SortableCorkCard({
             padding: 0,
             zIndex: 2,
             borderRadius: 4,
+            touchAction: 'none',
           }}
           title="Перетащить"
           aria-label="Перетащить"
