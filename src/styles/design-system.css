@@ -258,6 +258,8 @@ html, body, #root {
   .sb-head { padding: 14px 16px 10px; }
   .tb-btn  { min-height: 48px; min-width: 48px; }
   .btn     { min-height: 48px; }
+  /* инпуты держат ту же высоту, что и кнопки, — иначе пары «инпут+кнопка» в попапах рассинхронятся */
+  .input:not(.input--sm) { min-height: 48px; }
 }
 
 /* ── Мобильный: touch-targets до WCAG 2.5.5 ── */
@@ -433,6 +435,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 @media (max-width: 768px) {
   .tb-btn { min-height: 44px; min-width: 44px; }
   .btn    { min-height: 44px; }
+  .input:not(.input--sm) { min-height: 44px; }
 }
 
 /* Bubble menu */
