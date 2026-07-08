@@ -76,7 +76,7 @@ export function SettingsProfileTab() {
             onChange={(e) => { setName(e.target.value); setNameSaved(false); }}
             placeholder="Ваше имя"
             maxLength={100}
-            style={{ flex: 1, fontSize: 13, height: H }}
+            style={{ flex: 1, minWidth: 0, fontSize: 13, height: H }}
           />
           <button
             className="btn btn--primary"
@@ -105,7 +105,7 @@ export function SettingsProfileTab() {
         <form style={FG} onSubmit={(e) => { e.preventDefault(); handleSavePass(); }}>
           <label htmlFor="settings-new-password" style={FL}>Новый пароль</label>
           <div style={ROW}>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <PasswordInput
                 id="settings-new-password"
                 value={newPass}
