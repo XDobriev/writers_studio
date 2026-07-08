@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ChangeEvent } from 'react';
 import { createLocation, updateLocation, deleteLocation, type Location, type LocationPatch } from './locations';
@@ -17,13 +17,27 @@ interface UseMapMutationsOptions {
   setError: (msg: string) => void;
 }
 
+// Двойной тап по одной точке холста не должен создавать две наложенные сущности.
+// Игнорируем create, если предыдущий был <400мс назад и почти в той же точке.
+const DUP_TAP_MS = 400;
+const DUP_TAP_DIST = 0.015; // доля холста (0..1)
+type TapMark = { t: number; x: number; y: number } | null;
+function isDuplicateTap(prev: TapMark, x: number, y: number, now: number): boolean {
+  return !!prev && now - prev.t < DUP_TAP_MS && Math.abs(x - prev.x) < DUP_TAP_DIST && Math.abs(y - prev.y) < DUP_TAP_DIST;
+}
+
 export function useMapMutations({ bookId, userId, locations, selectedStampType, setError }: UseMapMutationsOptions) {
   const queryClient = useQueryClient();
+  const lastLocTapRef = useRef<TapMark>(null);
+  const lastStampTapRef = useRef<TapMark>(null);
 
   // ── Location ─────────────────────────────────────────────────────────────
 
   const onCreate = useCallback(async (x: number, y: number) => {
     if (!bookId || !userId) return;
+    const now = Date.now();
+    if (isDuplicateTap(lastLocTapRef.current, x, y, now)) return;
+    lastLocTapRef.current = { t: now, x, y };
     try {
       const created = await createLocation(bookId, userId, { position: locations?.length ?? 0, x, y });
       queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), (prev) => [...(prev ?? []), created]);
@@ -60,6 +74,9 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
 
   const onCreateStamp = useCallback(async (x: number, y: number) => {
     if (!bookId || !userId) return;
+    const now = Date.now();
+    if (isDuplicateTap(lastStampTapRef.current, x, y, now)) return;
+    lastStampTapRef.current = { t: now, x, y };
     try {
       const created = await createStamp(bookId, userId, selectedStampType, x, y);
       queryClient.setQueryData<MapStamp[]>(QUERY_KEYS.stamps(bookId), (prev) => [...(prev ?? []), created]);
