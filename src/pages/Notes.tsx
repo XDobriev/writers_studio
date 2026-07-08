@@ -452,7 +452,7 @@ export default function Notes() {
                       key={k}
                       aria-pressed={filterKind === k}
                       className={'btn btn--ghost' + (filterKind === k ? ' btn--active' : '')}
-                      style={{ fontSize: 12, padding: '3px 10px', opacity: filterKind === k ? 1 : 0.6 }}
+                      style={{ fontSize: 12, padding: '3px 10px', opacity: filterKind === k ? 1 : 0.7 }}
                       onClick={() => setFilterKind(k)}
                     >
                       {k === 'all' ? 'Все' : KIND_LABELS[k]}
@@ -476,7 +476,7 @@ export default function Notes() {
                     key={k}
                     aria-pressed={filterKind === k}
                     className={'btn btn--ghost' + (filterKind === k ? ' btn--active' : '')}
-                    style={{ fontSize: 12, padding: '3px 10px', opacity: filterKind === k ? 1 : 0.6, flexShrink: 0 }}
+                    style={{ fontSize: 12, padding: '3px 10px', opacity: filterKind === k ? 1 : 0.7, flexShrink: 0 }}
                     onClick={() => setFilterKind(k)}
                   >
                     {k === 'all' ? 'Все' : KIND_LABELS[k]}
