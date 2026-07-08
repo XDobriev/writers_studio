@@ -729,7 +729,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   font-size: 11px; color: var(--ink-2);
   background: transparent;
 }
-.chip--accent { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.chip--accent { border-color: var(--accent); color: color-mix(in oklch, var(--accent) 62%, oklch(0.98 0 0)); background: var(--accent-soft); }
 .chip--ok { border-color: oklch(0.72 0.14 145 / 0.5); color: var(--ok); background: oklch(0.72 0.14 145 / 0.12); }
 .chip--sm { font-size: 10px; height: 18px; padding: 0 6px; }
 button.chip:not(.chip--accent):hover { background: var(--surface-2); }
