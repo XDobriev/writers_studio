@@ -309,7 +309,7 @@ export default function Characters() {
                   {saveLabel[saveState]}
                 </span>
               )}
-              {!isMobile && !showGrid && (
+              {!showGrid && (
                 <div className="tb-grp">
                   <button
                     className="tb-btn"
