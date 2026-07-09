@@ -83,7 +83,7 @@ export function SettingsSubscriptionTab({ userId, isActive }: Props) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {!cancelAtPeriodEnd && (
                       <button
-                        className="btn btn--ghost"
+                        className="btn btn--upsell"
                         onClick={() => setUpgradeOpen(true)}
                         style={{ fontSize: 13, height: 38 }}
                       >

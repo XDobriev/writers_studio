@@ -764,6 +764,15 @@ button.chip:not(.chip--accent):hover { background: var(--surface-2); }
   background: none; opacity: 0.8;
 }
 .btn--danger-ghost:hover { opacity: 1; background: none; }
+.btn--upsell {
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+  border-color: color-mix(in oklch, var(--accent) 32%, var(--border-soft));
+  color: color-mix(in oklch, var(--accent) 70%, var(--ink));
+}
+.btn--upsell:hover {
+  background: color-mix(in oklch, var(--accent) 16%, transparent);
+  border-color: color-mix(in oklch, var(--accent) 45%, var(--border-soft));
+}
 
 /* SpotlightButton */
 .spotlight-btn {
