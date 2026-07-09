@@ -310,6 +310,10 @@ export default function Dashboard() {
               </div>
             )}
 
+            <div style={{ marginBottom: 20 }}>
+              <ActivityHeatmap activityData={activityData} />
+            </div>
+
             <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 10, marginTop: 4 }}>
               Быстрые действия
             </div>
