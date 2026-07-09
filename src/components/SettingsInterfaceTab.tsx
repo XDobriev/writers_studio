@@ -57,7 +57,7 @@ export function SettingsInterfaceTab() {
           <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 2 }}>Шрифт редактора</div>
           <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>Используется при наборе текста</div>
         </div>
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'nowrap' }}>
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
           {EDITOR_FONTS.map(f => (
             <button
               key={f.id}
