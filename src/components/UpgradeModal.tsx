@@ -132,12 +132,13 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     className="as-checkbox"
                     checked={recurringConsent}
                     onChange={(e) => setRecurringConsent(e.target.checked)}
+                    style={{ margin: 0, flexShrink: 0 }}
                   />
                   <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.5 }}>
                     Согласен на автоматические ежемесячные списания согласно{' '}
@@ -159,7 +160,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
                 >
                   {isLoading ? 'Переход к оплате…' : 'Оформить подписку'}
                 </button>
-                <button className="btn btn--ghost" onClick={onClose} style={{ fontSize: 13, height: 38, width: 'fit-content', alignSelf: 'center', paddingInline: 24 }}>
+                <button className="btn" onClick={onClose} style={{ justifyContent: 'center', fontSize: 13, height: 38 }}>
                   Позже
                 </button>
                 {purchaseError && (
