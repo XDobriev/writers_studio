@@ -98,7 +98,33 @@ Push-механизм ResultUrl2 (JWS на ResultUrl2) оказался нена
 - Цена определяется по `profile.plan_interval` × `profile.grandfathered`: monthly/annual × base/grandfathered
 - После успешного списания `robokassa-webhook` продлевает `plan_expires_at`
 - **Идемпотентность цикла:** после `OK` от Robokassa пишет `profiles.last_billed_expiry = plan_expires_at` и пропускает юзера, пока webhook не продлит подписку. Ответ `OK` = операция создана, не гарантия списания (docs.robokassa.ru/ru/recurring-payments), поэтому без этого маркера юзер списывался бы каждый суточный прогон до прихода webhook.
-- Управляется Secret `ROBOKASSA_RECURRING_ENABLED=true`; вызывается через `SCHEDULER_SECRET` Bearer
+- Управляется **двумя рубильниками**: feature flag `recurring_billing_enabled` (таблица `feature_flags`) включает сам scheduler; Secret `ROBOKASSA_RECURRING_ENABLED=true` заставляет `create-payment-url` слать флаг `Recurring` (без него новые Pro-покупки не оформляют рекуррент). Вызывается через `SCHEDULER_SECRET` Bearer.
+
+### E2E-верификация рекуррента — чеклист 1₽-гейта
+
+**Рекуррент верифицирован реальными деньгами на текущем (переписанном 02.07) коде — 2026-07-09.**
+Полный цикл: боевой 1₽ → `recurring_inv_id` оформлен → `billing-scheduler` → child 1₽ списан →
+webhook подтвердил за 34с → `plan_expires_at` продлён +31д. Идемпотентность (`last_billed_expiry`) отработала.
+
+**Боевой baseline (production-ready с 2026-07-09): оба рубильника ВКЛЮЧЕНЫ** — flag `recurring_billing_enabled=true`
++ Secret `ROBOKASSA_RECURRING_ENABLED=true`. Новый Pro-платёж сам оформляет мандат и автопродлевается.
+При повторном 1₽-гейте флаг НЕ выключать в откате (шаг 10) — он и так должен остаться `true`.
+
+**Блокер боевого 1₽:** webhook в бою отклоняет платёж дешевле `MIN_PRICE` (290₽), а `create-payment-url`/`scheduler`
+применяют `BILLING_TEST_AMOUNT` только в тест-режиме. Чтобы сделать боевой 1₽ безопасно — временно скоупить
+обход на один `user_id` через Secret `BILLING_TEST_USER_ID` (радиус поражения = один UUID, дефолт = обход выключен).
+
+Порядок прогона (перед запуском монетизации повторить как go/no-go гейт):
+1. Пропатчить 3 функции: обход `BILLING_TEST_AMOUNT`/`MIN_PRICE` при `user.id === BILLING_TEST_USER_ID` даже в бою.
+2. Secrets: `BILLING_TEST_AMOUNT=1`, `BILLING_TEST_USER_ID=<uuid тест-аккаунта>`, `ROBOKASSA_RECURRING_ENABLED=true`. `ROBOKASSA_IS_TEST` НЕ трогать (остаётся `false`).
+3. Деплой: `create-payment-url` (verify_jwt), `robokassa-webhook` + `billing-scheduler` (`--no-verify-jwt`).
+4. `UPDATE feature_flags SET enabled=true WHERE key='recurring_billing_enabled'`; тест-аккаунт → `plan='free'`.
+5. Браузером: войти тест-аккаунтом → `/offer` → купить Pro → оплатить боевой 1₽ (проверить: сумма 1₽, реальная форма карты).
+6. Проверить БД: `plan='pro'`, `recurring_inv_id` заполнен, платёж `confirmed_at`.
+7. Форс окна: `UPDATE profiles SET plan_expires_at = now()+interval '1 day'` для тест-аккаунта (last_billed_expiry=NULL).
+8. Запустить scheduler: `gh workflow run billing-scheduler.yml`.
+9. Проверить: audit `recurring_charge_initiated` → через ~30с webhook `confirmed_at` + `plan_expires_at` продлён.
+10. **Откат:** `git checkout` 3 функций + редеплой; `secrets unset BILLING_TEST_AMOUNT BILLING_TEST_USER_ID`; флаг → `false`; тест-аккаунт вернуть в исходный план.
 
 ### `cancel-subscription`
 Отмена и возобновление рекуррентной Pro-подписки пользователем.
