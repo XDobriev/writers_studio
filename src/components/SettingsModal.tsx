@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { Icon } from './Icon';
 import { useAuth } from '../lib/auth';
+import { useProfile } from '../lib/queries';
 import { EDITOR_SHORTCUTS, shortcutLabel } from '../lib/shortcuts';
 import { SettingsProfileTab } from './SettingsProfileTab';
 import { SettingsInterfaceTab } from './SettingsInterfaceTab';
@@ -18,6 +19,8 @@ const TABS: { key: Tab; label: string }[] = [
 
 export function SettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useAuth();
+  const { data: profile } = useProfile(user?.id);
+  const isFreePlan = profile?.plan === 'free';
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [helpOpen, setHelpOpen] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -105,9 +108,15 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
                     padding: '0 2px 10px', marginRight: 12, cursor: 'pointer',
                     transition: 'color 0.15s, border-color 0.15s',
                     letterSpacing: '-0.01em', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', gap: 5,
                   }}
                 >
                   {t.label}
+                  {t.key === 'subscription' && isFreePlan && (
+                    <span aria-hidden="true" style={{
+                      width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0,
+                    }} />
+                  )}
                 </button>
               ))}
             </div>
