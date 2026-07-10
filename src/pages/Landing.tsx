@@ -211,8 +211,8 @@ function FloatingSheet({ tiltRef }: { tiltRef: React.RefObject<HTMLDivElement> }
 
 const TRUST_ITEMS = [
   { icon: 'feather' as const, text: 'Без нейросети' },
-  { icon: 'save' as const, text: 'Автосохранение' },
-  { icon: 'download' as const, text: 'Экспорт в любой момент' },
+  { icon: 'history' as const, text: 'История версий' },
+  { icon: 'clock' as const, text: 'Отмена в любой момент' },
   { icon: 'shield' as const, text: 'Данные — ваши' },
 ];
 
