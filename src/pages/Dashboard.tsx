@@ -401,8 +401,6 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-
-            <ActivityHeatmap activityData={activityData} />
           </div>
         </main>
 
