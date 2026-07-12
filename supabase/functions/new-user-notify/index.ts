@@ -15,6 +15,16 @@ function json(status: number, body: unknown): Response {
   });
 }
 
+// Constant-time сравнение для webhook-секрета (без тайминг-сайдканала).
+function timingSafeEqual(a: string, b: string): boolean {
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  if (aBytes.length !== bBytes.length) return false;
+  let diff = 0;
+  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
+  return diff === 0;
+}
+
 const PROVIDER_LABELS: Record<string, string> = {
   email: 'email',
   telegram: 'Telegram',
@@ -34,7 +44,8 @@ Deno.serve(async (req) => {
 
   const webhookSecret = Deno.env.get('NOTIFY_WEBHOOK_SECRET');
   if (!webhookSecret) return json(500, { error: 'NOTIFY_WEBHOOK_SECRET secret is not set' });
-  if (req.headers.get('x-webhook-secret') !== webhookSecret) {
+  const providedSecret = req.headers.get('x-webhook-secret');
+  if (!providedSecret || !timingSafeEqual(providedSecret, webhookSecret)) {
     return json(401, { error: 'invalid webhook secret' });
   }
 
