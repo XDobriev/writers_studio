@@ -9,9 +9,16 @@ import type { Book } from '../lib/supabase';
 
 const DEMO_TS = '2026-05-08T14:32:00Z';
 
+// UUID-формат (не существующий в базе), а не 'demo' — иначе Postgrest отвечает 400
+// (invalid input syntax for type uuid) на каждый запрос notes/characters/snapshots
+// вместо пустого результата, и демо-страница шлёт постоянные ошибки в прод-БД.
+const DEMO_BOOK_ID = '00000000-0000-0000-0000-000000000001';
+const DEMO_USER_ID = '00000000-0000-0000-0000-000000000002';
+const demoChapterId = (num: number) => `00000000-0000-0000-0000-${String(1000 + num).padStart(12, '0')}`;
+
 const DEMO_BOOK: Book = {
-  id: 'demo',
-  user_id: 'demo',
+  id: DEMO_BOOK_ID,
+  user_id: DEMO_USER_ID,
   title: NOVEL.title,
   author: NOVEL.author,
   genre: NOVEL.genre,
@@ -28,9 +35,9 @@ const DEMO_BOOK: Book = {
 };
 
 const INITIAL_CHAPTERS: ChapterMeta[] = NOVEL.chapters.map((c, i) => ({
-  id: `demo-${c.num}`,
-  book_id: 'demo',
-  user_id: 'demo',
+  id: demoChapterId(c.num),
+  book_id: DEMO_BOOK_ID,
+  user_id: DEMO_USER_ID,
   title: c.title,
   position: i,
   synopsis: '',
@@ -41,7 +48,7 @@ const INITIAL_CHAPTERS: ChapterMeta[] = NOVEL.chapters.map((c, i) => ({
 }));
 
 // Первая глава — с прозой, остальные пустые (реалистичный WIP).
-const INITIAL_CONTENT: Record<string, string> = { 'demo-1': SAMPLE_PROSE };
+const INITIAL_CONTENT: Record<string, string> = { [demoChapterId(1)]: SAMPLE_PROSE };
 
 // Ссылки в chrome редактора ведут на защищённые /books/:id/* — в демо перехватываем
 // клик и уводим на регистрацию вместо редиректа AuthGuard на страницу входа.
@@ -58,7 +65,7 @@ export default function Demo() {
   const navigate = useNavigate();
   const [chapters, setChapters] = useState<ChapterMeta[]>(INITIAL_CHAPTERS);
   const [contentMap, setContentMap] = useState<Record<string, string>>(INITIAL_CONTENT);
-  const [activeId, setActiveId] = useState<string>('demo-1');
+  const [activeId, setActiveId] = useState<string>(demoChapterId(1));
 
   const activeChapter = chapters.find((c) => c.id === activeId) ?? null;
   const activeContent = contentMap[activeId] ?? '';
@@ -66,13 +73,13 @@ export default function Demo() {
   const chapterActions: ChapterActions = {
     onSelectChapter: (id) => setActiveId(id),
     onCreateChapter: () => {
-      const id = `demo-${Date.now()}`;
+      const id = crypto.randomUUID();
       setChapters((prev) => [
         ...prev,
         {
           id,
-          book_id: 'demo',
-          user_id: 'demo',
+          book_id: DEMO_BOOK_ID,
+          user_id: DEMO_USER_ID,
           title: 'Без названия',
           position: prev.length,
           synopsis: '',
