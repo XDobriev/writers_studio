@@ -139,7 +139,7 @@ export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }
               padding: '5px 0',
               borderBottom: i < STEPS.length - 1 ? '1px solid var(--border-soft)' : undefined,
               cursor: canClick ? 'pointer' : 'default',
-              color: done ? 'var(--ink-3)' : isCurrent ? 'var(--ink-1)' : 'var(--ink-3)',
+              color: done ? 'var(--ink-3)' : isCurrent ? 'var(--ink)' : 'var(--ink-3)',
               font: `${isCurrent ? 500 : 400} 13px/1.5 var(--font-ui)`,
             }}
           >

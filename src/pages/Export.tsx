@@ -484,7 +484,7 @@ export default function Export() {
                         border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
                       }}
                     >
-                      <div style={{ font: '500 12.5px var(--font-sans)', color: active ? 'var(--ink)' : 'var(--ink-2)' }}>{s.label}</div>
+                      <div style={{ font: '500 12.5px var(--font-ui)', color: active ? 'var(--ink)' : 'var(--ink-2)' }}>{s.label}</div>
                       <div style={{ fontSize: 10.5, color: 'var(--ink-4)', marginTop: 1 }}>{s.hint}</div>
                     </button>
                   );
