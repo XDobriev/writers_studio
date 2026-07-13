@@ -492,7 +492,7 @@ function LandingFooter() {
       <div className="lnd-max">
         <div className="lnd-footer-grid">
           <div>
-            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, textDecoration: 'none' }}>
+            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', margin: '-10px 0 4px', textDecoration: 'none' }}>
               <LogoMark size={20} />
               <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
             </Link>
