@@ -277,7 +277,7 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
               title="Нажмите, чтобы изменить цель"
               onClick={() => { setGoalInput(String(goalWords)); setEditingGoal(true); }}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGoalInput(String(goalWords)); setEditingGoal(true); } }}
-              style={{ cursor: 'pointer', borderBottom: '1px dashed var(--border)' }}
+              style={{ cursor: 'pointer', borderBottom: '1px dashed var(--border)', display: 'inline-flex', alignItems: 'center', alignSelf: 'stretch', padding: '0 2px' }}
             >
               сегодня · {todayWords.toLocaleString('ru')}/{goalWords.toLocaleString('ru')} слов
             </span>
