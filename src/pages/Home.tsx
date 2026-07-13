@@ -173,7 +173,7 @@ export default function Home() {
         <span className="hide-sm" style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{displayName}</span>
         <AccountMenu placement="below">
           {({ onClick, open }) => (
-            <button className="tb-btn" onClick={onClick} aria-label="Аккаунт" aria-haspopup="menu" aria-expanded={open}>
+            <button className="tb-btn" onClick={onClick} aria-label="Аккаунт" aria-haspopup="menu" aria-expanded={open} style={{ width: 36, height: 36 }}>
               <Icon name="user" size={16} />
             </button>
           )}
