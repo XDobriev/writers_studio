@@ -37,7 +37,7 @@ export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       padding: '14px 0', gap: 6, zIndex: 4, ...style,
     }}>
-      <Link to="/books" title="Библиотека" aria-label="Библиотека" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8, opacity: 0.75 }}>
+      <Link to="/books" title="Библиотека" aria-label="Библиотека" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, marginBottom: 8, opacity: 0.75 }}>
         <LogoMark size={28} />
       </Link>
       {items.map(([k, icn, label, segment]) => (
