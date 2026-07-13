@@ -52,7 +52,7 @@ export default function Admin() {
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <div className="admin-header">
-        <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+        <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', margin: '-10px 0', textDecoration: 'none' }}>
           <LogoMark size={18} />
           <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
         </Link>

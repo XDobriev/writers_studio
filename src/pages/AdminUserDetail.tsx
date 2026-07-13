@@ -108,7 +108,7 @@ export default function AdminUserDetail() {
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <div style={{ height: 56, display: 'flex', alignItems: 'center', padding: '0 32px', gap: 12, borderBottom: '1px solid var(--border-soft)', background: 'var(--bg-deep)' }}>
-        <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+        <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', margin: '-10px 0', textDecoration: 'none' }}>
           <LogoMark size={18} />
           <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>авторская студия</span>
         </Link>
