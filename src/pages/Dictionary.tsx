@@ -105,7 +105,7 @@ export default function Dictionary() {
           {wordCount > 0 && (
             <span style={{
               font: '500 10.5px var(--font-mono)', letterSpacing: '0.08em',
-              color: 'var(--ink-ghost)', background: 'var(--surface-2)',
+              color: 'var(--ink-4)', background: 'var(--surface-2)',
               border: '1px solid var(--border-soft)', borderRadius: 999,
               padding: '2px 9px', flexShrink: 0,
             }}>
@@ -141,7 +141,7 @@ export default function Dictionary() {
           <div style={{ position: 'relative' }}>
             <svg
               width="14" height="14" viewBox="0 0 16 16" fill="none"
-              style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-ghost)', pointerEvents: 'none' }}
+              style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-4)', pointerEvents: 'none' }}
             >
               <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5"/>
               <path d="M10.5 10.5L13 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -159,9 +159,9 @@ export default function Dictionary() {
 
           {/* Empty state — no words yet */}
           {wordCount === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '48px 0', color: 'var(--ink-ghost)', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '48px 0', color: 'var(--ink-4)', textAlign: 'center' }}>
               <span style={{ font: '400 13px var(--font-ui)' }}>Словарь пуст.</span>
-              <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-ghost)', opacity: 0.7 }}>
+              <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)', opacity: 0.7 }}>
                 Добавьте слова, которые редактор не должен подчёркивать.
               </span>
             </div>
@@ -169,7 +169,7 @@ export default function Dictionary() {
 
           {/* No search results */}
           {wordCount > 0 && filtered.length === 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0', color: 'var(--ink-ghost)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0', color: 'var(--ink-4)' }}>
               <span style={{ font: '400 13px var(--font-ui)' }}>Ничего не найдено</span>
             </div>
           )}
@@ -179,7 +179,7 @@ export default function Dictionary() {
             <div key={letter} style={{ marginTop: 4 }}>
               <div style={{
                 font: '500 10px var(--font-mono)', letterSpacing: '0.14em',
-                color: 'var(--ink-ghost)', padding: '4px 10px 2px',
+                color: 'var(--ink-4)', padding: '4px 10px 2px',
                 textTransform: 'uppercase',
               }}>
                 {letter}
