@@ -12,6 +12,7 @@ const isGrandfatheringActive = new Date() < new Date('2026-09-01');
 
 export function LandingPricing() {
   const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
+  const [slotsLoaded, setSlotsLoaded] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<'pro' | 'lifetime' | null>(null);
   const { session } = useAuth();
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export function LandingPricing() {
   useEffect(() => {
     getLifetimeSlotsRemaining().then((slots) => {
       if (slots !== null) setLifetimeSlots(slots);
+      setSlotsLoaded(true);
     });
   }, []);
 
@@ -161,7 +163,7 @@ export function LandingPricing() {
               </ul>
               <button
                 onClick={() => void handleCtaClick(t.planKey)}
-                disabled={loadingPlan !== null || (t.planKey === 'lifetime' && lifetimeSlots === null)}
+                disabled={loadingPlan !== null || (t.planKey === 'lifetime' && !slotsLoaded)}
                 className={t.accent ? 'btn btn--primary' : 'btn'}
                 style={{ height: 44, fontSize: 14, justifyContent: 'center', width: '100%', display: 'flex', alignItems: 'center' }}
               >
