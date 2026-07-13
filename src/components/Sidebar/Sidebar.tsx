@@ -111,7 +111,7 @@ export function Sidebar({
   return (
     <aside className="sb">
       <div className="sb-head">
-        <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, textDecoration: 'none' }}>
+        <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0', margin: '-10px 0 -4px', textDecoration: 'none' }}>
           <LogoMark size={20} />
           <span style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>авторская студия</span>
         </Link>
