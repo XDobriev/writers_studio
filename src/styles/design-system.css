@@ -653,7 +653,11 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   color: var(--ink-3);
   gap: 14px;
   white-space: nowrap;
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: none;
 }
+.status::-webkit-scrollbar { display: none; }
+.status > * { flex-shrink: 0; }
 .status-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--ok); }
 .status-icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
