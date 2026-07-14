@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../lib/useResponsive';
 import { useErrorState } from '../lib/useErrorState';
@@ -12,17 +12,29 @@ import { CoverPicker, COVERS } from '../components/CoverPicker';
 import { GenrePicker } from '../components/GenrePicker';
 import { OnboardingChecklist } from '../components/OnboardingChecklist';
 import { supabase, ensureAuthReady, type Book } from '../lib/supabase';
-import { createBook, updateBook, deleteBook as deleteBookApi } from '../lib/books';
+import { createBook, updateBook, deleteBook as deleteBookApi, duplicateBookContent } from '../lib/books';
+import {
+  SeriesTransferPicker,
+  INITIAL_SERIES_TRANSFER,
+  toTransferOptions,
+  type SeriesTransferState,
+} from '../components/SeriesTransferPicker';
 import { createChapter } from '../lib/chapters';
 import { getPlanLimits } from '../lib/profiles';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
-import { useBooks, useProfile, QUERY_KEYS } from '../lib/queries';
+import { useBooks, useProfile, useSeries, QUERY_KEYS } from '../lib/queries';
 import { optimizeImage, COVER_OPTS } from '../lib/imageOptimize';
 import { useFeatureFlag } from '../lib/useFeatureFlag';
 
 import { plural } from '../lib/i18n';
+
+const GRID_STYLE = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+  gap: 24,
+} as const;
 
 export default function Home() {
   const { user } = useAuth();
@@ -30,6 +42,7 @@ export default function Home() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: books, error: booksError } = useBooks(user?.id);
+  const { data: seriesList } = useSeries(user?.id);
   const { data: profile } = useProfile(user?.id);
   const limits = getPlanLimits(profile?.plan);
   const { isMobile } = useResponsive();
@@ -50,10 +63,12 @@ export default function Home() {
   const [createGenres, setCreateGenres] = useState<string[]>([]);
   const [createCover, setCreateCover] = useState(COVERS[0]);
   const [createUploading, setCreateUploading] = useState(false);
+  const [seriesTransfer, setSeriesTransfer] = useState<SeriesTransferState>(INITIAL_SERIES_TRANSFER);
 
   const openCreateModal = () => {
     setCreateCover(COVERS[(books?.length ?? 0) % COVERS.length]);
     setCreateGenres([]);
+    setSeriesTransfer(INITIAL_SERIES_TRANSFER);
     setShowCreate(true);
   };
   const [editUploading, setEditUploading] = useState(false);
@@ -150,10 +165,19 @@ export default function Home() {
         navigate(`/books/${data.id}/editor`);
         return;
       }
-      queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => [data, ...(prev ?? [])]);
+      if (seriesTransfer.enabled && seriesTransfer.sourceBookId) {
+        await duplicateBookContent(seriesTransfer.sourceBookId, data.id, toTransferOptions(seriesTransfer));
+        // Книга-источник тоже изменилась (получила series_id/series_order) —
+        // точечный setQueryData не покрывает, перезапрашиваем список.
+        await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.books(user.id) });
+        await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.seriesList(user.id) });
+      } else {
+        queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => [data, ...(prev ?? [])]);
+      }
       setShowCreate(false);
       setCreateCover(COVERS[0]);
       setCreateGenres([]);
+      setSeriesTransfer(INITIAL_SERIES_TRANSFER);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
@@ -162,6 +186,28 @@ export default function Home() {
   };
 
   const totalWords = (books ?? []).reduce((s, b) => s + b.words, 0);
+
+  // Книги серии — сгруппированы и упорядочены по series_order; остальные — плоско.
+  const { seriesGroups, standaloneBooks } = useMemo(() => {
+    const list = books ?? [];
+    const groups = new Map<string, Book[]>();
+    const standalone: Book[] = [];
+    for (const b of list) {
+      if (b.series_id) {
+        const arr = groups.get(b.series_id);
+        if (arr) arr.push(b);
+        else groups.set(b.series_id, [b]);
+      } else {
+        standalone.push(b);
+      }
+    }
+    for (const arr of groups.values()) {
+      arr.sort((a, b) => (a.series_order ?? 0) - (b.series_order ?? 0));
+    }
+    return { seriesGroups: [...groups.entries()], standaloneBooks: standalone };
+  }, [books]);
+
+  const seriesTitle = (id: string) => seriesList?.find((s) => s.id === id)?.title ?? 'Серия';
 
   return (
     <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
@@ -240,10 +286,29 @@ export default function Home() {
 
         {/* ─── Books grid ─── */}
         {books && books.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 24 }}>
-            {books.map((b) => (
-              <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
+            {seriesGroups.map(([sid, arr]) => (
+              <section key={sid}>
+                <h2 style={{ font: '600 15px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 14, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  Серия «{seriesTitle(sid)}»
+                  <span style={{ font: '400 12px var(--font-mono)', color: 'var(--ink-4)' }}>
+                    {arr.length} {plural(arr.length, 'книга', 'книги', 'книг')}
+                  </span>
+                </h2>
+                <div style={GRID_STYLE}>
+                  {arr.map((b) => (
+                    <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} />
+                  ))}
+                </div>
+              </section>
             ))}
+            {standaloneBooks.length > 0 && (
+              <div style={GRID_STYLE}>
+                {standaloneBooks.map((b) => (
+                  <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -401,6 +466,12 @@ export default function Home() {
                 onChange={setCreateCover}
                 uploading={createUploading}
                 onFileSelect={(f) => uploadCover(f, setCreateCover, setCreateUploading, setErr)}
+              />
+              <SeriesTransferPicker
+                books={books ?? []}
+                value={seriesTransfer}
+                onChange={setSeriesTransfer}
+                disabled={creating}
               />
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 22 }}>

@@ -90,6 +90,8 @@ export type Database = {
           id: string
           map_bg_url: string | null
           map_template: string | null
+          series_id: string | null
+          series_order: number | null
           share_token: string | null
           title: string
           updated_at: string
@@ -107,6 +109,8 @@ export type Database = {
           id?: string
           map_bg_url?: string | null
           map_template?: string | null
+          series_id?: string | null
+          series_order?: number | null
           share_token?: string | null
           title: string
           updated_at?: string
@@ -124,13 +128,23 @@ export type Database = {
           id?: string
           map_bg_url?: string | null
           map_template?: string | null
+          series_id?: string | null
+          series_order?: number | null
           share_token?: string | null
           title?: string
           updated_at?: string
           user_id?: string
           words?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "books_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chapter_characters: {
         Row: {
@@ -812,6 +826,27 @@ export type Database = {
         }
         Relationships: []
       }
+      series: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       timeline_events: {
         Row: {
           book_id: string
@@ -933,6 +968,17 @@ export type Database = {
       }
       compute_synopsis: { Args: { html: string }; Returns: string }
       decrement_lifetime_slot: { Args: never; Returns: boolean }
+      duplicate_book_content: {
+        Args: {
+          p_characters: boolean
+          p_locations_map: boolean
+          p_notes: boolean
+          p_source: string
+          p_target: string
+          p_timeline: boolean
+        }
+        Returns: undefined
+      }
       extend_plan: {
         Args: { days: number; target_user_id: string }
         Returns: undefined

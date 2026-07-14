@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { getBook, listBooks, listWritingSnapshots } from './books';
+import { getBook, listBooks, listWritingSnapshots, getBookContentCounts, listSeries, type BookContentCounts, type Series } from './books';
 import { getProfile, getRegistrationOpen, type Profile } from './profiles';
 import type { Book } from './supabase';
 import { listChaptersMeta, getChapterContent, type ChapterMeta } from './chapters';
@@ -38,6 +38,8 @@ export const QUERY_KEYS = {
   chapterMembers: (chapterId: string) => ['chapter-members', chapterId] as const,
   chapterPovMap: (bookId: string) => ['chapter-pov-map', bookId] as const,
   registrationOpen: () => ['registration-open'] as const,
+  seriesList: (userId: string) => ['series', userId] as const,
+  bookContentCounts: (bookId: string) => ['book-content-counts', bookId] as const,
   characterSearch: (bookId: string, query: string, role: string) =>
     ['character-search', bookId, query, role] as const,
 };
@@ -207,6 +209,23 @@ export function useRegistrationOpen() {
     queryFn: getRegistrationOpen,
     staleTime: 5 * 60_000,
   });
+}
+
+export function useSeries(userId: string | undefined) {
+  return useQuery<Series[]>(makeQuery(
+    userId ? QUERY_KEYS.seriesList(userId) : ['series', null],
+    listSeries,
+    5 * 60_000,
+  ));
+}
+
+/** Счётчики сущностей книги — для чекбоксов переноса в продолжение серии. */
+export function useBookContentCounts(bookId: string | undefined) {
+  return useQuery<BookContentCounts>(makeQuery(
+    bookId ? QUERY_KEYS.bookContentCounts(bookId) : ['book-content-counts', null],
+    () => getBookContentCounts(bookId!),
+    60_000,
+  ));
 }
 
 export function useChapterPovMap(bookId: string | undefined) {

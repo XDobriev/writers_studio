@@ -40,6 +40,72 @@ export async function createBook(input: BookCreateInput): Promise<Book> {
   return data as Book;
 }
 
+export type Series = Tables<'series'>;
+
+/** Что переносить из книги-источника в книгу-продолжение. */
+export interface SeriesTransferOptions {
+  characters: boolean;
+  locationsMap: boolean;
+  notes: boolean;
+  timeline: boolean;
+}
+
+export interface BookContentCounts {
+  characters: number;
+  locations: number;
+  notes: number;
+  timeline: number;
+}
+
+export async function listSeries(): Promise<Series[]> {
+  const { data, error } = await supabase.from('series').select('*');
+  if (error) throw error;
+  return data ?? [];
+}
+
+type CountableTable = 'characters' | 'locations' | 'notes' | 'timeline_events';
+
+async function countRows(table: CountableTable, bookId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from(table)
+    .select('*', { count: 'exact', head: true })
+    .eq('book_id', bookId);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+/** Счётчики для чекбоксов переноса. Только чтение — Promise.all безопасен. */
+export async function getBookContentCounts(bookId: string): Promise<BookContentCounts> {
+  const [characters, locations, notes, timeline] = await Promise.all([
+    countRows('characters', bookId),
+    countRows('locations', bookId),
+    countRows('notes', bookId),
+    countRows('timeline_events', bookId),
+  ]);
+  return { characters, locations, notes, timeline };
+}
+
+/**
+ * Копирует выбранное содержимое книги-источника в книгу-продолжение и связывает
+ * обе книги в серию. Атомарно на стороне БД (RPC), с remap ID связей.
+ * Книги остаются независимыми: правка/удаление в одной не влияет на другую.
+ */
+export async function duplicateBookContent(
+  sourceBookId: string,
+  targetBookId: string,
+  opts: SeriesTransferOptions,
+): Promise<void> {
+  const { error } = await supabase.rpc('duplicate_book_content', {
+    p_source: sourceBookId,
+    p_target: targetBookId,
+    p_characters: opts.characters,
+    p_locations_map: opts.locationsMap,
+    p_notes: opts.notes,
+    p_timeline: opts.timeline,
+  });
+  if (error) throw error;
+}
+
 export async function updateBook(id: string, patch: BookPatch): Promise<Book> {
   const { data, error } = await supabase
     .from('books')

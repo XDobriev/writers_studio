@@ -30,6 +30,8 @@ const DEMO_BOOK: Book = {
   share_token: null,
   map_bg_url: null,
   map_template: null,
+  series_id: null,
+  series_order: null,
   created_at: '2026-05-01T00:00:00Z',
   updated_at: DEMO_TS,
 };
