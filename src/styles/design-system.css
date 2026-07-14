@@ -1857,10 +1857,14 @@ select.input {
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-radius: var(--r-10);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
+.admin-table-wrap::-webkit-scrollbar { display: none; }
 .admin-table {
   width: 100%;
+  min-width: max-content;
   border-collapse: collapse;
 }
 .admin-table thead tr {
