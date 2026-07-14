@@ -119,6 +119,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     try {
       const created = await createConnection(bookId, userId, fromId, toId);
       queryClient.setQueryData<LocationConnection[]>(QUERY_KEYS.connections(bookId), (prev) => [...(prev ?? []), created]);
+      return created;
     } catch (e) { setError(e instanceof Error ? e.message : 'Неизвестная ошибка'); }
   }, [bookId, userId, queryClient, setError]);
 

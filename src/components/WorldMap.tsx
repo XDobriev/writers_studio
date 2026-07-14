@@ -14,6 +14,13 @@ const SCALE_MIN = 0.15;
 const SCALE_MAX = 5;
 const DRAG_THRESHOLD = 5;
 
+// Знак изгиба реки — стабилен по id связи, не зависит от порядка клика при создании.
+function riverBowSign(id: string): 1 | -1 {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return (h & 1) ? 1 : -1;
+}
+
 interface WorldMapProps {
   locations: Location[];
   connections: LocationConnection[];
@@ -23,7 +30,7 @@ interface WorldMapProps {
   onUpdate: (id: string, patch: LocationPatch) => void;
   onCreate: (x: number, y: number) => void;
   onDelete: (id: string) => void;
-  onCreateConnection: (fromId: string, toId: string) => void;
+  onCreateConnection: (fromId: string, toId: string) => Promise<LocationConnection | undefined>;
   onDeleteConnection: (id: string) => void;
   onUpdateConnection: (id: string, patch: ConnectionPatch) => void;
   stamps: MapStamp[];
@@ -449,7 +456,9 @@ export function WorldMap({
       if (!connectFrom) {
         setConnectFrom(id);
       } else if (connectFrom !== id) {
-        onCreateConnection(connectFrom, id);
+        void onCreateConnection(connectFrom, id).then(created => {
+          if (created) setSelectedConnId(created.id);
+        });
         setConnectFrom(null);
       }
       return;
@@ -574,16 +583,23 @@ export function WorldMap({
             const x2 = to.x   * CW, y2 = to.y   * CH;
             const cs = CONNECTION_STYLES[conn.style];
             const isSel = selectedConnId === conn.id;
+            // Реки — не прямая труба, а лёгкий изгиб через квадратичную Безье.
+            const dx = x2 - x1, dy = y2 - y1;
+            const dist = Math.hypot(dx, dy) || 1;
+            const bow = conn.style === 'river' ? Math.min(dist * 0.22, 60) * riverBowSign(conn.id) : 0;
+            const mx = (x1 + x2) / 2 - (dy / dist) * bow;
+            const my = (y1 + y2) / 2 + (dx / dist) * bow;
+            const pathD = bow ? `M${x1},${y1} Q${mx},${my} ${x2},${y2}` : `M${x1},${y1} L${x2},${y2}`;
             return (
               <g key={conn.id} data-conn-id={conn.id} style={{ cursor: 'pointer' }}>
-                <line x1={x1} y1={y1} x2={x2} y2={y2}
+                <path d={pathD} fill="none"
                   stroke={isSel ? 'var(--accent)' : cs.stroke}
                   strokeWidth={cs.width + (isSel ? 1 : 0)}
                   strokeDasharray={cs.dash || undefined}
                   opacity={isSel ? 1 : 0.65}
                 />
                 {/* Wide transparent hitbox */}
-                <line x1={x1} y1={y1} x2={x2} y2={y2}
+                <path d={pathD} fill="none"
                   stroke="transparent" strokeWidth={16} pointerEvents="stroke"
                 />
               </g>
