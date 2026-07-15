@@ -33,6 +33,7 @@ const Demo       = lazy(() => import('./pages/Demo'));
 const Home       = lazy(() => import('./pages/Home'));
 const Dashboard  = lazy(() => import('./pages/Dashboard'));
 const Editor     = lazy(() => import('./pages/Editor'));
+const Plan       = lazy(() => import('./pages/Plan'));
 const Outline    = lazy(() => import('./pages/Outline'));
 const Corkboard  = lazy(() => import('./pages/Corkboard'));
 const MapScreen  = lazy(() => import('./pages/Map'));
@@ -97,6 +98,7 @@ function AnimatedRoutes() {
         <Route path="/books" element={<PageMotion><Guard><Home /></Guard></PageMotion>} />
         <Route path="/books/:id" element={<PageMotion><Guard><Dashboard /></Guard></PageMotion>} />
         <Route path="/books/:id/editor" element={<PageMotion><Guard><Editor /></Guard></PageMotion>} />
+        <Route path="/books/:id/plan" element={<PageMotion><Guard><Plan /></Guard></PageMotion>} />
         <Route path="/books/:id/outline" element={<PageMotion><Guard><Outline /></Guard></PageMotion>} />
         <Route path="/books/:id/corkboard" element={<PageMotion><Guard><Corkboard /></Guard></PageMotion>} />
         <Route path="/books/:id/map" element={<PageMotion><Guard><MapScreen /></Guard></PageMotion>} />

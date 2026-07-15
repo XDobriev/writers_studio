@@ -2,15 +2,17 @@ import { useEffect, useRef, type MutableRefObject } from 'react';
 import { supabase } from './supabase';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 
-// Keepalive-сохранение незаписанного патча главы при закрытии вкладки.
+// Keepalive-сохранение незаписанного патча при закрытии вкладки.
 // Debounce (700 мс) может не успеть флашнуться, если пользователь закрывает
 // вкладку сразу после правки — этот обработчик дописывает pending-патч через
 // fetch({ keepalive: true }), который переживает выгрузку страницы.
-// Единая точка паттерна для Editor / Focus / Split.
+// Единая точка паттерна для Editor / Focus / Split (главы) и Plan (замысел).
+// `table` — таблица, в которую летит PATCH; `targetIdRef` держит id её строки.
 export function useBeforeUnloadSave<P extends object>(
   pendingPatchRef: MutableRefObject<P | null>,
   targetIdRef: MutableRefObject<string | null>,
   onUnload?: () => void,
+  table: 'chapters' | 'book_plans' = 'chapters',
 ) {
   const tokenRef = useRef<string | null>(null);
   useEffect(() => {
@@ -33,7 +35,7 @@ export function useBeforeUnloadSave<P extends object>(
       const id = targetIdRef.current;
       const token = tokenRef.current;
       if (patch && id && token) {
-        void fetch(`${SUPABASE_URL}/rest/v1/chapters?id=eq.${id}`, {
+        void fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -49,5 +51,5 @@ export function useBeforeUnloadSave<P extends object>(
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [pendingPatchRef, targetIdRef]);
+  }, [pendingPatchRef, targetIdRef, table]);
 }

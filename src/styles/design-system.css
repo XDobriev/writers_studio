@@ -2034,3 +2034,96 @@ select.input {
 .dict-del:hover { color: var(--danger); background: oklch(0.65 0.18 25 / 0.10); }
 /* Touch: нет hover — показываем кнопку удаления полностью */
 @media (hover: none) { .dict-del { opacity: 1; } }
+
+/* ── Замысел книги (R9) ─────────────────────────────────────────── */
+/* Скролл-контейнер страницы: лист + колонка оглавления в один ряд.
+   scrollIntoView из usePlanOutline прокручивает именно его. */
+.plan-wrap {
+  flex: 1; min-height: 0;
+  background: var(--bg);
+  overflow-x: hidden; overflow-y: auto;
+  display: flex; align-items: stretch; justify-content: center;
+  gap: 32px;
+  padding: 36px 48px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+.plan-wrap::-webkit-scrollbar { width: 5px; }
+.plan-wrap::-webkit-scrollbar-track { background: transparent; }
+.plan-wrap::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 999px;
+  transition: background var(--dur-fast);
+}
+.plan-wrap::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+/* .sheet рассчитан на колоночный .sheet-wrap (flex:1 растит его по высоте).
+   В ряду это заставило бы лист съедать место оглавления — фиксируем базис. */
+.plan-sheet { flex: 0 1 720px; }
+
+@media (max-width: 767px) {
+  .plan-wrap { padding: 16px 0 0; }
+}
+
+/* Многострочный плейсхолдер пустого состояния: базовое правило
+   .tiptap p.is-editor-empty::before схлопывает его в одну строку
+   (float:left; height:0). Абсолют держит каретку в начале абзаца. */
+.plan-editor .tiptap p.is-editor-empty:first-child { position: relative; }
+.plan-editor .tiptap p.is-editor-empty:first-child::before {
+  position: absolute; top: 0; left: 0;
+  float: none; height: auto;
+  white-space: pre-line;
+  line-height: inherit;
+}
+
+/* Оглавление */
+.plan-toc__list { display: flex; flex-direction: column; gap: 1px; }
+.plan-toc__item {
+  text-align: left;
+  background: none; border: none; cursor: pointer;
+  font: 400 12.5px/1.45 var(--font-ui);
+  color: var(--ink-3);
+  padding: 5px 10px;
+  border-radius: var(--r-6);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.plan-toc__item:hover { background: var(--surface); color: var(--ink); }
+.plan-toc__item--l1 { font-weight: 500; color: var(--ink-2); }
+.plan-toc__item--l2 { padding-left: 22px; }
+.plan-toc__item--l3 { padding-left: 34px; font-size: 12px; color: var(--ink-4); }
+
+.plan-toc--aside {
+  flex: 0 0 220px;
+  align-self: flex-start;
+  position: sticky; top: 0;
+  padding-top: 8px;
+}
+.plan-toc__head {
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-4);
+  padding: 0 10px; margin-bottom: 10px;
+}
+
+.plan-toc--collapsed {
+  flex-shrink: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-soft);
+  padding: 0 24px;
+}
+.plan-toc__toggle {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 9px 0;
+  background: none; border: none; cursor: pointer;
+  font: 500 12px var(--font-ui); color: var(--ink-2);
+}
+.plan-toc__chevron {
+  display: flex; margin-left: auto;
+  color: var(--ink-4);
+  transition: transform var(--dur-fast);
+}
+.plan-toc__chevron--open { transform: rotate(180deg); }
+.plan-toc--collapsed .plan-toc__list {
+  padding-bottom: 10px;
+  max-height: 40vh; overflow-y: auto;
+}

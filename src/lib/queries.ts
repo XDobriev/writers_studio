@@ -15,6 +15,7 @@ import { listStamps, type MapStamp } from './mapStamps';
 import { listVersions, type ChapterVersionMeta } from './versions';
 import { listChapterCharacters, listChapterMembers, type ChapterCharacterRow, type ChapterMemberRow } from './crossrefs';
 import { listBookPovEntries, type PovEntry } from './pov';
+import { getBookPlan, type BookPlan } from './bookPlans';
 
 const CHARACTERS_PAGE_SIZE = 50;
 
@@ -40,6 +41,7 @@ export const QUERY_KEYS = {
   registrationOpen: () => ['registration-open'] as const,
   seriesList: (userId: string) => ['series', userId] as const,
   bookContentCounts: (bookId: string) => ['book-content-counts', bookId] as const,
+  bookPlan: (bookId: string) => ['book-plan', bookId] as const,
   characterSearch: (bookId: string, query: string, role: string) =>
     ['character-search', bookId, query, role] as const,
 };
@@ -224,6 +226,15 @@ export function useBookContentCounts(bookId: string | undefined) {
   return useQuery<BookContentCounts>(makeQuery(
     bookId ? QUERY_KEYS.bookContentCounts(bookId) : ['book-content-counts', null],
     () => getBookContentCounts(bookId!),
+    60_000,
+  ));
+}
+
+/** Замысел книги. `null` — автор его ещё не начинал (строки в БД нет). */
+export function useBookPlan(bookId: string | undefined) {
+  return useQuery<BookPlan | null>(makeQuery(
+    bookId ? QUERY_KEYS.bookPlan(bookId) : ['book-plan', null],
+    () => getBookPlan(bookId!),
     60_000,
   ));
 }
