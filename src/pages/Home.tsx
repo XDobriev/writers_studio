@@ -8,6 +8,7 @@ import { AccountMenu } from '../components/AccountMenu';
 import { LogoMark } from '../components/LogoMark';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { BookCard } from '../components/BookCard';
+import { BookGroupHeading } from '../components/BookGroupHeading';
 import { CoverPicker, COVERS } from '../components/CoverPicker';
 import { GenrePicker } from '../components/GenrePicker';
 import { OnboardingChecklist } from '../components/OnboardingChecklist';
@@ -289,12 +290,7 @@ export default function Home() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
             {seriesGroups.map(([sid, arr]) => (
               <section key={sid}>
-                <h2 style={{ font: '600 15px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 14, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                  Серия «{seriesTitle(sid)}»
-                  <span style={{ font: '400 12px var(--font-mono)', color: 'var(--ink-4)' }}>
-                    {arr.length} {plural(arr.length, 'книга', 'книги', 'книг')}
-                  </span>
-                </h2>
+                <BookGroupHeading title={`Серия «${seriesTitle(sid)}»`} count={arr.length} />
                 <div style={GRID_STYLE}>
                   {arr.map((b) => (
                     <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} />
@@ -303,11 +299,17 @@ export default function Home() {
               </section>
             ))}
             {standaloneBooks.length > 0 && (
-              <div style={GRID_STYLE}>
-                {standaloneBooks.map((b) => (
-                  <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} />
-                ))}
-              </div>
+              <section>
+                {/* Подпись нужна только чтобы отделить одиночные книги от серий выше */}
+                {seriesGroups.length > 0 && (
+                  <BookGroupHeading title="Отдельные книги" count={standaloneBooks.length} />
+                )}
+                <div style={GRID_STYLE}>
+                  {standaloneBooks.map((b) => (
+                    <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} />
+                  ))}
+                </div>
+              </section>
             )}
           </div>
         )}
