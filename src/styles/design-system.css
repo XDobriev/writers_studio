@@ -984,6 +984,26 @@ select.input {
 }
 
 /* book card — карточка книги на Home */
+/* ── Series inline rename (BookGroupHeading) ── */
+/* font/color: inherit — имя серии живёт внутри h2 и должно читаться как его часть,
+   а не как отдельный контрол. Пунктир проявляется на hover как приглашение к правке. */
+.series-name-edit {
+  font: inherit; color: inherit;
+  background: none; border: none; padding: 0;
+  border-bottom: 1px dashed transparent;
+  cursor: pointer;
+  transition: border-color var(--dur-hover);
+}
+.series-name-edit:hover { border-bottom-color: var(--ink-4); }
+.series-name-input {
+  font: inherit; color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-1);
+  padding: 0 6px;
+  min-width: 12ch;
+}
+
 .book-card { position: relative; }
 .book-card__edit {
   display: flex;

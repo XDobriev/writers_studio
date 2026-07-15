@@ -9,11 +9,12 @@ import { LogoMark } from '../components/LogoMark';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { BookCard } from '../components/BookCard';
 import { BookGroupHeading } from '../components/BookGroupHeading';
+import { SeriesNameEdit } from '../components/SeriesNameEdit';
 import { CoverPicker, COVERS } from '../components/CoverPicker';
 import { GenrePicker } from '../components/GenrePicker';
 import { OnboardingChecklist } from '../components/OnboardingChecklist';
 import { supabase, ensureAuthReady, type Book } from '../lib/supabase';
-import { createBook, updateBook, deleteBook as deleteBookApi, duplicateBookContent } from '../lib/books';
+import { createBook, updateBook, deleteBook as deleteBookApi, duplicateBookContent, updateSeries, type Series } from '../lib/books';
 import {
   SeriesTransferPicker,
   INITIAL_SERIES_TRANSFER,
@@ -186,6 +187,18 @@ export default function Home() {
     }
   };
 
+  const renameSeries = async (id: string, title: string) => {
+    if (!user) return;
+    try {
+      const updated = await updateSeries(id, title);
+      queryClient.setQueryData<Series[]>(QUERY_KEYS.seriesList(user.id), (prev) =>
+        (prev ?? []).map((s) => (s.id === id ? updated : s)),
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Не удалось переименовать серию');
+    }
+  };
+
   const totalWords = (books ?? []).reduce((s, b) => s + b.words, 0);
 
   // Книги серии — сгруппированы и упорядочены по series_order; остальные — плоско.
@@ -290,7 +303,9 @@ export default function Home() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
             {seriesGroups.map(([sid, arr]) => (
               <section key={sid}>
-                <BookGroupHeading title={`Серия «${seriesTitle(sid)}»`} count={arr.length} />
+                <BookGroupHeading count={arr.length}>
+                  Серия «<SeriesNameEdit name={seriesTitle(sid)} onRename={(t) => void renameSeries(sid, t)} />»
+                </BookGroupHeading>
                 <div style={GRID_STYLE}>
                   {arr.map((b) => (
                     <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} />
@@ -302,7 +317,7 @@ export default function Home() {
               <section>
                 {/* Подпись нужна только чтобы отделить одиночные книги от серий выше */}
                 {seriesGroups.length > 0 && (
-                  <BookGroupHeading title="Отдельные книги" count={standaloneBooks.length} />
+                  <BookGroupHeading count={standaloneBooks.length}>Отдельные книги</BookGroupHeading>
                 )}
                 <div style={GRID_STYLE}>
                   {standaloneBooks.map((b) => (

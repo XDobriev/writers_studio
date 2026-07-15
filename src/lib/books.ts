@@ -63,6 +63,21 @@ export async function listSeries(): Promise<Series[]> {
   return data ?? [];
 }
 
+/**
+ * Серия создаётся в RPC с названием книги-источника — но название серии и название
+ * первого романа совпадают редко. Без этого правка недоступна ниоткуда.
+ */
+export async function updateSeries(id: string, title: string): Promise<Series> {
+  const { data, error } = await supabase
+    .from('series')
+    .update({ title })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 type CountableTable = 'characters' | 'locations' | 'notes' | 'timeline_events';
 
 async function countRows(table: CountableTable, bookId: string): Promise<number> {
