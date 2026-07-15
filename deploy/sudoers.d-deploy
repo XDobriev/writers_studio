@@ -3,9 +3,12 @@
 # Verify syntax:  sudo visudo -c -f /etc/sudoers.d/deploy
 #
 # IMPORTANT: Only these three exact commands are allowed — no wildcards.
-# - /bin/cp    : only from the staging path to the nginx config path
+# - /usr/local/sbin/deploy-nginx-conf.sh : root-owned wrapper (deploy/deploy-nginx-conf.sh),
+#   refuses to copy if the staged source is a symlink or non-regular file. A bare
+#   `sudo cp SRC DST` was removed here: `deploy` owns SRC, GNU cp dereferences symlinks
+#   by default, so `deploy` could point SRC at /etc/shadow and read it as root.
 # - /usr/sbin/nginx -t : syntax check only
 # - /bin/systemctl reload nginx : reload only, not restart/stop/start
-deploy ALL=(ALL) NOPASSWD: /bin/cp /var/www/avtorstudio/nginx.conf /etc/nginx/sites-available/avtorstudio.com
+deploy ALL=(ALL) NOPASSWD: /usr/local/sbin/deploy-nginx-conf.sh
 deploy ALL=(ALL) NOPASSWD: /usr/sbin/nginx -t
 deploy ALL=(ALL) NOPASSWD: /bin/systemctl reload nginx

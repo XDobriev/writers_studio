@@ -90,4 +90,4 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" \
-            "sudo cp /var/www/avtorstudio/nginx.conf /etc/nginx/sites-available/avtorstudio.com && sudo nginx -t && sudo systemctl reload nginx"
+            "sudo /usr/local/sbin/deploy-nginx-conf.sh && sudo nginx -t && sudo systemctl reload nginx"
