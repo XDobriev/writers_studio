@@ -2073,6 +2073,9 @@ select.input {
   float: none; height: auto;
   white-space: pre-line;
   line-height: inherit;
+  /* text-indent наследуется из .sheet p (красная строка прозы) и сдвинул бы
+     первый вопрос вправо относительно остальных трёх. */
+  text-indent: 0;
 }
 
 /* Оглавление */
