@@ -1420,6 +1420,22 @@ select.input {
 .char-tab:not(.char-tab--on):hover { color: var(--ink-2); background: var(--surface-2); }
 .char-tab--on { color: var(--ink); border-bottom-color: var(--accent); }
 
+/* ── Billing interval toggle (pricing card, upgrade modal) ── */
+.bill-toggle {
+  display: flex; gap: 2px; padding: 3px;
+  background: var(--surface-2); border-radius: var(--r-2);
+}
+.bill-toggle__opt {
+  flex: 1; height: 30px; border-radius: var(--r-1);
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  font: 500 12px var(--font-ui); color: var(--ink-3);
+  background: transparent; border: none; cursor: pointer;
+  transition: background var(--dur-hover), color var(--dur-hover);
+}
+.bill-toggle__opt:not(.bill-toggle__opt--on):hover { color: var(--ink-2); }
+.bill-toggle__opt--on { background: var(--bg); color: var(--ink); }
+.bill-toggle__save { font: 500 9.5px var(--font-mono); letter-spacing: 0.04em; color: var(--ok); }
+
 /* ── Toast notifications (fixed bottom) ── */
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -1891,6 +1907,45 @@ select.input {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* --- custom radio --- */
+.as-radio {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color var(--dur-hover);
+  position: relative;
+}
+.as-radio:checked { border-color: var(--accent); }
+.as-radio:checked::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.as-radio:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --- cancel-subscription reason row --- */
+.cancel-reason {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 8px; margin: 0 -8px;
+  border-radius: var(--r-2);
+  font: 400 13px var(--font-ui); color: var(--ink-2);
+  cursor: pointer;
+  transition: background var(--dur-hover), color var(--dur-hover);
+}
+.cancel-reason:hover { background: var(--surface-2); color: var(--ink); }
+.cancel-reason:has(.as-radio:checked) { color: var(--ink); }
 
 /* --- admin tables --- */
 .admin-table-wrap {

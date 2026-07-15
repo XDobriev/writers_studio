@@ -26,7 +26,7 @@ import { getPlanLimits } from '../lib/profiles';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
-import { useBooks, useProfile, useSeries, QUERY_KEYS } from '../lib/queries';
+import { useBooks, useHasAnyCharacter, useProfile, useSeries, QUERY_KEYS } from '../lib/queries';
 import { optimizeImage, COVER_OPTS } from '../lib/imageOptimize';
 import { useFeatureFlag } from '../lib/useFeatureFlag';
 
@@ -50,6 +50,9 @@ export default function Home() {
   const { isMobile } = useResponsive();
   const { error: err, setError: setErr } = useErrorState();
   const { enabled: onboardingEnabled } = useFeatureFlag('onboarding_checklist');
+  const checklistVisible = onboardingEnabled
+    && !!profile && !profile.onboarded_at && !profile.checklist_dismissed_at;
+  const { data: hasCharacter } = useHasAnyCharacter(user?.id, checklistVisible);
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
@@ -272,6 +275,9 @@ export default function Home() {
             books={books}
             userId={user.id}
             onboardedAt={profile?.onboarded_at ?? null}
+            checklistDismissedAt={profile?.checklist_dismissed_at ?? null}
+            hasCharacter={hasCharacter ?? false}
+            firstExportAt={profile?.first_export_at ?? null}
             onCreateBook={handleNewBookClick}
           />
         )}

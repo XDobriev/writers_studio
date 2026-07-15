@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
 import { getProfile } from './profiles';
 import { QUERY_KEYS } from './queries';
+import { saveCancellationReason, type CancelReason } from './cancellations';
 
 export type Plan = 'free' | 'pro' | 'lifetime';
 
@@ -26,8 +27,8 @@ export interface UseSubscriptionResult {
   cancelError: string | null;
   cancelConfirmOpen: boolean;
   setCancelConfirmOpen: (v: boolean) => void;
-  handleCancel: () => Promise<void>;
-  handleResume: () => Promise<void>;
+  handleCancel: (reason: CancelReason, comment: string) => Promise<void>;
+  handleResume: () => Promise<boolean>;
 }
 
 export function useSubscription(userId: string | undefined, fetchPayments: boolean): UseSubscriptionResult {
@@ -103,7 +104,8 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
     }
   };
 
-  const invokeCancelToggle = async (resume: boolean) => {
+  /** true — сервер подтвердил переключение. Вызывающему нужен исход, а не только setState. */
+  const invokeCancelToggle = async (resume: boolean): Promise<boolean> => {
     setCancelLoading(true);
     setCancelError(null);
     try {
@@ -118,15 +120,30 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
       const expiresAt = (data as { expires_at?: string })?.expires_at ?? null;
       setCancelAtPeriodEnd(!resume);
       if (expiresAt) setPlanExpiresAt(expiresAt);
+      return true;
     } catch (e) {
       setCancelError(e instanceof Error ? e.message : 'Ошибка');
+      return false;
     } finally {
       setCancelLoading(false);
       setCancelConfirmOpen(false);
     }
   };
 
-  const handleCancel = () => invokeCancelToggle(false);
+  const handleCancel = async (reason: CancelReason, comment: string) => {
+    const cancelled = await invokeCancelToggle(false);
+    // Причина пишется только после подтверждённой отмены — иначе сорвавшаяся отмена
+    // оставила бы в БД запись об уходе, которого не было. Сбой самой записи не
+    // откатывает отмену: это исследование, а не часть транзакции.
+    if (cancelled && userId) {
+      try {
+        await saveCancellationReason(userId, reason, comment, plan);
+      } catch (e) {
+        console.error('[useSubscription] saveCancellationReason failed:', e);
+      }
+    }
+  };
+
   const handleResume = () => invokeCancelToggle(true);
 
   return {

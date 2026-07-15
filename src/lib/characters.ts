@@ -32,6 +32,17 @@ export async function listCharactersPage(bookId: string, from: number, to: numbe
   return (data ?? []) as Character[];
 }
 
+/** Шаг «добавить персонажа» в онбординге: важен факт, а не список — отсюда limit(1). */
+export async function hasAnyCharacter(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('characters')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1);
+  if (error) throw new DbError(error.message, error.code, 'characters');
+  return (data ?? []).length > 0;
+}
+
 export function createCharacter(
   bookId: string,
   userId: string,

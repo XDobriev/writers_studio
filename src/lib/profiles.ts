@@ -18,13 +18,13 @@ export function getPlanLimits(plan: string | undefined): PlanLimits {
 // Частичная выборка из БД (Tables<'profiles'>); user_dictionary — non-null (контракт приложения).
 export type Profile = Pick<
   Tables<'profiles'>,
-  'user_id' | 'plan' | 'plan_expires_at' | 'onboarded_at' | 'grandfathered' | 'recurring_inv_id' | 'cancel_at_period_end' | 'display_name'
+  'user_id' | 'plan' | 'plan_expires_at' | 'onboarded_at' | 'grandfathered' | 'recurring_inv_id' | 'cancel_at_period_end' | 'display_name' | 'checklist_dismissed_at' | 'first_export_at'
 > & { user_dictionary: string[] };
 
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('user_id, plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered, recurring_inv_id, cancel_at_period_end, display_name')
+    .select('user_id, plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered, recurring_inv_id, cancel_at_period_end, display_name, checklist_dismissed_at, first_export_at')
     .eq('user_id', userId)
     .single();
   if (error) console.error('[profiles] getProfile failed:', error.message);
@@ -73,6 +73,7 @@ export async function getRegistrationOpen(): Promise<boolean> {
   return data?.enabled ?? true;
 }
 
+/** Все шаги чеклиста пройдены. Метрика активации — не путать с dismissChecklist. */
 export async function markOnboarded(userId: string): Promise<void> {
   const { error } = await supabase
     .from('profiles')
@@ -80,6 +81,26 @@ export async function markOnboarded(userId: string): Promise<void> {
     .eq('user_id', userId)
     .is('onboarded_at', null);
   if (error) console.error('[profiles] markOnboarded failed:', error.message);
+}
+
+/** Чеклист закрыт крестиком. Скрывает баннер, но активацией не считается. */
+export async function dismissChecklist(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ checklist_dismissed_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .is('checklist_dismissed_at', null);
+  if (error) console.error('[profiles] dismissChecklist failed:', error.message);
+}
+
+/** Первый успешный экспорт. Пишется один раз — `.is(null)` защищает от перезаписи. */
+export async function markFirstExport(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ first_export_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .is('first_export_at', null);
+  if (error) console.error('[profiles] markFirstExport failed:', error.message);
 }
 
 export async function updateDisplayName(userId: string, name: string): Promise<void> {

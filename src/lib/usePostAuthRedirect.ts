@@ -18,7 +18,7 @@ export function usePostAuthRedirect() {
     const urlPlan = params.get('plan');
     const storedPlan = sessionStorage.getItem('pending_plan');
     const rawPlan = urlPlan ?? storedPlan;
-    const plan = rawPlan === 'pro' || rawPlan === 'lifetime' ? rawPlan : null;
+    const plan = rawPlan === 'pro' || rawPlan === 'pro_annual' || rawPlan === 'lifetime' ? rawPlan : null;
 
     if (plan) {
       // Очищаем оба источника ДО редиректа — иначе Back-кнопка из Робокассы

@@ -178,6 +178,33 @@ export type Database = {
           },
         ]
       }
+      cancellation_reasons: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          plan: string | null
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          plan?: string | null
+          reason: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          plan?: string | null
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chapter_characters: {
         Row: {
           auto_detected: boolean
@@ -780,8 +807,10 @@ export type Database = {
       profiles: {
         Row: {
           cancel_at_period_end: boolean
+          checklist_dismissed_at: string | null
           created_at: string
           display_name: string | null
+          first_export_at: string | null
           grandfathered: boolean
           is_test: boolean
           last_billed_expiry: string | null
@@ -797,8 +826,10 @@ export type Database = {
         }
         Insert: {
           cancel_at_period_end?: boolean
+          checklist_dismissed_at?: string | null
           created_at?: string
           display_name?: string | null
+          first_export_at?: string | null
           grandfathered?: boolean
           is_test?: boolean
           last_billed_expiry?: string | null
@@ -814,8 +845,10 @@ export type Database = {
         }
         Update: {
           cancel_at_period_end?: boolean
+          checklist_dismissed_at?: string | null
           created_at?: string
           display_name?: string | null
+          first_export_at?: string | null
           grandfathered?: boolean
           is_test?: boolean
           last_billed_expiry?: string | null
@@ -1015,6 +1048,7 @@ export type Database = {
         Args: { days: number; target_user_id: string }
         Returns: undefined
       }
+      get_admin_activation_funnel: { Args: never; Returns: Json }
       get_admin_anomalies: { Args: never; Returns: Json }
       get_admin_audit_log: {
         Args: never
@@ -1028,6 +1062,7 @@ export type Database = {
           target_user_id: string
         }[]
       }
+      get_admin_cancellations: { Args: never; Returns: Json }
       get_admin_dau_trend: {
         Args: never
         Returns: {

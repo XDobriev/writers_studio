@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useErrorState } from '../lib/useErrorState';
 import { useAuth } from '../lib/auth';
-import { getPlanLimits } from '../lib/profiles';
-import { useProfile } from '../lib/queries';
+import { getPlanLimits, markFirstExport } from '../lib/profiles';
+import { useProfile, QUERY_KEYS } from '../lib/queries';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { Icon } from '../components/Icon';
 import { isImageUrl } from '../components/CoverPicker';
@@ -39,6 +40,7 @@ export default function Export() {
   const { id: bookId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: profile } = useProfile(user?.id);
   const limits = getPlanLimits(profile?.plan);
@@ -178,10 +180,6 @@ export default function Export() {
     }
     const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle, cover: coverData, mapImage: mapImageData };
     try {
-      // Set onboarding flag on first export
-      if (!localStorage.getItem('as_checklist_export')) {
-        localStorage.setItem('as_checklist_export', '1');
-      }
       if (format === 'docx') {
         const { buildDocxBlob } = await import('../lib/exportDocx');
         triggerDownload(await buildDocxBlob(bookWithAuthor, chaptersWithContent, opts), filename);
@@ -205,6 +203,11 @@ export default function Export() {
       } else {
         downloadText(buildTextDoc(bookWithAuthor, chaptersWithContent, opts), 'text/plain', filename);
       }
+      // Шаг онбординга «попробовать экспорт» — только после успешной выгрузки.
+      if (user && !profile?.first_export_at) {
+        await markFirstExport(user.id);
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.profile(user.id) });
+      }
       try {
         await updateBook(bookId, { author: authorName.trim() || null });
       } catch { /* silent */ }
@@ -215,7 +218,7 @@ export default function Export() {
     }
   }, [book, bookId, authorName, selectedChapters, format, limits, includeChapterTitles, includeTitlePage,
       includeNotes, notes, language, paragraphStyle, filename, includeMap, mapLocations, mapConnections,
-      pdfPageSize, setError, clearError]);
+      pdfPageSize, setError, clearError, user, profile?.first_export_at, queryClient]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 

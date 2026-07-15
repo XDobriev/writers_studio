@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { markOnboarded } from '../lib/profiles';
+import { dismissChecklist, markOnboarded } from '../lib/profiles';
 import { QUERY_KEYS } from '../lib/queries';
 import type { Book } from '../lib/supabase';
 
@@ -9,6 +9,9 @@ interface Props {
   books: Book[];
   userId: string;
   onboardedAt: string | null;
+  checklistDismissedAt: string | null;
+  hasCharacter: boolean;
+  firstExportAt: string | null;
   onCreateBook?: () => void;
 }
 
@@ -21,16 +24,19 @@ const STEPS: { key: StepKey; label: string; path: string | null }[] = [
   { key: 'triedExport', label: 'Попробовать экспорт',    path: 'export' },
 ];
 
-export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }: Props) {
+export function OnboardingChecklist({
+  books, userId, onboardedAt, checklistDismissedAt, hasCharacter, firstExportAt, onCreateBook,
+}: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [hiding, setHiding] = useState(false);
 
+  // Всё из БД: localStorage терял прогресс при смене устройства и не давал считать активацию.
   const completed: Record<StepKey, boolean> = {
     bookCreated: books.length > 0,
     wroteWords:  books.some(b => b.words > 0),
-    addedChar:   localStorage.getItem('as_checklist_char') === '1',
-    triedExport: localStorage.getItem('as_checklist_export') === '1',
+    addedChar:   hasCharacter,
+    triedExport: firstExportAt !== null,
   };
 
   const completedCount = Object.values(completed).filter(Boolean).length;
@@ -46,15 +52,17 @@ export function OnboardingChecklist({ books, userId, onboardedAt, onCreateBook }
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [allDone, onboardedAt, userId, queryClient]);
 
+  // Закрытие крестиком — не активация: пишем отдельное поле, иначе метрика
+  // не отличает дошедшего до конца от прогнавшего баннер.
   const handleDismiss = () => {
     setHiding(true);
     setTimeout(() => {
-      markOnboarded(userId);
+      dismissChecklist(userId);
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.profile(userId) });
     }, 200);
   };
 
-  if (onboardedAt) return null;
+  if (onboardedAt || checklistDismissedAt) return null;
 
   const firstBook = books[0];
 

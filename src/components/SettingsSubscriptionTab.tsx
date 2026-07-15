@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSubscription, type Plan } from '../lib/useSubscription';
 import { UpgradeModal } from './UpgradeModal';
 import { ConfirmDialog } from './ConfirmDialog';
+import { CancelSubscriptionDialog } from './CancelSubscriptionDialog';
 import { plural } from '../lib/i18n';
 
 const PLAN_META: Record<Plan, { name: string; desc: string }> = {
@@ -168,12 +169,12 @@ export function SettingsSubscriptionTab({ userId, isActive }: Props) {
         />
       )}
 
-      <ConfirmDialog
+      <CancelSubscriptionDialog
         open={cancelConfirmOpen}
-        message={`После ${expiresFormatted ?? 'окончания периода'} подписка Pro не продлится автоматически. До этой даты вы сохраняете полный доступ.`}
-        confirmLabel="Отменить подписку"
+        expiresFormatted={expiresFormatted}
+        loading={cancelLoading}
         onConfirm={handleCancel}
-        onCancel={() => setCancelConfirmOpen(false)}
+        onClose={() => setCancelConfirmOpen(false)}
       />
 
       <ConfirmDialog

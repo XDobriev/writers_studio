@@ -100,9 +100,8 @@ export function useCharacterMutations({
           charInfiniteAppend(prev, created),
         );
       }
-      if (!localStorage.getItem('as_checklist_char')) {
-        localStorage.setItem('as_checklist_char', '1');
-      }
+      // Шаг онбординга «добавить персонажа» считается из БД — сбрасываем закэшированный факт.
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.hasAnyCharacter(userId) });
       onCreated(created.id);
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Неизвестная ошибка');

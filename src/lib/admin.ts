@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { CancelReason } from './cancellations';
 
 export type Plan = 'free' | 'pro' | 'lifetime';
 export type Tab = 'users' | 'analytics' | 'audit' | 'payments' | 'finances' | 'flags';
@@ -37,6 +38,31 @@ export interface AuditEntry {
   payload: Record<string, string> | null;
   created_at: string;
   is_test: boolean;
+}
+
+/** Прогресс по шагам онбординга. Не строгая воронка — шаги можно проходить не по порядку. */
+export interface ActivationFunnel {
+  signed_up: number;
+  created_book: number;
+  wrote_words: number;
+  added_character: number;
+  tried_export: number;
+  activated: number;
+  dismissed_early: number;
+}
+
+export interface CancellationEntry {
+  id: string;
+  reason: CancelReason;
+  comment: string | null;
+  plan: string | null;
+  created_at: string;
+  email: string;
+}
+
+export interface AdminCancellations {
+  by_reason: { reason: CancelReason; count: number }[];
+  recent: CancellationEntry[];
 }
 
 export interface AdminRevenue {
@@ -112,6 +138,18 @@ export async function fetchAuditLog(): Promise<AuditEntry[]> {
   const { data, error } = await supabase.rpc('get_admin_audit_log');
   if (error) throw new AdminRpcError(error.message, error.code);
   return data as AuditEntry[];
+}
+
+export async function fetchActivationFunnel(): Promise<ActivationFunnel> {
+  const { data, error } = await supabase.rpc('get_admin_activation_funnel');
+  if (error) throw new AdminRpcError(error.message, error.code);
+  return data as unknown as ActivationFunnel;
+}
+
+export async function fetchCancellations(): Promise<AdminCancellations> {
+  const { data, error } = await supabase.rpc('get_admin_cancellations');
+  if (error) throw new AdminRpcError(error.message, error.code);
+  return data as unknown as AdminCancellations;
 }
 
 export async function fetchRevenue(): Promise<AdminRevenue> {

@@ -6,6 +6,9 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { supabase } from '../lib/supabase';
+import { fetchActivationFunnel, fetchCancellations, type ActivationFunnel, type AdminCancellations } from '../lib/admin';
+import { ActivationFunnelPanel } from '../components/admin/ActivationFunnelPanel';
+import { CancellationsPanel } from '../components/admin/CancellationsPanel';
 
 const C_ACCENT = 'oklch(0.63 0.16 30)';
 const C_BORDER = 'oklch(0.28 0.010 50)';
@@ -130,6 +133,8 @@ export default function AdminAnalytics({ topUsers }: Props) {
   const [dau, setDau] = useState<DauPoint[] | null>(null);
   const [retention, setRetention] = useState<RetentionData | null>(null);
   const [anomalies, setAnomalies] = useState<AnomaliesData | null>(null);
+  const [funnel, setFunnel] = useState<ActivationFunnel | null>(null);
+  const [cancellations, setCancellations] = useState<AdminCancellations | null>(null);
   const { error: err, setError: setErr } = useErrorState();
 
   useEffect(() => {
@@ -146,6 +151,15 @@ export default function AdminAnalytics({ topUsers }: Props) {
     });
   }, [setErr]);
 
+  useEffect(() => {
+    fetchActivationFunnel()
+      .then(setFunnel)
+      .catch((e: unknown) => setErr(e instanceof Error ? e.message : 'Не удалось загрузить воронку'));
+    fetchCancellations()
+      .then(setCancellations)
+      .catch((e: unknown) => setErr(e instanceof Error ? e.message : 'Не удалось загрузить причины отмен'));
+  }, [setErr]);
+
   const maxWords = topUsers[0]?.words_total || 1;
 
   return (
@@ -154,7 +168,10 @@ export default function AdminAnalytics({ topUsers }: Props) {
         <ErrorBanner message={err} style={{ marginBottom: 16 }} />
       )}
 
-      <SectionTitle first>Тренд активности (30 дней)</SectionTitle>
+      <SectionTitle first>Активация — без тестовых аккаунтов</SectionTitle>
+      <ActivationFunnelPanel data={funnel} />
+
+      <SectionTitle>Тренд активности (30 дней)</SectionTitle>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '20px 24px 12px' }}>
         <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 16 }}>
           DAU — уникальных пишущих в день
@@ -196,6 +213,9 @@ export default function AdminAnalytics({ topUsers }: Props) {
           </ResponsiveContainer>
         )}
       </div>
+
+      <SectionTitle>Причины отмен</SectionTitle>
+      <CancellationsPanel data={cancellations} />
 
       <SectionTitle>Retention</SectionTitle>
       {retention == null ? (

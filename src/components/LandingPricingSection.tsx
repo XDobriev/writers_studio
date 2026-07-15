@@ -5,17 +5,26 @@ import { revealVariants } from '../lib/motion';
 import { AnimatedPricingCard } from './AnimatedPricingCard';
 import { getLifetimeSlotsRemaining, getProfile } from '../lib/profiles';
 import { SectionLabel } from './LandingSectionLabel';
+import { BillingIntervalToggle } from './BillingIntervalToggle';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import type { BillingInterval } from '../lib/pricing';
+import {
+  LIFETIME_PRICE, PRO_PRICES, formatRub,
+  isGrandfatheringActive, planKeyFor, proPrice,
+} from '../lib/pricing';
 
-const isGrandfatheringActive = new Date() < new Date('2026-09-01');
+type PlanKey = 'pro' | 'pro_annual' | 'lifetime' | null;
 
 export function LandingPricing() {
   const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
   const [slotsLoaded, setSlotsLoaded] = useState(false);
-  const [loadingPlan, setLoadingPlan] = useState<'pro' | 'lifetime' | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<'pro' | 'pro_annual' | 'lifetime' | null>(null);
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
   const { session } = useAuth();
   const navigate = useNavigate();
+
+  const early = isGrandfatheringActive();
 
   useEffect(() => {
     getLifetimeSlotsRemaining().then((slots) => {
@@ -24,7 +33,7 @@ export function LandingPricing() {
     });
   }, []);
 
-  const handleCtaClick = async (planKey: 'pro' | 'lifetime' | null) => {
+  const handleCtaClick = async (planKey: 'pro' | 'pro_annual' | 'lifetime' | null) => {
     if (!planKey) {
       navigate('/login');
       return;
@@ -67,16 +76,16 @@ export function LandingPricing() {
         ['Экспорт EPUB, FB2 (для читалок), DOCX', false],
         ['Безлимит персонажей и хронологии', false],
       ] as [string, boolean][],
-      cta: 'Начать бесплатно', accent: false, tag: null, planKey: null as 'pro' | 'lifetime' | null,
+      cta: 'Начать бесплатно', accent: false, tag: null, planKey: null as PlanKey,
     },
     {
       name: 'Pro',
-      price: isGrandfatheringActive ? '290 ₽' : '399 ₽',
-      priceOld: isGrandfatheringActive ? '399 ₽' : undefined,
-      sub: isGrandfatheringActive ? 'в месяц' : 'в месяц · или 3 490 ₽/год',
-      subAnnualOld: isGrandfatheringActive ? '3 490 ₽' : undefined,
-      subAnnualNew: isGrandfatheringActive ? '2 900 ₽/год' : undefined,
-      promoBadge: isGrandfatheringActive ? '⏰ Ранняя цена · до 1 сентября' : undefined,
+      price: formatRub(proPrice(billingInterval, early)),
+      priceOld: early ? formatRub(PRO_PRICES.base[billingInterval]) : undefined,
+      sub: billingInterval === 'annual'
+        ? `в год · ${formatRub(Math.round(proPrice('annual', early) / 12))}/мес`
+        : 'в месяц',
+      promoBadge: early ? '⏰ Ранняя цена · до 1 сентября' : undefined,
       summary: 'Для тех, кто работает всерьёз — безлимит персонажей, хронологии и полный экспорт.',
       features: [
         ['Безлимит книг и персонажей', true],
@@ -87,10 +96,10 @@ export function LandingPricing() {
         ['Приоритетная поддержка', true],
         ['Доступ к закрытому чату автора', true],
       ] as [string, boolean][],
-      cta: 'Перейти на Pro', accent: true, tag: 'Чаще выбирают', planKey: 'pro' as 'pro' | 'lifetime' | null,
+      cta: 'Перейти на Pro', accent: true, tag: 'Чаще выбирают', planKey: planKeyFor(billingInterval) as PlanKey,
     },
     {
-      name: 'Lifetime', price: '4 990 ₽', sub: 'один раз · навсегда',
+      name: 'Lifetime', price: formatRub(LIFETIME_PRICE), sub: 'один раз · навсегда',
       summary: `Разовая оплата. Все обновления Pro — на всю жизнь. Осталось ${slotsLabel} мест.`,
       features: [
         ['Всё из тарифа Pro', true],
@@ -101,7 +110,7 @@ export function LandingPricing() {
         ['Закрытое сообщество авторов', true],
         [`Только первые 50 покупателей`, true],
       ] as [string, boolean][],
-      cta: 'Купить Lifetime', accent: false, tag: `${slotsLabel} мест · ранний доступ`, planKey: 'lifetime' as 'pro' | 'lifetime' | null,
+      cta: 'Купить Lifetime', accent: false, tag: `${slotsLabel} мест · ранний доступ`, planKey: 'lifetime' as PlanKey,
     },
   ];
 
@@ -128,6 +137,11 @@ export function LandingPricing() {
               >
               {t.tag && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', padding: '4px 12px', borderRadius: 999, background: t.accent ? 'var(--accent)' : 'var(--surface-2)', color: t.accent ? 'oklch(0.98 0 0)' : 'var(--ink-2)', font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', border: t.accent ? 'none' : '1px solid var(--border)', whiteSpace: 'nowrap' }}>{t.tag}</div>}
               <div style={{ font: '500 11px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: t.accent ? 'var(--accent)' : 'var(--ink-3)', marginBottom: 14 }}>{t.name}</div>
+              {t.name === 'Pro' && (
+                <div style={{ marginBottom: 14 }}>
+                  <BillingIntervalToggle value={billingInterval} onChange={setBillingInterval} grandfathered={early} />
+                </div>
+              )}
               <div style={{ marginBottom: 6 }}>
                 {'priceOld' in t && t.priceOld && (
                   <span style={{ display: 'block', font: '400 15px var(--font-serif)', color: 'var(--ink-4)', textDecoration: 'line-through', marginBottom: 2 }}>
@@ -137,10 +151,7 @@ export function LandingPricing() {
                 <span style={{ font: '600 48px var(--font-serif)', letterSpacing: '-0.018em', color: 'var(--ink)' }}>{t.price}</span>
               </div>
               <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 'promoBadge' in t && t.promoBadge ? 8 : 18 }}>
-                {'subAnnualOld' in t && t.subAnnualOld
-                  ? <>{t.sub} · или <s style={{ color: 'var(--ink-4)' }}>{t.subAnnualOld}</s> {'subAnnualNew' in t ? t.subAnnualNew : ''}</>
-                  : t.sub
-                }
+                {t.sub}
               </div>
               {'promoBadge' in t && t.promoBadge && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: 'color-mix(in oklch, var(--warn) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--warn) 28%, transparent)', borderRadius: 999, font: '500 10px var(--font-mono)', color: 'var(--warn)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 18 }}>

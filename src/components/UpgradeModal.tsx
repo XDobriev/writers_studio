@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { getLifetimeSlotsRemaining } from '../lib/profiles';
 import { useFeatureFlag } from '../lib/useFeatureFlag';
+import { BillingIntervalToggle } from './BillingIntervalToggle';
+import type { BillingInterval } from '../lib/pricing';
+import { LIFETIME_PRICE, formatRub, planKeyFor, proPrice } from '../lib/pricing';
 
 const PRO_FEATURES = [
   'Безлимитное количество книг',
@@ -25,13 +28,15 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
   const [isLoading, setIsLoading] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [recurringConsent, setRecurringConsent] = useState(false);
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
   const { enabled: paymentsEnabled } = useFeatureFlag('payments_enabled');
+  const isAnnual = billingInterval === 'annual';
 
-  async function handlePurchase(plan: 'pro' | 'lifetime') {
+  async function handlePurchase(plan: 'pro' | 'pro_annual' | 'lifetime') {
     setIsLoading(true);
     setPurchaseError(null);
     try {
-      if (plan === 'pro' && user) {
+      if (plan !== 'lifetime' && user) {
         // user_id обязателен (NOT NULL, без дефолта/триггера) — без него insert
         // молча падал и согласие на рекуррент не логировалось. Ошибку не блокируем
         // оплатой, но фиксируем в консоли.
@@ -119,13 +124,24 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
                 ))}
               </div>
 
+              <div style={{ marginBottom: 12 }}>
+                <BillingIntervalToggle value={billingInterval} onChange={setBillingInterval} grandfathered={grandfathered} />
+              </div>
+
               <div style={{
                 background: 'var(--surface)', borderRadius: 10,
                 padding: '12px 14px', marginBottom: 16,
-                display: 'flex', alignItems: 'baseline', gap: 6,
+                display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap',
               }}>
-                <span style={{ font: '700 26px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.03em' }}>{grandfathered ? '290 ₽' : '399 ₽'}</span>
-                <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-4)' }}>/ месяц</span>
+                <span style={{ font: '700 26px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.03em' }}>
+                  {formatRub(proPrice(billingInterval, grandfathered))}
+                </span>
+                <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-4)' }}>{isAnnual ? '/ год' : '/ месяц'}</span>
+                {isAnnual && (
+                  <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)' }}>
+                    · {formatRub(Math.round(proPrice('annual', grandfathered) / 12))}/мес
+                  </span>
+                )}
                 {grandfathered && (
                   <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ok)', marginLeft: 2 }}>· ранняя цена навсегда</span>
                 )}
@@ -141,7 +157,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
                     style={{ margin: 0, flexShrink: 0 }}
                   />
                   <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.5 }}>
-                    Согласен на автоматические ежемесячные списания согласно{' '}
+                    Согласен на автоматические {isAnnual ? 'ежегодные' : 'ежемесячные'} списания согласно{' '}
                     <a href="/offer" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
                       условиям оферты
                     </a>
@@ -155,7 +171,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
                 <button
                   className="btn btn--primary"
                   style={{ justifyContent: 'center', fontSize: 13, height: 38 }}
-                  onClick={() => handlePurchase('pro')}
+                  onClick={() => handlePurchase(planKeyFor(billingInterval))}
                   disabled={isLoading || !recurringConsent || !paymentsEnabled}
                 >
                   {isLoading ? 'Переход к оплате…' : 'Оформить подписку'}
@@ -203,7 +219,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}>
-                <span style={{ font: '700 22px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.03em' }}>4 990 ₽</span>
+                <span style={{ font: '700 22px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.03em' }}>{formatRub(LIFETIME_PRICE)}</span>
                 <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>разовый платёж</span>
               </div>
               <button

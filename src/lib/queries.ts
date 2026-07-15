@@ -4,7 +4,7 @@ import { getBook, listBooks, listWritingSnapshots, getBookContentCounts, listSer
 import { getProfile, getRegistrationOpen, type Profile } from './profiles';
 import type { Book } from './supabase';
 import { listChaptersMeta, getChapterContent, type ChapterMeta } from './chapters';
-import { listCharactersPage, searchCharactersServer, type Character } from './characters';
+import { hasAnyCharacter, listCharactersPage, searchCharactersServer, type Character } from './characters';
 import type { CharacterRole } from './characters';
 import { listRelationships, type CharacterRelationship } from './relationships';
 import { fetchNotes, type Note } from './notes';
@@ -22,6 +22,7 @@ const CHARACTERS_PAGE_SIZE = 50;
 export const QUERY_KEYS = {
   books: (userId: string) => ['books', userId] as const,
   profile: (userId: string) => ['profile', userId] as const,
+  hasAnyCharacter: (userId: string) => ['has-any-character', userId] as const,
   book: (id: string) => ['book', id] as const,
   chapters: (bookId: string) => ['chapters', bookId] as const,
   chapterContent: (id: string) => ['chapter-content', id] as const,
@@ -203,6 +204,16 @@ export function useProfile(userId: string | undefined) {
     () => getProfile(userId!),
     10 * 60_000,
   ));
+}
+
+/** Шаг онбординга «добавить персонажа». `enabled` — чтобы не ходить в БД, когда чеклист скрыт. */
+export function useHasAnyCharacter(userId: string | undefined, enabled: boolean) {
+  return useQuery<boolean>({
+    queryKey: userId ? QUERY_KEYS.hasAnyCharacter(userId) : ['has-any-character', null],
+    queryFn: () => hasAnyCharacter(userId!),
+    enabled: !!userId && enabled,
+    staleTime: 5 * 60_000,
+  });
 }
 
 export function useRegistrationOpen() {

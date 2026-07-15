@@ -49,6 +49,10 @@
 - `ResultUrl2` — для получения `op_key` (нужен при возврате)
 - `Shp_plan`, `Shp_user_id` — передаются в вебхук для активации плана
 
+Принимает `plan`: `pro` | `pro_annual` | `lifetime`. Цены — в `BASE_PRICES`/`GRANDFATHERED_PRICES` внутри функции; фронт держит свою копию в `src/lib/pricing.ts` — **при смене цен править оба места и оферту `/offer`**.
+
+> **Как выбирается годовой план.** Единственный источник `pro_annual` на фронте — `BillingIntervalToggle` (сегмент «Месяц / Год» в карточке Pro на лендинге и в `UpgradeModal`). До 15.07.2026 бэкенд умел `pro_annual`, но фронт его никогда не слал — годовой план физически нельзя было купить. Если добавляете новую точку входа в оплату, не забудьте про интервал и про белый список планов в `usePostAuthRedirect.ts` (он отбрасывает неизвестные значения `pending_plan`, молча уводя человека на `/books` без оплаты).
+
 Подпись: `MD5(MerchantLogin:OutSum:InvId:ReceiptJSON:ResultUrl2:Password1:Shp_plan=…:Shp_user_id=…)`
 > **ResultUrl2 входит в подпись** — подтверждено рабочими платежами 17-18.06.2026.
 
@@ -166,7 +170,7 @@ RLS: пользователь видит только свои строки (SEL
 
 ### `profiles` (поля плана)
 ```
-plan text              -- 'free' | 'pro' | 'lifetime'
+plan text              -- 'free' | 'pro' | 'lifetime'; годовой хранится как 'pro' + plan_interval='annual'
 plan_expires_at        -- для pro; null = бессрочно
 grandfathered bool     -- грандфазерская скидка (290₽/2900₽ навсегда)
 recurring_inv_id text  -- InvId первого Pro-платежа; NULL = нет рекуррентной подписки
@@ -174,6 +178,16 @@ plan_interval text     -- 'monthly' | 'annual'; DEFAULT 'monthly'; для billin
 cancel_at_period_end bool -- true = не продлевать; billing-scheduler даунгрейдит по истечении
 last_billed_expiry timestamptz -- цикл, за который scheduler уже инициировал списание; = plan_expires_at → пропустить
 ```
+
+### `cancellation_reasons`
+```
+user_id uuid   -- FK auth.users
+reason text    -- CHECK: price | not_writing | missing_features | bugs | other_tool | other
+comment text   -- необязательный ответ «что стоило бы поправить»
+plan text      -- план на момент отмены
+created_at
+```
+История, а не последнее значение: подписку можно отменить, возобновить и отменить снова. Пишется только после подтверждённой отмены (`useSubscription.handleCancel`). RLS: свои строки; админ читает через `get_admin_cancellations()` (нетестовые аккаунты).
 
 ## Цены
 
@@ -183,7 +197,11 @@ last_billed_expiry timestamptz -- цикл, за который scheduler уже
 | Pro (год)   | 3490 ₽ | 2900 ₽ |
 | Lifetime    | 4990 ₽ | — |
 
+Выгода года считается процентом (`annualSavingsPercent`), а не «в месяцах»: по базовой цене это −27% (399×12 = 4788 против 3490, ≈8,7 месяца), по ранней — −17% (290×12 = 3480 против 2900, ровно 10 месяцев). Формулировка «год = 10 месяцев» верна только для ранней цены.
+
 Грандфазерский флаг: `profiles.grandfathered = true`. Применяется через Edge Function (проверяет флаг при создании ссылки).
+
+> **Смена интервала действующему подписчику не поддерживается.** `robokassa-webhook` пишет `plan_interval` только при первом платеже (`if (!existing?.recurring_inv_id)`), поэтому апгрейд «месяц → год» оставил бы scheduler на месячной цене. Сейчас это недостижимо: `SettingsSubscriptionTab` передаёт `skipPro={plan === 'pro'}`, и Pro-секция с тогглом не рендерится действующим подписчикам. См. «Активные баги» в roadmap.
 
 ## Secrets (Supabase Edge Functions)
 
