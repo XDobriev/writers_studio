@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Icon } from './Icon';
-import { cardHoverTransition } from '../lib/motion';
+import { cardHoverTransition, dropdownVariants } from '../lib/motion';
+import { useMenuDismiss } from '../lib/useMenuDismiss';
 import { pluralDays } from '../lib/i18n';
 import type { Book } from '../lib/supabase';
 
@@ -16,10 +17,20 @@ function dayDiff(iso: string): number {
   return Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000));
 }
 
-export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
+interface BookCardProps {
+  book: Book;
+  onEdit: () => void;
+  onCreateSequel: () => void;
+}
+
+export function BookCard({ book, onEdit, onCreateSequel }: BookCardProps) {
   const b = book;
   const hasImage = b.cover ? isImageUrl(b.cover) : false;
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useMenuDismiss(menuOpen, () => setMenuOpen(false), menuRef);
 
   return (
     <motion.div
@@ -84,24 +95,50 @@ export function BookCard({ book, onEdit }: { book: Book; onEdit: () => void }) {
           </div>
         </div>
       </Link>
-      <button
-        type="button"
-        onClick={onEdit}
-        title={`Редактировать: ${b.title}`}
-        aria-label={`Редактировать: ${b.title}`}
-        className="book-card__edit"
-        style={{
-          position: 'absolute', top: 10, right: 10, zIndex: 1,
-          width: 28, height: 28, borderRadius: 6,
-          border: '1px solid oklch(1 0 0 / 0.12)',
-          backdropFilter: 'blur(6px)',
-          cursor: 'pointer',
-          alignItems: 'center', justifyContent: 'center',
-          color: 'oklch(0.98 0 0)',
-        }}
-      >
-        <Icon name="pencil" size={13} />
-      </button>
+      <div ref={menuRef} className="book-card__menu">
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          title={`Меню книги: ${b.title}`}
+          aria-label={`Меню книги: ${b.title}`}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          className={`book-card__menu-btn${menuOpen ? ' book-card__menu-btn--open' : ''}`}
+        >
+          <Icon name="moremenu" size={13} />
+        </button>
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.div
+              role="menu"
+              variants={dropdownVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="book-card__menu-panel"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className="sb-dropdown-item"
+                onClick={() => { setMenuOpen(false); onEdit(); }}
+              >
+                <Icon name="pencil" size={14} />
+                Редактировать
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="sb-dropdown-item"
+                onClick={() => { setMenuOpen(false); onCreateSequel(); }}
+              >
+                <Icon name="plus" size={14} />
+                Создать продолжение
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   );
 }

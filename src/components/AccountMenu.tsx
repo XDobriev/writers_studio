@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { dropdownVariants } from '../lib/motion';
+import { useMenuDismiss } from '../lib/useMenuDismiss';
 import { useAuth } from '../lib/auth';
 import { Icon } from './Icon';
 import { SettingsModal } from './SettingsModal';
@@ -22,37 +23,7 @@ export function AccountMenu({ placement = 'above', children }: AccountMenuProps)
   const [settingsOpen, setSettingsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const rafId = requestAnimationFrame(() => {
-      containerRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
-    });
-    const onMouseDown = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setOpen(false); return; }
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const items = containerRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
-        if (!items?.length) return;
-        const idx = Array.from(items).indexOf(document.activeElement as HTMLElement);
-        const next = e.key === 'ArrowDown'
-          ? (idx + 1) % items.length
-          : (idx - 1 + items.length) % items.length;
-        items[next].focus();
-      }
-    };
-    document.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      cancelAnimationFrame(rafId);
-      document.removeEventListener('mousedown', onMouseDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
+  useMenuDismiss(open, () => setOpen(false), containerRef);
 
   async function handleSignOut() {
     setOpen(false);

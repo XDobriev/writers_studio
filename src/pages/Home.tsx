@@ -67,10 +67,10 @@ export default function Home() {
   const [createUploading, setCreateUploading] = useState(false);
   const [seriesTransfer, setSeriesTransfer] = useState<SeriesTransferState>(INITIAL_SERIES_TRANSFER);
 
-  const openCreateModal = () => {
+  const openCreateModal = (transfer: SeriesTransferState = INITIAL_SERIES_TRANSFER) => {
     setCreateCover(COVERS[(books?.length ?? 0) % COVERS.length]);
     setCreateGenres([]);
-    setSeriesTransfer(INITIAL_SERIES_TRANSFER);
+    setSeriesTransfer(transfer);
     setShowCreate(true);
   };
   const [editUploading, setEditUploading] = useState(false);
@@ -148,6 +148,17 @@ export default function Home() {
     } else {
       openCreateModal();
     }
+  };
+
+  // Второй вход в перенос: тот же модал, что «Новая книга», но источник уже выбран.
+  // Галка в модале невидима, пока не нажмёшь «Новая книга», — а продолжение затевают,
+  // глядя на книгу-источник.
+  const handleCreateSequel = (source: Book) => {
+    if ((books?.length ?? 0) >= limits.maxBooks) {
+      setShowUpgrade(true);
+      return;
+    }
+    openCreateModal({ ...INITIAL_SERIES_TRANSFER, enabled: true, sourceBookId: source.id });
   };
 
   const onCreate = async (e: FormEvent<HTMLFormElement>) => {
@@ -308,7 +319,7 @@ export default function Home() {
                 </BookGroupHeading>
                 <div style={GRID_STYLE}>
                   {arr.map((b) => (
-                    <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} />
+                    <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} onCreateSequel={() => handleCreateSequel(b)} />
                   ))}
                 </div>
               </section>
@@ -321,7 +332,7 @@ export default function Home() {
                 )}
                 <div style={GRID_STYLE}>
                   {standaloneBooks.map((b) => (
-                    <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} />
+                    <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} onCreateSequel={() => handleCreateSequel(b)} />
                   ))}
                 </div>
               </section>
