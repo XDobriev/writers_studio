@@ -72,12 +72,12 @@
 - **Тарифы** — Free / Pro (месяц/год) / Lifetime
 - **Оплата** через Робокассу (СБП + карты), рекуррентные списания
 - **Возвраты** — автоматические через op_key
-- **Отмена подписки** — с сохранением доступа до конца периода
+- **Отмена подписки** — с сохранением доступа до конца периода, exit-интервью (6 причин + комментарий)
 
 ### Платформа
 - **Мобильный адаптив** — редактор, дашборд, персонажи, хронология, карта, навигация
 - **Offline-баннер** — уведомление при потере сети
-- **Admin-панель** `/admin` — DAU/WAU/MAU, retention, топ-10, управление пользователями, планами, feature flags, audit log, revenue-метрики
+- **Admin-панель** `/admin` — DAU/WAU/MAU, retention, топ-10, управление пользователями, планами, feature flags, audit log, revenue-метрики, воронка активации, причины отмен
 - **Лендинг** — публичная страница с тарифами и FAQ
 - **Демо-режим** `/demo` — живой sandbox-редактор без регистрации (sample-книга, правки в памяти); вход из hero лендинга
 - **Юридические страницы** — `/privacy`, `/terms`, `/offer`
@@ -89,7 +89,7 @@
 ```
 src/
   components/        — Chrome, Sidebar/*, EditorHybrid, RichEditor, EditorToolbar, RightPanel, StatusBar, WorldMap, BookCard, Icon, AuthForm, admin/* и др. (70+ файлов)
-  pages/             — Auth, Home, Dashboard, Editor, Focus, Split, Outline, Corkboard, Map, Timeline, Characters, Notes, Export, Admin, Landing, Offer, ShareBook, ResetPassword, Privacy, Terms, NotFound
+  pages/             — Auth, Home, Dashboard, Editor, Focus, Split, Plan, Outline, Corkboard, Map, Timeline, Characters, Notes, Dictionary, Export, Admin, AdminAnalytics, AdminUserDetail, Landing, Demo, Offer, PaymentSuccess, ShareBook, ResetPassword, Changelog, Privacy, Terms, NotFound
   lib/               — supabase-клиент, AuthProvider, React Query хуки, mutation-хуки, экспорт, утилиты (60+ файлов)
   styles/            — design-system.css (CSS-переменные oklch, классы .as, .btn, .input и др.)
   App.tsx            — роутер
