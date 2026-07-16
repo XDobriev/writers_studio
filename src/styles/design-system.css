@@ -2097,7 +2097,7 @@ select.input {
   flex: 1; min-height: 0;
   background: var(--bg);
   overflow-x: hidden; overflow-y: auto;
-  display: flex; align-items: stretch; justify-content: center;
+  display: flex; align-items: flex-start; justify-content: center;
   gap: 32px;
   padding: 36px 48px 0;
   scrollbar-width: thin;
@@ -2112,8 +2112,12 @@ select.input {
 }
 .plan-wrap::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 /* .sheet рассчитан на колоночный .sheet-wrap (flex:1 растит его по высоте).
-   В ряду это заставило бы лист съедать место оглавления — фиксируем базис. */
-.plan-sheet { flex: 0 1 720px; }
+   В ряду это заставило бы лист съедать место оглавления — фиксируем базис.
+   align-items:flex-start у .plan-wrap (не stretch): stretch в строке с заданной
+   высотой обрезал бы лист по высоте видимой области, а длинный документ уходил
+   бы за бумагу тёмным-по-тёмному. min-height:100% держит лист во всю высоту при
+   коротком содержимом и даёт ему расти по контенту при длинном. */
+.plan-sheet { flex: 0 1 720px; min-height: 100%; }
 
 @media (max-width: 767px) {
   .plan-wrap { padding: 16px 0 0; }
