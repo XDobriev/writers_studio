@@ -900,7 +900,7 @@ select.input {
 .tiptap p:last-child { margin-bottom: 0; }
 .tiptap h1 { font: 600 30px var(--font-editor); letter-spacing: -0.012em; margin: 1.2em 0 0.6em; }
 .tiptap h2 { font: 600 22px var(--font-editor); letter-spacing: -0.01em; margin: 1.4em 0 0.5em; }
-.tiptap h3 { font: 600 17px var(--font-editor); margin: 1.2em 0 0.5em; }
+.tiptap h3 { font: 600 19px var(--font-editor); margin: 1.2em 0 0.5em; }
 .tiptap blockquote {
   margin: 1em 0;
   padding-left: 1em;
@@ -2153,6 +2153,13 @@ select.input {
 .plan-toc__item--l1 { font-weight: 500; color: var(--ink-2); }
 .plan-toc__item--l2 { padding-left: 22px; }
 .plan-toc__item--l3 { padding-left: 34px; font-size: 12px; color: var(--ink-4); }
+/* Активный раздел (scroll-spy). Мягкая заливка акцентом — отличима от hover
+   (обычный surface) и без цветной боковой полосы (см. правило «без side-stripe»). */
+.plan-toc__item--active,
+.plan-toc__item--active:hover {
+  background: color-mix(in oklch, var(--accent) 12%, transparent);
+  color: var(--ink);
+}
 
 .plan-toc--aside {
   flex: 0 0 220px;

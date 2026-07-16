@@ -25,6 +25,7 @@ function sameItems(a: PlanOutlineItem[], b: PlanOutlineItem[]): boolean {
  */
 export function usePlanOutline(editor: Editor | null) {
   const [items, setItems] = useState<PlanOutlineItem[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     if (!editor) { setItems([]); return; }
@@ -44,11 +45,39 @@ export function usePlanOutline(editor: Editor | null) {
     return () => { editor.off('update', rebuild); };
   }, [editor]);
 
+  // Scroll-spy: подсвечиваем раздел, чей заголовок последним прошёл верх области
+  // прокрутки. Слушаем сам скролл-контейнер (.plan-wrap — предок редактора),
+  // rAF гасит частоту событий скролла. Адресация по индексу совпадает со scrollTo.
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    const dom = editor.view.dom as HTMLElement;
+    const scroller = dom.closest('.plan-wrap') as HTMLElement | null;
+    if (!scroller) return;
+    let raf = 0;
+    const recompute = () => {
+      raf = 0;
+      const headings = dom.querySelectorAll(HEADING_SELECTOR);
+      const threshold = scroller.getBoundingClientRect().top + 96;
+      let idx = 0;
+      headings.forEach((h, i) => {
+        if (h.getBoundingClientRect().top <= threshold) idx = i;
+      });
+      setActiveIndex(idx);
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(recompute); };
+    recompute();
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      scroller.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [editor, items]);
+
   const scrollTo = useCallback((index: number) => {
     if (!editor || editor.isDestroyed) return;
     const headings = editor.view.dom.querySelectorAll(HEADING_SELECTOR);
     headings[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [editor]);
 
-  return { items, scrollTo };
+  return { items, scrollTo, activeIndex };
 }

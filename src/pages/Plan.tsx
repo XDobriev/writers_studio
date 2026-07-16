@@ -1,5 +1,7 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
+import { htmlToText } from '../lib/htmlUtils';
+import { plural } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { useResponsive } from '../lib/useResponsive';
 import { useErrorState } from '../lib/useErrorState';
@@ -34,7 +36,8 @@ export default function Plan() {
 
   const [sbOpen, setSbOpen] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
-  const { items: outline, scrollTo } = usePlanOutline(editor);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const { items: outline, scrollTo, activeIndex } = usePlanOutline(editor);
 
   const { data: book, error: bookError } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
@@ -53,13 +56,22 @@ export default function Plan() {
       try {
         writePlanCache(await updateBookPlan(id, patch.content));
         clearError();
+        setSaveState('saved');
       } catch (e) {
         setError(e instanceof Error ? e : 'Не удалось сохранить замысел');
+        setSaveState('error');
         throw e;
       }
     },
     700,
   );
+
+  // Объём замысла для чипа в шапке: слова из plain-text контента + число разделов
+  // из оглавления. Как «· N сл» в Структуре — консистентно с сестринскими страницами.
+  const planWords = useMemo(() => {
+    const text = htmlToText(plan?.content ?? '');
+    return text ? text.split(/\s+/).filter(Boolean).length : 0;
+  }, [plan?.content]);
 
   useBeforeUnloadSave(pendingPatchRef, targetIdRef, undefined, 'book_plans');
 
@@ -89,11 +101,12 @@ export default function Plan() {
 
   const onContentChange = useCallback((html: string) => {
     if (!bookId || !user) return;
+    setSaveState('saving');
     // Порядок правок сохраняется: после первого резолва промис уже закэширован,
     // а до него все .then висят на одном промисе и срабатывают в порядке подписки.
     void ensurePlanId()
       .then((id) => scheduleSave(id, { content: html }))
-      .catch((e) => setError(e instanceof Error ? e : 'Не удалось сохранить замысел'));
+      .catch((e) => { setError(e instanceof Error ? e : 'Не удалось сохранить замысел'); setSaveState('error'); });
   }, [bookId, user, ensurePlanId, scheduleSave, setError]);
 
   if (!bookId) return <Navigate to="/books" replace />;
@@ -128,13 +141,27 @@ export default function Plan() {
           <Sidebar book={book} chapters={chapters} subtitle="замысел" />
         )}
         <main className="as-main" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: isMobile ? '12px 16px' : '14px 24px', borderBottom: '1px solid var(--border-soft)', flexShrink: 0 }}>
-            {isMobile && (
-              <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
-                <Icon name="panel" size={16} />
-              </button>
+          <div className="tb" style={{ justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {isMobile && (
+                <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
+                  <Icon name="panel" size={16} />
+                </button>
+              )}
+              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Замысел</span>
+              {!isMobile && planWords > 0 && (
+                <span className="chip">
+                  {planWords.toLocaleString('ru')} сл
+                  {outline.length > 0 && ` · ${outline.length} ${plural(outline.length, 'раздел', 'раздела', 'разделов')}`}
+                </span>
+              )}
+            </div>
+            {saveState !== 'idle' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '400 12px var(--font-ui)', color: 'var(--ink-3)', flexShrink: 0 }}>
+                <span className="status-dot" style={{ background: saveState === 'error' ? 'var(--danger)' : saveState === 'saving' ? 'var(--accent-2)' : 'var(--ok)' }} />
+                {saveState === 'saving' ? 'Сохранение…' : saveState === 'error' ? 'Не сохранено' : 'Сохранено'}
+              </span>
             )}
-            <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Замысел</span>
           </div>
 
           <EditorToolbar editor={editor} variant="studio" showModes={false} isMobile={isMobile} />
@@ -145,7 +172,7 @@ export default function Plan() {
             </div>
           )}
 
-          {!isWide && <PlanOutline items={outline} onSelect={scrollTo} variant="collapsed" />}
+          {!isWide && <PlanOutline items={outline} onSelect={scrollTo} activeIndex={activeIndex} variant="collapsed" />}
 
           <div className="plan-wrap">
             <div className="plan-sheet sheet">
@@ -160,7 +187,7 @@ export default function Plan() {
                 onEditor={setEditor}
               />
             </div>
-            {showAside && <PlanOutline items={outline} onSelect={scrollTo} variant="aside" />}
+            {showAside && <PlanOutline items={outline} onSelect={scrollTo} activeIndex={activeIndex} variant="aside" />}
           </div>
         </main>
       </div>

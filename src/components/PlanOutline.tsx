@@ -5,6 +5,8 @@ import type { PlanOutlineItem } from '../lib/usePlanOutline';
 interface PlanOutlineProps {
   items: PlanOutlineItem[];
   onSelect: (index: number) => void;
+  /** Индекс раздела, на котором сейчас находится прокрутка (scroll-spy). */
+  activeIndex?: number;
   /** `aside` — колонка справа (широкий экран), `collapsed` — свёрнутый список сверху (мобилка). */
   variant?: 'aside' | 'collapsed';
 }
@@ -13,14 +15,15 @@ function itemLabel(item: PlanOutlineItem): string {
   return item.text || 'Без названия';
 }
 
-function OutlineList({ items, onSelect }: { items: PlanOutlineItem[]; onSelect: (i: number) => void }) {
+function OutlineList({ items, onSelect, activeIndex }: { items: PlanOutlineItem[]; onSelect: (i: number) => void; activeIndex?: number }) {
   return (
     <nav className="plan-toc__list" aria-label="Оглавление замысла">
       {items.map((item, i) => (
         <button
           key={i}
           type="button"
-          className={`plan-toc__item plan-toc__item--l${item.level}`}
+          className={`plan-toc__item plan-toc__item--l${item.level}${i === activeIndex ? ' plan-toc__item--active' : ''}`}
+          aria-current={i === activeIndex ? 'true' : undefined}
           onClick={() => onSelect(i)}
         >
           {itemLabel(item)}
@@ -30,7 +33,7 @@ function OutlineList({ items, onSelect }: { items: PlanOutlineItem[]; onSelect: 
   );
 }
 
-export function PlanOutline({ items, onSelect, variant = 'aside' }: PlanOutlineProps) {
+export function PlanOutline({ items, onSelect, activeIndex, variant = 'aside' }: PlanOutlineProps) {
   const [open, setOpen] = useState(false);
 
   if (items.length === 0) return null;
@@ -55,6 +58,7 @@ export function PlanOutline({ items, onSelect, variant = 'aside' }: PlanOutlineP
           <OutlineList
             items={items}
             onSelect={(i) => { onSelect(i); setOpen(false); }}
+            activeIndex={activeIndex}
           />
         )}
       </div>
@@ -64,7 +68,7 @@ export function PlanOutline({ items, onSelect, variant = 'aside' }: PlanOutlineP
   return (
     <aside className="plan-toc plan-toc--aside">
       <div className="plan-toc__head">Оглавление</div>
-      <OutlineList items={items} onSelect={onSelect} />
+      <OutlineList items={items} onSelect={onSelect} activeIndex={activeIndex} />
     </aside>
   );
 }
