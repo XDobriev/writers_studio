@@ -2142,10 +2142,13 @@ select.input {
 .plan-toc__item {
   text-align: left;
   background: none; border: none; cursor: pointer;
-  font: 400 12.5px/1.45 var(--font-ui);
+  font: 400 12.5px/1.6 var(--font-ui);
   color: var(--ink-3);
-  padding: 5px 10px;
+  padding: 6px 10px;
   border-radius: var(--r-6);
+  /* overflow:hidden (для ellipsis) клипирует по нижней границе строки: при тесном
+     line-height хвосты букв (р/у/ц) на Windows-метриках IBM Plex Sans срезаются.
+     line-height 1.6 + вертикальный padding дают line-box запас под descenders. */
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   transition: background var(--dur-fast), color var(--dur-fast);
 }
