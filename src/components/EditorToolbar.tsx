@@ -608,13 +608,15 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           <div ref={scrollRef} className="tb" style={{ width: isMobile ? '100%' : 680, maxWidth: '100%', flex: 'none', height: '100%', background: 'transparent', borderBottom: 'none' } as React.CSSProperties}>
             {buttons}
           </div>
-          {isMobile && (
-            <div aria-hidden style={{
-              position: 'absolute', right: 0, top: 0, bottom: 0, width: 40,
-              pointerEvents: 'none',
-              background: 'linear-gradient(to right, transparent, var(--bg))',
-            }} />
-          )}
+          {/* Индикатор скролла тулбара: fade у правого края. Над пустым местом
+              (десктоп, тулбар центрирован и не переполнен) невидим — transparent→--bg
+              поверх --bg. Виден ровно когда контент доходит до края, т.е. при overflow
+              (планшет/узкий десктоп/мобилка). pointer-events:none, aria-hidden. */}
+          <div aria-hidden style={{
+            position: 'absolute', right: 0, top: 0, bottom: 0, width: 40,
+            pointerEvents: 'none',
+            background: 'linear-gradient(to right, transparent, var(--bg))',
+          }} />
         </div>
         {showModes && mode && setMode && (
           <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }}>
