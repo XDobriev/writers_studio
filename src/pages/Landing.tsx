@@ -58,7 +58,7 @@ function LandingNav() {
       borderBottom: `1px solid ${scrolled ? 'var(--border-soft)' : 'transparent'}`,
       transition: 'background 0.25s ease-out, border-color 0.25s ease-out',
     }}>
-      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
+      <Link to="/" aria-label="Авторская студия — на главную" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0, padding: 11, margin: -11 }}>
         <LogoMark size={22} />
         <span className="lnd-nav-word" style={{ font: '500 12px var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink)', whiteSpace: 'nowrap' }}>авторская студия</span>
       </Link>
