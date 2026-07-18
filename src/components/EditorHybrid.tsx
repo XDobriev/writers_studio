@@ -135,6 +135,46 @@ export function EditorHybrid({
   }, [editor]);
   const { isMobile, showLeft, showRight, isPage, cols, sheetWidth, sheetPad, wrapPad } = useEditorLayout(mode);
   const { sidebar, right } = useMobileDrawers(isMobile);
+  const mobileSidebarPanelRef = useRef<HTMLDivElement>(null);
+  const mobileRightPanelRef = useRef<HTMLDivElement>(null);
+
+  // Мобильные drawer-ы (сайдбар/заметки) ниже дублируют разметку
+  // MobileSidebarDrawer.tsx инлайново (см. CLAUDE.md sibling audit), но без
+  // её a11y-кита — добавляем Escape + focus + Tab-трап здесь же, не трогая
+  // сами Sidebar/RightPanel и не вынося в общий компонент (разный набор
+  // пропов у sidebar vs right панели, вынос — отдельная задача).
+  useEffect(() => {
+    if (!sidebar.isOpen && !right.isOpen) return;
+    const panel = sidebar.isOpen ? mobileSidebarPanelRef.current : mobileRightPanelRef.current;
+    const prevFocus = document.activeElement as HTMLElement | null;
+    panel?.focus();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (sidebar.isOpen) sidebar.close();
+        if (right.isOpen) right.close();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      prevFocus?.focus();
+    };
+  }, [sidebar.isOpen, right.isOpen, sidebar, right]);
+
+  const trapTab = (panelRef: React.RefObject<HTMLDivElement>) => (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+    const focusable = panelRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusable?.length) return;
+    const arr = Array.from(focusable);
+    const first = arr[0], last = arr[arr.length - 1];
+    if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+    }
+  };
   const isReal = Boolean(chapters);
   const writingStats = useWritingStats(book?.id);
   const { refetch: refetchStats } = writingStats;
@@ -400,7 +440,16 @@ export function EditorHybrid({
             onClick={sidebar.close}
             style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
           />
-          <div className="as" style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)' }}>
+          <div
+            ref={mobileSidebarPanelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Навигация"
+            tabIndex={-1}
+            onKeyDown={trapTab(mobileSidebarPanelRef)}
+            className="as"
+            style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)', outline: 'none' }}
+          >
             <Sidebar
               book={book}
               chapters={chapters}
@@ -422,7 +471,15 @@ export function EditorHybrid({
             onClick={right.close}
             style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
           />
-          <div style={{ position: 'fixed', top: 0, right: 0, width: 300, maxWidth: '90vw', height: '100%', zIndex: 41, boxShadow: '-4px 0 32px oklch(0.05 0.01 50 / 0.35)', animation: 'panel-enter-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both' }}>
+          <div
+            ref={mobileRightPanelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Заметки и версии"
+            tabIndex={-1}
+            onKeyDown={trapTab(mobileRightPanelRef)}
+            style={{ position: 'fixed', top: 0, right: 0, width: 300, maxWidth: '90vw', height: '100%', zIndex: 41, boxShadow: '-4px 0 32px oklch(0.05 0.01 50 / 0.35)', animation: 'panel-enter-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both', outline: 'none' }}
+          >
             <RightPanel
               bookId={book?.id}
               chapterId={activeChapter?.id}
