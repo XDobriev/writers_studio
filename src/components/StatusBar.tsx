@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { pluralDays, plural } from '../lib/i18n';
 import { useResponsive } from '../lib/useResponsive';
 import { EDITOR_FONTS, getStoredEditorFont, applyEditorFont, EDITOR_FONT_EVENT, type EditorFontId } from '../lib/editorFont';
@@ -37,6 +37,28 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
   const { isNarrow } = useResponsive();
+
+  const barRef = useRef<HTMLDivElement>(null);
+  const [overflowing, setOverflowing] = useState(false);
+  const checkOverflow = useCallback(() => {
+    const el = barRef.current;
+    if (el) setOverflowing(el.scrollWidth > el.clientWidth + 1);
+  }, []);
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    checkOverflow();
+    const ro = new ResizeObserver(checkOverflow);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [checkOverflow]);
+  // Ререндер бара всегда сопровождается сменой отображаемого текста
+  // (слова/знаки/цель/сегодня) — дешёвая проверка после каждого коммита
+  // ловит content-driven overflow, который ResizeObserver не видит
+  // (сам .status не меняет размер, меняется только scrollWidth).
+  useEffect(() => {
+    checkOverflow();
+  });
 
   const [popupOpen, setPopupOpen] = useState(false);
   const [activeSound, setActiveSound] = useState<SoundId | null>(
@@ -230,7 +252,8 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
   }
 
   return (
-    <div className="status">
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+    <div className="status" ref={barRef}>
       <span><span className="status-dot" style={{ display: 'inline-block', marginRight: 6, verticalAlign: 'middle', background: saveState === 'error' ? 'var(--danger)' : saveState === 'saving' ? 'var(--accent-2)' : 'var(--ok)' }} />{statusLabel ?? (savedAt ? `Сохранено · ${savedAt}` : 'Сохранение…')}</span>
       {!isNarrow && (
         <>
@@ -447,6 +470,20 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
           )}
         </div>
       )}
+    </div>
+    {/* Индикатор скролла: fade у правого края .status, вынесен в несклолящийся
+        родитель — иначе внутри overflow-x:auto контейнера уезжал бы вместе с
+        контентом. В отличие от тулбара, тут нет фонового зазора справа
+        (последняя кнопка стоит впритык к краю) — поэтому рендерим fade
+        ТОЛЬКО при реальном overflow (checkOverflow), иначе он приглушал бы
+        иконку «Фоновые звуки» даже когда скроллить нечего. */}
+    {overflowing && (
+      <div aria-hidden style={{
+        position: 'absolute', right: 0, top: 0, bottom: 0, width: 40,
+        pointerEvents: 'none',
+        background: 'linear-gradient(to right, transparent, var(--bg-deep))',
+      }} />
+    )}
     </div>
   );
 }
