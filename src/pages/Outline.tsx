@@ -549,10 +549,7 @@ function SortableChapterRow({
                 <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
                 <button
                   type="button"
-                  onClick={() => {
-                    if (c.words > 0) setDeleteConfirmFor(c.id);
-                    else void onDelete(c.id);
-                  }}
+                  onClick={() => setDeleteConfirmFor(c.id)}
                   className="ctx-item ctx-item--danger"
                 >
                   Удалить главу
