@@ -464,6 +464,7 @@ export default function Notes() {
                 className="btn btn--primary"
                 style={{ fontSize: 12, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
                 onClick={() => setShowForm(true)}
+                aria-label="Добавить заметку"
               >
                 <Icon name="plus" size={13} />
                 {!isMobile && 'Добавить'}
