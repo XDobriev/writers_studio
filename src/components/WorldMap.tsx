@@ -618,6 +618,7 @@ export function WorldMap({
             const effectivePinSize = isSelected ? editPinSize : (loc.size ?? 1);
             return (
               <g key={loc.id} data-loc-id={loc.id} transform={`translate(${lx},${ly}) scale(${effectivePinSize})`} style={{ cursor: 'pointer' }}>
+                {loc.name.length > 16 && <title>{loc.name}</title>}
                 {(isSelected || isConnFrom) && <circle r={22} fill="var(--accent)" opacity={0.12} />}
                 <circle
                   r={14}
