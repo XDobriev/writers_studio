@@ -359,6 +359,25 @@ export default function Characters() {
             </div>
           </div>
 
+          {/* Мобилка: фильтр по роли — отдельная строка, без сжатия в тулбар (см. Corkboard.tsx) */}
+          {isMobile && showGrid && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 14px', borderBottom: '1px solid var(--border-soft)' }}>
+              {ROLE_FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  type="button"
+                  onClick={() => setRoleFilter(f.value)}
+                  className={'tb-btn' + (roleFilter === f.value ? ' tb-btn--on' : '')}
+                  aria-pressed={roleFilter === f.value}
+                  title={f.value !== 'all' ? ROLE_LABELS[f.value] : undefined}
+                  style={{ border: '1px solid var(--border)', borderRadius: 7 }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Основное содержимое */}
           {!showGrid && active ? (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '20px 16px' : '32px 48px' }}>
