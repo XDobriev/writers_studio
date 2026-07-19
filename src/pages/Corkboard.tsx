@@ -459,6 +459,27 @@ export default function Corkboard() {
               <button className="btn" onClick={onCreate} aria-label="Новая глава">{isMobile ? <Icon name="plus" size={14} /> : <><Icon name="plus" size={14} /> Новая глава</>}</button>
             </div>
           </div>
+          {/* Фильтры на мобилке были скрыты совсем (!isMobile), без альтернативы.
+              Не сжимаем их в один ряд с заголовком (нет места под 4 кнопки+счётчики)
+              и не делаем горизонтально скроллящимися (нежелательно) — выносим в
+              отдельную полноширинную строку с flex-wrap, места достаточно без обрезки. */}
+          {isMobile && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 14px', borderBottom: '1px solid var(--border-soft)' }}>
+              {filterItems.map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setFilter(key)}
+                  className={'tb-btn' + (filter === key ? ' tb-btn--on' : '')}
+                  aria-pressed={filter === key}
+                  style={{ border: '1px solid var(--border)', borderRadius: 7, textTransform: 'capitalize' }}
+                >
+                  {label}
+                  <span style={{ color: 'var(--ink-4)' }}>{counts[key]}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '28px 32px', background: 'repeating-linear-gradient(45deg, var(--bg) 0 24px, var(--bg-deep) 24px 25px)' }}>
             {error && (
