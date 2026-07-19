@@ -1576,6 +1576,10 @@ select.input {
   transition: color var(--dur-hover);
 }
 .map-popup-del:hover { color: var(--danger); }
+/* Touch: увеличиваем тач-таргет через padding (не width/height — кнопка инлайн в попапе, сдвигать соседей нельзя) */
+@media (hover: none) {
+  .map-popup-del { padding: 8px; }
+}
 
 /* ── Export format selection cards and strip buttons ── */
 .export-fmt-grid {
