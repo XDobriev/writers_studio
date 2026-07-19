@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useErrorState } from '../lib/useErrorState';
 import { ErrorBanner } from '../components/ErrorBanner';
@@ -39,6 +39,28 @@ export default function MapScreen() {
 
   const [mode, setMode] = useState<MapMode>('place');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const tbRef = useRef<HTMLDivElement>(null);
+  const [tbOverflowing, setTbOverflowing] = useState(false);
+  const checkTbOverflow = useCallback(() => {
+    const el = tbRef.current;
+    if (el) setTbOverflowing(el.scrollWidth > el.clientWidth + 1);
+  }, []);
+  useEffect(() => {
+    const el = tbRef.current;
+    if (!el) return;
+    checkTbOverflow();
+    const ro = new ResizeObserver(checkTbOverflow);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [checkTbOverflow]);
+  // `.tb` растянут во всю ширину без гарантированного зазора у правого края
+  // (кнопка «Скачать PNG» стоит впритык) — та же ловушка, что была со StatusBar
+  // (bf51482): always-render fade лёг бы поверх кнопки на десктопе. Поэтому
+  // условный рендер по реальному overflow, а не blend-в-фон трюк.
+  useEffect(() => {
+    checkTbOverflow();
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -114,8 +136,13 @@ export default function MapScreen() {
 
         <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden', height: '100%', minHeight: 0 }}>
 
-          {/* Toolbar */}
-          <div className="tb" style={{ justifyContent: 'space-between', gap: 8 }}>
+          {/* Toolbar. Обёрнут в position:relative — режимные кнопки теперь видны и на
+              мобилке (раньше были полностью скрыты !isMobile, недостижимые connect/stamp
+              режимы), из-за чего `.tb` может переполняться на узких экранах. Fade у края
+              рендерится условно по tbOverflowing (см. ниже) — не blend-трюк, т.к. кнопка
+              «Скачать PNG» стоит впритык к правому краю на десктопе. */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div className="tb" ref={tbRef} style={{ justifyContent: 'space-between', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {isMobile && (
                 <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
@@ -125,25 +152,23 @@ export default function MapScreen() {
               <span style={{ font: '500 13px var(--font-ui)', color: isMobile ? 'var(--ink-2)' : 'var(--ink)', flexShrink: 0 }}>
                 {isMobile ? book.title : 'Карта мира'}
               </span>
-              {!isMobile && <span className="tb-sep" />}
-              {!isMobile && (
-                <div className="tb-grp" style={{ border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden', flexShrink: 0 }}>
-                  {modeButtons.map(m => (
-                    <button
-                      key={m.value}
-                      type="button"
-                      onClick={() => setMode(m.value)}
-                      className={'tb-btn' + (mode === m.value ? ' tb-btn--on' : '')}
-                      aria-pressed={mode === m.value}
-                      title={m.label}
-                      aria-label={m.label}
-                      style={{ borderRadius: 0 }}
-                    >
-                      <span aria-hidden="true">{m.icon}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <span className="tb-sep" />
+              <div className="tb-grp" style={{ border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden', flexShrink: 0 }}>
+                {modeButtons.map(m => (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setMode(m.value)}
+                    className={'tb-btn' + (mode === m.value ? ' tb-btn--on' : '')}
+                    aria-pressed={mode === m.value}
+                    title={m.label}
+                    aria-label={m.label}
+                    style={{ borderRadius: 0 }}
+                  >
+                    <span aria-hidden="true">{m.icon}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -167,6 +192,14 @@ export default function MapScreen() {
                 {!isMobile && <span>{exportBusy ? 'Генерация…' : 'PNG'}</span>}
               </button>
             </div>
+          </div>
+          {tbOverflowing && (
+            <div aria-hidden style={{
+              position: 'absolute', right: 0, top: 0, bottom: 0, width: 40,
+              pointerEvents: 'none',
+              background: 'linear-gradient(to right, transparent, var(--bg))',
+            }} />
+          )}
           </div>
 
           <AnimatePresence>
