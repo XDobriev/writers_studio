@@ -26,6 +26,7 @@ import { QUERY_KEYS, useBook, useCharacters, useRelationships, useCharacterSearc
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { useCharacterNavigation } from '../lib/useCharacterNavigation';
+import { useCreateOnMount } from '../lib/useCreateOnMount';
 import { useCharacterMutations, charInfiniteUpdate } from '../lib/useCharacterMutations';
 import { CharacterHeroBlock } from '../components/CharacterHeroBlock';
 import { CharacterRelationsBlock } from '../components/CharacterRelationsBlock';
@@ -173,13 +174,7 @@ export default function Characters() {
     }
   }, [characters?.length, limits.maxCharacters]);
 
-  useEffect(() => {
-    if (search.get('create') !== 'true') return;
-    const next = new URLSearchParams(search);
-    next.delete('create');
-    setSearch(next, { replace: true });
-    void onCreateRef.current();
-  }, [search, setSearch]);
+  useCreateOnMount(handleCreate);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
