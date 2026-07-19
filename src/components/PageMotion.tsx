@@ -5,7 +5,7 @@ import { pageVariants } from '../lib/motion';
 export function PageMotion({ children }: { children: ReactNode }) {
   const prefersReducedMotion = useReducedMotion();
   return (
-    <motion.main
+    <motion.div
       variants={pageVariants}
       initial={prefersReducedMotion ? 'animate' : 'initial'}
       animate="animate"
@@ -13,6 +13,6 @@ export function PageMotion({ children }: { children: ReactNode }) {
       style={{ width: '100%', height: '100%' }}
     >
       {children}
-    </motion.main>
+    </motion.div>
   );
 }
