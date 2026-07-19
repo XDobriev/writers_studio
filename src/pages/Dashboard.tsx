@@ -307,7 +307,7 @@ export default function Dashboard() {
                   <Link to={navTo('/export')} className="btn btn--ghost" style={{ textDecoration: 'none' }}><Icon name="download" size={14} /> Экспорт</Link>
                 </>
               )}
-              <Link to={navTo('/editor')} className="btn btn--primary" style={{ textDecoration: 'none' }}>
+              <Link to={navTo('/editor')} className="btn btn--primary" style={{ textDecoration: 'none' }} aria-label="Открыть редактор">
                 <Icon name="book" size={14} />{!isMobile && ' Открыть редактор'}
               </Link>
             </div>
