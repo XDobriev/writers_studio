@@ -272,14 +272,7 @@ function SortableCorkCard({
               ) : (
                 <button
                   type="button"
-                  onClick={() => {
-                    if (c.words > 0) {
-                      setDeleteConfirm(true);
-                    } else {
-                      onDeleteChapter(c.id);
-                      setMenuOpen(false);
-                    }
-                  }}
+                  onClick={() => setDeleteConfirm(true)}
                   className="ctx-item ctx-item--danger"
                 >
                   Удалить главу
