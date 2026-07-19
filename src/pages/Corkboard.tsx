@@ -110,7 +110,6 @@ function SortableCorkCard({
   return (
     <div
       ref={setNodeRef}
-      {...attributes}
       style={{
         position: 'relative',
         background: 'var(--surface)',
@@ -125,6 +124,7 @@ function SortableCorkCard({
       {dragEnabled && (
         <button
           type="button"
+          {...attributes}
           {...listeners}
           className="cork-card__drag"
           style={{
