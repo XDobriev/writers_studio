@@ -23,6 +23,7 @@ export function DemoBanner() {
         Демо-режим
       </span>
       <span
+        className="demo-banner-desc"
         style={{
           font: '400 12px var(--font-ui)',
           color: 'var(--ink-3)',
