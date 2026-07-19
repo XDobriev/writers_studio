@@ -1,7 +1,7 @@
 import { Link, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toastVariants } from '../lib/motion';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useErrorState } from '../lib/useErrorState';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
@@ -60,6 +60,39 @@ export default function Dashboard() {
   const { isMobile } = useResponsive();
   const [showMobileSb, setShowMobileSb] = useState(false);
   useEffect(() => { if (!isMobile) setShowMobileSb(false); }, [isMobile]);
+  const mobileSbPanelRef = useRef<HTMLDivElement>(null);
+
+  // Тот же паттерн, что чинили в EditorHybrid.tsx (019ef0c): мобильный
+  // drawer сайдбара здесь — инлайновая копия MobileSidebarDrawer.tsx без
+  // её a11y-кита. Аддитивный фикс: focus + Escape + Tab-трап, без выноса
+  // в общий компонент (другой набор пропов chapterActions/navigate).
+  useEffect(() => {
+    if (!showMobileSb) return;
+    const prevFocus = document.activeElement as HTMLElement | null;
+    mobileSbPanelRef.current?.focus();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); setShowMobileSb(false); }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      prevFocus?.focus();
+    };
+  }, [showMobileSb]);
+
+  const trapMobileSbTab = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+    const focusable = mobileSbPanelRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusable?.length) return;
+    const arr = Array.from(focusable);
+    const first = arr[0], last = arr[arr.length - 1];
+    if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+    }
+  };
 
   const openEdit = () => {
     if (!book) return;
@@ -487,7 +520,16 @@ export default function Dashboard() {
             onClick={() => setShowMobileSb(false)}
             style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
           />
-          <div className="as" style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)' }}>
+          <div
+            ref={mobileSbPanelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Навигация"
+            tabIndex={-1}
+            onKeyDown={trapMobileSbTab}
+            className="as"
+            style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)', outline: 'none' }}
+          >
             <Sidebar
               book={book}
               chapters={chapters}
