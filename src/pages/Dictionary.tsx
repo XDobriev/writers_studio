@@ -186,7 +186,7 @@ export default function Dictionary() {
               </div>
               {groupWords.map(word => (
                 <div key={word} className="dict-row">
-                  <span style={{ flex: 1, font: '400 13px var(--font-ui)', color: 'var(--ink-2)', padding: '9px 10px', letterSpacing: '0.01em' }}>
+                  <span style={{ flex: 1, font: '400 13px var(--font-ui)', color: 'var(--ink-2)', padding: '9px 10px', letterSpacing: '0.01em', overflowWrap: 'anywhere' }}>
                     {word}
                   </span>
                   <button
