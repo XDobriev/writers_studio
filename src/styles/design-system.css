@@ -1337,6 +1337,10 @@ select.input {
   transition: color var(--dur-hover);
 }
 .alias-remove-btn:hover { color: var(--danger); }
+/* Touch: увеличиваем тач-таргет через padding (кнопка инлайн в чипе, сдвигать соседей нельзя) */
+@media (hover: none) {
+  .alias-remove-btn { padding: 8px; }
+}
 
 /* ── input/btn size variants ── */
 .input--sm { height: 32px; }
