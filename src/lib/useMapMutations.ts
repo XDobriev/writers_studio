@@ -30,6 +30,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
   const queryClient = useQueryClient();
   const lastLocTapRef = useRef<TapMark>(null);
   const lastStampTapRef = useRef<TapMark>(null);
+  const creatingConnRef = useRef(false);
 
   // ── Location ─────────────────────────────────────────────────────────────
 
@@ -115,12 +116,17 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
   // ── Connection ────────────────────────────────────────────────────────────
 
   const onCreateConnection = useCallback(async (fromId: string, toId: string) => {
-    if (!bookId || !userId) return;
+    if (!bookId || !userId || creatingConnRef.current) return;
+    creatingConnRef.current = true;
     try {
       const created = await createConnection(bookId, userId, fromId, toId);
       queryClient.setQueryData<LocationConnection[]>(QUERY_KEYS.connections(bookId), (prev) => [...(prev ?? []), created]);
       return created;
-    } catch (e) { setError(e instanceof Error ? e.message : 'Неизвестная ошибка'); }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
+    } finally {
+      creatingConnRef.current = false;
+    }
   }, [bookId, userId, queryClient, setError]);
 
   const onUpdateConnection = useCallback(async (id: string, patch: ConnectionPatch) => {
