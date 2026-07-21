@@ -1172,7 +1172,7 @@ select.input {
 }
 
 /* ── char-card delete button ── */
-.char-card-wrap { position: relative; }
+.char-card-wrap { position: relative; min-width: 0; }
 .char-card-wrap .char-card { width: 100%; }
 .char-card__del {
   position: absolute;

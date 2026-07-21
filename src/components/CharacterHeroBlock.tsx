@@ -295,7 +295,7 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
           <div
             onClick={() => setEditingQuote(true)}
             title="Нажмите, чтобы редактировать"
-            style={{ width: '100%', maxWidth: 560, font: '400 15px/1.65 var(--font-serif)', color: quote ? 'var(--ink-2)' : 'var(--ink-4)', fontStyle: 'italic', borderBottom: '1px solid var(--border-soft)', padding: '0 0 6px 0', cursor: 'text', whiteSpace: 'pre-wrap', minHeight: '1.65em' }}
+            style={{ width: '100%', maxWidth: 560, font: '400 15px/1.65 var(--font-serif)', color: quote ? 'var(--ink-2)' : 'var(--ink-4)', fontStyle: 'italic', borderBottom: '1px solid var(--border-soft)', padding: '0 0 6px 0', cursor: 'text', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', minHeight: '1.65em' }}
           >
             {quote || 'Цитата или девиз персонажа'}
           </div>

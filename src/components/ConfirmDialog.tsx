@@ -58,7 +58,7 @@ export function ConfirmDialog({ message, onConfirm, onCancel, open, confirmLabel
               }
             }}
           >
-            <p style={{ font: '400 14px/1.6 var(--font-ui)', color: 'var(--ink)', margin: 0, whiteSpace: 'pre-wrap' }}>{message}</p>
+            <p style={{ font: '400 14px/1.6 var(--font-ui)', color: 'var(--ink)', margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{message}</p>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button ref={cancelRef} onClick={onCancel} disabled={clicked} className="btn btn--ghost">Отмена</button>
               <button
