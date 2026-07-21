@@ -140,7 +140,7 @@ function SortableNoteCard({ note, chapterTitle, color, colorSoft, label, onOpen 
 
       <p style={{
         margin: 0, fontSize: 13, color: 'var(--ink)', lineHeight: 1.55,
-        whiteSpace: 'pre-wrap', flex: 1, overflow: 'hidden',
+        whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', flex: 1, overflow: 'hidden',
         display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
       }}>
         {note.text}
@@ -698,7 +698,7 @@ export default function Notes() {
                 <>
                   <p style={{
                     margin: 0, fontSize: 14, color: 'var(--ink)',
-                    lineHeight: 1.65, whiteSpace: 'pre-wrap',
+                    lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere',
                     flex: 1, overflowY: 'auto',
                   }}>
                     {modalNote.text}
