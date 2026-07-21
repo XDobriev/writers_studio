@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../lib/useResponsive';
 import { useErrorState } from '../lib/useErrorState';
@@ -80,6 +80,8 @@ export default function Home() {
   const [confirmDeleteBook, setConfirmDeleteBook] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [creating, setCreating] = useState(false);
+  const creatingRef = useRef(false);
+  const editSavingRef = useRef(false);
 
   const uploadCover = async (
     file: File,
@@ -131,7 +133,8 @@ export default function Home() {
   };
 
   const saveEditBook = async () => {
-    if (editSaving || !editBook || !editTitle.trim()) return;
+    if (editSavingRef.current || !editBook || !editTitle.trim()) return;
+    editSavingRef.current = true;
     setEditSaving(true);
     clearEditError();
     try {
@@ -141,6 +144,7 @@ export default function Home() {
     } catch (e) {
       setEditError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
+      editSavingRef.current = false;
       setEditSaving(false);
     }
   };
@@ -166,12 +170,13 @@ export default function Home() {
 
   const onCreate = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user || creating) return;
+    if (!user || creatingRef.current) return;
     const fd = new FormData(e.currentTarget);
     const title = String(fd.get('title') ?? '').trim();
     const goalRaw = String(fd.get('goal') ?? '').trim();
     const goal = goalRaw ? Math.max(0, Number(goalRaw)) : 0;
     if (!title) return;
+    creatingRef.current = true;
     setCreating(true);
     try {
       const data = await createBook({ user_id: user.id, title, genre: null, genres: createGenres, goal, words: 0, cover: createCover });
@@ -197,6 +202,7 @@ export default function Home() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
+      creatingRef.current = false;
       setCreating(false);
     }
   };
