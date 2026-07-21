@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../lib/auth';
@@ -27,6 +27,7 @@ export default function Dictionary() {
   const [newWord, setNewWord] = useState('');
   const [search, setSearch] = useState('');
   const [adding, setAdding] = useState(false);
+  const addingRef = useRef(false);
 
   const words = useMemo(() => profile?.user_dictionary ?? [], [profile?.user_dictionary]);
 
@@ -39,9 +40,10 @@ export default function Dictionary() {
   const groups = useMemo(() => groupByLetter(filtered), [filtered]);
 
   const handleAdd = async () => {
-    if (!user || !newWord.trim()) return;
+    if (!user || !newWord.trim() || addingRef.current) return;
     const word = newWord.trim().toLowerCase();
     if (words.includes(word)) { setNewWord(''); return; }
+    addingRef.current = true;
     setAdding(true);
     const prev = queryClient.getQueryData<Profile>(QUERY_KEYS.profile(user.id));
     queryClient.setQueryData<Profile>(QUERY_KEYS.profile(user.id), old =>
@@ -53,6 +55,7 @@ export default function Dictionary() {
     } catch {
       if (prev) queryClient.setQueryData<Profile>(QUERY_KEYS.profile(user.id), prev);
     } finally {
+      addingRef.current = false;
       setAdding(false);
     }
   };
