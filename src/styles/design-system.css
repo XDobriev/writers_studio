@@ -1530,6 +1530,10 @@ select.input {
 }
 .version-card:hover .vc-actions,
 .version-card:focus-within .vc-actions { opacity: 1; }
+/* Touch: нет :hover, поэтому кнопка удаления версии иначе никогда не становится видимой */
+@media (hover: none) {
+  .vc-actions { opacity: 1; }
+}
 .vc-save-fade {
   position: sticky; bottom: 0;
   background: linear-gradient(to top, var(--bg) 60%, transparent);
