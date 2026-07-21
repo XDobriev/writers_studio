@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useVersionMutations } from '../lib/useVersionMutations';
 import { type ChapterVersionMeta } from '../lib/versions';
 import { useChapterVersions } from '../lib/queries';
@@ -24,6 +24,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
   const { createNamed, remove } = useVersionMutations(chapterId, userId, isPro);
   const [selected, setSelected] = useState<ChapterVersionMeta | null>(null);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [labelInput, setLabelInput] = useState('');
   const [showLabelForm, setShowLabelForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -33,7 +34,8 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
   const grouped = groupByDay(auto);
 
   async function handleSaveLabel() {
-    if (!labelInput.trim()) return;
+    if (!labelInput.trim() || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       await createNamed(currentContent, labelInput.trim());
@@ -42,6 +44,7 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
     } catch (e) {
       setVersionError(e instanceof Error ? e.message : 'Не удалось сохранить версию');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
