@@ -80,6 +80,7 @@ export function useCharacterMutations({
 }: UseCharacterMutationsOptions) {
   const queryClient = useQueryClient();
   const creatingRef = useRef(false);
+  const creatingRelRef = useRef(false);
   const onCreate = useCallback(async () => {
     if (!bookId || !userId || creatingRef.current) return;
     creatingRef.current = true;
@@ -129,12 +130,15 @@ export function useCharacterMutations({
   }, [characters, bookId, queryClient, cancelSave, onDeleted, onError]);
 
   const onCreateRelationship = useCallback(async (toId: string, labelMine: string, labelTheirs: string) => {
-    if (!bookId || !userId || !active) return;
+    if (!bookId || !userId || !active || creatingRelRef.current) return;
+    creatingRelRef.current = true;
     try {
       const created = await createRelationship(bookId, userId, active.id, toId, labelMine, labelTheirs);
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) => [...(prev ?? []), created]);
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
+    } finally {
+      creatingRelRef.current = false;
     }
   }, [bookId, userId, active, queryClient, onError]);
 
