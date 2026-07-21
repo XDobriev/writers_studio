@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -45,6 +45,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   const [formText, setFormText] = useState('');
   const [formCustomLabel, setFormCustomLabel] = useState('');
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<NoteKind>('idea');
   const [editText, setEditText] = useState('');
@@ -62,7 +63,8 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   };
 
   const handleAdd = async () => {
-    if (!bookId || !formText.trim()) return;
+    if (!bookId || !formText.trim() || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       await createNote(bookId, formKind, formText.trim(),
@@ -77,6 +79,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
     } catch (e) {
       setNoteError(e instanceof Error ? e.message : 'Не удалось сохранить заметку');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -102,7 +105,8 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   };
 
   const handleUpdate = async () => {
-    if (!editingId || !editText.trim()) return;
+    if (!editingId || !editText.trim() || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       await updateNote(editingId, editKind, editText.trim(),
@@ -112,6 +116,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
     } catch (e) {
       setNoteError(e instanceof Error ? e.message : 'Не удалось обновить заметку');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
