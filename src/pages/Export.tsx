@@ -346,7 +346,7 @@ export default function Export() {
             </div>
             <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
               <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Жанр</div>
-              <div style={{ fontSize: 13.5, color: 'var(--ink)' }}>{(book.genres?.length ? book.genres.join(', ') : book.genre) || '—'}</div>
+              <div style={{ fontSize: 13.5, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{(book.genres?.length ? book.genres.join(', ') : book.genre) || '—'}</div>
             </div>
             <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
               <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Язык</div>
