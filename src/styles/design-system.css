@@ -1076,6 +1076,13 @@ select.input {
   .outline-menu-btn { width: 28px; height: 28px; }
 }
 
+/* ── Cover picker (Home) ── */
+.cover-swatch, .cover-upload-tile { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; }
+/* Touch: свотчи обложки и плитка загрузки до WCAG-минимума */
+@media (hover: none) {
+  .cover-swatch, .cover-upload-tile { width: 44px; height: 44px; }
+}
+
 /* ── Note modal ── */
 .note-modal-overlay {
   position: fixed;

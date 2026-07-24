@@ -26,8 +26,9 @@ export function CoverPicker({
             key={c}
             type="button"
             onClick={() => onChange(c)}
+            className="cover-swatch"
             style={{
-              width: 36, height: 36, borderRadius: 8, cursor: 'pointer', padding: 0,
+              cursor: 'pointer', padding: 0,
               background: `linear-gradient(160deg, ${c}, oklch(0.20 0.02 50))`,
               border: !hasImage && value === c ? '2px solid var(--accent)' : '2px solid transparent',
               outline: !hasImage && value === c ? '2px solid var(--accent)' : 'none',
@@ -45,15 +46,15 @@ export function CoverPicker({
         {onFileSelect && (
           <label
             title="Загрузить изображение"
+            className="cover-upload-tile"
             style={{
-              width: 36, height: 36, borderRadius: 8, cursor: uploading ? 'default' : 'pointer',
+              borderRadius: 8, cursor: uploading ? 'default' : 'pointer',
               border: hasImage ? '2px solid var(--accent)' : '2px dashed var(--border)',
               outline: hasImage ? '2px solid var(--accent)' : 'none',
               outlineOffset: 2,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: hasImage ? `url(${value}) center/cover` : 'var(--surface-2)',
               color: 'var(--ink-3)',
-              flexShrink: 0,
               transition: 'border-color 0.12s',
               position: 'relative', overflow: 'hidden',
             }}
