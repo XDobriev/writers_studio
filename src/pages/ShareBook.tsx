@@ -146,7 +146,7 @@ export default function ShareBook() {
             </div>
           ) : active ? (
             <>
-              <h1 style={{ font: '600 26px var(--font-serif)', color: 'var(--ink)', marginBottom: 28, letterSpacing: '-0.01em' }}>
+              <h1 style={{ font: '600 26px var(--font-serif)', color: 'var(--ink)', marginBottom: 28, letterSpacing: '-0.01em', overflowWrap: 'anywhere' }}>
                 {active.title || 'Без названия'}
               </h1>
               <div
