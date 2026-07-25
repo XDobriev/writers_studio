@@ -288,6 +288,7 @@ function DragCard({ event }: { event: TimelineEvent }) {
           display: '-webkit-box',
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
+          overflowWrap: 'anywhere',
         }}
       >
         {event.title || '—'}
@@ -387,6 +388,7 @@ function SortableNode({
           display: '-webkit-box',
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
+          overflowWrap: 'anywhere',
         }}
       >
         {event.title || '—'}
