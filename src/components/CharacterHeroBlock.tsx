@@ -232,9 +232,9 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
             {aliases.map((alias) => (
               <span
                 key={alias}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 999, font: '400 12px var(--font-ui)', color: 'var(--ink-2)' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%', padding: '3px 9px', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 999, font: '400 12px var(--font-ui)', color: 'var(--ink-2)' }}
               >
-                {alias}
+                <span style={{ overflowWrap: 'anywhere', minWidth: 0 }}>{alias}</span>
                 <button
                   type="button"
                   onClick={() => removeAlias(alias)}
