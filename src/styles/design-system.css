@@ -1326,7 +1326,7 @@ select.input {
 
 /* ── chapter row (Characters > Chapters tab) ── */
 .chapter-row {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 10px 14px;
   background: var(--surface); border: 1px solid var(--border-soft);
   border-radius: 8px; cursor: pointer; text-align: left;

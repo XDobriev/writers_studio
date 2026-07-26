@@ -26,12 +26,15 @@ export function CharacterChaptersTab({ characterId, characterIndex, onNavigate }
   const color = getCharacterColor(characterIndex);
 
   const povStyle: CSSProperties = {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
     padding: '8px 12px',
     background: `color-mix(in oklch, ${color} 14%, transparent)`,
     border: `1px solid color-mix(in oklch, ${color} 28%, transparent)`,
     borderRadius: 8, cursor: 'pointer', textAlign: 'left',
     font: '400 13px var(--font-ui)', color, transition: 'opacity 0.15s',
+  };
+  const titleStyle: CSSProperties = {
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
   };
 
   return (
@@ -47,9 +50,9 @@ export function CharacterChaptersTab({ characterId, characterIndex, onNavigate }
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {povRows.map((cc) => (
               <button key={cc.id} type="button" onClick={() => onNavigate(cc.chapter_id)} style={povStyle}>
-                <span>{cc.chapters?.title || 'Без названия'}</span>
+                <span style={titleStyle}>{cc.chapters?.title || 'Без названия'}</span>
                 {cc.auto_detected && (
-                  <span style={{ font: '400 11px var(--font-ui)', color: `color-mix(in oklch, ${color} 60%, transparent)` }}>(авто)</span>
+                  <span style={{ font: '400 11px var(--font-ui)', color: `color-mix(in oklch, ${color} 60%, transparent)`, flexShrink: 0 }}>(авто)</span>
                 )}
               </button>
             ))}
@@ -72,9 +75,9 @@ export function CharacterChaptersTab({ characterId, characterIndex, onNavigate }
                 onClick={() => onNavigate(cc.chapter_id)}
                 className="chapter-row"
               >
-                <span>{cc.chapters?.title || 'Без названия'}</span>
+                <span style={titleStyle}>{cc.chapters?.title || 'Без названия'}</span>
                 {cc.auto_detected && (
-                  <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)' }}>(авто)</span>
+                  <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)', flexShrink: 0 }}>(авто)</span>
                 )}
               </button>
             ))}
