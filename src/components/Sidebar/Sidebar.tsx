@@ -12,6 +12,8 @@ import { SidebarNav } from './SidebarNav';
 import { SidebarFoot } from './SidebarFoot';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { useFeatureFlag } from '../../lib/useFeatureFlag';
+import { useErrorState } from '../../lib/useErrorState';
+import { ErrorBanner } from '../ErrorBanner';
 
 const SB_STATUS_LABEL: Record<ChapterStatus, string> = {
   draft: 'Черновик',
@@ -56,10 +58,12 @@ export function Sidebar({
   const [sharing, setSharing] = useState(false);
   const [confirmingRevoke, setConfirmingRevoke] = useState(false);
   const { enabled: shareEnabled } = useFeatureFlag('share_book_enabled');
+  const { error: shareError, setError: setShareError, clearError: clearShareError } = useErrorState();
 
   async function handleShare() {
     if (!book?.id || sharing) return;
     setSharing(true);
+    clearShareError();
     const token = crypto.randomUUID();
     try {
       await updateBook(book.id, { share_token: token });
@@ -67,8 +71,8 @@ export function Sidebar({
       void navigator.clipboard.writeText(`${window.location.origin}/share/${token}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // оставляем текущее состояние при ошибке
+    } catch (e) {
+      setShareError(e instanceof Error ? e.message : 'Не удалось создать ссылку');
     } finally {
       setSharing(false);
     }
@@ -84,12 +88,13 @@ export function Sidebar({
   async function handleDisable() {
     if (!book?.id || sharing) return;
     setSharing(true);
+    clearShareError();
     try {
       await updateBook(book.id, { share_token: null });
       setShareToken(null);
       setCopied(false);
-    } catch {
-      // оставляем текущее состояние при ошибке
+    } catch (e) {
+      setShareError(e instanceof Error ? e.message : 'Не удалось отозвать доступ');
     } finally {
       setSharing(false);
     }
@@ -160,6 +165,9 @@ export function Sidebar({
               </button>
             )}
           </div>
+        )}
+        {shareError && (
+          <ErrorBanner message={shareError} onDismiss={clearShareError} size="sm" style={{ marginTop: 8 }} />
         )}
       </div>
 
