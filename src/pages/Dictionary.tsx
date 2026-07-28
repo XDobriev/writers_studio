@@ -5,6 +5,8 @@ import { useAuth } from '../lib/auth';
 import { useProfile, QUERY_KEYS } from '../lib/queries';
 import { addWordToDictionary, removeWordFromDictionary, type Profile } from '../lib/profiles';
 import { plural } from '../lib/i18n';
+import { useErrorState } from '../lib/useErrorState';
+import { ErrorBanner } from '../components/ErrorBanner';
 
 function groupByLetter(words: string[]): [string, string[]][] {
   const sorted = [...words].sort((a, b) => a.localeCompare(b, 'ru', { sensitivity: 'base' }));
@@ -28,6 +30,7 @@ export default function Dictionary() {
   const [search, setSearch] = useState('');
   const [adding, setAdding] = useState(false);
   const addingRef = useRef(false);
+  const { error, setError, clearError } = useErrorState();
 
   const words = useMemo(() => profile?.user_dictionary ?? [], [profile?.user_dictionary]);
 
@@ -45,6 +48,7 @@ export default function Dictionary() {
     if (words.includes(word)) { setNewWord(''); return; }
     addingRef.current = true;
     setAdding(true);
+    clearError();
     const prev = queryClient.getQueryData<Profile>(QUERY_KEYS.profile(user.id));
     queryClient.setQueryData<Profile>(QUERY_KEYS.profile(user.id), old =>
       old ? { ...old, user_dictionary: [...old.user_dictionary, word] } : old
@@ -52,8 +56,9 @@ export default function Dictionary() {
     setNewWord('');
     try {
       await addWordToDictionary(user.id, word);
-    } catch {
+    } catch (e) {
       if (prev) queryClient.setQueryData<Profile>(QUERY_KEYS.profile(user.id), prev);
+      setError(e instanceof Error ? e.message : 'Не удалось добавить слово');
     } finally {
       addingRef.current = false;
       setAdding(false);
@@ -62,14 +67,16 @@ export default function Dictionary() {
 
   const handleRemove = async (word: string) => {
     if (!user) return;
+    clearError();
     const prev = queryClient.getQueryData<Profile>(QUERY_KEYS.profile(user.id));
     queryClient.setQueryData<Profile>(QUERY_KEYS.profile(user.id), old =>
       old ? { ...old, user_dictionary: old.user_dictionary.filter(w => w !== word) } : old
     );
     try {
       await removeWordFromDictionary(user.id, word);
-    } catch {
+    } catch (e) {
       if (prev) queryClient.setQueryData<Profile>(QUERY_KEYS.profile(user.id), prev);
+      setError(e instanceof Error ? e.message : 'Не удалось удалить слово');
     }
   };
 
@@ -118,6 +125,8 @@ export default function Dictionary() {
         </header>
 
         <div style={{ padding: '20px 24px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+          {error && <ErrorBanner message={error} onDismiss={clearError} size="sm" />}
 
           {/* Add form */}
           <div style={{ display: 'flex', gap: 8 }}>
