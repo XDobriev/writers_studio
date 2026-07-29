@@ -273,14 +273,7 @@ export function Sidebar({
                       ) : (
                         <button
                           type="button"
-                          onClick={() => {
-                            if (c.words > 0) {
-                              setDeleteConfirmFor(c.id);
-                            } else {
-                              onDeleteChapter?.(c.id);
-                              setStatusMenuFor(null);
-                            }
-                          }}
+                          onClick={() => setDeleteConfirmFor(c.id)}
                           className="ctx-item ctx-item--danger"
                         >
                           Удалить главу
