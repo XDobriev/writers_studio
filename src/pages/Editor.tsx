@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams, Navigate, Link } from 'react-router-dom';
 import { useErrorState } from '../lib/useErrorState';
+import { ErrorBanner } from '../components/ErrorBanner';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { useQueryClient } from '@tanstack/react-query';
 import { EditorHybrid } from '../components/EditorHybrid';
@@ -57,8 +58,10 @@ export default function Editor() {
 
   const { data: book, error: bookError } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
-  const { error: mutationError, setError } = useErrorState();
-  const error = (bookError ?? chaptersError)?.message ?? mutationError;
+  const { error: mutationError, setError, clearError } = useErrorState();
+  // Только фатальные ошибки загрузки (книга/главы) заменяют экран целиком.
+  // mutationError (статус главы, удаление и т.п.) — некритичен, показывается баннером поверх редактора.
+  const error = (bookError ?? chaptersError)?.message;
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [savedAt, setSavedAt] = useState<Date | null>(null);
 
@@ -218,10 +221,11 @@ export default function Editor() {
         prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev
       );
     }
-    await updateChapter(id, { status }).catch(() => {
+    await updateChapter(id, { status }).catch((e: unknown) => {
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       if (bookId) invalidateChaptersCache(queryClient, bookId);
     });
-  }, [bookId, queryClient]);
+  }, [bookId, queryClient, setError]);
 
   const onGoalChange = useCallback(async (goal: number) => {
     if (!bookId) return;
@@ -249,10 +253,11 @@ export default function Editor() {
         next.set('chapter', remaining[0].id);
         setSearch(next, { replace: false });
       }
-    } catch {
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       if (bookId) invalidateChaptersCache(queryClient, bookId);
     }
-  }, [chapters, activeId, bookId, queryClient, search, setSearch]);
+  }, [chapters, activeId, bookId, queryClient, search, setSearch, setError]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
@@ -279,6 +284,16 @@ export default function Editor() {
 
   return (
     <div style={{ height: '100dvh', overflow: 'hidden', position: 'relative' }}>
+      {mutationError && (
+        <ErrorBanner
+          message={mutationError}
+          onDismiss={clearError}
+          style={{
+            position: 'fixed', top: saveState === 'error' ? 40 : 0, left: 0, right: 0, zIndex: 1000,
+            borderRadius: 0,
+          }}
+        />
+      )}
       {saveState === 'error' && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
