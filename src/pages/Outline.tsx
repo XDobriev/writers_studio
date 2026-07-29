@@ -42,12 +42,14 @@ function BulkPovButton({
   bookId,
   userId,
   onDone,
+  setError,
 }: {
   chapters: ChapterMeta[];
   characters: Array<{ id: string; name: string; position: number }>;
   bookId: string;
   userId: string;
   onDone: () => void;
+  setError: (msg: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -67,6 +69,8 @@ function BulkPovButton({
       await setPovForAllChapters(chapters.map((c) => c.id), characterId, bookId, userId);
       onDone();
       setOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       setApplying(false);
     }
@@ -142,11 +146,12 @@ interface PovBadgeProps {
   allCharacters: Array<{ id: string; name: string; position: number }>;
   userId: string;
   onChanged: () => void;
+  setError: (msg: string) => void;
   /** На мобиле — только аватар-кружок, без имени; тап открывает дропдаун. */
   compact?: boolean;
 }
 
-function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChanged, compact = false }: PovBadgeProps) {
+function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChanged, setError, compact = false }: PovBadgeProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownStyle = useDropdownPosition(triggerRef, open ? 'open' : null, 300);
@@ -165,8 +170,8 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
       await setPovCharacter(chapterId, characterId, bookId, userId);
       onChanged();
       setOpen(false);
-    } catch {
-      // network or RLS error — silently ignore, dropdown stays open
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     }
   };
 
@@ -175,8 +180,8 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
       await removePovCharacter(chapterId, characterId);
       onChanged();
       setOpen(false);
-    } catch {
-      // network or RLS error — silently ignore
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     }
   };
 
@@ -348,6 +353,7 @@ interface RowProps {
   allCharacters: Array<{ id: string; name: string; position: number }>;
   userId: string;
   onPovChanged: () => void;
+  setError: (msg: string) => void;
   compact: boolean;
 }
 
@@ -371,6 +377,7 @@ function SortableChapterRow({
   allCharacters,
   userId,
   onPovChanged,
+  setError,
   compact,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id });
@@ -486,6 +493,7 @@ function SortableChapterRow({
           allCharacters={allCharacters}
           userId={userId}
           onChanged={onPovChanged}
+          setError={setError}
           compact={compact}
         />
       </div>
@@ -672,6 +680,7 @@ export default function Outline() {
                   bookId={bookId!}
                   userId={user.id}
                   onDone={onPovChanged}
+                  setError={setError}
                 />
               )}
               {needsRenumber && (
@@ -747,6 +756,7 @@ export default function Outline() {
                         allCharacters={characters}
                         userId={user.id}
                         onPovChanged={onPovChanged}
+                        setError={setError}
                         compact={isMobile}
                       />
                     ))}
