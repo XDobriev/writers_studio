@@ -26,9 +26,11 @@ export function CoverPicker({
             key={c}
             type="button"
             onClick={() => onChange(c)}
+            disabled={uploading}
             className="cover-swatch"
             style={{
-              cursor: 'pointer', padding: 0,
+              cursor: uploading ? 'default' : 'pointer', padding: 0,
+              opacity: uploading ? 0.5 : 1,
               background: `linear-gradient(160deg, ${c}, oklch(0.20 0.02 50))`,
               border: !hasImage && value === c ? '2px solid var(--accent)' : '2px solid transparent',
               outline: !hasImage && value === c ? '2px solid var(--accent)' : 'none',
@@ -90,7 +92,8 @@ export function CoverPicker({
         <button
           type="button"
           onClick={() => onChange(COVERS[0])}
-          style={{ marginTop: 6, fontSize: 11, color: 'var(--ink-3)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          disabled={uploading}
+          style={{ marginTop: 6, fontSize: 11, color: 'var(--ink-3)', background: 'none', border: 'none', cursor: uploading ? 'default' : 'pointer', padding: 0, opacity: uploading ? 0.5 : 1 }}
         >
           Удалить изображение
         </button>
