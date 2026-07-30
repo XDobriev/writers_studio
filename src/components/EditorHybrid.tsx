@@ -130,6 +130,10 @@ export function EditorHybrid({
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [focusMode, setFocusMode] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
+  // Незавершённая CSS-анимация (fill-mode: both) держит transform отличным от
+  // none даже в покое — это создаёт containing block и клипует position:fixed
+  // потомков (модалки/дропдауны) шириной панели. Снимаем animation после входа.
+  const [rightPanelEntered, setRightPanelEntered] = useState(false);
   const restoreContent = useCallback((content: string) => {
     editor?.commands.setContent(content, { emitUpdate: false });
   }, [editor]);
@@ -137,6 +141,10 @@ export function EditorHybrid({
   const { sidebar, right } = useMobileDrawers(isMobile);
   const mobileSidebarPanelRef = useRef<HTMLDivElement>(null);
   const mobileRightPanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!right.isOpen) setRightPanelEntered(false);
+  }, [right.isOpen]);
 
   // Мобильные drawer-ы (сайдбар/заметки) ниже дублируют разметку
   // MobileSidebarDrawer.tsx инлайново (см. CLAUDE.md sibling audit), но без
@@ -478,7 +486,8 @@ export function EditorHybrid({
             aria-label="Заметки и версии"
             tabIndex={-1}
             onKeyDown={trapTab(mobileRightPanelRef)}
-            style={{ position: 'fixed', top: 0, right: 0, width: 300, maxWidth: '90vw', height: '100%', zIndex: 41, boxShadow: '-4px 0 32px oklch(0.05 0.01 50 / 0.35)', animation: 'panel-enter-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both', outline: 'none' }}
+            onAnimationEnd={() => setRightPanelEntered(true)}
+            style={{ position: 'fixed', top: 0, right: 0, width: 300, maxWidth: '90vw', height: '100%', zIndex: 41, boxShadow: '-4px 0 32px oklch(0.05 0.01 50 / 0.35)', animation: rightPanelEntered ? 'none' : 'panel-enter-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both', outline: 'none' }}
           >
             <RightPanel
               bookId={book?.id}
