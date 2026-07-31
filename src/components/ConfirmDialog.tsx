@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 
 export function ConfirmDialog({ message, onConfirm, onCancel, open, confirmLabel = 'Удалить' }: {
   message: string;
@@ -18,15 +19,12 @@ export function ConfirmDialog({ message, onConfirm, onCancel, open, confirmLabel
     try { await onConfirm(); } catch { setClicked(false); }
   };
 
+  useEscapeToClose(open, onCancel);
+
   useEffect(() => {
     if (!open) { setClicked(false); return; }
     cancelRef.current?.focus();
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, onCancel]);
+  }, [open]);
 
   return (
     <AnimatePresence>

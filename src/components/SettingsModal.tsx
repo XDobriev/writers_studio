@@ -5,6 +5,7 @@ import { Icon } from './Icon';
 import { useAuth } from '../lib/auth';
 import { useProfile } from '../lib/queries';
 import { EDITOR_SHORTCUTS, shortcutLabel } from '../lib/shortcuts';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 import { SettingsProfileTab } from './SettingsProfileTab';
 import { SettingsInterfaceTab } from './SettingsInterfaceTab';
 import { SettingsSubscriptionTab } from './SettingsSubscriptionTab';
@@ -26,13 +27,12 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
+  useEscapeToClose(open, onClose);
+
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handler);
     dialogRef.current?.focus();
-    return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose]);
+  }, [open]);
 
   return (
     <AnimatePresence>

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { getLifetimeSlotsRemaining } from '../lib/profiles';
 import { useFeatureFlag } from '../lib/useFeatureFlag';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 import { BillingIntervalToggle } from './BillingIntervalToggle';
 import type { BillingInterval } from '../lib/pricing';
 import { LIFETIME_PRICE, formatRub, planKeyFor, proPrice } from '../lib/pricing';
@@ -58,11 +59,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
     }
   }
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  useEscapeToClose(true, onClose);
 
   useEffect(() => {
     getLifetimeSlotsRemaining().then((slots) => {

@@ -7,6 +7,7 @@ import { getVersionContent, createVersion, type ChapterVersionMeta } from '../li
 import { updateChapter, countWords } from '../lib/chapters';
 import { ConfirmDialog } from './ConfirmDialog';
 import { QUERY_KEYS } from '../lib/queries';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 
 type WordDiff = { type: 'same' | 'added' | 'removed'; text: string };
 type ParaDiff = { type: 'same'; text: string } | { type: 'changed'; parts: WordDiff[] } | { type: 'added'; text: string } | { type: 'removed'; text: string };
@@ -148,11 +149,7 @@ export function VersionModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version?.id]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  useEscapeToClose(open, onClose);
 
   async function handleRestore() {
     if (!content) return;

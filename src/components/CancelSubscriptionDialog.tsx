@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { CANCEL_REASONS, type CancelReason } from '../lib/cancellations';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 
 interface Props {
   open: boolean;
@@ -16,15 +17,12 @@ export function CancelSubscriptionDialog({ open, expiresFormatted, loading, onCo
   const [reason, setReason] = useState<CancelReason | null>(null);
   const [comment, setComment] = useState('');
 
+  useEscapeToClose(open, onClose);
+
   useEffect(() => {
     if (!open) { setReason(null); setComment(''); return; }
     closeRef.current?.focus();
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose(); }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, onClose]);
+  }, [open]);
 
   return (
     <AnimatePresence>
