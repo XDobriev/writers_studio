@@ -1837,9 +1837,15 @@ select.input {
   font: 400 14px var(--font-ui);
   line-height: 1;
   margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .checklist-dismiss:hover {
   color: var(--ink-2);
+}
+@media (max-width: 768px) {
+  .checklist-dismiss { min-height: 44px; min-width: 44px; }
 }
 
 /* RightPanel — chapter members section (inside rp-notes-panel tabpanel) */
