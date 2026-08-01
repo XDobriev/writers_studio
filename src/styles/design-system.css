@@ -1398,6 +1398,11 @@ select.input {
   padding: 0 2px; flex-shrink: 0;
 }
 .error-banner--sm .error-banner__close { font-size: 14px; }
+/* Touch: увеличиваем тач-таргет через padding, не раздувая строку баннера
+   (баннер — тонкая инлайн-полоса, min-height сломал бы --sm вариант в узких панелях). */
+@media (hover: none) {
+  .error-banner__close { padding: 10px; margin: -10px; }
+}
 
 /* ── Toolbar search ── */
 .tb-search {
