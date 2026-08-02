@@ -322,7 +322,7 @@ export function Sidebar({
 
       </nav>{/* /sb-body */}
 
-      <SidebarFoot />
+      {!demo && <SidebarFoot />}
     </aside>
   );
 }
