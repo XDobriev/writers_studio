@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -22,9 +23,13 @@ interface RightPanelProps {
   /** Ctrl+Shift+M из EditorHybrid — переключает панель на заметки и открывает форму */
   showNoteForm?: boolean;
   onNoteFormClose?: () => void;
+  /** В демо нет реального аккаунта — createNote() бросает 'not authenticated'
+   *  прямо в ErrorBanner. Вместо формы, обречённой на ошибку, уводим на регистрацию. */
+  demo?: boolean;
 }
 
-export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, onBeforeRestore, showNoteForm, onNoteFormClose }: RightPanelProps) {
+export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, onBeforeRestore, showNoteForm, onNoteFormClose, demo }: RightPanelProps) {
+  const navigate = useNavigate();
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно', custom: 'Прочее' };
   const KIND_COLORS: Record<string, string> = {
     idea: 'var(--note-idea)', question: 'var(--note-question)',
@@ -148,7 +153,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
         </button>
         <span style={{ flex: 1 }} />
         {activeTab === 'notes' && (
-          <button className="tb-btn" onClick={() => setShowForm((v) => !v)} title="Добавить заметку" aria-label="Добавить заметку">
+          <button className="tb-btn" onClick={() => (demo ? navigate('/login?tab=signup') : setShowForm((v) => !v))} title="Добавить заметку" aria-label="Добавить заметку">
             <Icon name="plus" size={14} />
           </button>
         )}
@@ -279,7 +284,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
             {notes.length === 0 && !showForm && (
               <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                 {chapterId ? 'Заметок для этой главы нет' : 'Нет заметок'}
-                <button className="btn btn--primary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowForm(true)}>
+                <button className="btn btn--primary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => (demo ? navigate('/login?tab=signup') : setShowForm(true))}>
                   <Icon name="plus" size={13} /> Добавить заметку
                 </button>
               </div>

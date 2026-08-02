@@ -417,6 +417,7 @@ export function EditorHybrid({
             onBeforeRestore={onBeforeRestore}
             showNoteForm={showNoteForm}
             onNoteFormClose={resetShowNoteForm}
+            demo={demo}
           />
         </div>
       )}
@@ -500,6 +501,7 @@ export function EditorHybrid({
               onBeforeRestore={onBeforeRestore}
               showNoteForm={showNoteForm}
             onNoteFormClose={resetShowNoteForm}
+            demo={demo}
             />
           </div>
         </>
