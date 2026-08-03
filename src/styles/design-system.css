@@ -1231,6 +1231,10 @@ select.input {
   transition: color var(--dur-hover);
 }
 .rel-del-btn:hover { color: var(--danger); }
+/* Touch: узкий тач-таргет (~22px) на мобильном — расширяем через padding, как .alias-remove-btn */
+@media (hover: none) {
+  .rel-del-btn { padding: 2px 18px; }
+}
 
 /* ── Character relations block ── */
 .rel-block {
