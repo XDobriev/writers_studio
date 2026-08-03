@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { LogoMark } from '../components/LogoMark';
 import { usePageMeta } from '../lib/usePageMeta';
+import { LIFETIME_PRICE, PRO_PRICES, formatRub, isGrandfatheringActive, proPrice } from '../lib/pricing';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -16,9 +17,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function Offer() {
+  const early = isGrandfatheringActive();
+  const proMonthly = proPrice('monthly', early);
+  const proAnnual = proPrice('annual', early);
+
   usePageMeta({
     title: 'Публичная оферта — Авторская студия',
-    description: 'Тарифы и условия: Free (бесплатно), Pro (399 ₽/мес), Lifetime (4 990 ₽). Публичная оферта.',
+    description: `Тарифы и условия: Free (бесплатно), Pro (${formatRub(proMonthly)}/мес), Lifetime (${formatRub(LIFETIME_PRICE)}). Публичная оферта.`,
     path: '/offer',
   });
   return (
@@ -59,16 +64,25 @@ export default function Offer() {
 
         <Section title="2. Описание тарифов и цены">
           <p>
-            <strong>Pro — 399 ₽ в месяц</strong> (или 3&nbsp;490 ₽ в год при годовой оплате).<br />
+            <strong>Pro — {formatRub(proMonthly)} в месяц</strong> (или {formatRub(proAnnual)} в год
+            при годовой оплате).<br />
             Включает: безлимитное количество книг, безлимит персонажей и связей, безлимит хронологии,
             экспорт EPUB, FB2 и DOCX, история версий глав без лимита, дэшборд с heatmap,
             приоритетная поддержка, доступ к закрытому чату.
           </p>
+          {early && (
+            <p>
+              Указанная цена Pro — цена раннего доступа, действует для новых подписок до 1 сентября
+              2026 г. и сохраняется на весь срок действия подписки. Стандартная цена после
+              окончания акции — {formatRub(PRO_PRICES.base.monthly)} в месяц (или{' '}
+              {formatRub(PRO_PRICES.base.annual)} в год).
+            </p>
+          )}
           <p>
-            <strong>Lifetime — 4&nbsp;990 ₽, единоразово.</strong><br />
+            <strong>Lifetime — {formatRub(LIFETIME_PRICE)}, единоразово.</strong><br />
             Включает всё из тарифа Pro плюс все будущие обновления Pro без дополнительной оплаты.
-            Предложение ограничено 50 местами по цене раннего доступа. После распродажи слотов
-            цена составит 6&nbsp;990 ₽.
+            Предложение ограничено количеством мест по цене раннего доступа; актуальное число
+            свободных мест указано на странице <Link to="/#pricing" style={{ color: 'var(--accent)' }}>тарифов</Link>.
           </p>
           <p>
             Цены указаны в рублях Российской Федерации и включают НПД (налог на профессиональный
