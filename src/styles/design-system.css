@@ -2125,8 +2125,8 @@ select.input {
 }
 .dict-row:hover .dict-del { opacity: 1; }
 .dict-del:hover { color: var(--danger); background: oklch(0.65 0.18 25 / 0.10); }
-/* Touch: нет hover — показываем кнопку удаления полностью */
-@media (hover: none) { .dict-del { opacity: 1; } }
+/* Touch: нет hover — показываем кнопку полностью и увеличиваем тач-таргет до WCAG-минимума */
+@media (hover: none) { .dict-del { opacity: 1; width: 44px; height: 44px; } }
 
 /* ── Замысел книги (R9) ─────────────────────────────────────────── */
 /* Скролл-контейнер страницы: лист + колонка оглавления в один ряд.
