@@ -1025,7 +1025,7 @@ select.input {
 .book-card:hover .book-card__menu-btn,
 .book-card__menu-btn--open { opacity: 1; visibility: visible; pointer-events: auto; }
 .book-card__menu-btn:hover { background: color-mix(in oklch, var(--bg-deep) 88%, transparent); }
-@media (hover: none) { .book-card__menu-btn { opacity: 1; visibility: visible; pointer-events: auto; } }
+@media (hover: none) { .book-card__menu-btn { opacity: 1; visibility: visible; pointer-events: auto; width: 44px; height: 44px; } }
 .book-card__menu-panel {
   position: absolute; top: 100%; right: 0; margin-top: 4px;
   min-width: 190px;
