@@ -1637,6 +1637,10 @@ select.input {
   transition: color var(--dur-hover), background var(--dur-hover);
 }
 .icon-close-btn:hover { color: var(--ink-2); background: var(--surface-2); }
+/* Touch: тач-таргет по padding/font варьируется по месту использования и часто уже WCAG-минимума */
+@media (hover: none) {
+  .icon-close-btn { min-width: 44px; min-height: 44px; }
+}
 .icon-close-btn--round {
   width: 30px; height: 30px; border-radius: 999px;
   border: 1px solid var(--border); color: var(--ink-3); font-size: 18px;
