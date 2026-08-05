@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
+import { UpgradeModal } from './UpgradeModal';
+import { isGrandfatheringActive } from '../lib/pricing';
 
 const FEATURE_TEXT: Record<string, { title: string; body: string }> = {
   characters: {
@@ -23,7 +24,8 @@ const FEATURE_TEXT: Record<string, { title: string; body: string }> = {
 };
 
 export function UpgradePrompt({ open, feature, onClose }: { open: boolean; feature: string; onClose: () => void }) {
-  const closeRef = useRef<HTMLAnchorElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { title, body } = FEATURE_TEXT[feature] ?? { title: 'Лимит Free-плана', body: 'Перейдите на Pro.' };
 
   useEffect(() => {
@@ -35,6 +37,7 @@ export function UpgradePrompt({ open, feature, onClose }: { open: boolean; featu
   }, [open, onClose]);
 
   return (
+    <>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -80,19 +83,21 @@ export function UpgradePrompt({ open, feature, onClose }: { open: boolean; featu
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={onClose} className="btn btn--ghost">Отмена</button>
-              <Link
+              <button
                 ref={closeRef}
-                to="/offer"
                 className="btn btn--primary"
-                style={{ textDecoration: 'none' }}
-                onClick={onClose}
+                onClick={() => { onClose(); setShowUpgradeModal(true); }}
               >
                 Перейти на Pro →
-              </Link>
+              </button>
             </div>
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
+    {showUpgradeModal && (
+      <UpgradeModal grandfathered={isGrandfatheringActive()} onClose={() => setShowUpgradeModal(false)} />
+    )}
+    </>
   );
 }
