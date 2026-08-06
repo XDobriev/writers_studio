@@ -8,16 +8,22 @@ interface StampPopupProps {
   onDelete: () => void;
   onClose: () => void;
   onSizePreview?: (size: number) => void;
+  isMobile?: boolean;
 }
 
-export function StampPopup({ stamp, position, onUpdate, onDelete, onClose, onSizePreview }: StampPopupProps) {
+export function StampPopup({ stamp, position, onUpdate, onDelete, onClose, onSizePreview, isMobile }: StampPopupProps) {
   const [localSize, setLocalSize] = useState(stamp.size);
   // Only sync on stamp change, not on each server update — avoids interrupting active drag
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setLocalSize(stamp.size); }, [stamp.id]);
   return (
     <div
-      style={{
+      style={isMobile ? {
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        background: 'var(--surface)', border: '1px solid var(--border)', borderTop: '1px solid var(--border)',
+        borderRadius: '16px 16px 0 0', padding: '0 16px 24px',
+        boxShadow: '0 -4px 32px oklch(0 0 0 / 0.5)', zIndex: 30,
+      } : {
         position: 'absolute', left: position.left, top: position.top,
         width: 248, background: 'var(--surface)', border: '1px solid var(--border)',
         borderRadius: 10, padding: '12px 14px',
@@ -25,12 +31,17 @@ export function StampPopup({ stamp, position, onUpdate, onDelete, onClose, onSiz
       }}
       onPointerDown={e => e.stopPropagation()}
     >
+      {isMobile && (
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--surface-3)', margin: '10px auto 12px' }} onPointerDown={onClose} />
+      )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <span style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Штамп</span>
         <button
           onClick={onClose}
           aria-label="Закрыть"
-          style={{ background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 3px' }}
+          title="Закрыть"
+          className="icon-close-btn"
+          style={{ fontSize: 18, padding: '0 3px' }}
         >×</button>
       </div>
 

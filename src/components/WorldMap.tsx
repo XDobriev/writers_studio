@@ -719,11 +719,12 @@ export function WorldMap({
           </div>
         )}
 
-        {/* ── Stamp popup ── */}
-        {!isMobile && selectedStamp && (
+        {/* ── Stamp popup (desktop floating / mobile bottom sheet) ── */}
+        {selectedStamp && (
           <StampPopup
             stamp={selectedStamp}
             position={{ left: stampPopupLeft, top: stampPopupTop }}
+            isMobile={isMobile}
             onUpdate={patch => onUpdateStamp(selectedStamp.id, patch)}
             onSizePreview={size => setPreviewStampSize({ id: selectedStamp.id, size })}
             onDelete={() => {
@@ -832,7 +833,7 @@ export function WorldMap({
             <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 4, padding: '2px 7px' }}>
               {TYPE_GLYPHS[editType]} {TYPE_LABELS[editType]}
             </span>
-            <button onClick={() => setSelectedId(null)} aria-label="Закрыть" title="Закрыть" style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '20px var(--font-ui)', lineHeight: 1, padding: 8 }}>×</button>
+            <button onClick={() => setSelectedId(null)} aria-label="Закрыть" title="Закрыть" className="icon-close-btn" style={{ marginLeft: 'auto', fontSize: 20 }}>×</button>
           </div>
           <input
             value={editName}
@@ -900,7 +901,7 @@ export function WorldMap({
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--surface)', borderTop: '1px solid var(--border)', borderRadius: '16px 16px 0 0', boxShadow: '0 -4px 32px oklch(0 0 0 / 0.5)', zIndex: 30 }}>
           <div style={{ padding: '14px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ font: '500 12px var(--font-ui)', color: 'var(--ink-2)' }}>Не размещены на карте</span>
-            <button onClick={() => setUnmappedSheetOpen(false)} aria-label="Закрыть" title="Закрыть" style={{ background: 'none', border: 'none', color: 'var(--ink-4)', font: '20px var(--font-ui)', cursor: 'pointer', padding: 8 }}>×</button>
+            <button onClick={() => setUnmappedSheetOpen(false)} aria-label="Закрыть" title="Закрыть" className="icon-close-btn" style={{ fontSize: 20 }}>×</button>
           </div>
           {unmapped.map(loc => (
             <div key={loc.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderTop: '1px solid var(--border-soft)', font: '400 13px var(--font-ui)', color: 'var(--ink-2)' }}>
