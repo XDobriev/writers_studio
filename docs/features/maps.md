@@ -31,6 +31,7 @@
 
 - Тулбар: только иконки.
 - Popup → bottom sheet при тапе на пин.
+- Popup штампа → тоже bottom sheet при тапе на штамп (`StampPopup` принимает `isMobile`, рендерится через общий флаг `isMobile` в `WorldMap.tsx`, а не отдельным дублирующим блоком).
 - Панель «Не размещены» → floating badge → bottom sheet.
 - Zoom: pinch-to-zoom (два пальца).
 
