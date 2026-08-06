@@ -73,7 +73,7 @@ export function SettingsProfileTab() {
             id="settings-name"
             className="input"
             value={name}
-            onChange={(e) => { setName(e.target.value); setNameSaved(false); }}
+            onChange={(e) => { setName(e.target.value); setNameSaved(false); setNameError(null); }}
             placeholder="Ваше имя"
             maxLength={100}
             style={{ flex: 1, minWidth: 0, fontSize: 13, height: H }}
