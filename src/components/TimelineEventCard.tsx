@@ -13,22 +13,37 @@ export function TimelineEventCard({
   chapters,
   onUpdate,
   onDelete,
+  focusOnMount = false,
 }: {
   event: TimelineEvent;
   chapters: ChapterMeta[];
   onUpdate: (patch: TimelineEventPatch) => void;
   onDelete: () => void;
+  focusOnMount?: boolean;
 }) {
   const [era, setEra] = useState(event.era);
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<TimelineEventPatch>({});
+  const containerRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setEra(event.era); }, [event.id, event.era]);
   useEffect(() => { setTitle(event.title); }, [event.id, event.title]);
   useEffect(() => { setDescription(event.description); }, [event.id, event.description]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  // Только что созданное событие иначе теряется в конце списка без обратной связи —
+  // пользователь не видит, что вообще что-то произошло, и уходит, оставляя запись-«призрак».
+  // Карточка монтируется с focusOnMount=false (react-query уведомляет подписчиков
+  // раньше setJustCreatedId) и получает true уже без ремаунта — поэтому зависим
+  // от самого значения, а не только от монтирования.
+  useEffect(() => {
+    if (!focusOnMount) return;
+    containerRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    titleRef.current?.focus();
+    titleRef.current?.select();
+  }, [focusOnMount]);
 
   const schedule = (patch: TimelineEventPatch) => {
     pending.current = { ...pending.current, ...patch };
@@ -61,7 +76,7 @@ export function TimelineEventCard({
   const color = TYPE_COLORS[event.type];
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div ref={containerRef} style={{ position: 'relative' }}>
       <div
         style={{
           position: 'absolute',
@@ -118,6 +133,7 @@ export function TimelineEventCard({
         </div>
 
         <input
+          ref={titleRef}
           value={title}
           onChange={onTitleChange}
           placeholder="Название события"

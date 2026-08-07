@@ -52,6 +52,7 @@ export default function Timeline() {
     () => (localStorage.getItem('timeline-view') as View | null) ?? 'list'
   );
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
+  const [justCreatedId, setJustCreatedId] = useState<string | null>(null);
 
   const { isMobile } = useResponsive();
   const [sbOpen, setSbOpen] = useState(false);
@@ -77,6 +78,7 @@ export default function Timeline() {
         QUERY_KEYS.timelineEvents(bookId),
         (prev) => [...(prev ?? []), created]
       );
+      setJustCreatedId(created.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
@@ -388,6 +390,7 @@ export default function Timeline() {
                         chapters={chapters}
                         onUpdate={(patch) => handleUpdate(ev.id, patch)}
                         onDelete={() => handleDelete(ev.id)}
+                        focusOnMount={ev.id === justCreatedId}
                       />
                     ))}
                   </div>
