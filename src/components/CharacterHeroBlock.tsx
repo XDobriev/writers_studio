@@ -206,6 +206,7 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
           placeholder="Имя персонажа"
           aria-label="Имя персонажа"
           maxLength={100}
+          autoFocus={!character.name}
           style={{ width: '100%', font: `600 ${isMobile ? 28 : 44}px var(--font-serif)`, letterSpacing: '-0.018em', marginBottom: 6, background: 'transparent', border: 'none', outline: 'none', color: 'var(--ink)', padding: '4px 0', textAlign: isMobile ? 'center' : 'left' }}
         />
 
