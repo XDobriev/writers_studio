@@ -10,7 +10,7 @@ const GENRE_LIST = [
 const OTHER = 'Другое';
 
 function isCustom(g: string) {
-  return g !== OTHER && !GENRE_LIST.includes(g);
+  return g !== OTHER && !GENRE_LIST.some((preset) => preset.toLowerCase() === g.toLowerCase());
 }
 
 export function GenrePicker({
@@ -39,8 +39,8 @@ export function GenrePicker({
       }
       return;
     }
-    if (value.includes(genre)) {
-      onChange(value.filter((g) => g !== genre));
+    if (value.some((g) => g.toLowerCase() === genre.toLowerCase())) {
+      onChange(value.filter((g) => g.toLowerCase() !== genre.toLowerCase()));
     } else {
       onChange([...value, genre]);
     }
@@ -65,7 +65,7 @@ export function GenrePicker({
       <label className="label">Жанры</label>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
         {allTags.map((g) => {
-          const active = g === OTHER ? otherActive : value.includes(g);
+          const active = g === OTHER ? otherActive : value.some((v) => v.toLowerCase() === g.toLowerCase());
           return (
             <button
               key={g}
