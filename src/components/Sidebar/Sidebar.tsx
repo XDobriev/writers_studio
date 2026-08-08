@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useDropdownPosition } from '../../lib/useDropdownPosition';
 import { Icon } from '../Icon';
 import { LogoMark } from '../LogoMark';
@@ -14,6 +15,7 @@ import { ConfirmDialog } from '../ConfirmDialog';
 import { useFeatureFlag } from '../../lib/useFeatureFlag';
 import { useErrorState } from '../../lib/useErrorState';
 import { ErrorBanner } from '../ErrorBanner';
+import { QUERY_KEYS } from '../../lib/queries';
 
 const SB_STATUS_LABEL: Record<ChapterStatus, string> = {
   draft: 'Черновик',
@@ -49,11 +51,17 @@ export function Sidebar({
 }: SidebarProps) {
   const { onSelectChapter, onCreateChapter, onStatusChange, onDeleteChapter, onChapterHover } = chapterActions ?? {};
   const isReal = Boolean(chapters);
+  const queryClient = useQueryClient();
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const statusMenuRef = useRef<HTMLButtonElement>(null);
   const dropdownStyle = useDropdownPosition(statusMenuRef, statusMenuFor);
   const [shareToken, setShareToken] = useState<string | null>(book?.share_token ?? null);
+  // Синхронизация со свежими данными книги — без неё устаревший persisted-кэш
+  // (react-query показывает старое значение, потом тихо ревалидирует в фоне)
+  // навсегда запирает shareToken в null, и повторный клик «Поделиться»
+  // сгенерирует новый токен, молча инвалидировав уже разосланную ссылку.
+  useEffect(() => { setShareToken(book?.share_token ?? null); }, [book?.share_token]);
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [confirmingRevoke, setConfirmingRevoke] = useState(false);
@@ -68,6 +76,7 @@ export function Sidebar({
     try {
       await updateBook(book.id, { share_token: token });
       setShareToken(token);
+      queryClient.setQueryData<Book>(QUERY_KEYS.book(book.id), prev => prev ? { ...prev, share_token: token } : prev);
       void navigator.clipboard.writeText(`${window.location.origin}/share/${token}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -92,6 +101,7 @@ export function Sidebar({
     try {
       await updateBook(book.id, { share_token: null });
       setShareToken(null);
+      queryClient.setQueryData<Book>(QUERY_KEYS.book(book.id), prev => prev ? { ...prev, share_token: null } : prev);
       setCopied(false);
     } catch (e) {
       setShareError(e instanceof Error ? e.message : 'Не удалось отозвать доступ');
