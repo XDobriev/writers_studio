@@ -301,7 +301,7 @@ export default function Export() {
           </div>
 
           {/* Text formats strip */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--border-soft)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--border-soft)' }}>
             {FORMAT_TEXT.map((o) => {
               const active = o.value === format;
               return (
@@ -322,7 +322,7 @@ export default function Export() {
                 </button>
               );
             })}
-            <span style={{ fontSize: 11, color: 'var(--ink-4)', alignSelf: 'center', marginLeft: 4 }}>
+            <span style={{ fontSize: 11, color: 'var(--ink-4)', alignSelf: 'center', marginLeft: 4, whiteSpace: 'nowrap' }}>
               {FORMAT_TEXT.find(f => f.value === format)?.desc ?? 'текстовые форматы'}
             </span>
           </div>
