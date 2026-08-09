@@ -203,6 +203,7 @@ export function TimelineEventCard({
             aria-label="Глава"
             style={{
               flex: '1 1 120px',
+              minWidth: 0,
               height: 28,
               padding: '0 8px',
               border: '1px solid var(--border-soft)',
