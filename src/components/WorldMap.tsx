@@ -787,7 +787,7 @@ export function WorldMap({
         })()}
 
         {/* ── Hint bar ── */}
-        <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '6px 14px', font: '400 11px var(--font-ui)', color: 'var(--ink-3)', boxShadow: '0 2px 10px oklch(0 0 0 / 0.1)', pointerEvents: 'none', zIndex: 10, whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', maxWidth: 'calc(100% - 24px)', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '6px 14px', font: '400 11px var(--font-ui)', color: 'var(--ink-3)', boxShadow: '0 2px 10px oklch(0 0 0 / 0.1)', pointerEvents: 'none', zIndex: 10, whiteSpace: 'normal', textAlign: 'center' }}>
           {hintText}
         </div>
 
