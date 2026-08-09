@@ -378,7 +378,7 @@ export default function Dashboard() {
 
             {book.goal > 0 && stats && (
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '4px 8px', marginBottom: 14 }}>
                   <div style={{ font: '500 13px var(--font-ui)' }}>Цель по словам</div>
                   <span style={{ font: '500 11.5px var(--font-mono)', color: 'var(--ink)' }}>{fmtNumber(book.words)} / {fmtNumber(book.goal)} · {stats.goalPct}%</span>
                 </div>
