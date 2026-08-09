@@ -147,6 +147,8 @@ export function TimelineEventCard({
             outline: 'none',
             padding: '2px 0',
             marginBottom: 6,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}
         />
 
