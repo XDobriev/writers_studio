@@ -1629,6 +1629,14 @@ select.input {
 .export-fmt-btn:not([aria-pressed="true"]):hover { background: var(--surface-2); color: var(--ink-2); }
 .export-fmt-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); }
 
+/* ── Export footer: имя файла + действия — на узких экранах в две строки, иначе имя файла сжимается до пары символов ── */
+@media (max-width: 480px) {
+  .export-footer { flex-wrap: wrap; }
+  .export-footer-info { flex: 1 1 100%; }
+  .export-footer-spacer { display: none; }
+  .export-footer-actions { flex: 1 1 100%; justify-content: flex-end; }
+}
+
 /* ── Generic icon-only dismiss / close button ── */
 .icon-close-btn {
   display: flex; align-items: center; justify-content: center;

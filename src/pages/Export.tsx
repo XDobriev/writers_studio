@@ -505,8 +505,8 @@ export default function Export() {
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '16px 28px', borderTop: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface)' }}>
-          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className="export-footer" style={{ padding: '16px 28px', borderTop: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface)' }}>
+          <div className="export-footer-info" style={{ minWidth: 0, overflow: 'hidden' }}>
             <div style={{ font: '500 12px var(--font-mono)', color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{filename}</div>
             <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 1 }}>
               {format === 'pdf'
@@ -514,18 +514,20 @@ export default function Export() {
                 : estimateSize(format, selectedChapters)}
             </div>
           </div>
-          <span style={{ flex: 1 }} />
-          <Link to={`/books/${bookId}`} className="btn btn--ghost" style={{ textDecoration: 'none' }}>Отмена</Link>
-          <button
-            onClick={onDownload}
-            disabled={busy || selectedChapters.length === 0}
-            className="btn btn--primary"
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            {busy && <span className="btn-spinner" />}
-            {!busy && <Icon name="download" size={14} />}
-            {downloadLabel}
-          </button>
+          <span className="export-footer-spacer" style={{ flex: 1 }} />
+          <div className="export-footer-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Link to={`/books/${bookId}`} className="btn btn--ghost" style={{ textDecoration: 'none' }}>Отмена</Link>
+            <button
+              onClick={onDownload}
+              disabled={busy || selectedChapters.length === 0}
+              className="btn btn--primary"
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              {busy && <span className="btn-spinner" />}
+              {!busy && <Icon name="download" size={14} />}
+              {downloadLabel}
+            </button>
+          </div>
         </div>
       </div>
 
