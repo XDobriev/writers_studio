@@ -1,0 +1,35 @@
+name: Renew SSL certificate
+run-name: Renew SSL certificate
+
+on:
+  workflow_dispatch:  # запустить вручную из GitHub UI / gh CLI
+
+permissions:
+  contents: read
+
+jobs:
+  renew:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Renew certbot and reload nginx
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          printf '%s\n' "$VPS_HOST_KEY" >> ~/.ssh/known_hosts
+          SSH="ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes $VPS_USER@$VPS_HOST"
+          echo "=== certbot certificates (before) ==="
+          $SSH "sudo certbot certificates" || true
+          echo "=== sudo -l (diagnostics) ==="
+          $SSH "sudo -n -l" || true
+          echo "=== certbot renew ==="
+          $SSH "sudo certbot renew --force-renewal --non-interactive"
+          echo "=== nginx -t && reload ==="
+          $SSH "sudo nginx -t && sudo systemctl reload nginx"
+          echo "=== certbot certificates (after) ==="
+          $SSH "sudo certbot certificates" || true
