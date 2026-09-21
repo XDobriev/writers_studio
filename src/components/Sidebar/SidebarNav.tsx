@@ -10,7 +10,6 @@ export function SidebarNav({ bookId }: SidebarNavProps) {
   const { pathname } = useLocation();
   const navItems = useMemo<Array<[Parameters<typeof Icon>[0]['name'], string, string | null]>>(() => [
     ['layout',   'Дэшборд',   bookId ? `/books/${bookId}` : null],
-    ['sparkles', 'Замысел',   bookId ? `/books/${bookId}/plan` : null],
     ['book',   'Манускрипт', bookId ? `/books/${bookId}/editor` : null],
     ['char',   'Персонажи',  bookId ? `/books/${bookId}/characters` : null],
     ['clock',  'Хронология', bookId ? `/books/${bookId}/timeline` : null],
