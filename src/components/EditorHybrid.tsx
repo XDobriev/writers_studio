@@ -38,11 +38,13 @@ interface ChapterSheetProps {
   padding: string;
   userDictionary?: string[];
   onAddWord?: (word: string) => void;
+  nextChapter?: ChapterMeta | null;
+  onNextChapter?: () => void;
 }
 
 import { plural } from '../lib/i18n';
 
-function ChapterSheet({ chapter, content, contentReady, onContentChange, onTitleChange, onEditor, width, padding, userDictionary, onAddWord }: ChapterSheetProps) {
+function ChapterSheet({ chapter, content, contentReady, onContentChange, onTitleChange, onEditor, width, padding, userDictionary, onAddWord, nextChapter, onNextChapter }: ChapterSheetProps) {
   return (
     <div className="sheet" style={{ width, padding }}>
       <input
@@ -70,6 +72,13 @@ function ChapterSheet({ chapter, content, contentReady, onContentChange, onTitle
         userDictionary={userDictionary}
         onAddWord={onAddWord}
       />
+      {nextChapter && onNextChapter && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 28 }}>
+          <button type="button" className="btn btn--ghost" onClick={onNextChapter}>
+            Следующая глава: {nextChapter.title || 'Без названия'} <Icon name="chev" size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -184,6 +193,11 @@ export function EditorHybrid({
     }
   };
   const isReal = Boolean(chapters);
+  const nextChapter = (() => {
+    if (!chapters || !activeChapter) return null;
+    const idx = chapters.findIndex((c) => c.id === activeChapter.id);
+    return idx !== -1 && idx < chapters.length - 1 ? chapters[idx + 1] : null;
+  })();
   const writingStats = useWritingStats(book?.id);
   const { refetch: refetchStats } = writingStats;
   const { plan } = useUserDisplay();
@@ -387,6 +401,8 @@ export function EditorHybrid({
                 padding={sheetPad}
                 userDictionary={userDictionary}
                 onAddWord={handleAddWord}
+                nextChapter={nextChapter}
+                onNextChapter={nextChapter ? () => chapterActions?.onSelectChapter?.(nextChapter.id) : undefined}
               />
             ) : (
               <div className="sheet" style={{ width: sheetWidth, padding: sheetPad, color: 'var(--ink-3)', textAlign: 'center' }}>
