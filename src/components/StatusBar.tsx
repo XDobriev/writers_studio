@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { pluralDays, plural } from '../lib/i18n';
 import { useResponsive } from '../lib/useResponsive';
+import { useDropdownPosition } from '../lib/useDropdownPosition';
 import { EDITOR_FONTS, getStoredEditorFont, applyEditorFont, EDITOR_FONT_EVENT, type EditorFontId } from '../lib/editorFont';
 
 interface StatusBarProps {
@@ -77,6 +78,9 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
   const wrapperRef = useRef<HTMLDivElement>(null);
   const fontWrapperRef = useRef<HTMLDivElement>(null);
   const [fontOpen, setFontOpen] = useState(false);
+  // .status прокручивается по X (overflow) — absolute-попап внутри него обрезается.
+  const soundPopupPos = useDropdownPosition(wrapperRef, popupOpen ? 'sound' : null);
+  const fontPopupPos = useDropdownPosition(fontWrapperRef, fontOpen ? 'font' : null);
   const [activeFont, setActiveFont] = useState<EditorFontId>(getStoredEditorFont);
 
   volumeRef.current = volume;
@@ -345,17 +349,14 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
           >
             Aa
           </button>
-          {fontOpen && (
+          {fontOpen && fontPopupPos && (
             <div style={{
-              position: 'absolute',
-              bottom: 'calc(100% + 6px)',
-              right: 0,
+              ...fontPopupPos,
               width: 180,
               background: 'var(--surface)',
               border: '1px solid var(--border-soft)',
               borderRadius: 8,
               padding: 6,
-              zIndex: 200,
               boxShadow: '0 4px 16px oklch(0 0 0 / 0.12)',
               animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both',
             }}>
@@ -395,17 +396,14 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
               <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
             </svg>
           </button>
-          {popupOpen && (
+          {popupOpen && soundPopupPos && (
             <div style={{
-              position: 'absolute',
-              bottom: 'calc(100% + 6px)',
-              right: 0,
+              ...soundPopupPos,
               width: 220,
               background: 'var(--surface)',
               border: '1px solid var(--border-soft)',
               borderRadius: 8,
               padding: '10px 12px',
-              zIndex: 200,
               boxShadow: '0 4px 16px oklch(0 0 0 / 0.12)',
               animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both',
             }}>
