@@ -45,16 +45,26 @@ export function computeActivityData(
   const startDate = new Date(today);
   startDate.setDate(today.getDate() - daysFromMon - (HEATMAP_WEEKS - 1) * 7);
 
+  // Снапшоты разрежённые (пишутся только когда меняется объём), поэтому дельту дня
+  // нельзя считать как snap[день] - snap[день-1] — при разрыве в снимках (гарантированно
+  // бывает: неделями без правок) вся накопленная за паузу разница ушла бы в один день.
+  // Вместо этого ведём "последний известный кумулятив" вперёд по времени и берём дельту
+  // относительно него — как cumulativeAsOf в useWritingStats.ts, но за один проход.
+  const startDateStr = toLocalISODate(startDate);
+  const beforeWindow = Object.keys(snap).filter(d => d < startDateStr).sort();
+  let cumulativeBaseline = beforeWindow.length ? snap[beforeWindow[beforeWindow.length - 1]] : 0;
+
   const cells: ActivityCell[] = [];
   for (let i = 0; i < HEATMAP_WEEKS * 7; i++) {
     const d = new Date(startDate);
     d.setDate(d.getDate() + i);
     const ds = toLocalISODate(d);
     const future = ds > todayStr;
-    const prev = new Date(d);
-    prev.setDate(prev.getDate() - 1);
-    const prevStr = toLocalISODate(prev);
-    const delta = future ? 0 : Math.max(0, (snap[ds] ?? 0) - (snap[prevStr] ?? 0));
+    let delta = 0;
+    if (!future && snap[ds] !== undefined) {
+      delta = Math.max(0, snap[ds] - cumulativeBaseline);
+      cumulativeBaseline = snap[ds];
+    }
     cells.push({ date: ds, delta, future, weekIdx: Math.floor(i / 7) });
   }
 

@@ -31,4 +31,17 @@ describe('computeActivityData', () => {
     const d = computeActivityData([{ date: todayStr, words: 500 }], today);
     expect(d.cells.filter(c => c.future).every(c => c.delta === 0)).toBe(true);
   });
+
+  it('разрыв между снапшотами не приписывает весь накопленный объём одному дню', () => {
+    // Реальный кейс: снапшот 6 апреля (1312 слов), следующий — только 15 июня
+    // (1323 слова, "today"). Дельта дня должна быть 11, а не 1323 (весь объём книги).
+    const oldSnapshotStr = toLocalISODate(new Date(2026, 3, 6));
+    const d = computeActivityData(
+      [{ date: oldSnapshotStr, words: 1312 }, { date: todayStr, words: 1323 }],
+      today,
+    );
+    expect(d.todayWords).toBe(11);
+    const todayCell = d.cells.find(c => c.date === todayStr);
+    expect(todayCell?.delta).toBe(11);
+  });
 });
