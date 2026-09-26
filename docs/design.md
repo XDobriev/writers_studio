@@ -24,24 +24,24 @@ colors:
   semantic-info: "oklch(0.72 0.10 230)"
 typography:
   display:
-    fontFamily: "'Source Serif 4', Georgia, serif"
+    fontFamily: "'Source Serif 4 Variable', 'Source Serif 4', Georgia, serif"
     fontSize: "32px"
     fontWeight: 600
     lineHeight: 1.15
     letterSpacing: "-0.012em"
   headline:
-    fontFamily: "'Source Serif 4', Georgia, serif"
+    fontFamily: "'Source Serif 4 Variable', 'Source Serif 4', Georgia, serif"
     fontSize: "22px"
     fontWeight: 600
     lineHeight: 1.3
     letterSpacing: "-0.01em"
   title:
-    fontFamily: "'Source Serif 4', Georgia, serif"
+    fontFamily: "'Source Serif 4 Variable', 'Source Serif 4', Georgia, serif"
     fontSize: "17px"
     fontWeight: 600
     lineHeight: 1.4
   body:
-    fontFamily: "'Source Serif 4', Georgia, serif"
+    fontFamily: "'Source Serif 4 Variable', 'Source Serif 4', Georgia, serif"
     fontSize: "17px"
     fontWeight: 400
     lineHeight: 1.78

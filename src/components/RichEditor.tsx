@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { Icon } from './Icon';
+import { Skeleton } from './Skeleton';
 import StarterKit from '@tiptap/starter-kit';
 import { Extension, textInputRule } from '@tiptap/core';
 import { BulletList } from '@tiptap/extension-bullet-list';
@@ -71,6 +72,8 @@ interface RichEditorProps {
    * По умолчанию true (для сёрфейсов, где контент приходит вместе с монтированием).
    */
   contentReady?: boolean;
+  /** Тон заглушки, пока `contentReady === false`: `paper` — на светлом листе главы. */
+  loadingTone?: 'surface' | 'paper';
 }
 
 export function RichEditor({
@@ -85,6 +88,7 @@ export function RichEditor({
   userDictionary,
   onAddWord,
   contentReady = true,
+  loadingTone = 'surface',
 }: RichEditorProps) {
   const dictRef = useRef<string[]>(userDictionary ?? []);
   useEffect(() => { dictRef.current = userDictionary ?? []; }, [userDictionary]);
@@ -327,7 +331,14 @@ export function RichEditor({
           </div>
         </BubbleMenu>
       )}
-      <EditorContent editor={editor} className={className} style={style} />
+      {/* До прихода контента пустой редактор выглядел бы как пустая глава
+          («Начните писать…», «Знаков: 0») — показываем заглушку строк. */}
+      {!contentReady && (
+        <div className={className} style={style}>
+          <Skeleton tone={loadingTone} lines={9} height={14} gap={18} widths={[96, 100, 100, 58, 96, 100, 100, 100, 42]} />
+        </div>
+      )}
+      <EditorContent editor={editor} className={className} style={contentReady ? style : { ...style, display: 'none' }} />
       {spellPopup && createPortal(
         <div
           className="spell-popup"

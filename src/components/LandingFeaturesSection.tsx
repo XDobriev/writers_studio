@@ -70,7 +70,7 @@ const STUDIO_VERSIONS = [
 
 const MOCK_SOUNDS = ['Кафе', 'Дождь', 'Костёр', 'Лес', 'Волны', 'Поезд', 'Библиотека', 'Белый шум'] as const;
 const MOCK_FONTS = [
-  { label: 'Source Serif', family: "'Source Serif 4', Georgia, serif" },
+  { label: 'Source Serif', family: "'Source Serif 4 Variable', 'Source Serif 4', Georgia, serif" },
   { label: 'Lora',         family: "'Lora', Georgia, serif" },
   { label: 'PT Serif',     family: "'PT Serif', Georgia, serif" },
   { label: 'Spectral',     family: "'Spectral', Georgia, serif" },

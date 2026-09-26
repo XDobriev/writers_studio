@@ -26,9 +26,17 @@
 
 TextStyle, Color, Highlight (multicolor), Link, TextAlign (heading+paragraph), TaskList, TaskItem, Subscript, Superscript, StarterKit, Underline, Placeholder.
 
+Собственные: `LanguageTool` (орфография), `Hyphenation` (`src/extensions/Hyphenation.ts`) — мягкие переносы (`&shy;`-виджеты, hypher + hyphenation.ru) для justify-текста на листе. Загруженный документ (init и `setContent` целиком — загрузка/смена главы) получает переносы синхронно, в том же кадре; debounce 300 мс — только для набора. Иначе текст сначала рисуется без переносов, а потом все строки перестраиваются.
+
+## Загрузка главы
+
+Метаданные глав приходят раньше контента (`useChapterContent`). Пока `contentReady === false`, `RichEditor` показывает `Skeleton` вместо пустого редактора (иначе видно «Начните писать…» — как будто глава пустая); на листе — `loadingTone="paper"`. Кнопка «Следующая глава» до загрузки скрыта.
+
 ## Шрифт редактора
 
 5 шрифтов с поддержкой кириллицы: Source Serif 4 (default), Lora, PT Serif, Spectral, IBM Plex Mono. Все загружены через `@fontsource` npm-пакеты (не CDN).
+
+Пакет `@fontsource-variable/source-serif-4` регистрирует семейство **`'Source Serif 4 Variable'`** (не `'Source Serif 4'`) — стек должен начинаться с него, иначе рисуется Georgia. `applyEditorFont` сразу вызывает `document.fonts.load()`: браузер качает `@font-face` только когда видит текст этим шрифтом, и без предзагрузки подмена шрифта после прихода главы перестраивала бы justify-строки.
 
 Хранится в `localStorage` под ключом `as-editor-font`. CSS-переменная `--font-editor` на `:root` управляет `.sheet` и `.tiptap h1/h2/h3`. Инициализируется в `main.tsx` до рендера (`applyEditorFont(getStoredEditorFont())`).
 

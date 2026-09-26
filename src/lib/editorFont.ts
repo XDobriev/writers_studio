@@ -8,7 +8,7 @@ export interface EditorFont {
 }
 
 export const EDITOR_FONTS: EditorFont[] = [
-  { id: 'source-serif-4', label: 'Source Serif', fullName: 'Source Serif 4', family: "'Source Serif 4', Georgia, serif" },
+  { id: 'source-serif-4', label: 'Source Serif', fullName: 'Source Serif 4', family: "'Source Serif 4 Variable', 'Source Serif 4', Georgia, serif" },
   { id: 'lora',           label: 'Lora',         fullName: 'Lora',           family: "'Lora', Georgia, serif" },
   { id: 'pt-serif',       label: 'PT Serif',      fullName: 'PT Serif',       family: "'PT Serif', Georgia, serif" },
   { id: 'spectral',       label: 'Spectral',      fullName: 'Spectral',       family: "'Spectral', Georgia, serif" },
@@ -27,6 +27,10 @@ export function getStoredEditorFont(): EditorFontId {
 export function applyEditorFont(id: EditorFontId): void {
   const font = EDITOR_FONTS.find(f => f.id === id) ?? EDITOR_FONTS[0];
   document.documentElement.style.setProperty('--font-editor', font.family);
+  // Браузер качает @font-face только когда видит текст этим шрифтом — то есть после
+  // прихода главы, и justify-строки перестраиваются при подмене. Запускаем загрузку
+  // сразу, параллельно запросам данных. Образец с кириллицей — подмножества по unicode-range.
+  void document.fonts?.load(`1em ${font.family}`, 'Аа Aa').catch(() => {});
   localStorage.setItem(STORAGE_KEY, id);
   window.dispatchEvent(new CustomEvent(EDITOR_FONT_EVENT, { detail: id }));
 }

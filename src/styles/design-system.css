@@ -68,9 +68,9 @@
   --r-10: 10px;  /* medium cards & panels */
 
   --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
-  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-serif: 'Source Serif 4 Variable', 'Source Serif 4', Georgia, serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-  --font-editor: 'Source Serif 4', Georgia, serif;
+  --font-editor: 'Source Serif 4 Variable', 'Source Serif 4', Georgia, serif;
 
   /* Motion: durations */
   --dur-instant: 0.1s;
@@ -470,6 +470,8 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.04), transparent);
   animation: shimmer 1.4s ease-in-out infinite;
 }
+.skeleton--paper { background: color-mix(in oklch, var(--paper-ink) 7%, var(--paper)); }
+.skeleton--paper::after { background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--paper) 70%, transparent), transparent); }
 @media (prefers-reduced-motion: reduce) {
   .skeleton::after { animation: none; }
 }

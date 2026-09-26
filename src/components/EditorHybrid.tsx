@@ -65,6 +65,7 @@ function ChapterSheet({ chapter, content, contentReady, onContentChange, onTitle
         onChange={onContentChange}
         contentKey={chapter.id}
         contentReady={contentReady}
+        loadingTone="paper"
         placeholder="Начните писать главу…"
         className="sheet-body"
         style={{ minHeight: 300 }}
@@ -72,7 +73,7 @@ function ChapterSheet({ chapter, content, contentReady, onContentChange, onTitle
         userDictionary={userDictionary}
         onAddWord={onAddWord}
       />
-      {nextChapter && onNextChapter && (
+      {contentReady !== false && nextChapter && onNextChapter && (
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 28 }}>
           <button type="button" className="btn btn--ghost" onClick={onNextChapter}>
             Следующая глава: {nextChapter.title || 'Без названия'} <Icon name="chev" size={14} />

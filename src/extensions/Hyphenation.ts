@@ -1,5 +1,6 @@
 import { Extension } from '@tiptap/core';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Plugin, PluginKey, type Transaction } from '@tiptap/pm/state';
+import { ReplaceStep } from '@tiptap/pm/transform';
 import { DecorationSet, Decoration } from '@tiptap/pm/view';
 import type { Node as PmNode } from '@tiptap/pm/model';
 import Hypher from 'hypher';
@@ -41,6 +42,12 @@ function buildDecos(doc: PmNode): DecorationSet {
   return DecorationSet.create(doc, decos);
 }
 
+// Документ заменён целиком (setContent при загрузке/смене главы), а не отредактирован.
+function replacesWholeDoc(tr: Transaction): boolean {
+  return tr.steps.some((s, i) =>
+    s instanceof ReplaceStep && s.from === 0 && s.to === tr.docs[i].content.size);
+}
+
 export const Hyphenation = Extension.create({
   name: 'hyphenation',
 
@@ -51,12 +58,16 @@ export const Hyphenation = Extension.create({
       new Plugin({
         key: HYPH_KEY,
 
+        // Загруженный текст получает переносы сразу, в том же кадре: иначе он
+        // отрисовывается без них, а через 300 мс все строки перестраиваются.
+        // Debounce остаётся только для набора текста.
         state: {
-          init: () => DecorationSet.empty,
+          init: (_, state) => buildDecos(state.doc),
           apply(tr, old) {
             const next = tr.getMeta(HYPH_KEY) as DecorationSet | undefined;
             if (next !== undefined) return next;
-            return tr.docChanged ? old.map(tr.mapping, tr.doc) : old;
+            if (!tr.docChanged) return old;
+            return replacesWholeDoc(tr) ? buildDecos(tr.doc) : old.map(tr.mapping, tr.doc);
           },
         },
 
@@ -75,8 +86,6 @@ export const Hyphenation = Extension.create({
               view.dispatch(view.state.tr.setMeta(HYPH_KEY, decos));
             }, 300);
           };
-
-          rebuild();
 
           return {
             update(v, prev) {
