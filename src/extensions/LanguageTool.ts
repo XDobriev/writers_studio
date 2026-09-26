@@ -60,7 +60,10 @@ function makeDecorations(doc: PmNode, errors: YaError[], dict: string[]): Decora
   const decos: Decoration[] = [];
 
   for (const { pos, len, word, s } of errors) {
-    if (dict.includes(word.toLowerCase())) continue;
+    const lower = word.toLowerCase();
+    if (dict.includes(lower)) continue;
+    // Контекстная проверка Яндекса помечает верные слова и сама же предлагает их как вариант.
+    if (s.some((v) => v.toLowerCase() === lower)) continue;
 
     const end = pos + len - 1;
     if (end >= map.length) continue;
