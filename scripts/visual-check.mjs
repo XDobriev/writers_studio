@@ -118,7 +118,7 @@ async function shoot(context, base, bookId, target, viewport, file) {
 
 // Сравнение в браузере через canvas — без зависимостей вроде pixelmatch.
 // Кроме diff собирает compare-картинку «ДО | ПОСЛЕ | РАЗНИЦА» — её показывают пользователю на ревью.
-async function compare(page, fileA, fileB, fileDiff, fileCompare) {
+async function compare(page, fileA, fileB, fileDiff) {
   const toUrl = (f) => 'data:image/png;base64,' + fs.readFileSync(f).toString('base64');
   const res = await page.evaluate(async ({ a, b }) => {
     const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = src; });
@@ -152,7 +152,6 @@ async function compare(page, fileA, fileB, fileDiff, fileCompare) {
     return { ratio: diff / (w * h), sizeA: [ia.width, ia.height], sizeB: [ib.width, ib.height], png: await toB64(out), comparePng: await toB64(comp) };
   }, { a: toUrl(fileA), b: toUrl(fileB) });
   fs.writeFileSync(fileDiff, Buffer.from(res.png, 'base64'));
-  fs.writeFileSync(fileCompare, Buffer.from(res.comparePng, 'base64'));
   return res;
 }
 
@@ -189,13 +188,13 @@ for (const t of targets) {
       const [errBefore, errAfter] = t.kind === 'scenario'
         ? [await shootBefore(), await shootAfter()]
         : await Promise.all([shootBefore(), shootAfter()]);
-      const r = await compare(cmp, f('before'), f('after'), f('diff'), f('compare'));
+      const r = await compare(cmp, f('before'), f('after'), f('diff'));
       const newErrors = [...new Set(errAfter.filter((e) => !errBefore.includes(e)))];
       // = пиксель в пиксель · ≈ мелкое отличие ниже порога (шум или маленький элемент — смотреть diff) · ≠ заметное
       const resized = r.sizeA.join() !== r.sizeB.join();
       const mark = r.ratio > THRESHOLD || resized ? '≠' : r.ratio > 0 ? '≈' : '=';
-      // Сравнение нужно только там, где есть на что смотреть: сценарии фичи и любые отличия.
-      if (mark === '=' && t.kind !== 'scenario') fs.rmSync(f('compare'));
+      // Сравнение пишется только там, где есть на что смотреть: сценарии фичи и любые отличия.
+      if (mark !== '=' || t.kind === 'scenario') fs.writeFileSync(f('compare'), Buffer.from(r.comparePng, 'base64'));
       rows.push({ name, kind: t.kind, ratio: r.ratio, sizeA: r.sizeA, sizeB: r.sizeB, mark, newErrors });
       console.log(`${mark} ${name.padEnd(24)} ${(r.ratio * 100).toFixed(2).padStart(6)}%${r.sizeA.join() !== r.sizeB.join() ? `  размер ${r.sizeA.join('×')} → ${r.sizeB.join('×')}` : ''}${newErrors.length ? `  новых ошибок: ${newErrors.length}` : ''}`);
     } catch (e) {
