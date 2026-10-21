@@ -66,3 +66,39 @@ _design-source/
 
 # Брендинг (локальные ассеты, не в репо)
 brand/
+
+# Видео-пайплайн и генерации (Remotion, озвучка, рендеры, пресеты) — не в репо
+video/
+
+# Любое видео и аудио — не в репо
+*.mp4
+*.mov
+*.webm
+*.mkv
+*.avi
+*.mp3
+*.wav
+*.ogg
+*.m4a
+*.aac
+*.flac
+*.pcm
+# ...кроме фоновых звуков самого приложения (StatusBar)
+!public/sounds/*.mp3
+
+# Маркетинг видео — сценарии и пайплайн
+docs/reels-scripts.md
+docs/video-pipeline.md
+
+# Бизнес-документы (репо публичный): планы, security-бэклог, логика биллинга
+docs/roadmap.md
+docs/product.md
+docs/features/payments.md
+
+# Скриншоты для роликов Veo
+_veo-screens/
+
+# Любые скриншоты в корне (QA, агенты)
+/*.png
+/*.jpg
+/*.jpeg
