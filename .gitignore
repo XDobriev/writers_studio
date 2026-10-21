@@ -102,3 +102,6 @@ _veo-screens/
 /*.png
 /*.jpg
 /*.jpeg
+
+# Визуальная регрессия и QA-прогоны (scripts/visual-check.mjs)
+.qa/
