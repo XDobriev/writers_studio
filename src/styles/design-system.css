@@ -545,6 +545,11 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   position: relative;
   letter-spacing: 0.005em;
 }
+.sheet-title {
+  display: block; width: 100%; margin: 0 0 22px; padding: 0;
+  background: transparent; border: none; outline: none; resize: none; overflow: hidden;
+  font: 600 30px var(--font-serif); letter-spacing: -0.012em; color: var(--paper-ink);
+}
 .sheet h1, .sheet .ch-num, .sheet .ch-title {
   font-family: var(--font-editor);
   color: var(--paper-ink);

@@ -21,6 +21,7 @@ import { useUserDisplay } from '../lib/useUserDisplay';
 import { useAuth } from '../lib/auth';
 import { useProfile, QUERY_KEYS, useCharacters } from '../lib/queries';
 import { useCharacterHover } from '../lib/useCharacterHover';
+import { useAutoResize } from '../lib/useAutoResize';
 const CharacterHoverCard = lazy(() => import('./CharacterHoverCard').then(m => ({ default: m.CharacterHoverCard })));
 import { addWordToDictionary, type Profile } from '../lib/profiles';
 
@@ -45,20 +46,20 @@ interface ChapterSheetProps {
 import { plural } from '../lib/i18n';
 
 function ChapterSheet({ chapter, content, contentReady, onContentChange, onTitleChange, onEditor, width, padding, userDictionary, onAddWord, nextChapter, onNextChapter }: ChapterSheetProps) {
+  const titleRef = useAutoResize(chapter.title);
   return (
     <div className="sheet" style={{ width, padding }}>
-      <input
+      {/* textarea, а не input: длинное название на узком листе переносится, а не режется. Переносы строк в название не пускаем. */}
+      <textarea
+        ref={titleRef}
         className="sheet-title"
+        rows={1}
         value={chapter.title}
-        onChange={(e) => onTitleChange(e.target.value)}
+        onChange={(e) => onTitleChange(e.target.value.replace(/[\r\n]+/g, ' '))}
+        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
         placeholder="Без названия"
         aria-label="Название главы"
         maxLength={200}
-        style={{
-          width: '100%', background: 'transparent', border: 'none', outline: 'none',
-          font: '600 30px var(--font-serif)', letterSpacing: '-0.012em', color: 'var(--paper-ink)',
-          padding: 0, marginBottom: 22,
-        }}
       />
       <RichEditor
         value={content}
