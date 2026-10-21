@@ -417,6 +417,14 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   scrollbar-width: none;
 }
 .tb::-webkit-scrollbar { display: none; }
+/* Мобильные фильтры хронологии: горизонтальная прокрутка без полосы — как у тулбара (.tb). */
+.tl-filters {
+  display: flex; gap: 4px; padding: 6px 12px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border-soft);
+  overflow-x: auto; scrollbar-width: none;
+}
+.tl-filters::-webkit-scrollbar { display: none; }
+.tl-event-desc { scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
 .tb--wrap { flex-wrap: nowrap; }
 .tb > * { flex-shrink: 0; }
 .tb-grp { display: flex; align-items: center; gap: 1px; }

@@ -34,16 +34,7 @@ export function TimelineFilters({ variant, filter, onFilter }: {
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: 4,
-        padding: '6px 12px',
-        borderBottom: '1px solid var(--border-soft)',
-        overflowX: 'auto',
-        flexShrink: 0,
-      }}
-    >
+    <div className="tl-filters">
       {TYPE_FILTERS.map((f) => (
         <button
           key={f.value}
