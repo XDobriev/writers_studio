@@ -190,14 +190,13 @@ export function WorldMap({
     const el = containerRef.current;
     if (!el) return;
     const { width, height } = el.getBoundingClientRect();
-    const s = Math.min(width / CW, height / CH) * 0.85;
-    // В портретной ориентации (телефон) карта шире контейнера по масштабу от ширины,
-    // поэтому вертикальное центрирование даёт 200-300px пустого пространства сверху.
-    // Прижимаем карту к верху с небольшим отступом.
+    // В портретной ориентации (телефон) вписывание по ширине оставляет карту полоской в треть экрана.
+    // Поэтому масштаб — по высоте, по центру: видна середина карты, края — жестом pan/pinch.
     const portrait = height > width;
+    const s = portrait ? height / CH : Math.min(width / CW, height / CH) * 0.85;
     const p = {
       x: (width - CW * s) / 2,
-      y: portrait ? 8 : (height - CH * s) / 2,
+      y: portrait ? 0 : (height - CH * s) / 2,
     };
     setScale(s); scaleRef.current = s;
     setPan(p);   panValRef.current = p;
