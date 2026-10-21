@@ -9,6 +9,7 @@ import { getCharacterColor } from '../lib/pov';
 
 const VersionsPanel = lazy(() => import('./VersionsPanel').then(m => ({ default: m.VersionsPanel })));
 import { useErrorState } from '../lib/useErrorState';
+import { useAutoResize } from '../lib/useAutoResize';
 import { ErrorBanner } from './ErrorBanner';
 
 interface RightPanelProps {
@@ -55,6 +56,8 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   const [editKind, setEditKind] = useState<NoteKind>('idea');
   const [editText, setEditText] = useState('');
   const [editCustomLabel, setEditCustomLabel] = useState('');
+  const formTextRef = useAutoResize(formText);
+  const editTextRef = useAutoResize(editText);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; text: string } | null>(null);
 
   useEffect(() => {
@@ -254,13 +257,14 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   />
                 )}
                 <textarea
-                  className="input"
+                  ref={formTextRef}
+                  className="input input--textarea"
                   rows={3}
                   placeholder="Текст заметки…"
                   aria-label="Текст заметки"
                   value={formText}
                   onChange={(e) => setFormText(e.target.value)}
-                  style={{ fontSize: 12, resize: 'vertical' }}
+                  style={{ fontSize: 12 }}
                   autoFocus
                 />
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
@@ -335,11 +339,12 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                   />
                 )}
                 <textarea
-                  className="input"
+                  ref={editTextRef}
+                  className="input input--textarea"
                   rows={3}
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
-                  style={{ fontSize: 12, resize: 'vertical' }}
+                  style={{ fontSize: 12 }}
                   autoFocus
                 />
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
@@ -386,6 +391,11 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
             )}
           </div>
           ))}
+          {notes.length > 0 && !showForm && !editingId && (
+            <button className="btn rp-add-note" onClick={() => (demo ? navigate('/login?tab=signup') : setShowForm(true))}>
+              <Icon name="plus" size={13} /> Добавить заметку
+            </button>
+          )}
           </div>
         )}
       </div>
