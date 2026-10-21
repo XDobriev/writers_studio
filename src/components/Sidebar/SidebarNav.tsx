@@ -25,7 +25,7 @@ export function SidebarNav({ bookId }: SidebarNavProps) {
   }
 
   return (
-    <nav style={{ padding: '10px 8px 4px', display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <nav aria-label="Разделы книги" style={{ padding: '10px 8px 4px', display: 'flex', flexDirection: 'column', gap: 1 }}>
       {navItems.map(([icn, label, href]) => {
         const on = isNavActive(href);
         const cls = 'sb-item' + (on ? ' sb-item--on' : '');

@@ -122,6 +122,12 @@ export function Sidebar({
     return () => document.removeEventListener('keydown', handler);
   }, [statusMenuFor]);
 
+  // Активная глава может оказаться ниже края — на невысоком окне до неё не видно ни одной строки.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    bodyRef.current?.querySelector('.sb-list .sb-item--on')?.scrollIntoView({ block: 'nearest' });
+  }, [activeChapterId, chapters?.length]);
+
   const bid = book?.id ?? '';
   return (
     <aside className="sb">
@@ -192,9 +198,12 @@ export function Sidebar({
         }}
       />
 
+      {/* Разделы и главы прокручиваются одним списком: на невысоком окне закреплённые разделы
+          оставляли главам 2–3 строки. Закреплены только шапка и футер. */}
+      <div className="sb-body" ref={bodyRef}>
       <SidebarNav bookId={bid} />
 
-      <nav className="sb-body" aria-label="Разделы книги">
+      <nav aria-label="Главы книги">
       {isReal ? (
         <>
           <div className="sb-section">
@@ -330,7 +339,8 @@ export function Sidebar({
         </div>
       )}
 
-      </nav>{/* /sb-body */}
+      </nav>
+      </div>{/* /sb-body */}
 
       {!demo && <SidebarFoot />}
     </aside>
