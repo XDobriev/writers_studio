@@ -1001,6 +1001,17 @@ select.input {
 .focus-mode .sheet .sheet-title:focus {
   opacity: 1;
 }
+/* Футер страницы /focus — обычный flex-ряд под областью прокрутки, а не absolute поверх неё:
+   иначе последние строки текста уходят под него. */
+.focus-foot {
+  flex-shrink: 0; display: flex; align-items: center; gap: 14px; padding: 12px 24px;
+  font: 400 11px var(--font-mono); color: var(--ink-4);
+}
+.focus-foot > span { white-space: nowrap; }
+@media (max-width: 479px) {
+  .focus-foot { gap: 10px; padding: 10px 16px; }
+  .focus-foot__label, .focus-foot__bar { display: none; }
+}
 .focus-mode .sheet .tiptap {
   caret-color: oklch(0.76 0.25 68);
 }

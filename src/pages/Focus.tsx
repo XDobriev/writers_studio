@@ -143,7 +143,7 @@ export default function Focus() {
         ESC ↩
       </button>
 
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '80px 40px 60px', overflow: 'auto' }}>
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '80px 40px 60px', overflow: 'auto' }}>
         <RichEditor
           value={activeContent}
           onChange={onContentChange}
@@ -155,13 +155,13 @@ export default function Focus() {
         />
       </div>
 
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 14, font: '400 11px var(--font-mono)', color: 'var(--ink-4)' }}>
-        <span>фокус-режим</span>
+      <div className="focus-foot">
+        <span className="focus-foot__label">фокус-режим</span>
         <span style={{ flex: 1 }} />
         {book.goal > 0 ? (
           <>
             <span>{activeChapter.words.toLocaleString('ru-RU')} / {book.goal.toLocaleString('ru-RU')} в книге</span>
-            <svg width="120" height="6" viewBox="0 0 120 6">
+            <svg className="focus-foot__bar" width="120" height="6" viewBox="0 0 120 6">
               <rect x="0" y="2" width="120" height="2" fill="var(--surface-2)" />
               <rect x="0" y="2" width={Math.min(120, (book.words / book.goal) * 120)} height="2" fill="var(--accent)" />
             </svg>
