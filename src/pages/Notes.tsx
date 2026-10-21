@@ -4,6 +4,7 @@ import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useParams } from 'react-router-dom';
 import { useCreateOnMount } from '../lib/useCreateOnMount';
 import { useErrorState } from '../lib/useErrorState';
+import { useAutoResize } from '../lib/useAutoResize';
 import { ErrorBanner } from '../components/ErrorBanner';
 import {
   DndContext,
@@ -256,6 +257,8 @@ export default function Notes() {
   const [modalEditCustomLabel, setModalEditCustomLabel] = useState('');
   const [modalEditCustomColor, setModalEditCustomColor] = useState<BaseKind>('idea');
   const modalPanelRef = useRef<HTMLDivElement>(null);
+  const formTextRef = useAutoResize(formText);
+  const modalEditTextRef = useAutoResize(modalEditText);
   useEffect(() => { if (modalNote) modalPanelRef.current?.focus(); }, [modalNote]);
 
   const [filterKind, setFilterKind] = useState<NoteKind | 'all'>('all');
@@ -516,7 +519,8 @@ export default function Notes() {
                     </div>
                   )}
                   <textarea
-                    className="input"
+                    ref={formTextRef}
+                    className="input input--textarea"
                     rows={3}
                     placeholder="Текст заметки…"
                     value={formText}
@@ -525,7 +529,7 @@ export default function Notes() {
                       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void handleAdd(); }
                       if (e.key === 'Escape') { setShowForm(false); setFormText(''); setFormCustomLabel(''); setFormCustomColor('idea'); setFormKind('idea'); }
                     }}
-                    style={{ fontSize: 13, resize: 'vertical' }}
+                    style={{ fontSize: 13 }}
                     autoFocus
                   />
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -664,7 +668,8 @@ export default function Notes() {
                     </div>
                   )}
                   <textarea
-                    className="input"
+                    ref={modalEditTextRef}
+                    className="input input--textarea"
                     rows={6}
                     value={modalEditText}
                     onChange={(e) => setModalEditText(e.target.value)}
@@ -673,7 +678,7 @@ export default function Notes() {
                       if (e.key === 'Escape') setModalEditing(false);
                     }}
                     aria-label="Текст заметки"
-                    style={{ fontSize: 13, resize: 'vertical', flex: 1 }}
+                    style={{ fontSize: 13 }}
                     autoFocus
                   />
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexShrink: 0 }}>
