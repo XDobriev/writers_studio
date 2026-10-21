@@ -9,8 +9,10 @@
 // Нужен запущенный `npm run dev`. Логин — e2e-аккаунт из .env.local (E2E_TEST_EMAIL/PASSWORD).
 // Результат: .qa/visual/<время>/{before,after,diff}/*.png + report.md.
 //
-// Сценарий — модуль с `export default [{ name, path, viewports?, run: async (page) => {} }]`;
-// `path` может содержать :id (первая книга аккаунта). `run` приводит страницу в нужное состояние.
+// Сценарий — модуль с `export default [{ name, path, viewports?, run: async (page) => {}, cleanup? }]`;
+// `path` может содержать :id (первая книга аккаунта). `run` приводит страницу в нужное состояние,
+// `cleanup(page)` — после снимка удаляет созданные данные. Сценарии идут последовательно («до», затем
+// «после»): обе стороны пишут в один e2e-аккаунт, параллельно они видели бы данные друг друга.
 import { chromium } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -102,10 +104,14 @@ async function shoot(context, base, bookId, target, viewport, file) {
   await page.addStyleTag({ content: FREEZE_CSS });
   await waitReady(page);
   await page.waitForTimeout(1000);
-  if (target.run) await target.run(page);
-  await page.waitForTimeout(500);
-  await page.screenshot({ path: file, fullPage: !target.run });
-  await page.close();
+  try {
+    if (target.run) await target.run(page);
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: file, fullPage: !target.run });
+  } finally {
+    if (target.cleanup) await target.cleanup(page).catch((e) => console.log(`  cleanup ${target.name}: ${e.message.split('\n')[0]}`));
+    await page.close();
+  }
   return errors;
 }
 
@@ -163,10 +169,11 @@ for (const t of targets) {
     const name = `${t.name}-${vp}`;
     const f = (d) => path.join(OUT, d, name + '.png');
     try {
-      const [errBefore, errAfter] = await Promise.all([
-        shoot(t.auth === false ? ctxAnon : ctxBefore, BEFORE, bookBefore, t, vp, f('before')),
-        shoot(t.auth === false ? ctxAnon : ctxAfter, AFTER, bookAfter, t, vp, f('after')),
-      ]);
+      const shootBefore = () => shoot(t.auth === false ? ctxAnon : ctxBefore, BEFORE, bookBefore, t, vp, f('before'));
+      const shootAfter = () => shoot(t.auth === false ? ctxAnon : ctxAfter, AFTER, bookAfter, t, vp, f('after'));
+      const [errBefore, errAfter] = t.kind === 'scenario'
+        ? [await shootBefore(), await shootAfter()]
+        : await Promise.all([shootBefore(), shootAfter()]);
       const r = await compare(cmp, f('before'), f('after'), f('diff'));
       const newErrors = [...new Set(errAfter.filter((e) => !errBefore.includes(e)))];
       const changed = r.ratio > THRESHOLD || r.sizeA.join() !== r.sizeB.join();
