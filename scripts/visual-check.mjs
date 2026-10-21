@@ -81,9 +81,8 @@ async function login(context, base) {
   return href.split('/')[2];
 }
 
-// Шум в консоли, который не зависит от кода ветки: VK ID и сертификаты на localhost;
-// `promise.then is not a function` при восстановлении кэша React Query — только в dev (см. roadmap).
-const NOISE = /vk\.ru|vkid|ERR_CERT|ERR_FAILED|Failed to load resource|promise\.then is not a function/;
+// Шум в консоли, который не зависит от кода ветки: VK ID и сертификаты на localhost.
+const NOISE = /vk\.ru|vkid|ERR_CERT|ERR_FAILED|Failed to load resource/;
 const normalizeError = (t) => t.replace(/https?:\/\/[^\s)]+/g, '<url>').replace(/\?v=\w+/g, '').slice(0, 200);
 
 // Страница готова, когда сеть утихла и пропали индикаторы загрузки — иначе снимок ловит «Загрузка…».

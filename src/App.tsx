@@ -1,7 +1,7 @@
 import { useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { QueryClient, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, useQueryClient, defaultShouldDehydrateQuery } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { AuthProvider, useAuth } from './lib/auth';
@@ -165,9 +165,12 @@ export default function App() {
           persister,
           maxAge: 24 * 60 * 60_000,
           dehydrateOptions: {
+            // Свой фильтр заменяет дефолтный — без defaultShouldDehydrateQuery (только success) в localStorage
+            // попадали запросы в полёте с полем promise; после JSON оно {}, и восстановление падало
+            // на `promise.then is not a function`, выбрасывая весь кэш.
             shouldDehydrateQuery: (query) => {
               const key = query.queryKey[0];
-              return key !== 'chapter-content' && key !== 'chapter-versions';
+              return defaultShouldDehydrateQuery(query) && key !== 'chapter-content' && key !== 'chapter-versions';
             },
           },
         }}
