@@ -24,7 +24,7 @@ const args = Object.fromEntries(
 const BEFORE = args.before ?? 'https://avtorstudio.com';
 const AFTER = args.after ?? 'http://127.0.0.1:5273';
 const ONLY = args.only?.split(',');
-// Доля отличающихся пикселей, выше которой страница считается изменённой.
+// Доля отличающихся пикселей, выше которой экран — ≠ (заметно изменён); ненулевая ниже порога — ≈.
 const THRESHOLD = Number(args.threshold ?? 0.003);
 
 const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 } };
@@ -176,9 +176,11 @@ for (const t of targets) {
         : await Promise.all([shootBefore(), shootAfter()]);
       const r = await compare(cmp, f('before'), f('after'), f('diff'));
       const newErrors = [...new Set(errAfter.filter((e) => !errBefore.includes(e)))];
-      const changed = r.ratio > THRESHOLD || r.sizeA.join() !== r.sizeB.join();
-      rows.push({ name, kind: t.kind, ratio: r.ratio, sizeA: r.sizeA, sizeB: r.sizeB, changed, newErrors });
-      console.log(`${changed ? '≠' : '='} ${name.padEnd(24)} ${(r.ratio * 100).toFixed(2).padStart(6)}%${r.sizeA.join() !== r.sizeB.join() ? `  размер ${r.sizeA.join('×')} → ${r.sizeB.join('×')}` : ''}${newErrors.length ? `  новых ошибок: ${newErrors.length}` : ''}`);
+      // = пиксель в пиксель · ≈ мелкое отличие ниже порога (шум или маленький элемент — смотреть diff) · ≠ заметное
+      const resized = r.sizeA.join() !== r.sizeB.join();
+      const mark = r.ratio > THRESHOLD || resized ? '≠' : r.ratio > 0 ? '≈' : '=';
+      rows.push({ name, kind: t.kind, ratio: r.ratio, sizeA: r.sizeA, sizeB: r.sizeB, mark, newErrors });
+      console.log(`${mark} ${name.padEnd(24)} ${(r.ratio * 100).toFixed(2).padStart(6)}%${r.sizeA.join() !== r.sizeB.join() ? `  размер ${r.sizeA.join('×')} → ${r.sizeB.join('×')}` : ''}${newErrors.length ? `  новых ошибок: ${newErrors.length}` : ''}`);
     } catch (e) {
       rows.push({ name, kind: t.kind, failed: String(e.message).split('\n')[0] });
       console.log(`! ${name.padEnd(24)} не снялось: ${String(e.message).split('\n')[0]}`);
@@ -196,7 +198,7 @@ const md = [
   `|---|---|---|---|---|`,
   ...rows.map((r) => r.failed
     ? `| ! | ${r.name} | не снялось: ${r.failed} | | |`
-    : `| ${r.changed ? '≠' : '='} | ${r.name} | ${(r.ratio * 100).toFixed(2)}% | ${r.sizeA.join('×')} → ${r.sizeB.join('×')} | ${r.newErrors.join('<br>') || '—'} |`),
+    : `| ${r.mark} | ${r.name} | ${(r.ratio * 100).toFixed(2)}% | ${r.sizeA.join('×')} → ${r.sizeB.join('×')} | ${r.newErrors.join('<br>') || '—'} |`),
 ].join('\n');
 fs.writeFileSync(path.join(OUT, 'report.md'), md + '\n');
 fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(rows, null, 2));

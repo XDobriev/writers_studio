@@ -26,7 +26,7 @@ if (!repo) throw new Error(`Не GitHub-remote: ${remoteUrl}`);
 
 let parent = '';
 try {
-  git(['fetch', '-q', 'origin', BRANCH]);
+  git(['fetch', '-q', 'origin', BRANCH], { stdio: ['ignore', 'pipe', 'ignore'] });
   parent = git(['rev-parse', 'FETCH_HEAD']);
 } catch { /* ветки ещё нет — первый коммит без родителя */ }
 
