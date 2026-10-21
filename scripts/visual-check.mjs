@@ -7,7 +7,8 @@
 //   --before <url> (по умолчанию https://avtorstudio.com)  --after <url> (http://127.0.0.1:5273)
 //
 // Нужен запущенный `npm run dev`. Логин — e2e-аккаунт из .env.local (E2E_TEST_EMAIL/PASSWORD).
-// Результат: .qa/visual/<время>/{before,after,diff}/*.png + report.md.
+// Результат: .qa/visual/<время>/{before,after,diff}/*.png + report.md; compare/*.png — «ДО | ПОСЛЕ | РАЗНИЦА»
+// одной картинкой для сценариев и экранов с отличиями (их ссылки показываются пользователю на ревью).
 //
 // Сценарий — модуль с `export default [{ name, path, viewports?, run: async (page) => {}, cleanup? }]`;
 // `path` может содержать :id (первая книга аккаунта). `run` приводит страницу в нужное состояние,
@@ -116,7 +117,8 @@ async function shoot(context, base, bookId, target, viewport, file) {
 }
 
 // Сравнение в браузере через canvas — без зависимостей вроде pixelmatch.
-async function compare(page, fileA, fileB, fileDiff) {
+// Кроме diff собирает compare-картинку «ДО | ПОСЛЕ | РАЗНИЦА» — её показывают пользователю на ревью.
+async function compare(page, fileA, fileB, fileDiff, fileCompare) {
   const toUrl = (f) => 'data:image/png;base64,' + fs.readFileSync(f).toString('base64');
   const res = await page.evaluate(async ({ a, b }) => {
     const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = src; });
@@ -132,12 +134,25 @@ async function compare(page, fileA, fileB, fileDiff) {
       else { const g = (db[p] + db[p + 1] + db[p + 2]) / 3; od.data.set([g, g, g, 70], p); }
     }
     ox.putImageData(od, 0, 0);
-    const blob = await out.convertToBlob();
-    const buf = new Uint8Array(await blob.arrayBuffer());
-    let bin = ''; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
-    return { ratio: diff / (w * h), sizeA: [ia.width, ia.height], sizeB: [ib.width, ib.height], png: btoa(bin) };
+
+    const GAP = 24, HEAD = 48;
+    const comp = new OffscreenCanvas(w * 3 + GAP * 2, h + HEAD), cx = comp.getContext('2d');
+    cx.fillStyle = '#0e0b0a'; cx.fillRect(0, 0, comp.width, comp.height);
+    cx.font = 'bold 26px sans-serif'; cx.fillStyle = '#f2ece6';
+    [['ДО', ia], ['ПОСЛЕ', ib], ['РАЗНИЦА', out]].forEach(([label, img], i) => {
+      cx.fillText(label, i * (w + GAP) + 8, 34);
+      cx.drawImage(img, i * (w + GAP), HEAD);
+    });
+
+    const toB64 = async (canvas) => {
+      const buf = new Uint8Array(await (await canvas.convertToBlob()).arrayBuffer());
+      let bin = ''; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+      return btoa(bin);
+    };
+    return { ratio: diff / (w * h), sizeA: [ia.width, ia.height], sizeB: [ib.width, ib.height], png: await toB64(out), comparePng: await toB64(comp) };
   }, { a: toUrl(fileA), b: toUrl(fileB) });
   fs.writeFileSync(fileDiff, Buffer.from(res.png, 'base64'));
+  fs.writeFileSync(fileCompare, Buffer.from(res.comparePng, 'base64'));
   return res;
 }
 
@@ -149,7 +164,7 @@ const targets = [
 
 const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const OUT = path.join('.qa', 'visual', stamp);
-for (const d of ['before', 'after', 'diff']) fs.mkdirSync(path.join(OUT, d), { recursive: true });
+for (const d of ['before', 'after', 'diff', 'compare']) fs.mkdirSync(path.join(OUT, d), { recursive: true });
 
 const browser = await chromium.launch();
 const mkContext = async () => {
@@ -174,11 +189,13 @@ for (const t of targets) {
       const [errBefore, errAfter] = t.kind === 'scenario'
         ? [await shootBefore(), await shootAfter()]
         : await Promise.all([shootBefore(), shootAfter()]);
-      const r = await compare(cmp, f('before'), f('after'), f('diff'));
+      const r = await compare(cmp, f('before'), f('after'), f('diff'), f('compare'));
       const newErrors = [...new Set(errAfter.filter((e) => !errBefore.includes(e)))];
       // = пиксель в пиксель · ≈ мелкое отличие ниже порога (шум или маленький элемент — смотреть diff) · ≠ заметное
       const resized = r.sizeA.join() !== r.sizeB.join();
       const mark = r.ratio > THRESHOLD || resized ? '≠' : r.ratio > 0 ? '≈' : '=';
+      // Сравнение нужно только там, где есть на что смотреть: сценарии фичи и любые отличия.
+      if (mark === '=' && t.kind !== 'scenario') fs.rmSync(f('compare'));
       rows.push({ name, kind: t.kind, ratio: r.ratio, sizeA: r.sizeA, sizeB: r.sizeB, mark, newErrors });
       console.log(`${mark} ${name.padEnd(24)} ${(r.ratio * 100).toFixed(2).padStart(6)}%${r.sizeA.join() !== r.sizeB.join() ? `  размер ${r.sizeA.join('×')} → ${r.sizeB.join('×')}` : ''}${newErrors.length ? `  новых ошибок: ${newErrors.length}` : ''}`);
     } catch (e) {
@@ -198,7 +215,7 @@ const md = [
   `|---|---|---|---|---|`,
   ...rows.map((r) => r.failed
     ? `| ! | ${r.name} | не снялось: ${r.failed} | | |`
-    : `| ${r.mark} | ${r.name} | ${(r.ratio * 100).toFixed(2)}% | ${r.sizeA.join('×')} → ${r.sizeB.join('×')} | ${r.newErrors.join('<br>') || '—'} |`),
+    : `| ${r.mark} | ${r.mark === '=' && r.kind !== 'scenario' ? r.name : `[${r.name}](compare/${r.name}.png)`} | ${(r.ratio * 100).toFixed(2)}% | ${r.sizeA.join('×')} → ${r.sizeB.join('×')} | ${r.newErrors.join('<br>') || '—'} |`),
 ].join('\n');
 fs.writeFileSync(path.join(OUT, 'report.md'), md + '\n');
 fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(rows, null, 2));
