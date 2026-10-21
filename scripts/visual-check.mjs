@@ -8,7 +8,8 @@
 //
 // Нужен запущенный `npm run dev`. Логин — e2e-аккаунт из .env.local (E2E_TEST_EMAIL/PASSWORD).
 // Результат: .qa/visual/<время>/{before,after,diff}/*.png + report.md; compare/*.png — «ДО | ПОСЛЕ | РАЗНИЦА»
-// одной картинкой для сценариев и экранов с отличиями (их ссылки показываются пользователю на ревью).
+// одной картинкой для сценариев и экранов с отличиями (их ссылки показываются пользователю на ревью);
+// crop/<экран>-{before,after}.png — та же область вокруг отличий в натуральном масштабе, вставлены в report.md.
 //
 // Сценарий — модуль с `export default [{ name, path, viewports?, run: async (page) => {}, cleanup? }]`;
 // `path` может содержать :id (первая книга аккаунта). `run` приводит страницу в нужное состояние,
@@ -127,13 +128,28 @@ async function compare(page, fileA, fileB, fileDiff) {
     const data = (img) => { const c = new OffscreenCanvas(w, h); const x = c.getContext('2d'); x.drawImage(img, 0, 0); return x.getImageData(0, 0, w, h).data; };
     const da = data(ia), db = data(ib);
     const out = new OffscreenCanvas(w, h), ox = out.getContext('2d'), od = ox.createImageData(w, h);
-    let diff = 0;
+    let diff = 0, x0 = w, y0 = h, x1 = -1, y1 = -1;
     for (let p = 0; p < da.length; p += 4) {
       const d = Math.abs(da[p] - db[p]) + Math.abs(da[p + 1] - db[p + 1]) + Math.abs(da[p + 2] - db[p + 2]) + Math.abs(da[p + 3] - db[p + 3]);
-      if (d > 60) { diff++; od.data.set([255, 0, 60, 255], p); }
+      if (d > 60) {
+        diff++; od.data.set([255, 0, 60, 255], p);
+        const px = (p / 4) % w, py = Math.floor(p / 4 / w);
+        if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py;
+      }
       else { const g = (db[p] + db[p + 1] + db[p + 2]) / 3; od.data.set([g, g, g, 70], p); }
     }
     ox.putImageData(od, 0, 0);
+
+    // Обрезка по изменению: рамка отличий + поле 80px, не меньше 600×300, в пределах кадра.
+    // Без отличий — полный кадр (нужен только сценариям).
+    const fit = (lo, hi, min, max) => {
+      lo = Math.max(0, lo - 80); hi = Math.min(max, hi + 1 + 80);
+      if (hi - lo < min) { const c = (lo + hi) / 2; lo = Math.round(Math.max(0, Math.min(c - min / 2, max - min))); hi = Math.min(max, lo + min); }
+      return [lo, hi];
+    };
+    const [cx0, cx1] = x1 < 0 ? [0, w] : fit(x0, x1, 600, w);
+    const [cy0, cy1] = y1 < 0 ? [0, h] : fit(y0, y1, 300, h);
+    const crop = (img) => { const c = new OffscreenCanvas(cx1 - cx0, cy1 - cy0); c.getContext('2d').drawImage(img, -cx0, -cy0); return c; };
 
     const GAP = 24, HEAD = 48;
     const comp = new OffscreenCanvas(w * 3 + GAP * 2, h + HEAD), cx = comp.getContext('2d');
@@ -149,7 +165,10 @@ async function compare(page, fileA, fileB, fileDiff) {
       let bin = ''; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
       return btoa(bin);
     };
-    return { ratio: diff / (w * h), sizeA: [ia.width, ia.height], sizeB: [ib.width, ib.height], png: await toB64(out), comparePng: await toB64(comp) };
+    return {
+      ratio: diff / (w * h), sizeA: [ia.width, ia.height], sizeB: [ib.width, ib.height], png: await toB64(out), comparePng: await toB64(comp),
+      cropBox: [cx0, cy0, cx1 - cx0, cy1 - cy0], cropBefore: await toB64(crop(ia)), cropAfter: await toB64(crop(ib)),
+    };
   }, { a: toUrl(fileA), b: toUrl(fileB) });
   fs.writeFileSync(fileDiff, Buffer.from(res.png, 'base64'));
   return res;
@@ -163,7 +182,7 @@ const targets = [
 
 const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const OUT = path.join('.qa', 'visual', stamp);
-for (const d of ['before', 'after', 'diff', 'compare']) fs.mkdirSync(path.join(OUT, d), { recursive: true });
+for (const d of ['before', 'after', 'diff', 'compare', 'crop']) fs.mkdirSync(path.join(OUT, d), { recursive: true });
 
 const browser = await chromium.launch();
 const mkContext = async () => {
@@ -194,8 +213,12 @@ for (const t of targets) {
       const resized = r.sizeA.join() !== r.sizeB.join();
       const mark = r.ratio > THRESHOLD || resized ? '≠' : r.ratio > 0 ? '≈' : '=';
       // Сравнение пишется только там, где есть на что смотреть: сценарии фичи и любые отличия.
-      if (mark !== '=' || t.kind === 'scenario') fs.writeFileSync(f('compare'), Buffer.from(r.comparePng, 'base64'));
-      rows.push({ name, kind: t.kind, ratio: r.ratio, sizeA: r.sizeA, sizeB: r.sizeB, mark, newErrors });
+      if (mark !== '=' || t.kind === 'scenario') {
+        fs.writeFileSync(f('compare'), Buffer.from(r.comparePng, 'base64'));
+        fs.writeFileSync(path.join(OUT, 'crop', `${name}-before.png`), Buffer.from(r.cropBefore, 'base64'));
+        fs.writeFileSync(path.join(OUT, 'crop', `${name}-after.png`), Buffer.from(r.cropAfter, 'base64'));
+      }
+      rows.push({ name, kind: t.kind, ratio: r.ratio, sizeA: r.sizeA, sizeB: r.sizeB, mark, newErrors, cropBox: r.cropBox });
       console.log(`${mark} ${name.padEnd(24)} ${(r.ratio * 100).toFixed(2).padStart(6)}%${r.sizeA.join() !== r.sizeB.join() ? `  размер ${r.sizeA.join('×')} → ${r.sizeB.join('×')}` : ''}${newErrors.length ? `  новых ошибок: ${newErrors.length}` : ''}`);
     } catch (e) {
       rows.push({ name, kind: t.kind, failed: String(e.message).split('\n')[0] });
@@ -214,7 +237,23 @@ const md = [
   `|---|---|---|---|---|`,
   ...rows.map((r) => r.failed
     ? `| ! | ${r.name} | не снялось: ${r.failed} | | |`
-    : `| ${r.mark} | ${r.mark === '=' && r.kind !== 'scenario' ? r.name : `[${r.name}](compare/${r.name}.png)`} | ${(r.ratio * 100).toFixed(2)}% | ${r.sizeA.join('×')} → ${r.sizeB.join('×')} | ${r.newErrors.join('<br>') || '—'} |`),
+    : `| ${r.mark} | ${r.mark === '=' && r.kind !== 'scenario' ? r.name : `[${r.name}](#${r.name})`} | ${(r.ratio * 100).toFixed(2)}% | ${r.sizeA.join('×')} → ${r.sizeB.join('×')} | ${r.newErrors.join('<br>') || '—'} |`),
+  // Обрезки одна под другой — отчёт смотрится прямо в предпросмотре VS Code (Ctrl+Shift+V).
+  ...rows.filter((r) => !r.failed && (r.mark !== '=' || r.kind === 'scenario')).flatMap((r) => [
+    ``,
+    `<a id="${r.name}"></a>`,
+    `## ${r.mark} ${r.name}`,
+    ``,
+    `Область ${r.cropBox[2]}×${r.cropBox[3]} от (${r.cropBox[0]}, ${r.cropBox[1]})${r.ratio === 0 ? ' — отличий нет, полный кадр' : ''} · [полный кадр ДО | ПОСЛЕ | РАЗНИЦА](compare/${r.name}.png)`,
+    ``,
+    `**До**`,
+    ``,
+    `![до](crop/${r.name}-before.png)`,
+    ``,
+    `**После**`,
+    ``,
+    `![после](crop/${r.name}-after.png)`,
+  ]),
 ].join('\n');
 fs.writeFileSync(path.join(OUT, 'report.md'), md + '\n');
 fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(rows, null, 2));
