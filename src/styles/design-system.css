@@ -1821,7 +1821,8 @@ select.input {
 @media (max-width: 1023px) {
   .lnd-hero-grid { grid-template-columns: 1fr; }
   .lnd-hero-sheet { display: none; }
-  .lnd-feat-row { grid-template-columns: 1fr; gap: 40px; padding: 40px 0; }
+  /* minmax(0,…): иначе трек растягивается по min-content мока шире контейнера и режется справа. */
+  .lnd-feat-row { grid-template-columns: minmax(0, 1fr); gap: 40px; padding: 40px 0; }
   .lnd-feat-row--rev > :first-child { order: 1; }
   .lnd-feat-row--rev > :last-child { order: 2; }
   .lnd-feat-row-full { padding: 40px 0; }
