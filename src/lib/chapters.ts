@@ -83,6 +83,48 @@ export async function createChapter(
   return data as Chapter;
 }
 
+// Прокси Supabase на VPS принимает тело запроса до 5 МБ (client_max_body_size в nginx).
+const BULK_BATCH_BYTES = 3 * 1024 * 1024;
+
+/**
+ * Массовая вставка глав (импорт рукописи): один insert массивом, а для очень больших
+ * книг — несколько последовательных пачек по ~3 МБ. Возвращает главы в порядке position.
+ */
+export async function createChaptersBulk(
+  bookId: string,
+  userId: string,
+  items: { title: string; content: string; words: number }[],
+): Promise<ChapterMeta[]> {
+  const rows = items.map((it, i) => ({
+    book_id: bookId,
+    user_id: userId,
+    title: it.title,
+    content: it.content,
+    words: it.words,
+    position: i,
+  }));
+  const batches: (typeof rows)[] = [];
+  let cur: typeof rows = [];
+  let size = 0;
+  for (const r of rows) {
+    const s = new Blob([JSON.stringify(r)]).size;
+    if (cur.length && size + s > BULK_BATCH_BYTES) { batches.push(cur); cur = []; size = 0; }
+    cur.push(r);
+    size += s;
+  }
+  if (cur.length) batches.push(cur);
+  const out: ChapterMeta[] = [];
+  for (const batch of batches) {
+    const { data, error } = await supabase
+      .from('chapters')
+      .insert(batch)
+      .select('id, book_id, user_id, title, position, synopsis, words, status, created_at, updated_at');
+    if (error) throw error;
+    out.push(...((data ?? []) as ChapterMeta[]));
+  }
+  return out.sort((a, b) => a.position - b.position);
+}
+
 export async function updateChapter(id: string, patch: ChapterPatch): Promise<Chapter> {
   const { data, error } = await supabase
     .from('chapters')
