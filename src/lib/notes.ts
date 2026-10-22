@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { createRepository } from './repository';
-import type { Tables, TablesInsert } from './database.types';
+import type { Tables } from './database.types';
 
 export type NoteKind = 'idea' | 'question' | 'todo' | 'important' | 'custom';
 
@@ -65,10 +65,8 @@ export function deleteNote(id: string): Promise<void> {
 
 export async function reorderNotes(updates: { id: string; position: number }[]): Promise<void> {
   if (updates.length === 0) return;
-  const { error } = await supabase
-    .from('notes')
-    // Частичный upsert по id: onConflict обновляет только position у существующих
-    // строк, поэтому book_id/user_id/text не передаём (их дал бы полный Insert).
-    .upsert(updates as unknown as TablesInsert<'notes'>[], { onConflict: 'id' });
+  // RPC, а не частичный upsert {id, position}: INSERT ... ON CONFLICT проверяет NOT NULL
+  // и WITH CHECK insert-политики до разрешения конфликта и падал (20261022000600).
+  const { error } = await supabase.rpc('reorder_notes', { updates });
   if (error) throw error;
 }

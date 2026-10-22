@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
-import { getProfile } from './profiles';
+import { effectivePlan, getProfile } from './profiles';
 import { QUERY_KEYS } from './queries';
-import { saveCancellationReason, type CancelReason } from './cancellations';
+import type { CancelReason } from './cancellations';
 
 export type Plan = 'free' | 'pro' | 'lifetime';
 
@@ -55,12 +55,16 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
     let mounted = true;
     getProfile(userId).then((profile) => {
       if (!mounted) return;
-      if (profile?.plan) setPlan(profile.plan as Plan);
+      // С учётом срока: истёкший pro (ждёт повторного списания или понижения) — free.
+      setPlan(effectivePlan(profile));
       if (profile?.plan_expires_at) setPlanExpiresAt(profile.plan_expires_at);
       if (profile?.grandfathered) setGrandfathered(true);
       if (profile?.recurring_inv_id) setHasRecurring(true);
       setCancelAtPeriodEnd(profile?.cancel_at_period_end ?? false);
       setPlanLoaded(true);
+    }).catch((e) => {
+      // planLoaded остаётся false: вкладка показывает загрузку, а не «Free» с кнопкой апгрейда.
+      console.error('[useSubscription] getProfile failed:', e);
     });
     return () => { mounted = false; };
   }, [userId]);
@@ -71,6 +75,7 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
       .from('payments')
       .select('id, paid_at')
       .in('plan', ['pro', 'pro_annual'])
+      .not('confirmed_at', 'is', null)
       .is('refunded_at', null)
       .order('paid_at', { ascending: false })
       .limit(1)
@@ -105,12 +110,12 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
   };
 
   /** true — сервер подтвердил переключение. Вызывающему нужен исход, а не только setState. */
-  const invokeCancelToggle = async (resume: boolean): Promise<boolean> => {
+  const invokeCancelToggle = async (resume: boolean, body?: { reason: CancelReason; comment: string }): Promise<boolean> => {
     setCancelLoading(true);
     setCancelError(null);
     try {
       const url = resume ? 'cancel-subscription?resume=true' : 'cancel-subscription';
-      const { data, error } = await supabase.functions.invoke(url);
+      const { data, error } = await supabase.functions.invoke(url, body ? { body } : undefined);
       if (error) {
         let errCode: string | undefined;
         try { errCode = ((await (error as unknown as { context: Response }).context.json()) as { error?: string }).error; } catch { /* ignore */ }
@@ -130,18 +135,10 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
     }
   };
 
+  // Причину отмены пишет cancel-subscription (service role) только после успешной отмены:
+  // клиентский INSERT в cancellation_reasons отозван (20261022000100).
   const handleCancel = async (reason: CancelReason, comment: string) => {
-    const cancelled = await invokeCancelToggle(false);
-    // Причина пишется только после подтверждённой отмены — иначе сорвавшаяся отмена
-    // оставила бы в БД запись об уходе, которого не было. Сбой самой записи не
-    // откатывает отмену: это исследование, а не часть транзакции.
-    if (cancelled && userId) {
-      try {
-        await saveCancellationReason(userId, reason, comment, plan);
-      } catch (e) {
-        console.error('[useSubscription] saveCancellationReason failed:', e);
-      }
-    }
+    await invokeCancelToggle(false, { reason, comment: comment.trim().slice(0, 2000) });
   };
 
   const handleResume = () => invokeCancelToggle(true);

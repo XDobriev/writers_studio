@@ -137,9 +137,9 @@ export function useChapterAutosave({
       setNotice('Глава удалена в другом окне. Несохранённый текст остался в черновике этого браузера.');
       return null;
     }
-    const { userId: uId, isPro: pro } = ctxRef.current;
+    const { userId: uId } = ctxRef.current;
     if (uId && server.content && server.content !== patch.content) {
-      await createVersion(id, uId, server.content, countWords(server.content), 'manual', pro,
+      await createVersion(id, uId, server.content, countWords(server.content), 'manual',
         `Из другого окна · ${timeLabel(new Date())}`);
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterVersions(id) });
     }
@@ -372,7 +372,7 @@ export function useRecoveredChapterContent(
 
   const handledRef = useRef<string | null>(null);
   const { schedule, setNotice } = autosave;
-  const { userId, isPro } = ctx;
+  const { userId } = ctx;
   useEffect(() => {
     if (!chapterId || !decision || handledRef.current === chapterId) return;
     handledRef.current = chapterId;
@@ -382,7 +382,7 @@ export function useRecoveredChapterContent(
       setNotice(`Восстановлен текст, который не успел сохраниться (${timeLabel(new Date(decision.draft.savedAt))}).`);
     } else if (decision.kind === 'conflict' && userId) {
       const html = decision.draft.content;
-      void createVersion(chapterId, userId, html, countWords(html), 'manual', isPro,
+      void createVersion(chapterId, userId, html, countWords(html), 'manual',
         `Несохранённый черновик · ${timeLabel(new Date(decision.draft.savedAt))}`)
         .then(() => {
           clearDraft(chapterId);
@@ -391,7 +391,7 @@ export function useRecoveredChapterContent(
         })
         .catch(() => { /* черновик остаётся — повторим при следующем открытии */ });
     }
-  }, [chapterId, decision, schedule, setNotice, userId, isPro, queryClient]);
+  }, [chapterId, decision, schedule, setNotice, userId, queryClient]);
 
   if (!loaded || !decision) return { content: serverData?.content ?? '', ready: false };
   if (decision.kind === 'restore' && handledRef.current !== chapterId) {

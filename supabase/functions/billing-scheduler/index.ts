@@ -1,274 +1,237 @@
 // supabase/functions/billing-scheduler/index.ts
 //
-// Ежедневный планировщик рекуррентных платежей.
-// Вызывается pg_cron каждый день в 06:00 UTC.
-// Находит Pro-пользователей с plan_expires_at <= now() + 3 дня,
-// инициирует повторное списание через Robokassa Recurring API.
+// Ежедневный биллинг. Запуск: pg_cron 06:00 UTC (20261022000900_cron_billing_retention.sql),
+// резерв — ручной GitHub workflow. Bearer = SCHEDULER_SECRET. Деплой: --no-verify-jwt.
 //
-// Подпись child-платежа: MD5(MerchantLogin:OutSum:InvId:Password1)
-// PreviousInvoiceID в подпись НЕ входит (по документации Robokassa).
+// Порядок прогона:
+//   1. Понижение истёкших (downgrade_expired_subscriptions) — ВСЕГДА, независимо от флага
+//      recurring_billing_enabled и от cancel_at_period_end: отменённые — сразу по истечении,
+//      неоплаченные — после 3 дней grace.
+//   2. Если recurring_billing_enabled выключен — дальше не идём.
+//   3. Напоминания за 1–3 дня до списания (get_renewal_reminders_due → claim → письмо).
+//   4. Списания в день окончания периода и повторы (get_billing_due): до 4 попыток, раз в сутки.
+//      Перед повтором спрашиваем у Робокассы статус прошлого дочернего счёта (OpStateExt):
+//      оплачен/в обработке — не списываем повторно. Затем атомарный захват попытки
+//      (claim_billing_attempt) ДО вызова Recurring — параллельный прогон получит NULL.
+//      Строка payments (source='recurring') создаётся до вызова Recurring, ошибки
+//      всех insert/update проверяются.
 //
-// Secrets:
-//   ROBOKASSA_MERCHANT_LOGIN, ROBOKASSA_PASSWORD1, ROBOKASSA_IS_TEST,
-//   ROBOKASSA_TEST_PASSWORD1 (для тест-режима)
-
+// Ответ содержит только счётчики (без user_id и ответов Робокассы).
+//
+// Подпись child-платежа: MerchantLogin:OutSum:InvId:Receipt(raw JSON):Password1:Shp_plan=…:Shp_user_id=…
+// PreviousInvoiceID в подпись не входит.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { Md5 } from 'https://esm.sh/ts-md5@1.3.1';
+import { escapeHtml, md5hex, timingSafeEqual } from '../_shared/crypto.ts';
+import { SYSTEM_ADMIN_ID, bearer, json } from '../_shared/http.ts';
+import { isDeliverableEmail, sendEmail } from '../_shared/email.ts';
+import { DESCRIPTIONS, planForInterval, priceFor, type BillingInterval } from '../_shared/pricing.ts';
+import { buildReceipt, fetchOpState, newInvId } from '../_shared/robokassa.ts';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-const PRICES = {
-  monthly: { base: '399.00', grandfathered: '290.00' },
-  annual:  { base: '3490.00', grandfathered: '2900.00' },
-};
-const DESCRIPTIONS: Record<string, string> = {
-  monthly: 'Подписка Pro — Авторская студия',
-  annual:  'Подписка Pro (год) — Авторская студия',
-};
 const RECURRING_URL = 'https://auth.robokassa.ru/Merchant/Recurring';
+const MAX_ATTEMPTS = 4;
 
-function json(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  });
-}
-
-function md5hex(input: string): string {
-  return Md5.hashStr(input) as string;
-}
-
-// Constant-time сравнение для секрета планировщика (без тайминг-сайдканала).
-function timingSafeEqual(a: string, b: string): boolean {
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  if (aBytes.length !== bBytes.length) return false;
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
-type Profile = {
+type DueRow = {
   user_id: string;
+  email: string | null;
   plan_expires_at: string;
   recurring_inv_id: string;
   grandfathered: boolean;
-  plan_interval: 'monthly' | 'annual';
-  last_billed_expiry: string | null;
+  plan_interval: BillingInterval;
+  is_retry: boolean;
+  billing_attempts: number;
+  pending_inv_id: string | null;
 };
 
+type ReminderRow = {
+  user_id: string;
+  email: string;
+  plan_expires_at: string;
+  plan_interval: BillingInterval;
+  grandfathered: boolean;
+};
+
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' });
+}
+
+function reminderEmail(r: ReminderRow): { subject: string; html: string; plaintext: string } {
+  const sum = priceFor(planForInterval(r.plan_interval), r.grandfathered).replace('.00', '');
+  const period = r.plan_interval === 'annual' ? 'год' : 'месяц';
+  const date = fmtDate(r.plan_expires_at);
+  const lines = [
+    `${date} подписка Pro продлится автоматически: спишем ${sum} ₽ за следующий ${period} с карты, которой вы оплачивали подписку.`,
+    'Если продлевать не нужно — отмените автопродление в «Настройки → Подписка» до этой даты. Доступ сохранится до конца оплаченного периода.',
+  ];
+  return {
+    subject: `Подписка Pro продлится ${date}`,
+    html: `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"></head>
+<body style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:40px 20px;color:#1a1a1a;background:#fff;">
+  ${lines.map((l) => `<p style="margin:0 0 20px;font-size:16px;line-height:1.6;">${escapeHtml(l)}</p>`).join('\n  ')}
+  <p style="margin:0 0 20px;"><a href="https://avtorstudio.com/books" style="color:#a0522d;">Открыть студию</a></p>
+  <p style="margin:0;font-size:13px;color:#666;">Вопросы — support@avtorstudio.com. Условия — avtorstudio.com/offer</p>
+</body></html>`,
+    plaintext: [...lines, '', 'Открыть студию: https://avtorstudio.com/books', 'Вопросы: support@avtorstudio.com'].join('\n'),
+  };
+}
+
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
 
-  const merchantLogin    = Deno.env.get('ROBOKASSA_MERCHANT_LOGIN');
-  const supabaseUrl      = Deno.env.get('SUPABASE_URL');
-  const serviceKey       = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const schedulerSecret  = Deno.env.get('SCHEDULER_SECRET');
-  const isTestMode       = Deno.env.get('ROBOKASSA_IS_TEST') === 'true';
-  const password1        = isTestMode
-    ? Deno.env.get('ROBOKASSA_TEST_PASSWORD1')?.trim()
-    : Deno.env.get('ROBOKASSA_PASSWORD1')?.trim();
+  const merchantLogin   = Deno.env.get('ROBOKASSA_MERCHANT_LOGIN');
+  const supabaseUrl     = Deno.env.get('SUPABASE_URL');
+  const serviceKey      = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const schedulerSecret = Deno.env.get('SCHEDULER_SECRET');
+  const isTestMode      = Deno.env.get('ROBOKASSA_IS_TEST') === 'true';
+  const password1 = (isTestMode ? Deno.env.get('ROBOKASSA_TEST_PASSWORD1') : Deno.env.get('ROBOKASSA_PASSWORD1'))?.trim();
+  const password2 = (isTestMode ? Deno.env.get('ROBOKASSA_TEST_PASSWORD2') : Deno.env.get('ROBOKASSA_PASSWORD2'))?.trim();
 
   if (!merchantLogin || !supabaseUrl || !serviceKey || !password1 || !schedulerSecret) {
     console.error('[billing-scheduler] missing env');
     return json(500, { error: 'server misconfigured' });
   }
 
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ') || !timingSafeEqual(authHeader.slice(7), schedulerSecret)) {
-    return json(401, { error: 'unauthorized' });
-  }
+  const token = bearer(req);
+  if (!token || !timingSafeEqual(token, schedulerSecret)) return json(401, { error: 'unauthorized' });
 
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+  const audit = async (action: string, userId: string, payload: Record<string, unknown>) => {
+    const { error } = await db.from('admin_audit_log').insert({
+      admin_id: SYSTEM_ADMIN_ID, admin_email: 'system', action, target_user_id: userId, payload,
+    });
+    if (error) console.error(`[billing-scheduler] audit ${action} failed:`, error.message);
+  };
 
-  const { data: flagRow } = await db
-    .from('feature_flags')
-    .select('enabled')
-    .eq('key', 'recurring_billing_enabled')
-    .maybeSingle();
+  const counts = { downgraded: 0, reminders_sent: 0, reminders_failed: 0, due: 0, charged: 0, failed: 0, skipped: 0 };
+
+  // 1. Понижение — до проверки флага.
+  const { data: downgraded, error: downErr } = await db.rpc('downgrade_expired_subscriptions');
+  if (downErr) console.error('[billing-scheduler] downgrade failed:', downErr.message);
+  else counts.downgraded = Array.isArray(downgraded) ? downgraded.length : 0;
+
+  // 2. Флаг рекуррентов.
+  const { data: flagRow, error: flagErr } = await db
+    .from('feature_flags').select('enabled').eq('key', 'recurring_billing_enabled').maybeSingle();
+  if (flagErr) {
+    console.error('[billing-scheduler] flag read failed:', flagErr.message);
+    return json(500, { error: 'db error', ...counts });
+  }
   if (!flagRow?.enabled) {
-    console.log('[billing-scheduler] recurring_billing_enabled=false, skipping');
-    return json(200, { skipped: true, reason: 'recurring_billing_enabled flag is off' });
+    console.log('[billing-scheduler] recurring_billing_enabled=false, charges and reminders skipped');
+    return json(200, { ...counts, recurring_disabled: true });
   }
 
-  // Находим Pro-пользователей, у которых подписка истекает в течение 3 дней,
-  // не отменена и есть сохранённый recurring_inv_id для повторного списания
-  const renewalCutoff = new Date();
-  renewalCutoff.setDate(renewalCutoff.getDate() + 3);
-
-  const { data: profiles, error: fetchErr } = await db
-    .from('profiles')
-    .select('user_id, plan_expires_at, recurring_inv_id, grandfathered, plan_interval, last_billed_expiry')
-    .eq('plan', 'pro')
-    .eq('cancel_at_period_end', false)
-    .not('recurring_inv_id', 'is', null)
-    .lte('plan_expires_at', renewalCutoff.toISOString());
-
-  if (fetchErr) {
-    console.error('[billing-scheduler] fetch profiles failed:', fetchErr.message);
-    return json(500, { error: 'db error' });
+  // 3. Напоминания.
+  const { data: reminders, error: remErr } = await db.rpc('get_renewal_reminders_due');
+  if (remErr) console.error('[billing-scheduler] reminders query failed:', remErr.message);
+  for (const r of (reminders ?? []) as ReminderRow[]) {
+    if (!isDeliverableEmail(r.email)) continue;
+    const { data: claimed, error: claimErr } = await db.rpc('claim_renewal_reminder', { p_user_id: r.user_id, p_expiry: r.plan_expires_at });
+    if (claimErr || !claimed) continue;
+    const sent = await sendEmail({ to: r.email, ...reminderEmail(r) });
+    if (sent.ok) {
+      counts.reminders_sent++;
+    } else {
+      counts.reminders_failed++;
+      console.error('[billing-scheduler] reminder send failed:', sent.error);
+      const { error } = await db.rpc('release_renewal_reminder', { p_user_id: r.user_id, p_expiry: r.plan_expires_at });
+      if (error) console.error('[billing-scheduler] reminder release failed:', error.message);
+    }
   }
 
-  const rows = (profiles ?? []) as Profile[];
-  console.log(`[billing-scheduler] found ${rows.length} profiles for renewal`);
+  // 4. Списания.
+  const { data: dueRows, error: dueErr } = await db.rpc('get_billing_due', { p_max_attempts: MAX_ATTEMPTS });
+  if (dueErr) {
+    console.error('[billing-scheduler] billing_due query failed:', dueErr.message);
+    return json(500, { error: 'db error', ...counts });
+  }
+  const rows = (dueRows ?? []) as DueRow[];
+  counts.due = rows.length;
 
-  const results: { user_id: string; inv_id?: string; error?: string }[] = [];
+  for (const [i, p] of rows.entries()) {
+    // Повтор: если прошлый дочерний счёт оплачен или ещё обрабатывается — не списываем снова.
+    if (p.is_retry && p.pending_inv_id && password2) {
+      const state = await fetchOpState(merchantLogin, p.pending_inv_id, password2);
+      if (state === null) {
+        counts.skipped++;
+        console.warn(`[billing-scheduler] OpStateExt unavailable for pending ${p.pending_inv_id}, retry postponed`);
+        continue;
+      }
+      if (state.resultCode === 0 && state.stateCode !== null && [5, 50, 80, 100].includes(state.stateCode)) {
+        counts.skipped++;
+        if (state.stateCode === 100) {
+          await audit('recurring_paid_webhook_missing', p.user_id, { inv_id: p.pending_inv_id });
+        }
+        continue;
+      }
+    }
 
-  for (const [i, profile] of rows.entries()) {
-    // Идемпотентность цикла: если за этот же plan_expires_at списание уже инициировано
-    // (получен OK от Robokassa) — не дёргать Recurring повторно. Ответ OK означает лишь
-    // создание операции; продление plan_expires_at делает асинхронный webhook, поэтому до
-    // его прихода юзер остаётся в выборке и без этого guard'а списался бы каждый прогон.
-    if (profile.last_billed_expiry && profile.last_billed_expiry === profile.plan_expires_at) {
-      console.log(`[billing-scheduler] skip ${profile.user_id}: already billed for cycle ${profile.plan_expires_at}`);
+    const { data: attempt, error: claimErr } = await db.rpc('claim_billing_attempt', {
+      p_user_id: p.user_id, p_expiry: p.plan_expires_at, p_max_attempts: MAX_ATTEMPTS,
+    });
+    if (claimErr) {
+      counts.failed++;
+      console.error('[billing-scheduler] claim failed:', claimErr.message);
+      continue;
+    }
+    if (attempt === null || attempt === undefined) {
+      counts.skipped++;
       continue;
     }
 
-    const interval    = profile.plan_interval ?? 'monthly';
-    // BILLING_TEST_AMOUNT — тест-override суммы (напр. 1₽ для E2E). Применяется ТОЛЬКО в тест-режиме,
-    // иначе в бою обвалил бы сумму списания. Установить Secret → удалить после теста.
-    const outSum      = (isTestMode ? Deno.env.get('BILLING_TEST_AMOUNT') : null)
-      ?? (profile.grandfathered ? PRICES[interval].grandfathered : PRICES[interval].base);
-    const description = DESCRIPTIONS[interval];
-    const shpPlan     = interval === 'annual' ? 'pro_annual' : 'pro';
-    // Индекс цикла гарантирует уникальность InvId внутри батча (даже при одинаковом Date.now());
-    // суточный cron исключает совпадение Date.now() между прогонами. 16 цифр — как в create-payment-url.
-    const newInvId    = String(Date.now()) + String(i).padStart(3, '0');
+    const interval: BillingInterval = p.plan_interval === 'annual' ? 'annual' : 'monthly';
+    const shpPlan = planForInterval(interval);
+    // BILLING_TEST_AMOUNT — только в тест-режиме.
+    const outSum = (isTestMode ? Deno.env.get('BILLING_TEST_AMOUNT') : null) ?? priceFor(shpPlan, p.grandfathered);
+    const description = DESCRIPTIONS[shpPlan];
+    const invId = newInvId(i);
+    const receipt = buildReceipt(description, outSum, p.email);
 
-    // Получаем email для чека (ФЗ-54 / РобоЧеки СМЗ)
-    const { data: { user: authUser } } = await db.auth.admin.getUserById(profile.user_id);
-    const userEmail = authUser?.email;
+    const { error: payErr } = await db.from('payments').insert({
+      inv_id: invId, user_id: p.user_id, amount: parseFloat(outSum), plan: shpPlan, source: 'recurring',
+    });
+    if (payErr) {
+      counts.failed++;
+      console.error('[billing-scheduler] payments insert failed:', payErr.message);
+      await audit('recurring_charge_failed', p.user_id, { inv_id: invId, attempt, reason: 'payments_insert_failed' });
+      continue;
+    }
 
-    const receiptObj: Record<string, unknown> = {
-      items: [{
-        name:            description,
-        quantity:        1,
-        sum:             parseFloat(outSum),
-        payment_method:  'full_payment',
-        payment_object:  'service',
-        tax:             'none',
-      }],
-    };
-    if (userEmail) receiptObj['email'] = userEmail;
-    const receiptJson    = JSON.stringify(receiptObj);
-    const receiptEncoded = encodeURIComponent(receiptJson);
-
-    // Подпись дочернего платежа: MerchantLogin:OutSum:InvId:Receipt(raw JSON):Password1:Shp_plan=...:Shp_user_id=...
-    // Receipt в подписи — raw minimized JSON (не URL-encoded) — docs.robokassa.ru/ru/pay-interface
-    // PreviousInvoiceID в подпись НЕ входит — docs.robokassa.ru/ru/recurring-payments
-    // Shp_* — алфавитный порядок: Shp_plan < Shp_user_id
-    const sigString = `${merchantLogin}:${outSum}:${newInvId}:${receiptJson}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${profile.user_id}`;
-    const signature = md5hex(sigString);
-
+    const signature = md5hex(`${merchantLogin}:${outSum}:${invId}:${receipt.json}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${p.user_id}`);
     const body = new URLSearchParams({
       MerchantLogin:     merchantLogin,
-      InvId:             newInvId,
+      InvId:             invId,
       OutSum:            outSum,
       Description:       description,
-      PreviousInvoiceID: profile.recurring_inv_id,
+      PreviousInvoiceID: p.recurring_inv_id,
       SignatureValue:    signature,
       IsTest:            isTestMode ? '1' : '0',
       Shp_plan:          shpPlan,
-      Shp_user_id:       profile.user_id,
+      Shp_user_id:       p.user_id,
     });
-    // Receipt добавляем вручную — encodeURIComponent, без двойного кодирования URLSearchParams
-    const bodyStr = `${body.toString()}&Receipt=${receiptEncoded}`;
 
     try {
       const resp = await fetch(RECURRING_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: bodyStr,
+        body: `${body.toString()}&Receipt=${receipt.encoded}`,
       });
-      const respText = await resp.text();
-      console.log(`[billing-scheduler] recurring for ${profile.user_id}: ${respText}`);
-
+      const respText = (await resp.text()).slice(0, 300);
       if (!resp.ok || !respText.startsWith('OK')) {
-        results.push({ user_id: profile.user_id, error: respText });
-        await db.from('admin_audit_log').insert({
-          admin_id:       '00000000-0000-0000-0000-000000000000',
-          admin_email:    'system',
-          action:         'recurring_charge_failed',
-          target_user_id: profile.user_id,
-          payload:        { inv_id: newInvId, response: respText },
-        });
+        counts.failed++;
+        await audit('recurring_charge_failed', p.user_id, { inv_id: invId, attempt, response: respText });
         continue;
       }
-
-      // Фиксируем цикл сразу после OK (операция создана) — до подтверждения webhook'ом.
-      // Так следующий суточный прогон не спишет повторно, пока webhook не продлит
-      // plan_expires_at. При non-OK маркер не ставится → прогон повторит попытку.
-      await db.from('profiles')
-        .update({ last_billed_expiry: profile.plan_expires_at })
-        .eq('user_id', profile.user_id);
-
-      // Логируем попытку в payments (pending — webhook подтвердит)
-      await db.from('payments').upsert({
-        inv_id:  newInvId,
-        user_id: profile.user_id,
-        amount:  parseFloat(outSum),
-        plan:    'pro',
-        paid_at: new Date().toISOString(),
-      }, { onConflict: 'inv_id', ignoreDuplicates: true });
-
-      await db.from('admin_audit_log').insert({
-        admin_id:       '00000000-0000-0000-0000-000000000000',
-        admin_email:    'system',
-        action:         'recurring_charge_initiated',
-        target_user_id: profile.user_id,
-        payload:        { inv_id: newInvId, amount: outSum, previous_inv_id: profile.recurring_inv_id, has_receipt: true, plan_interval: interval },
+      counts.charged++;
+      await audit('recurring_charge_initiated', p.user_id, {
+        inv_id: invId, amount: outSum, previous_inv_id: p.recurring_inv_id, plan_interval: interval, attempt,
       });
-
-      results.push({ user_id: profile.user_id, inv_id: newInvId });
     } catch (e) {
+      counts.failed++;
       const msg = e instanceof Error ? e.message : String(e);
-      console.error('[billing-scheduler] fetch error for', profile.user_id, msg);
-      results.push({ user_id: profile.user_id, error: msg });
+      await audit('recurring_charge_failed', p.user_id, { inv_id: invId, attempt, error: msg });
     }
   }
 
-  // Даунгрейд истёкших отменённых планов:
-  // Pro-пользователи с cancel_at_period_end=true у которых plan_expires_at уже прошёл.
-  const { data: expiredCancelled, error: expiredErr } = await db
-    .from('profiles')
-    .select('user_id, plan_expires_at')
-    .eq('plan', 'pro')
-    .eq('cancel_at_period_end', true)
-    .lt('plan_expires_at', new Date().toISOString());
-
-  if (expiredErr) {
-    console.error('[billing-scheduler] expired-cancelled query failed:', expiredErr.message);
-  } else {
-    const expired = expiredCancelled ?? [];
-    console.log(`[billing-scheduler] expiring ${expired.length} cancelled plans`);
-    for (const p of expired) {
-      const { error: downgradeErr } = await db
-        .from('profiles')
-        .update({ plan: 'free', plan_expires_at: null, cancel_at_period_end: false })
-        .eq('user_id', p.user_id);
-      if (downgradeErr) {
-        console.error(`[billing-scheduler] downgrade failed for ${p.user_id}:`, downgradeErr.message);
-        continue;
-      }
-      await db.from('admin_audit_log').insert({
-        admin_id:       '00000000-0000-0000-0000-000000000000',
-        admin_email:    'system',
-        action:         'subscription_expired',
-        target_user_id: p.user_id,
-        payload:        { plan_expires_at: p.plan_expires_at },
-      });
-      console.log(`[billing-scheduler] downgraded userId=${p.user_id} (cancelled plan expired)`);
-    }
-  }
-
-  // Провалившиеся рекуррентные списания → не-200, чтобы GitHub Actions зафиксировал сбой (dunning-сигнал).
-  // Даунгрейд истёкших планов выше уже отработал — на него статус не влияет.
-  const failures = results.filter((r) => r.error);
-  const status = failures.length > 0 ? 502 : 200;
-  return json(status, { processed: rows.length, failed: failures.length, results });
+  console.log('[billing-scheduler] done', JSON.stringify(counts));
+  return json(200, counts);
 });

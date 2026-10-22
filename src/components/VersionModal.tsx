@@ -79,7 +79,6 @@ interface VersionModalProps {
   bookId: string;
   userId: string;
   currentContent: string;
-  isPro: boolean;
   onBeforeRestore?: () => void | Promise<void>;
   onRebase?: (chapterId: string, updatedAt: string) => void;
   onClose: () => void;
@@ -93,7 +92,6 @@ export function VersionModal({
   bookId,
   userId,
   currentContent,
-  isPro,
   onBeforeRestore,
   onRebase,
   onClose,
@@ -152,7 +150,7 @@ export function VersionModal({
       // Сам черновик уже входит в currentContent и сохраняется ниже как точка отмены.
       await onBeforeRestore?.();
       // Снимок текущего контента как точка отмены
-      await createVersion(chapterId, userId, currentContent, countWords(currentContent), 'manual', isPro);
+      await createVersion(chapterId, userId, currentContent, countWords(currentContent), 'manual');
       const restored = await updateChapter(chapterId, { content, words: countWords(content) });
       onRebase?.(chapterId, restored.updated_at);
       queryClient.setQueryData<{ id: string; content: string }>(

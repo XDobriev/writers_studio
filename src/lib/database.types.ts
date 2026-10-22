@@ -185,7 +185,7 @@ export type Database = {
           id: string
           plan: string | null
           reason: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           comment?: string | null
@@ -193,7 +193,7 @@ export type Database = {
           id?: string
           plan?: string | null
           reason: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           comment?: string | null
@@ -201,7 +201,7 @@ export type Database = {
           id?: string
           plan?: string | null
           reason?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -262,6 +262,7 @@ export type Database = {
       }
       chapter_versions: {
         Row: {
+          content_hash: string | null
           chapter_id: string
           content: string
           created_at: string
@@ -272,6 +273,7 @@ export type Database = {
           word_count: number | null
         }
         Insert: {
+          content_hash?: string | null
           chapter_id: string
           content: string
           created_at?: string
@@ -282,6 +284,7 @@ export type Database = {
           word_count?: number | null
         }
         Update: {
+          content_hash?: string | null
           chapter_id?: string
           content?: string
           created_at?: string
@@ -767,6 +770,8 @@ export type Database = {
       }
       payments: {
         Row: {
+          recurring: boolean | null
+          source: string
           amount: number
           confirmed_at: string | null
           id: string
@@ -779,6 +784,8 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          recurring?: boolean | null
+          source?: string
           amount?: number
           confirmed_at?: string | null
           id?: string
@@ -791,6 +798,8 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          recurring?: boolean | null
+          source?: string
           amount?: number
           confirmed_at?: string | null
           id?: string
@@ -806,6 +815,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          renewal_reminder_sent_for: string | null
+          last_billed_at: string | null
+          billing_attempts: number
           cancel_at_period_end: boolean
           checklist_dismissed_at: string | null
           created_at: string
@@ -825,6 +837,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          renewal_reminder_sent_for?: string | null
+          last_billed_at?: string | null
+          billing_attempts?: number
           cancel_at_period_end?: boolean
           checklist_dismissed_at?: string | null
           created_at?: string
@@ -844,6 +859,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          renewal_reminder_sent_for?: string | null
+          last_billed_at?: string | null
+          billing_attempts?: number
           cancel_at_period_end?: boolean
           checklist_dismissed_at?: string | null
           created_at?: string
@@ -866,28 +884,37 @@ export type Database = {
       }
       recurring_consents: {
         Row: {
+          inv_id: string | null
+          consent_version: string | null
+          consent_text: string | null
           created_at: string
           id: string
           ip: string | null
           plan: string
           user_agent: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
+          inv_id?: string | null
+          consent_version?: string | null
+          consent_text?: string | null
           created_at?: string
           id?: string
           ip?: string | null
           plan: string
           user_agent?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
+          inv_id?: string | null
+          consent_version?: string | null
+          consent_text?: string | null
           created_at?: string
           id?: string
           ip?: string | null
           plan?: string
           user_agent?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1027,12 +1054,42 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_payment: {
+        Args: {
+          p_amount: number
+          p_grandfather?: boolean
+          p_inv_id: string
+          p_plan: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      apply_refund: {
+        Args: { p_payment_id: string; p_request_id: string }
+        Returns: Json
+      }
       append_user_dictionary_word: {
         Args: { p_user_id: string; p_word: string }
         Returns: undefined
       }
+      claim_billing_attempt: {
+        Args: { p_expiry: string; p_max_attempts?: number; p_user_id: string }
+        Returns: number
+      }
+      claim_renewal_reminder: {
+        Args: { p_expiry: string; p_user_id: string }
+        Returns: boolean
+      }
       compute_synopsis: { Args: { html: string }; Returns: string }
       decrement_lifetime_slot: { Args: never; Returns: boolean }
+      downgrade_expired_subscriptions: {
+        Args: { p_grace?: unknown }
+        Returns: {
+          old_expires_at: string
+          reason: string
+          user_id: string
+        }[]
+      }
       duplicate_book_content: {
         Args: {
           p_characters: boolean
@@ -1047,6 +1104,14 @@ export type Database = {
       extend_plan: {
         Args: { days: number; target_user_id: string }
         Returns: undefined
+      }
+      find_auth_user_by_email: {
+        Args: { p_email: string }
+        Returns: {
+          app_metadata: Json
+          email: string
+          id: string
+        }[]
       }
       get_admin_activation_funnel: { Args: never; Returns: Json }
       get_admin_anomalies: { Args: never; Returns: Json }
@@ -1107,11 +1172,13 @@ export type Database = {
       get_public_stats: { Args: never; Returns: Json }
       get_shared_book: { Args: { p_token: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      is_paid: { Args: { p_user_id: string }; Returns: boolean }
       remove_user_dictionary_word: {
         Args: { p_user_id: string; p_word: string }
         Returns: undefined
       }
       reorder_chapters: { Args: { updates: Json }; Returns: undefined }
+      reorder_notes: { Args: { updates: Json }; Returns: undefined }
       reorder_timeline_events: { Args: { updates: Json }; Returns: undefined }
       set_feature_flag: {
         Args: { p_enabled: boolean; p_key: string }

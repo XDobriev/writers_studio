@@ -32,7 +32,7 @@ export function FinancesPanel({ revenue }: Props) {
         <div style={{ color: 'var(--ink-3)', fontSize: 13 }}>Загрузка…</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 36 }}>
-          <StatCard label="MRR" value={`${fmtNum(revenue.mrr)} ₽`} sub="Pro × 390 ₽/мес" />
+          <StatCard label="MRR" value={`${fmtNum(revenue.mrr)} ₽`} sub="по последним платежам, год ÷ 12" />
           <StatCard label="ARR" value={`${fmtNum(revenue.arr)} ₽`} />
           <StatCard label="Pro-подписчиков" value={revenue.pro_count} />
           <StatCard label="Lifetime" value={revenue.lifetime_count} />

@@ -1,10 +1,16 @@
 name: Retention Email
 
+# Основной запуск — pg_cron в Supabase (миграция 20261022000900_cron_billing_retention.sql).
+# Этот workflow — ручной резерв. В лог — только статус и счётчики.
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: retention-email
+  cancel-in-progress: false
 
 jobs:
   run:
@@ -17,9 +23,9 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "https://joaxeoavjvlqmtlepkrr.supabase.co/functions/v1/retention-email")
-          cat /tmp/resp.json
-          echo ""
+          echo "HTTP $STATUS"
+          jq -c '{sent, failed_count}' /tmp/resp.json 2>/dev/null || echo "response is not JSON"
+          rm -f /tmp/resp.json
           if [ "$STATUS" != "200" ]; then
-            echo "retention-email returned HTTP $STATUS"
             exit 1
           fi

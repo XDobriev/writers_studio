@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { revealVariants } from '../lib/motion';
 import { AnimatedPricingCard } from './AnimatedPricingCard';
-import { getLifetimeSlotsRemaining, getProfile } from '../lib/profiles';
+import { getLifetimeSlotsRemaining, getProfile, isPaidPlan } from '../lib/profiles';
 import { SectionLabel } from './LandingSectionLabel';
 import { BillingIntervalToggle } from './BillingIntervalToggle';
+import { RecurringConsent } from './RecurringConsent';
 import { useAuth } from '../lib/auth';
-import { supabase } from '../lib/supabase';
+import { CheckoutError, PENDING_CONSENT_KEY, isRecurringPlan, startCheckout } from '../lib/checkout';
 import type { BillingInterval } from '../lib/pricing';
 import {
   LIFETIME_PRICE, PRO_PRICES, formatRub,
@@ -21,6 +22,8 @@ export function LandingPricing() {
   const [slotsLoaded, setSlotsLoaded] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<'pro' | 'pro_annual' | 'lifetime' | null>(null);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
+  const [proConsent, setProConsent] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<{ plan: PlanKey; message: string } | null>(null);
   const { session } = useAuth();
   const navigate = useNavigate();
 
@@ -38,26 +41,31 @@ export function LandingPricing() {
       navigate('/login');
       return;
     }
+    const recurring = isRecurringPlan(planKey);
+    if (recurring && !proConsent) return;
+    setCheckoutError(null);
     if (!session) {
       sessionStorage.setItem('pending_plan', planKey);
+      // Согласие дано здесь, до регистрации: после входа usePostAuthRedirect не спросит повторно.
+      if (recurring) sessionStorage.setItem(PENDING_CONSENT_KEY, planKey);
       navigate(`/login?tab=signup&plan=${planKey}`);
       return;
     }
     setLoadingPlan(planKey);
     try {
       const profile = await getProfile(session.user.id);
-      if (profile && (profile.plan === 'pro' || profile.plan === 'pro_annual' || profile.plan === 'lifetime')) {
+      if (isPaidPlan(profile)) {
         navigate('/books');
         return;
       }
-      const { data, error } = await supabase.functions.invoke('create-payment-url', {
-        body: { plan: planKey },
-      });
-      if (error || !data?.url) throw error ?? new Error('no url');
-      window.location.href = data.url as string;
-    } catch {
+      window.location.href = await startCheckout(planKey, recurring);
+    } catch (e) {
       setLoadingPlan(null);
-      navigate('/books');
+      if (e instanceof CheckoutError && (e.code === 'already_pro' || e.code === 'already_lifetime')) {
+        navigate('/books');
+        return;
+      }
+      setCheckoutError({ plan: planKey, message: e instanceof Error ? e.message : 'Не удалось перейти к оплате.' });
     }
   };
 
@@ -172,14 +180,24 @@ export function LandingPricing() {
                   </li>
                 ))}
               </ul>
+              {t.name === 'Pro' && (
+                <div style={{ marginBottom: 12 }}>
+                  <RecurringConsent interval={billingInterval} checked={proConsent} onChange={setProConsent} />
+                </div>
+              )}
               <button
                 onClick={() => void handleCtaClick(t.planKey)}
-                disabled={loadingPlan !== null || (t.planKey === 'lifetime' && !slotsLoaded)}
+                disabled={loadingPlan !== null || (t.planKey === 'lifetime' && !slotsLoaded) || (t.name === 'Pro' && !proConsent)}
                 className={t.accent ? 'btn btn--primary' : 'btn'}
                 style={{ height: 44, fontSize: 14, justifyContent: 'center', width: '100%', display: 'flex', alignItems: 'center' }}
               >
                 {loadingPlan !== null && loadingPlan === t.planKey ? 'Подождите…' : t.cta}
               </button>
+              {checkoutError && checkoutError.plan === t.planKey && (
+                <p role="alert" style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--danger)', textAlign: 'center', lineHeight: 1.5 }}>
+                  {checkoutError.message}
+                </p>
+              )}
               {t.name !== 'Free' && (
                 <p style={{ margin: '10px 0 0', fontSize: 11, color: 'var(--ink-4)', textAlign: 'center', lineHeight: 1.5 }}>
                   Нажимая кнопку, вы соглашаетесь с{' '}

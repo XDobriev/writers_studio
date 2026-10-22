@@ -2,8 +2,15 @@
 // Принимает auth_data от https://telegram.org/js/telegram-widget.js, валидирует HMAC-подпись
 // по схеме https://core.telegram.org/widgets/login#checking-authorization, создаёт/находит
 // пользователя в Supabase и возвращает одноразовый token_hash для verifyOtp на фронте.
+//
+// Защита: hash сравнивается за постоянное время; auth_date не старше 15 минут и не из
+// будущего (допуск 60 с); новые аккаунты не создаются при registration_open = false;
+// поиск существующего пользователя — RPC find_auth_user_by_email (без лимита 1000).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { timingSafeEqual } from '../_shared/crypto.ts';
+import { corsHeaders, json } from '../_shared/http.ts';
+import { findUserByEmail, isRegistrationOpen } from '../_shared/authUsers.ts';
 
 interface TelegramAuthData {
   id: number;
@@ -15,18 +22,8 @@ interface TelegramAuthData {
   hash: string;
 }
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-function json(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  });
-}
+const MAX_AGE_SEC = 15 * 60;
+const MAX_FUTURE_SKEW_SEC = 60;
 
 function toHex(buf: ArrayBuffer): string {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -41,81 +38,66 @@ async function verifyTelegramSignature(data: TelegramAuthData, botToken: string)
 
   const enc = new TextEncoder();
   const secretKey = await crypto.subtle.digest('SHA-256', enc.encode(botToken));
-  const key = await crypto.subtle.importKey(
-    'raw',
-    secretKey,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
+  const key = await crypto.subtle.importKey('raw', secretKey, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const sig = await crypto.subtle.sign('HMAC', key, enc.encode(dataCheckString));
-  return toHex(sig) === hash;
+  return timingSafeEqual(toHex(sig), String(hash).toLowerCase());
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-  if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
+  const cors = corsHeaders(req);
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  if (req.method !== 'POST') return json(405, { error: 'method not allowed' }, cors);
 
   const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
-  if (!botToken) return json(500, { error: 'TELEGRAM_BOT_TOKEN secret is not set' });
-
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !serviceKey) return json(500, { error: 'supabase env is not set' });
+  if (!botToken || !supabaseUrl || !serviceKey) {
+    console.error('[telegram-auth] missing env');
+    return json(500, { error: 'server misconfigured' }, cors);
+  }
 
   let data: TelegramAuthData;
   try {
     data = await req.json();
   } catch {
-    return json(400, { error: 'invalid json' });
+    return json(400, { error: 'invalid json' }, cors);
   }
 
-  if (!data.id || !data.hash || !data.auth_date) {
-    return json(400, { error: 'missing required fields' });
+  if (!data?.id || !data.hash || !data.auth_date || !Number.isInteger(Number(data.id))) {
+    return json(400, { error: 'missing required fields' }, cors);
   }
 
-  const ageSec = Math.floor(Date.now() / 1000) - data.auth_date;
-  if (ageSec > 24 * 60 * 60) {
-    return json(401, { error: 'auth_date is older than 24h' });
+  const ageSec = Math.floor(Date.now() / 1000) - Number(data.auth_date);
+  if (!Number.isFinite(ageSec) || ageSec > MAX_AGE_SEC || ageSec < -MAX_FUTURE_SKEW_SEC) {
+    return json(401, { error: 'auth_date expired' }, cors);
   }
 
-  const ok = await verifyTelegramSignature(data, botToken);
-  if (!ok) return json(401, { error: 'invalid telegram signature' });
+  if (!(await verifyTelegramSignature(data, botToken))) {
+    return json(401, { error: 'invalid telegram signature' }, cors);
+  }
 
-  const email = `tg-${data.id}@telegram.local`;
+  const telegramId = Number(data.id);
+  const email = `tg-${telegramId}@telegram.local`;
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
   const meta = {
-    telegram_id: data.id,
+    telegram_id: telegramId,
     telegram_username: data.username ?? null,
     first_name: data.first_name ?? null,
     last_name: data.last_name ?? null,
     photo_url: data.photo_url ?? null,
     provider: 'telegram',
   };
+  const appMeta = { provider: 'telegram', providers: ['telegram'], telegram_id: telegramId };
 
-  const appMeta = { provider: 'telegram', providers: ['telegram'], telegram_id: data.id };
-
-  // Поиск существующего юзера. Дешевле через listUsers c фильтром по email
-  // (Supabase admin API сейчас не отдаёт getUserByEmail).
-  let userId: string | null = null;
-  let existingAppMeta: Record<string, unknown> | null = null;
-  for (let page = 1; page <= 5; page++) {
-    const { data: list, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) {
-      console.error('[telegram-auth] listUsers failed:', error.message);
-      return json(500, { error: 'auth lookup failed' });
-    }
-    const hit = list.users.find((u) => u.email === email);
-    if (hit) {
-      userId = hit.id;
-      existingAppMeta = (hit.app_metadata ?? null) as Record<string, unknown> | null;
-      break;
-    }
-    if (list.users.length < 200) break;
+  const found = await findUserByEmail(admin, email);
+  if (!found.ok) {
+    console.error('[telegram-auth] user lookup failed:', found.error);
+    return json(500, { error: 'auth lookup failed' }, cors);
   }
 
-  if (!userId) {
+  if (!found.user) {
+    if (!(await isRegistrationOpen(admin))) return json(403, { error: 'registration_closed' }, cors);
     const { data: created, error } = await admin.auth.admin.createUser({
       email,
       email_confirm: true,
@@ -124,37 +106,28 @@ Deno.serve(async (req) => {
     });
     if (error || !created.user) {
       console.error('[telegram-auth] createUser failed:', error?.message ?? 'unknown');
-      return json(500, { error: 'account creation failed' });
+      return json(500, { error: 'account creation failed' }, cors);
     }
-    userId = created.user.id;
   } else {
     // Guard от pre-hijack: telegram_id в app_metadata пишет только эта функция (service role).
-    // Публичный signUp не может задать app_metadata, поэтому заранее заведённый
-    // tg-<id>@telegram.local без него не сможет перехватить вход. По образцу vk-auth.
-    if (!existingAppMeta?.telegram_id || Number(existingAppMeta.telegram_id) !== data.id) {
-      return json(409, { error: 'email conflict: account exists with different provider' });
+    if (!found.user.app_metadata.telegram_id || Number(found.user.app_metadata.telegram_id) !== telegramId) {
+      return json(409, { error: 'email conflict: account exists with different provider' }, cors);
     }
-    const { error: updateErr } = await admin.auth.admin.updateUserById(userId, {
+    const { error: updateErr } = await admin.auth.admin.updateUserById(found.user.id, {
       user_metadata: meta,
       app_metadata: appMeta,
     });
     if (updateErr) {
       console.error('[telegram-auth] updateUser failed:', updateErr.message);
-      return json(500, { error: 'account update failed' });
+      return json(500, { error: 'account update failed' }, cors);
     }
   }
 
-  const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
-    type: 'magiclink',
-    email,
-  });
+  const { data: link, error: linkErr } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
   if (linkErr || !link.properties) {
     console.error('[telegram-auth] generateLink failed:', linkErr?.message ?? 'unknown');
-    return json(500, { error: 'login link generation failed' });
+    return json(500, { error: 'login link generation failed' }, cors);
   }
 
-  return json(200, {
-    token_hash: link.properties.hashed_token,
-    email,
-  });
+  return json(200, { token_hash: link.properties.hashed_token, email }, cors);
 });

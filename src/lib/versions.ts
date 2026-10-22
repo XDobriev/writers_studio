@@ -4,7 +4,7 @@ import type { Tables } from './database.types';
 export type VersionTrigger = 'beforeunload' | 'chapter_switch' | 'timer' | 'manual';
 
 // Выведено из БД (Tables<'chapter_versions'>) без content; trigger сужен до union.
-export type ChapterVersionMeta = Omit<Tables<'chapter_versions'>, 'content' | 'trigger'> & {
+export type ChapterVersionMeta = Omit<Tables<'chapter_versions'>, 'content' | 'content_hash' | 'trigger'> & {
   trigger: VersionTrigger;
 };
 
@@ -28,26 +28,18 @@ export async function getVersionContent(id: string): Promise<string> {
   return (data as { content: string }).content;
 }
 
+// Дедуп и ретеншн — на сервере (20261022000500_chapter_versions_retention.sql):
+// автоснимок, совпадающий по content_hash с последним, не вставляется; чистка
+// идёт по плану из profiles (Pro/Lifetime — 30 дней, Free — 10 последних).
+// Клиент не скачивает прошлый снимок и не решает, кто Pro.
 export async function createVersion(
   chapterId: string,
   userId: string,
   content: string,
   wordCount: number,
   trigger: VersionTrigger,
-  isPro: boolean,
   label?: string,
 ): Promise<void> {
-  // Пропускаем если контент не изменился с последнего снимка
-  const { data: last } = await supabase
-    .from('chapter_versions')
-    .select('content')
-    .eq('chapter_id', chapterId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!label && last && (last as { content: string }).content === content) return;
-
   const { error } = await supabase.from('chapter_versions').insert({
     chapter_id: chapterId,
     user_id: userId,
@@ -57,31 +49,6 @@ export async function createVersion(
     label: label ?? null,
   });
   if (error) throw error;
-
-  await pruneVersions(chapterId, isPro);
-}
-
-async function pruneVersions(chapterId: string, isPro: boolean): Promise<void> {
-  if (isPro) {
-    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    await supabase
-      .from('chapter_versions')
-      .delete()
-      .eq('chapter_id', chapterId)
-      .is('label', null)
-      .lt('created_at', cutoff);
-  } else {
-    const { data: autoSnaps } = await supabase
-      .from('chapter_versions')
-      .select('id')
-      .eq('chapter_id', chapterId)
-      .is('label', null)
-      .order('created_at', { ascending: false });
-    if (autoSnaps && autoSnaps.length > 10) {
-      const toDelete = (autoSnaps as { id: string }[]).slice(10).map((s) => s.id);
-      await supabase.from('chapter_versions').delete().in('id', toDelete);
-    }
-  }
 }
 
 export async function deleteVersion(id: string): Promise<void> {

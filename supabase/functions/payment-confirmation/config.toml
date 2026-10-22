@@ -1,0 +1,4 @@
+# Вызывается robokassa-webhook с Bearer = SUPABASE_SERVICE_ROLE_KEY; ключ сверяется
+# внутри функции за постоянное время. Деплой: --no-verify-jwt.
+[functions.payment-confirmation]
+verify_jwt = false

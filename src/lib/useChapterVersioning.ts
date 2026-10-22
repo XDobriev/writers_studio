@@ -22,8 +22,6 @@ export function useChapterVersioning({
   chapterIdRef.current = chapterId;
   const userIdRef = useRef(userId);
   userIdRef.current = userId;
-  const isProRef = useRef(isPro);
-  isProRef.current = isPro;
 
   const onVersionCreatedRef = useRef(onVersionCreated);
   onVersionCreatedRef.current = onVersionCreated;
@@ -53,7 +51,7 @@ export function useChapterVersioning({
       if (!cId || !uId || !content) return;
       if (lastVersionContentRef.current.get(cId) === content) return;
       lastVersionContentRef.current.set(cId, content);
-      void createVersion(cId, uId, content, countWords(content), 'timer', isProRef.current)
+      void createVersion(cId, uId, content, countWords(content), 'timer')
         .then(() => onVersionCreatedRef.current?.());
     }, intervalMs);
     return () => clearInterval(id);
@@ -75,7 +73,7 @@ export function useChapterVersioning({
     if (!uId || !content) return;
     if (lastVersionContentRef.current.get(prevChapterId) !== content) {
       lastVersionContentRef.current.set(prevChapterId, content);
-      void createVersion(prevChapterId, uId, content, countWords(content), 'chapter_switch', isProRef.current)
+      void createVersion(prevChapterId, uId, content, countWords(content), 'chapter_switch')
         .then(() => onVersionCreatedRef.current?.());
     }
   }, []);

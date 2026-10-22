@@ -1,5 +1,6 @@
 import { useAuth } from './auth';
 import { useProfile } from './queries';
+import { effectivePlan } from './profiles';
 
 export function useUserDisplay() {
   const { user } = useAuth();
@@ -25,7 +26,9 @@ export function useUserDisplay() {
   return {
     displayName,
     initials,
-    plan: profile?.plan ?? 'free',
+    // С учётом срока: истёкший pro — 'free' (isPaidPlan). До загрузки профиля тоже 'free',
+    // поэтому деструктивное по плану смотрит planLoaded (ретеншн версий теперь серверный).
+    plan: effectivePlan(profile),
     planLoaded: !isLoading,
     avatarUrl,
   };

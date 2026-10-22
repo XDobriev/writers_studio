@@ -22,7 +22,7 @@ interface VersionsPanelProps {
 export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, currentContent, isPro, onRestoreContent, onBeforeRestore, onRebase }: VersionsPanelProps) {
   const { error: versionError, setError: setVersionError, clearError: clearVersionError } = useErrorState();
   const { data: versions = [], isLoading } = useChapterVersions(chapterId);
-  const { createNamed, remove } = useVersionMutations(chapterId, userId, isPro);
+  const { createNamed, remove } = useVersionMutations(chapterId, userId);
   const [selected, setSelected] = useState<ChapterVersionMeta | null>(null);
   // Смена главы при открытой версии — закрыть её, иначе «Восстановить» ушло бы в чужую главу.
   const [selectedFor, setSelectedFor] = useState(chapterId);
@@ -212,7 +212,6 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
         bookId={bookId}
         userId={userId}
         currentContent={currentContent}
-        isPro={isPro}
         onBeforeRestore={onBeforeRestore}
         onRebase={onRebase}
         onClose={() => setSelected(null)}

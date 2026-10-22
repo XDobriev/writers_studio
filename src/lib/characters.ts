@@ -69,15 +69,27 @@ export async function uploadCharacterAvatar(characterId: string, userId: string,
     .upload(path, optimized, { upsert: true, contentType: optimized.type });
   if (error) throw error;
   const { data } = supabase.storage.from('character-avatars').getPublicUrl(path);
-  return data.publicUrl;
+  // Путь не меняется между загрузками (upsert) — ?t= сбрасывает кэш браузера/CDN.
+  return `${data.publicUrl}?t=${Date.now()}`;
+}
+
+/**
+ * Путь файла в бакете, если он принадлежит именно этому персонажу (`<user>/<characterId>.<ext>`).
+ * После переноса в продолжение серии аватар копии ссылается на файл оригинала:
+ * удалять чужой файл нельзя — у книги-источника пропала бы картинка.
+ */
+function ownAvatarPath(characterId: string, avatarUrl: string): string | null {
+  const marker = '/character-avatars/';
+  const idx = avatarUrl.indexOf(marker);
+  if (idx === -1) return null;
+  const path = decodeURIComponent(avatarUrl.slice(idx + marker.length).split('?')[0]);
+  const file = path.split('/')[1] ?? '';
+  return file.startsWith(`${characterId}.`) ? path : null;
 }
 
 export async function deleteCharacterAvatar(characterId: string, avatarUrl: string): Promise<void> {
-  const marker = '/character-avatars/';
-  const idx = avatarUrl.indexOf(marker);
-  if (idx !== -1) {
-    void supabase.storage.from('character-avatars').remove([avatarUrl.slice(idx + marker.length)]);
-  }
+  const path = ownAvatarPath(characterId, avatarUrl);
+  if (path) void supabase.storage.from('character-avatars').remove([path]);
   await updateCharacter(characterId, { avatar_url: null });
 }
 

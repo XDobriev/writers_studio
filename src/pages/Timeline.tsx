@@ -14,7 +14,7 @@ import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
-import { getPlanLimits } from '../lib/profiles';
+import { getPlanLimits, isPlanLimitError } from '../lib/profiles';
 import {
   createTimelineEvent,
   deleteTimelineEvent,
@@ -39,7 +39,7 @@ export default function Timeline() {
 
   const queryClient = useQueryClient();
   const { data: profile } = useProfile(user?.id);
-  const limits = getPlanLimits(profile?.plan);
+  const limits = getPlanLimits(profile);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const { data: book } = useBook(bookId);
@@ -81,6 +81,10 @@ export default function Timeline() {
       );
       setJustCreatedId(created.id);
     } catch (e) {
+      if (isPlanLimitError(e)) {
+        setShowUpgrade(true);
+        return;
+      }
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       creatingRef.current = false;
