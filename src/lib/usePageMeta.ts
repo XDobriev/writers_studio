@@ -15,9 +15,18 @@ export function usePageMeta({ title, description, path, noindex }: PageMeta) {
 
     const url = `https://avtorstudio.com${path}`;
 
+    // Запоминаем исходные значения, чтобы при SPA-переходе на страницу без своих мета
+    // (лендинг, редактор) не остались description/canonical/og предыдущей страницы.
+    const restore: Array<() => void> = [];
     const setAttr = (sel: string, attr: string, val: string) => {
       const el = document.querySelector(sel);
-      if (el) el.setAttribute(attr, val);
+      if (!el) return;
+      const before = el.getAttribute(attr);
+      el.setAttribute(attr, val);
+      restore.push(() => {
+        if (before === null) el.removeAttribute(attr);
+        else el.setAttribute(attr, before);
+      });
     };
 
     setAttr('meta[name="description"]', 'content', description);
@@ -28,7 +37,7 @@ export function usePageMeta({ title, description, path, noindex }: PageMeta) {
     setAttr('meta[name="twitter:title"]', 'content', title);
     setAttr('meta[name="twitter:description"]', 'content', description);
 
-    // robots: демо-режим не индексируется (интерактивный инструмент, не контент)
+    // robots: демо, 404 и расшаренные рукописи не индексируются
     let robots = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
     const prevRobots = robots?.getAttribute('content') ?? null;
     let createdRobots = false;
@@ -44,6 +53,7 @@ export function usePageMeta({ title, description, path, noindex }: PageMeta) {
 
     return () => {
       document.title = prev;
+      restore.forEach((fn) => fn());
       if (noindex && robots) {
         if (createdRobots) robots.remove();
         else if (prevRobots !== null) robots.setAttribute('content', prevRobots);

@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import { supabase } from '../lib/supabase';
 import type { Book } from '../lib/supabase';
 import { LogoMark } from '../components/LogoMark';
+import { usePageMeta } from '../lib/usePageMeta';
 
 interface Chapter {
   id: string;
@@ -21,6 +22,15 @@ export default function ShareBook() {
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Расшаренная рукопись не должна попасть в поисковую выдачу, даже если ссылка утекла.
+  // path без токена: canonical не должен раскрывать доступ к книге.
+  usePageMeta({
+    title: 'Рукопись — Авторская студия',
+    description: 'Книга, которой поделился автор в Авторской студии.',
+    path: '/share',
+    noindex: true,
+  });
 
   useEffect(() => {
     if (!token) { setState('not_found'); return; }
