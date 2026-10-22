@@ -114,7 +114,8 @@ interface EditorHybridProps {
   /** Вызывается по Ctrl+S — принудительный flush debounce */
   onSave?: () => void;
   /** Отменить pending-автосейв перед восстановлением версии (защита от затирания) */
-  onBeforeRestore?: () => void;
+  onBeforeRestore?: () => void | Promise<void>;
+  onRebase?: (chapterId: string, updatedAt: string) => void;
   versionToast?: boolean;
   /** Демо-режим на /demo: скрывает share (данные не сохраняются). */
   demo?: boolean;
@@ -135,6 +136,7 @@ export function EditorHybrid({
   savedAt = null,
   onSave,
   onBeforeRestore,
+  onRebase,
   versionToast = false,
   demo = false,
 }: EditorHybridProps) {
@@ -433,6 +435,7 @@ export function EditorHybrid({
             isPro={isPro}
             onRestoreContent={restoreContent}
             onBeforeRestore={onBeforeRestore}
+            onRebase={onRebase}
             showNoteForm={showNoteForm}
             onNoteFormClose={resetShowNoteForm}
             demo={demo}
@@ -517,6 +520,7 @@ export function EditorHybrid({
               isPro={isPro}
               onRestoreContent={restoreContent}
               onBeforeRestore={onBeforeRestore}
+              onRebase={onRebase}
               showNoteForm={showNoteForm}
             onNoteFormClose={resetShowNoteForm}
             demo={demo}

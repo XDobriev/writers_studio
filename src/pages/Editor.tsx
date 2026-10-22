@@ -2,35 +2,29 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams, Navigate, Link } from 'react-router-dom';
 import { useErrorState } from '../lib/useErrorState';
 import { ErrorBanner } from '../components/ErrorBanner';
-import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { useQueryClient } from '@tanstack/react-query';
 import { EditorHybrid } from '../components/EditorHybrid';
 import { useAuth } from '../lib/auth';
 import { type Book } from '../lib/supabase';
 import { updateBook } from '../lib/books';
 import {
-  countWords,
   createChapter,
   deleteChapter,
   updateChapter,
   getChapterContent,
   type ChapterMeta,
-  type ChapterPatch,
   type ChapterStatus,
-  type SaveState,
 } from '../lib/chapters';
 import { QUERY_KEYS, useBook, useChapters, useChapterContent } from '../lib/queries';
 import {
-  updateChapterWithCache,
   createChapterWithCache,
   deleteChapterWithCache,
   invalidateChaptersCache,
 } from '../lib/chapterMutations';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useChapterVersioning } from '../lib/useChapterVersioning';
-import { useBeforeUnloadSave } from '../lib/useBeforeUnloadSave';
-import { syncBacklinks } from '../lib/crossrefs';
-import type { Character } from '../lib/characters';
+import { useChapterAutosave, useRecoveredChapterContent } from '../lib/useChapterAutosave';
+import { SaveNotice, UnsavedBanner } from '../components/SaveStatusBanners';
 
 const LAST_CHAPTER_KEY = (bookId: string) => `lastChapter_${bookId}`;
 
@@ -62,17 +56,22 @@ export default function Editor() {
   // Только фатальные ошибки загрузки (книга/главы) заменяют экран целиком.
   // mutationError (статус главы, удаление и т.п.) — некритичен, показывается баннером поверх редактора.
   const error = (bookError ?? chaptersError)?.message;
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [savedAt, setSavedAt] = useState<Date | null>(null);
 
   const activeId = search.get('chapter');
 
-  // Контент только активной главы — загружается отдельно, не вместе с метаданными
+  const { plan } = useUserDisplay();
+  const isPro = plan === 'pro' || plan === 'lifetime';
+  const autosave = useChapterAutosave({ bookId, userId: user?.id, isPro });
+  const { flush, saveState, savedAt } = autosave;
+
+  // Контент только активной главы — загружается отдельно, не вместе с метаданными.
+  // До загрузки (ready) редактор не засеивается — защита от записи ввода в ещё
+  // не загруженную главу. Локальный черновик, не дошедший до сервера, подмешивается здесь.
   const { data: chapterContentData } = useChapterContent(activeId ?? undefined);
-  const activeContent = chapterContentData?.content ?? '';
-  // Контент главы загружен (запрос разрешился). До этого редактор не засеивается —
-  // защита от гонки, когда автосейв мог записать ввод в ещё не загруженную главу.
-  const activeContentReady = chapterContentData !== undefined;
+  const activeMetaUpdatedAt = chapters?.find((c) => c.id === activeId)?.updated_at;
+  const { content: activeContent, ready: activeContentReady } = useRecoveredChapterContent(
+    activeId, chapterContentData, activeMetaUpdatedAt, autosave, { userId: user?.id, isPro },
+  );
 
   useEffect(() => {
     if (!chapters || chapters.length === 0) return;
@@ -117,9 +116,6 @@ export default function Editor() {
     }
   }, [bookId, user, chapters, queryClient, search, setSearch, setError]);
 
-  const { plan } = useUserDisplay();
-  const isPro = plan === 'pro' || plan === 'lifetime';
-
   const [versionToast, setVersionToast] = useState(false);
   const versionToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -131,61 +127,12 @@ export default function Editor() {
     }, 2500);
   }, []);
 
-  const { onContentTracked, onChapterSwitch, onBeforeUnload } = useChapterVersioning({
+  const { onContentTracked, onChapterSwitch } = useChapterVersioning({
     chapterId: activeId,
     userId: user?.id,
     isPro,
     onVersionCreated: handleVersionCreated,
   });
-
-  const { scheduleSave: debouncedSave, flush, cancel, pendingPatchRef, targetIdRef } = useDebouncedSave<ChapterPatch>(
-    async (id, patch) => {
-      if (!bookId) return;
-      setSaveState('saving');
-      try {
-        const updated = await updateChapter(id, patch);
-        updateChapterWithCache(queryClient, bookId, updated);
-        setSaveState('saved');
-        setSavedAt(new Date());
-        // Бэклинки считаем из patch.content — контента ИМЕННО этой главы.
-        // currentContentRef после await мог уже указывать на другую главу
-        // (переключение за время запроса), тогда упоминания посчитались бы из чужого текста.
-        if (patch.content !== undefined) {
-          const characters = queryClient.getQueryData<Character[]>(QUERY_KEYS.characters(bookId)) ?? [];
-          if (characters.length > 0) {
-            void syncBacklinks(id, bookId, patch.content, characters)
-              .then(() => { void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterCharactersAll() }); })
-              .catch(() => { /* non-critical */ });
-          }
-        }
-      } catch (e) {
-        setSaveState('error');
-        throw e;
-      }
-    },
-    700,
-  );
-
-  useBeforeUnloadSave(pendingPatchRef, targetIdRef, onBeforeUnload);
-
-  const scheduleSave = useCallback((id: string, patch: ChapterPatch) => {
-    if (bookId) {
-      // Оптимистично обновляем метаданные (title, words, status, position)
-      const { content: _c, ...metaPatch } = patch;
-      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-        prev ? prev.map((c) => (c.id === id ? { ...c, ...metaPatch } : c)) : prev
-      );
-    }
-    // Оптимистично обновляем контент-кеш (чтобы редактор видел актуальное значение)
-    if (patch.content !== undefined) {
-      queryClient.setQueryData<{ id: string; content: string }>(
-        QUERY_KEYS.chapterContent(id),
-        (prev) => prev ? { ...prev, content: patch.content! } : { id, content: patch.content! }
-      );
-    }
-    setSaveState('saving');
-    debouncedSave(id, patch);
-  }, [debouncedSave, bookId, queryClient]);
 
   const lastActiveIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -207,13 +154,17 @@ export default function Editor() {
   const onContentChange = useCallback((html: string) => {
     if (!activeChapter) return;
     onContentTracked(html);
-    scheduleSave(activeChapter.id, { content: html, words: countWords(html) });
-  }, [activeChapter, scheduleSave, onContentTracked]);
+    autosave.scheduleContent(activeChapter.id, html);
+  }, [activeChapter, autosave, onContentTracked]);
 
   const onTitleChange = useCallback((title: string) => {
     if (!activeChapter) return;
-    scheduleSave(activeChapter.id, { title });
-  }, [activeChapter, scheduleSave]);
+    autosave.schedule(activeChapter.id, { title });
+  }, [activeChapter, autosave]);
+
+  const onBeforeRestore = useCallback(async () => {
+    if (activeId) await autosave.discard(activeId);
+  }, [activeId, autosave]);
 
   const onStatusChange = useCallback(async (id: string, status: ChapterStatus) => {
     if (bookId) {
@@ -229,11 +180,17 @@ export default function Editor() {
 
   const onGoalChange = useCallback(async (goal: number) => {
     if (!bookId) return;
+    const prevBook = queryClient.getQueryData<Book>(QUERY_KEYS.book(bookId));
     queryClient.setQueryData<Book>(QUERY_KEYS.book(bookId), (prev) =>
       prev ? { ...prev, daily_goal: goal } : prev
     );
-    await updateBook(bookId, { daily_goal: goal });
-  }, [bookId, queryClient]);
+    try {
+      await updateBook(bookId, { daily_goal: goal });
+    } catch (e) {
+      queryClient.setQueryData<Book>(QUERY_KEYS.book(bookId), prevBook);
+      setError(e instanceof Error ? e.message : 'Не удалось сохранить цель');
+    }
+  }, [bookId, queryClient, setError]);
 
   const onChapterHover = useCallback((id: string) => {
     void queryClient.prefetchQuery({
@@ -294,23 +251,8 @@ export default function Editor() {
           }}
         />
       )}
-      {saveState === 'error' && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
-          background: 'var(--danger)', color: 'oklch(0.98 0 0)',
-          padding: '8px 16px', fontSize: 13, display: 'flex',
-          alignItems: 'center', justifyContent: 'space-between', gap: 12,
-        }}>
-          <span>⚠ Последнее изменение не сохранено — нет соединения. Не закрывайте вкладку.</span>
-          <button
-            onClick={() => { void flush(); }}
-            style={{ background: 'oklch(1 0 0 / 0.2)', border: 'none', color: 'oklch(0.98 0 0)',
-              borderRadius: 4, padding: '2px 10px', cursor: 'pointer', fontSize: 12 }}
-          >
-            Повторить
-          </button>
-        </div>
-      )}
+      {saveState === 'error' && <UnsavedBanner onRetry={() => { void flush(); }} />}
+      {autosave.notice && <SaveNotice message={autosave.notice} onDismiss={autosave.clearNotice} />}
       <EditorHybrid
         defaultMode="studio"
         book={book}
@@ -323,7 +265,8 @@ export default function Editor() {
         onTitleChange={onTitleChange}
         onGoalChange={onGoalChange}
         onSave={flush}
-        onBeforeRestore={cancel}
+        onBeforeRestore={onBeforeRestore}
+        onRebase={autosave.rebase}
         saveState={saveState}
         savedAt={savedAt}
         versionToast={versionToast}

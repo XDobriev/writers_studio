@@ -79,7 +79,8 @@ interface VersionModalProps {
   userId: string;
   currentContent: string;
   isPro: boolean;
-  onBeforeRestore?: () => void;
+  onBeforeRestore?: () => void | Promise<void>;
+  onRebase?: (chapterId: string, updatedAt: string) => void;
   onClose: () => void;
   onRestored: (content: string) => void;
 }
@@ -93,6 +94,7 @@ export function VersionModal({
   currentContent,
   isPro,
   onBeforeRestore,
+  onRebase,
   onClose,
   onRestored,
 }: VersionModalProps) {
@@ -152,17 +154,23 @@ export function VersionModal({
   useEscapeToClose(open, onClose);
 
   async function handleRestore() {
-    if (!content) return;
+    if (content === null || !version) return;
+    // Глава могла смениться горячей клавишей при открытой модалке —
+    // версию главы A нельзя записывать в главу B.
+    if (version.chapter_id !== chapterId) {
+      setRestoreError('Эта версия относится к другой главе. Откройте её из нужной главы.');
+      return;
+    }
     setRestoring(true);
-    // Отменяем pending-автосейв редактора ДО записи: черновик, набранный за
-    // <700 мс до «Восстановить», иначе флашнулся бы после restore и затёр бы
-    // восстановленную версию. Сам черновик уже входит в currentContent и
-    // сохраняется ниже как точка отмены — потери нет.
-    onBeforeRestore?.();
     try {
+      // Отменяем незаписанный автосейв редактора и ждём запрос в полёте ДО записи:
+      // иначе он долетит после restore и затрёт восстановленную версию.
+      // Сам черновик уже входит в currentContent и сохраняется ниже как точка отмены.
+      await onBeforeRestore?.();
       // Снимок текущего контента как точка отмены
       await createVersion(chapterId, userId, currentContent, countWords(currentContent), 'manual', isPro);
-      await updateChapter(chapterId, { content, words: countWords(content) });
+      const restored = await updateChapter(chapterId, { content, words: countWords(content) });
+      onRebase?.(chapterId, restored.updated_at);
       queryClient.setQueryData<{ id: string; content: string }>(
         QUERY_KEYS.chapterContent(chapterId),
         { id: chapterId, content },

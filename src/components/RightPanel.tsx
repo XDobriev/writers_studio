@@ -21,7 +21,8 @@ interface RightPanelProps {
   currentContent?: string;
   isPro?: boolean;
   onRestoreContent?: (content: string) => void;
-  onBeforeRestore?: () => void;
+  onBeforeRestore?: () => void | Promise<void>;
+  onRebase?: (chapterId: string, updatedAt: string) => void;
   /** Ctrl+Shift+M из EditorHybrid — переключает панель на заметки и открывает форму */
   showNoteForm?: boolean;
   onNoteFormClose?: () => void;
@@ -30,7 +31,7 @@ interface RightPanelProps {
   demo?: boolean;
 }
 
-export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, onBeforeRestore, showNoteForm, onNoteFormClose, demo }: RightPanelProps) {
+export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, onBeforeRestore, onRebase, showNoteForm, onNoteFormClose, demo }: RightPanelProps) {
   const navigate = useNavigate();
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно', custom: 'Прочее' };
   const KIND_COLORS: Record<string, string> = {
@@ -171,6 +172,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                 isPro={isPro ?? false}
                 onRestoreContent={onRestoreContent}
                 onBeforeRestore={onBeforeRestore}
+                onRebase={onRebase}
               />
               </Suspense>
             )}

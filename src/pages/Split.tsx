@@ -1,21 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useErrorState } from '../lib/useErrorState';
 import { useResponsive } from '../lib/useResponsive';
 import { Icon } from '../components/Icon';
 import { RichEditor } from '../components/RichEditor';
-import { type Book } from '../lib/supabase';
-import { getBook } from '../lib/books';
+import { SaveNotice, UnsavedBanner } from '../components/SaveStatusBanners';
+import { type ChapterMeta } from '../lib/chapters';
+import { useBook, useChapters, useChapterContent } from '../lib/queries';
+import { useAuth } from '../lib/auth';
+import { useUserDisplay } from '../lib/useUserDisplay';
+import { useChapterVersioning } from '../lib/useChapterVersioning';
 import {
-  countWords,
-  listChapters,
-  updateChapter,
-  type Chapter,
-  type ChapterPatch,
-  type SaveState,
-} from '../lib/chapters';
-import { useDebouncedSave } from '../lib/useDebouncedSave';
-import { useBeforeUnloadSave } from '../lib/useBeforeUnloadSave';
+  useChapterAutosave,
+  useRecoveredChapterContent,
+  type ChapterAutosave,
+} from '../lib/useChapterAutosave';
 
 type Side = 'left' | 'right';
 
@@ -24,48 +22,41 @@ export default function Split() {
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
   const [search, setSearch] = useSearchParams();
+  const { user } = useAuth();
+  const { plan } = useUserDisplay();
+  const isPro = plan === 'pro' || plan === 'lifetime';
 
   useEffect(() => {
     if (isMobile && bookId) navigate(`/books/${bookId}/editor`, { replace: true });
   }, [isMobile, bookId, navigate]);
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [chapters, setChapters] = useState<Chapter[] | null>(null);
-  const { error, setError } = useErrorState();
-  const [saveState, setSaveState] = useState<Record<Side, SaveState>>({ left: 'idle', right: 'idle' });
+  // Данные через React Query — тот же кэш, что у редактора: правки отсюда
+  // сразу видны в «Студии» и не перезаписываются её устаревшей копией.
+  const { data: book, error: bookError } = useBook(bookId);
+  const { data: chapters, error: chaptersError } = useChapters(bookId);
+  const loadError = (bookError ?? chaptersError)?.message ?? null;
 
-  useEffect(() => {
-    if (!bookId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [book, list] = await Promise.all([
-          getBook(bookId),
-          listChapters(bookId),
-        ]);
-        if (cancelled) return;
-        setBook(book);
-        setChapters(list);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [bookId, setError]);
+  const autosave = useChapterAutosave({ bookId, userId: user?.id, isPro });
+  const { flush, saveState } = autosave;
 
   const leftId = search.get('left');
   const rightId = search.get('right');
 
+  // Одна глава в обеих панелях запрещена: два независимых редактора одного текста
+  // затирали бы правки друг друга.
   useEffect(() => {
-    if (!chapters || chapters.length === 0) return;
+    if (!chapters || chapters.length < 2) return;
     const next = new URLSearchParams(search);
     let changed = false;
-    if (!leftId || !chapters.some((c) => c.id === leftId)) {
-      next.set('left', chapters[0].id);
+    const has = (id: string | null) => !!id && chapters.some((c) => c.id === id);
+    let left = leftId;
+    if (!has(left)) {
+      left = chapters[0].id;
+      next.set('left', left);
       changed = true;
     }
-    if (!rightId || !chapters.some((c) => c.id === rightId)) {
-      const fallback = chapters[1] ?? chapters[0];
+    if (!has(rightId) || rightId === left) {
+      const fallback = chapters.find((c) => c.id !== left) ?? chapters[0];
       next.set('right', fallback.id);
       changed = true;
     }
@@ -78,33 +69,30 @@ export default function Split() {
     setSearch(next, { replace: false });
   }, [search, setSearch]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = /mac/i.test(navigator.platform) ? e.metaKey : e.ctrlKey;
+      if (mod && e.code === 'KeyS') { e.preventDefault(); void flush(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [flush]);
+
   const leftChapter = useMemo(
     () => (chapters && leftId ? chapters.find((c) => c.id === leftId) ?? null : null),
     [chapters, leftId],
   );
   const rightChapter = useMemo(
-    () => (chapters && rightId ? chapters.find((c) => c.id === rightId) ?? null : null),
-    [chapters, rightId],
+    () => (chapters && rightId && rightId !== leftId ? chapters.find((c) => c.id === rightId) ?? null : null),
+    [chapters, rightId, leftId],
   );
-
-  const onPersist = useCallback(async (id: string, patch: ChapterPatch, side: Side) => {
-    setSaveState((s) => ({ ...s, [side]: 'saving' }));
-    try {
-      const updated = await updateChapter(id, patch);
-      setChapters((prev) => prev ? prev.map((c) => (c.id === id ? updated : c)) : prev);
-      setSaveState((s) => ({ ...s, [side]: 'saved' }));
-    } catch (e) {
-      setSaveState((s) => ({ ...s, [side]: 'error' }));
-      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-    }
-  }, [setError]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
-  if (error) {
+  if (loadError) {
     return (
       <div className="as page-fill" style={{ color: 'var(--ink)', padding: 32 }}>
-        <div style={{ color: 'var(--danger)' }}>Ошибка: {error}</div>
+        <div style={{ color: 'var(--danger)' }}>Ошибка: {loadError}</div>
         <Link to={`/books/${bookId}/editor`} className="btn" style={{ marginTop: 16, textDecoration: 'none' }}>← Назад к редактору</Link>
       </div>
     );
@@ -132,8 +120,15 @@ export default function Split() {
     );
   }
 
+  const statusText = saveState === 'saving' ? 'сохранение…'
+    : saveState === 'error' ? 'не сохранено — повтор автоматически'
+    : saveState === 'saved' ? '● обе панели сохранены'
+    : 'автосохранение';
+
   return (
     <div className="as as-app" style={{ height: '100dvh', overflow: 'hidden' }}>
+      {saveState === 'error' && <UnsavedBanner onRetry={() => { void flush(); }} />}
+      {autosave.notice && <SaveNotice message={autosave.notice} onDismiss={autosave.clearNotice} />}
       <main style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, background: 'var(--bg)', overflow: 'hidden', gridColumn: '1 / -1' }}>
         <div className="tb" style={{ justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -147,24 +142,23 @@ export default function Split() {
         </div>
 
         <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--border-soft)', overflow: 'hidden' }}>
-          {(['left', 'right'] as const).map((side) => {
-            const ch = side === 'left' ? leftChapter : rightChapter;
-            return (
-              <Pane
-                key={side}
-                side={side}
-                chapter={ch}
-                chapters={chapters}
-                saveState={saveState[side]}
-                onSelect={(id) => select(side, id)}
-                onPersist={(id, patch) => onPersist(id, patch, side)}
-              />
-            );
-          })}
+          {(['left', 'right'] as const).map((side) => (
+            <Pane
+              key={side}
+              side={side}
+              chapter={side === 'left' ? leftChapter : rightChapter}
+              otherId={side === 'left' ? rightId : leftId}
+              chapters={chapters}
+              autosave={autosave}
+              userId={user?.id}
+              isPro={isPro}
+              onSelect={(id) => select(side, id)}
+            />
+          ))}
         </div>
 
         <div className="status">
-          <span>{saveState.left === 'saved' && saveState.right === 'saved' ? '● обе панели сохранены' : 'автосохранение…'}</span>
+          <span>{statusText}</span>
           <span style={{ color: 'var(--ink-4)' }}>·</span>
           <span>
             слева: {leftChapter?.title ?? '—'} · справа: {rightChapter?.title ?? '—'}
@@ -175,41 +169,35 @@ export default function Split() {
   );
 }
 
-function Pane({ side, chapter, chapters, saveState, onSelect, onPersist }: {
+function Pane({ side, chapter, otherId, chapters, autosave, userId, isPro, onSelect }: {
   side: Side;
-  chapter: Chapter | null;
-  chapters: Chapter[];
-  saveState: SaveState;
+  chapter: ChapterMeta | null;
+  otherId: string | null;
+  chapters: ChapterMeta[];
+  autosave: ChapterAutosave;
+  userId: string | undefined;
+  isPro: boolean;
   onSelect: (id: string) => void;
-  onPersist: (id: string, patch: ChapterPatch) => void;
 }) {
-  const { scheduleSave, flush, pendingPatchRef, targetIdRef } = useDebouncedSave<ChapterPatch>(
-    async (id, patch) => { onPersist(id, patch); },
-    700,
+  const chapterId = chapter?.id ?? null;
+  const { data: contentData } = useChapterContent(chapterId ?? undefined);
+  const { content, ready } = useRecoveredChapterContent(
+    chapterId, contentData, chapter?.updated_at, autosave, { userId, isPro },
   );
+  const { onContentTracked, onChapterSwitch } = useChapterVersioning({ chapterId, userId, isPro });
+  useEffect(() => { onContentTracked(content); }, [content, onContentTracked]);
 
-  // Keepalive: дописать незаписанный патч панели при закрытии вкладки в окне debounce.
-  useBeforeUnloadSave(pendingPatchRef, targetIdRef);
-
-  const lastChIdRef = useRef<string | null>(null);
+  const lastIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (lastChIdRef.current && lastChIdRef.current !== chapter?.id) {
-      void flush();
-    }
-    lastChIdRef.current = chapter?.id ?? null;
-  }, [chapter?.id, flush]);
+    if (lastIdRef.current && lastIdRef.current !== chapterId) onChapterSwitch(lastIdRef.current);
+    lastIdRef.current = chapterId;
+  }, [chapterId, onChapterSwitch]);
 
   const onContentChange = useCallback((html: string) => {
-    if (!chapter) return;
-    scheduleSave(chapter.id, { content: html, words: countWords(html) });
-  }, [chapter, scheduleSave]);
-
-  const labels: Record<SaveState, { text: string; color: string }> = {
-    idle: { text: '', color: 'var(--ink-4)' },
-    saving: { text: '● сохранение', color: 'var(--accent-2)' },
-    saved: { text: '● сохранено', color: 'var(--ok)' },
-    error: { text: '● ошибка', color: 'var(--danger)' },
-  };
+    if (!chapterId) return;
+    onContentTracked(html);
+    autosave.scheduleContent(chapterId, html);
+  }, [chapterId, autosave, onContentTracked]);
 
   const paneEditorStyle =
     'outline:none;font-family:var(--font-serif);color:var(--ink);font-size:15.5px;line-height:1.7;';
@@ -222,23 +210,23 @@ function Pane({ side, chapter, chapters, saveState, onSelect, onPersist }: {
           value={chapter?.id ?? ''}
           onChange={(e) => onSelect(e.target.value)}
           aria-label={side === 'left' ? 'Глава слева' : 'Глава справа'}
-          style={{ flex: 1, minWidth: 0, height: 26, padding: '0 6px', border: '1px solid var(--border-soft)', borderRadius: 5, background: 'var(--surface)', color: 'var(--ink)', fontSize: 12, outline: 'none' }}
+          className="split-select"
         >
           {chapters.map((c, i) => (
-            <option key={c.id} value={c.id}>{String(i + 1).padStart(2, '0')} · {c.title}</option>
+            <option key={c.id} value={c.id} disabled={c.id === otherId}>
+              {String(i + 1).padStart(2, '0')} · {c.title}{c.id === otherId ? ' (открыта в другой панели)' : ''}
+            </option>
           ))}
         </select>
         <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-3)', flexShrink: 0 }}>{chapter ? `${chapter.words.toLocaleString('ru-RU')} сл` : ''}</span>
-        {labels[saveState].text && (
-          <span style={{ font: '400 10.5px var(--font-mono)', color: labels[saveState].color, flexShrink: 0 }}>{labels[saveState].text}</span>
-        )}
       </div>
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto', display: 'flex', justifyContent: 'center', padding: '28px 24px 60px', background: 'var(--bg)' }}>
         {chapter && (
           <RichEditor
-            value={chapter.content}
+            value={content}
             onChange={onContentChange}
             contentKey={chapter.id}
+            contentReady={ready}
             placeholder="Печатайте…"
             attributesStyle={paneEditorStyle}
             className="sheet"
