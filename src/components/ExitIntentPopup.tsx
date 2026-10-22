@@ -2,12 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { supabase } from '../lib/supabase';
+import { ConsentCheckbox } from './ConsentCheckbox';
 
 const SESSION_KEY = 'as_exit_intent_shown';
 
 export function ExitIntentPopup() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
+  // 38-ФЗ «О рекламе» и 152-ФЗ: без явного согласия адрес не отправляется.
+  const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const inputRef = useRef<HTMLInputElement>(null);
   const shownRef = useRef(false);
@@ -42,7 +45,7 @@ export function ExitIntentPopup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const val = email.trim().toLowerCase();
-    if (!val) return;
+    if (!val || !consent) return;
     setStatus('loading');
     const { error } = await supabase.from('waitlist').insert({ email: val });
     if (error && error.code !== '23505') {
@@ -107,9 +110,16 @@ export function ExitIntentPopup() {
                   style={{ flex: 1, minWidth: 200, height: 44 }}
                   disabled={status === 'loading'}
                 />
-                <button type="submit" className="btn btn--primary" style={{ height: 44, padding: '0 20px', fontSize: 14 }} disabled={status === 'loading'}>
+                <button type="submit" className="btn btn--primary" style={{ height: 44, padding: '0 20px', fontSize: 14 }} disabled={status === 'loading' || !consent}>
                   {status === 'loading' ? '…' : 'Подписаться'}
                 </button>
+                <div style={{ flexBasis: '100%' }}>
+                  <ConsentCheckbox checked={consent} onChange={setConsent}>
+                    Согласен получать письма Авторской студии и на обработку email по{' '}
+                    <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>политике конфиденциальности</a>.
+                    Отписаться можно по ссылке в любом письме.
+                  </ConsentCheckbox>
+                </div>
               </form>
             )}
             {status === 'error' && (
