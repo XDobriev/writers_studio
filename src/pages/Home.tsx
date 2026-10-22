@@ -304,16 +304,16 @@ export default function Home() {
 
       {/* ─── Content ─── */}
       <main style={{ flex: 1, padding: isMobile ? '24px 16px' : '40px 48px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
           <div>
-            <h1 style={{ font: '600 36px var(--font-serif)', letterSpacing: '-0.012em' }}>Мои книги</h1>
+            <h1 style={{ font: '600 36px var(--font-serif)', letterSpacing: '-0.012em', whiteSpace: 'nowrap' }}>Мои книги</h1>
             <p style={{ font: '400 14px var(--font-ui)', color: 'var(--ink-3)', marginTop: 6 }}>
               {books == null ? '…' : `${books.length} ${plural(books.length, 'проект', 'проекта', 'проектов')} · ${totalWords.toLocaleString('ru')} ${plural(totalWords, 'слово', 'слова', 'слов')}`}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn" onClick={handleImportClick}>
-              <Icon name="book" size={14} /> Импорт рукописи
+            <button className="btn" onClick={handleImportClick} aria-label="Импорт рукописи">
+              <Icon name="book" size={14} /> {isMobile ? 'Импорт' : 'Импорт рукописи'}
             </button>
             <button className="btn btn--primary" onClick={handleNewBookClick}>
               <Icon name="plus" size={14} /> Новая книга
