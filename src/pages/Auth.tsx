@@ -4,9 +4,10 @@ import { usePostAuthRedirect } from '../lib/usePostAuthRedirect';
 import { usePageMeta } from '../lib/usePageMeta';
 import { LogoMark } from '../components/LogoMark';
 import { AuthForm } from '../components/AuthForm';
+import { PendingCheckoutPanel } from '../components/PendingCheckoutPanel';
 
 export default function Auth() {
-  const { redirectingToPay } = usePostAuthRedirect();
+  const { redirectingToPay, pendingCheckout, confirmCheckout, cancelCheckout } = usePostAuthRedirect();
   const { isMobile } = useResponsive();
   usePageMeta({
     title: 'Вход — Авторская студия',
@@ -53,7 +54,9 @@ export default function Auth() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '32px 24px' : 48 }}>
-        <AuthForm />
+        {pendingCheckout
+          ? <PendingCheckoutPanel plan={pendingCheckout.plan} error={pendingCheckout.error} onConfirm={confirmCheckout} onCancel={cancelCheckout} />
+          : <AuthForm />}
       </div>
     </div>
   );

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../lib/auth';
+import { startCheckout } from '../lib/checkout';
 import { getLifetimeSlotsRemaining } from '../lib/profiles';
 import { useFeatureFlag } from '../lib/useFeatureFlag';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
 import { BillingIntervalToggle } from './BillingIntervalToggle';
+import { RecurringConsent } from './RecurringConsent';
 import type { BillingInterval } from '../lib/pricing';
 import { LIFETIME_PRICE, formatRub, planKeyFor, proPrice } from '../lib/pricing';
 
@@ -23,7 +23,6 @@ interface Props {
 }
 
 export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }: Props) {
-  const { user } = useAuth();
   const overlayRef = useRef<HTMLDivElement>(null);
   const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,22 +36,8 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
     setIsLoading(true);
     setPurchaseError(null);
     try {
-      if (plan !== 'lifetime' && user) {
-        // user_id обязателен (NOT NULL, без дефолта/триггера) — без него insert
-        // молча падал и согласие на рекуррент не логировалось. Ошибку не блокируем
-        // оплатой, но фиксируем в консоли.
-        const { error: consentError } = await supabase.from('recurring_consents').insert({
-          user_id: user.id,
-          plan,
-          user_agent: navigator.userAgent,
-        });
-        if (consentError) console.error('[recurring_consents] insert failed', consentError);
-      }
-      const { data, error } = await supabase.functions.invoke('create-payment-url', {
-        body: { plan },
-      });
-      if (error || !data?.url) throw error ?? new Error('Не удалось получить ссылку на оплату');
-      window.location.href = data.url;
+      // Согласие на рекуррент записывает сервер (create-payment-url): IP, UA, версия текста.
+      window.location.href = await startCheckout(plan, plan !== 'lifetime' && recurringConsent);
     } catch (e) {
       setPurchaseError(e instanceof Error ? e.message : 'Ошибка оплаты');
       setIsLoading(false);
@@ -145,21 +130,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    className="as-checkbox"
-                    checked={recurringConsent}
-                    onChange={(e) => setRecurringConsent(e.target.checked)}
-                    style={{ margin: 0, flexShrink: 0 }}
-                  />
-                  <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.5 }}>
-                    Согласен на автоматические {isAnnual ? 'ежегодные' : 'ежемесячные'} списания согласно{' '}
-                    <a href="/offer" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
-                      условиям оферты
-                    </a>
-                  </span>
-                </label>
+                <RecurringConsent interval={billingInterval} checked={recurringConsent} onChange={setRecurringConsent} />
                 {!paymentsEnabled && (
                   <p style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', margin: '0 0 4px', textAlign: 'center' }}>
                     Оплата временно недоступна. Попробуйте позже.
