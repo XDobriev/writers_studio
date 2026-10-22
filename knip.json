@@ -1,5 +1,15 @@
 {
-  "ignoreBinaries": ["knip"],
-  "project": ["src/**/*.ts", "src/**/*.tsx"],
-  "ignore": ["src/lib/database.types.ts"]
+  "ignoreBinaries": [
+    "knip"
+  ],
+  "project": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "ignore": [
+    "src/lib/database.types.ts"
+  ],
+  "ignoreDependencies": [
+    "@floating-ui/dom"
+  ]
 }
