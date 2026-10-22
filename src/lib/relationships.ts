@@ -25,11 +25,13 @@ export function createRelationship(
   labelTheirs: string,
 ): Promise<CharacterRelationship> {
   const canonical = charIdA < charIdB;
+  // Пустая подпись партнёра в форме означает «взаимная» — иначе у партнёра связь без подписи.
+  const theirs = labelTheirs.trim() ? labelTheirs : labelMine;
   return relationshipsRepo.create(bookId, userId, {
     char_a_id: canonical ? charIdA : charIdB,
     char_b_id: canonical ? charIdB : charIdA,
-    label_a: canonical ? labelMine : labelTheirs,
-    label_b: canonical ? labelTheirs : labelMine,
+    label_a: canonical ? labelMine : theirs,
+    label_b: canonical ? theirs : labelMine,
   });
 }
 
