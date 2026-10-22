@@ -1,0 +1,3 @@
+# Скрипты для Linux (VPS, CI) — всегда LF, даже в рабочей копии Windows:
+# CRLF ломает bash на сервере («syntax error near unexpected token do»).
+*.sh text eol=lf
