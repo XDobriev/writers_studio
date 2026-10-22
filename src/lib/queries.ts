@@ -13,6 +13,7 @@ import { listTimelineEvents, type TimelineEvent } from './timeline';
 import { listConnections, type LocationConnection } from './connections';
 import { listStamps, type MapStamp } from './mapStamps';
 import { listVersions, type ChapterVersionMeta } from './versions';
+import { toLocalISODate } from './dates';
 import { listChapterCharacters, listChapterMembers, type ChapterCharacterRow, type ChapterMemberRow } from './crossrefs';
 import { listBookPovEntries, type PovEntry } from './pov';
 import { getBookPlan, type BookPlan } from './bookPlans';
@@ -124,7 +125,7 @@ const WRITING_HISTORY_DAYS = 366;
 function getSnapshotsFrom(): string {
   const d = new Date();
   d.setDate(d.getDate() - WRITING_HISTORY_DAYS);
-  return d.toISOString().slice(0, 10);
+  return toLocalISODate(d);
 }
 
 export function useWritingSnapshots(bookId: string | undefined) {

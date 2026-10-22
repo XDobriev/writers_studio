@@ -140,13 +140,25 @@ export async function deleteBook(id: string): Promise<void> {
 
 export type WritingSnapshot = Pick<Tables<'writing_snapshots'>, 'date' | 'words'>;
 
+// Плюс последний снапшот до окна: снапшоты разрежённые, без него база первой клетки = 0
+// и у книги старше окна весь объём падает в один день.
 export async function listWritingSnapshots(bookId: string, fromDate: string): Promise<WritingSnapshot[]> {
-  const { data, error } = await supabase
-    .from('writing_snapshots')
-    .select('date, words')
-    .eq('book_id', bookId)
-    .gte('date', fromDate)
-    .order('date', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as WritingSnapshot[];
+  const [inWindow, before] = await Promise.all([
+    supabase
+      .from('writing_snapshots')
+      .select('date, words')
+      .eq('book_id', bookId)
+      .gte('date', fromDate)
+      .order('date', { ascending: true }),
+    supabase
+      .from('writing_snapshots')
+      .select('date, words')
+      .eq('book_id', bookId)
+      .lt('date', fromDate)
+      .order('date', { ascending: false })
+      .limit(1),
+  ]);
+  if (inWindow.error) throw inWindow.error;
+  if (before.error) throw before.error;
+  return [...(before.data ?? []), ...(inWindow.data ?? [])] as WritingSnapshot[];
 }
