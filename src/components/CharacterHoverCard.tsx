@@ -52,6 +52,7 @@ export function CharacterHoverCard({ state, bookId, onMouseEnter, onMouseLeave }
 
   return createPortal(
     <div
+      className="ym-hide-content"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{

@@ -22,11 +22,21 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MotionConfig } from 'framer-motion';
 
+import { deployTarget, scrubBreadcrumb, scrubEvent } from './lib/sentryScrub';
+import { reloadOnceForChunkError } from './lib/chunkReload';
+import { initAnalyticsIfConsented } from './lib/analytics';
+
+const target = deployTarget();
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
-  environment: import.meta.env.MODE,
+  // production-vps / production-vercel: два зеркала одного релиза различаются в Sentry.
+  environment: import.meta.env.PROD ? `production-${target}` : import.meta.env.MODE,
   enabled: !!import.meta.env.VITE_SENTRY_DSN,
+  initialScope: { tags: { deploy_target: target } },
   tracesSampleRate: 0.2,
+  beforeSend: (event) => scrubEvent(event),
+  beforeSendTransaction: (event) => scrubEvent(event),
+  beforeBreadcrumb: (crumb) => scrubBreadcrumb(crumb),
   ignoreErrors: [
     // VK ID SDK делает внутренние запросы к id.vk.ru при инициализации виджета;
     // если VK недоступен (блокировщик, РФ-провайдер) — летит unhandled rejection.
@@ -34,6 +44,16 @@ Sentry.init({
     /Failed to fetch.*id\.vk\.ru/,
   ],
 });
+
+// Vite не смог подгрузить чанк/CSS динамического import() (обычно — вкладка открыта
+// до деплоя). Один релоад с той же защитой от петли, что в ErrorBoundary; если релоад
+// уже был — ошибка идёт дальше, до ErrorBoundary или обработчика вызывающего кода.
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadOnceForChunkError()) event.preventDefault();
+});
+
+initAnalyticsIfConsented();
+
 import App from './App';
 import './styles/design-system.css';
 import { applyTheme, getStoredTheme } from './lib/theme';

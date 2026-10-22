@@ -61,9 +61,16 @@ function PageFallback() {
   );
 }
 
+// Приватное содержимое (рукописи, персонажи, заметки, админка) не попадает в запись
+// Вебвизора: ym-hide-content скрывает текст, ym-disable-keys — нажатия клавиш.
+// display: contents — обёртка не влияет на раскладку. См. src/lib/analytics.ts.
+function AnalyticsPrivate({ children }: { children: ReactNode }) {
+  return <div className="ym-hide-content ym-disable-keys analytics-private">{children}</div>;
+}
+
 function Guard({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
-  return <AuthGuard><ErrorBoundary key={pathname}>{children}</ErrorBoundary></AuthGuard>;
+  return <AuthGuard><ErrorBoundary key={pathname}><AnalyticsPrivate>{children}</AnalyticsPrivate></ErrorBoundary></AuthGuard>;
 }
 
 // Не рендерим маршруты пока auth не определён (нет session из localStorage И getSession ещё не вернул ответ).
@@ -107,7 +114,7 @@ function AnimatedRoutes() {
         <Route path="/books/:id/notes" element={<PageMotion><Guard><Notes /></Guard></PageMotion>} />
         <Route path="/books/:id/export" element={<PageMotion><Guard><Export /></Guard></PageMotion>} />
 
-        <Route path="/share/:token" element={<PageMotion><ShareBook /></PageMotion>} />
+        <Route path="/share/:token" element={<PageMotion><AnalyticsPrivate><ShareBook /></AnalyticsPrivate></PageMotion>} />
         <Route path="/admin" element={<PageMotion><Guard><Admin /></Guard></PageMotion>} />
         <Route path="/admin/users/:userId" element={<PageMotion><Guard><AdminUserDetail /></Guard></PageMotion>} />
         <Route path="/privacy" element={<PageMotion><Privacy /></PageMotion>} />
