@@ -417,11 +417,11 @@ Light surfaces use a parchment-linen family (hue 55–70), with luminance invert
 Dark warm charcoal, not pure black. All ink values carry a warm brown tint (hue 60):
 
 - `--ink: oklch(0.18 0.022 60)` — primary text.
-- `--ink-2 … --ink-4`: step up in lightness toward `oklch(0.56 0.012 60)` (ghost/metadata).
+- `--ink-2 … --ink-4`: step up in lightness toward `oklch(0.465 0.012 60)` (ghost/metadata) — ≥4.5:1 on bg-deep/bg/surface/surface-2.
 
 ### Named Rules
 
-**The Accent Stability Rule.** `--accent` (Sienna Ink) and `--accent-2` (Lamplight Amber) do not change between themes. An active chapter number, a primary button, a focus ring — always the same color.
+**The Accent Stability Rule.** `--accent` (Sienna Ink) and `--accent-2` (Lamplight Amber) keep their **hue** between themes, not their lightness. In the light theme every coloured text token (`--accent`, `--accent-2`, `--ok`, `--warn`, `--danger`, `--info`) is redefined darker (L≈0.43–0.47) — the dark-theme values gave 1.2–3.3:1 on parchment. White text sits only on `--accent-deep` / `--danger-deep` fills (≥6:1). Contrast is verified with the OKLCH→WCAG script from the 2026-10-22 audit.
 
 **The Paper Stability Rule.** `--paper`, `--paper-ink`, `--paper-ink-2`, and all paper-rule/edge variables are theme-invariant. The manuscript surface looks identical in both modes — it is a light cream surface always, not a reactive surface.
 
