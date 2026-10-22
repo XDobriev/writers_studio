@@ -161,7 +161,9 @@ jobs:
           curl -fsS --retry 3 --retry-delay 5 -o /dev/null https://avtorstudio.com/
           curl -fsS --retry 3 --retry-delay 5 -o /dev/null "https://avtorstudio.com$MAIN_CHUNK"
           # Прод отдаёт именно эту сборку: index.html ссылается на только что залитый чанк.
-          if ! curl -fsS --retry 3 --retry-delay 5 https://avtorstudio.com/ | grep -qF "$MAIN_CHUNK"; then
+          # Сначала в файл: `curl | grep -q` под pipefail падает (grep закрывает поток раньше, curl: 23).
+          curl -fsS --retry 3 --retry-delay 5 -o /tmp/index.html https://avtorstudio.com/
+          if ! grep -qF "$MAIN_CHUNK" /tmp/index.html; then
             echo "ERROR: https://avtorstudio.com/ не ссылается на $MAIN_CHUNK"
             exit 1
           fi
