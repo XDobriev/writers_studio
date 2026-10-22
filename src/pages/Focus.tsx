@@ -113,14 +113,14 @@ export default function Focus() {
 
   return (
     <div className="as" style={{ height: '100dvh', background: 'oklch(0.10 0.012 50)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 18, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 8, background: 'oklch(from var(--bg-deep) l c h / 0.7)', backdropFilter: 'blur(8px)', border: '1px solid var(--border-soft)', borderRadius: 999, padding: '6px 12px' }}>
-        <span style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>{book.title} · {String(idx + 1).padStart(2, '0')} · {activeChapter.title}</span>
-        <span style={{ width: 1, height: 14, background: 'var(--border-soft)' }} />
-        <span style={{ font: '400 10.5px var(--font-mono)', color: 'var(--ink-3)' }}>{activeChapter.words.toLocaleString('ru-RU')} сл</span>
+      <div className="focus-pill">
+        <span className="focus-pill__where"><span className="focus-pill__book">{book.title} · </span>{String(idx + 1).padStart(2, '0')} · {activeChapter.title}</span>
+        <span className="focus-pill__sep" />
+        <span>{activeChapter.words.toLocaleString('ru-RU')} сл</span>
         {saveLabel[saveState].text && (
           <>
-            <span style={{ width: 1, height: 14, background: 'var(--border-soft)' }} />
-            <span style={{ font: '400 10.5px var(--font-mono)', color: saveLabel[saveState].color }}>{saveLabel[saveState].text}</span>
+            <span className="focus-pill__sep" />
+            <span style={{ color: saveLabel[saveState].color }}>{saveLabel[saveState].text}</span>
           </>
         )}
       </div>
