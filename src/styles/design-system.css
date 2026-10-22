@@ -1910,6 +1910,35 @@ select.input {
   .demo-banner-desc { display: none; }
 }
 
+/* Обёртка приватного контента для Вебвизора (App.tsx → AnalyticsPrivate): без своего бокса */
+.analytics-private { display: contents; }
+
+/* Cookie-баннер. Фон — из токена поверхности, чтобы в светлой теме не оставался
+   тёмным с тёмным текстом (раньше был захардкожен тёмный oklch). */
+.cookie-banner {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9990;
+  background: color-mix(in oklch, var(--surface) 94%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  padding: 10px 12px 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 560px;
+  width: calc(100% - 32px);
+  box-shadow: 0 4px 24px oklch(0 0 0 / 0.35);
+  font: 13px var(--font-ui);
+  color: var(--ink-2);
+}
+.cookie-banner__text { flex: 1; line-height: 1.5; }
+.cookie-banner__link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.cookie-banner__actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.cookie-banner__btn { font-size: 12.5px; height: 44px; padding: 0 14px; }
+
 /* Cookie-баннер: на узких экранах — текст сверху, кнопки ровным рядом под ним */
 @media (max-width: 560px) {
   .cookie-banner { flex-direction: column; align-items: stretch; }

@@ -8,6 +8,15 @@
  * Requires: npx playwright install chromium (run once locally or in CI)
  *
  * Routes rendered: /, /privacy, /terms, /offer, /changelog
+ *
+ * Env:
+ *   SKIP_PRERENDER=1   — пропустить пререндер целиком (CI-проверка сборки без Chromium).
+ *   PRERENDER_STRICT=1 — любой сбой (нет Chromium, упал маршрут) → exit 1. Ставится в
+ *                        деплое на VPS: без пререндера Яндексбот видит пустую страницу.
+ *                        Без флага (Vercel, локально) сбой пишется в лог и сборка идёт дальше.
+ *
+ * Счётчик Метрики при пререндере не исполняется: src/lib/analytics.ts не стартует под
+ * navigator.webdriver, а запросы к mc.yandex.ru здесь дополнительно блокируются.
  */
 
 import { chromium } from '@playwright/test';
@@ -15,6 +24,13 @@ import { preview } from 'vite';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+
+const STRICT = process.env.PRERENDER_STRICT === '1';
+
+if (process.env.SKIP_PRERENDER === '1') {
+  console.log('SKIP_PRERENDER=1 — пререндер пропущен.');
+  process.exit(0);
+}
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const DIST = join(ROOT, 'dist');
@@ -51,11 +67,22 @@ let browser;
 try {
   browser = await chromium.launch();
 } catch (err) {
-  console.warn('Playwright Chromium unavailable, skipping pre-render:', err.message);
   await server.close();
+  if (STRICT) {
+    console.error('Playwright Chromium unavailable (PRERENDER_STRICT=1):', err.message);
+    process.exit(1);
+  }
+  console.warn('Playwright Chromium unavailable, skipping pre-render:', err.message);
   process.exit(0);
 }
-const page = await browser.newPage();
+const context = await browser.newContext();
+// Баннер куки не должен попадать в предотрисованный HTML для краулеров.
+await context.addInitScript(() => {
+  try { localStorage.setItem('cookie_consent_v1', 'rejected'); } catch { /* noop */ }
+});
+await context.route(/^https:\/\/mc\.yandex\.(ru|com)\//, (route) => route.abort());
+const page = await context.newPage();
+let failed = 0;
 
 for (const { path, out } of ROUTES) {
   const url = base + path;
@@ -69,11 +96,15 @@ for (const { path, out } of ROUTES) {
     writeFileSync(outPath, html, 'utf8');
     console.log(`  ✓ ${path} → dist/${out}`);
   } catch (err) {
+    failed++;
     console.error(`  ✗ ${path}: ${err.message}`);
-    // Non-fatal: build proceeds even if one route fails
   }
 }
 
 await browser.close();
 await server.close();
+if (failed > 0 && STRICT) {
+  console.error(`Pre-render failed for ${failed} route(s) (PRERENDER_STRICT=1).`);
+  process.exit(1);
+}
 console.log('Pre-render complete.');

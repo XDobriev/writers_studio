@@ -1,68 +1,38 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getConsent, setConsent } from '../lib/analytics';
 
-const KEY = 'cookie_consent_v1';
-
+// «Принять» — включает Яндекс.Метрику (src/lib/analytics.ts); «Отклонить» — Метрика
+// не загружается. Куки входа (сессия Supabase) нужны для работы и от выбора не зависят.
 export function CookieBanner() {
-  const [decided, setDecided] = useState(() => !!localStorage.getItem(KEY));
+  const [decided, setDecided] = useState(() => getConsent() !== null);
 
   if (decided) return null;
 
   function accept() {
-    localStorage.setItem(KEY, 'accepted');
+    setConsent('accepted');
     setDecided(true);
   }
 
   function reject() {
-    localStorage.setItem(KEY, 'rejected');
+    setConsent('rejected');
     setDecided(true);
   }
 
   return (
-    <div
-      role="region"
-      aria-label="Уведомление об использовании куки"
-      className="cookie-banner"
-      style={{
-        position: 'fixed',
-        bottom: 16,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 9990,
-        background: 'oklch(0.18 0.014 50 / 0.92)',
-
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--r-3)',
-        padding: '10px 12px 10px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        maxWidth: 520,
-        width: 'calc(100% - 32px)',
-        boxShadow: '0 4px 24px oklch(0 0 0 / 0.5)',
-        font: '13px var(--font-ui)',
-        color: 'var(--ink-2)',
-      }}
-    >
-      <span style={{ flex: 1, lineHeight: 1.5 }}>
-        Мы используем куки для авторизации и аналитики.{' '}
-        <Link to="/privacy" style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+    <div role="region" aria-label="Согласие на аналитику" className="cookie-banner">
+      <span className="cookie-banner__text">
+        Для входа нужны технические куки. С вашего согласия подключим Яндекс.Метрику, чтобы
+        понимать, как пользуются сайтом; текст ваших книг она не видит.{' '}
+        <Link to="/privacy" className="cookie-banner__link">
           Политика&nbsp;конфиденциальности
         </Link>
       </span>
-      <div className="cookie-banner__actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        <button
-          onClick={reject}
-          className="btn btn--ghost"
-          style={{ fontSize: 12.5, height: 44, padding: '0 12px' }}
-        >
+      <div className="cookie-banner__actions">
+        <button onClick={reject} className="btn btn--ghost cookie-banner__btn">
           Отклонить
         </button>
-        <button
-          onClick={accept}
-          className="btn btn--primary"
-          style={{ fontSize: 12.5, height: 44, padding: '0 14px' }}
-        >
+        <button onClick={accept} className="btn btn--primary cookie-banner__btn">
           Принять
         </button>
       </div>

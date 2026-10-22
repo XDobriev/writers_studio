@@ -1,4 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import * as Sentry from '@sentry/react';
+import { isChunkError, reloadOnceForChunkError, resetChunkReloadGuard } from '../lib/chunkReload';
 
 interface Props {
   children: ReactNode;
@@ -9,14 +11,6 @@ interface State {
   error: Error | null;
 }
 
-function isChunkError(e: Error): boolean {
-  return (
-    e.name === 'ChunkLoadError' ||
-    /loading chunk/i.test(e.message) ||
-    /failed to fetch dynamically imported module/i.test(e.message)
-  );
-}
-
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
 
@@ -25,23 +19,22 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    const tag = isChunkError(error) ? '[ChunkLoadError]' : '[AppError]';
-    console.error(tag, error.message, '\n', error.stack, '\nComponent stack:', info.componentStack);
+    const chunk = isChunkError(error);
+    console.error(chunk ? '[ChunkLoadError]' : '[AppError]', error.message, '\n', error.stack, '\nComponent stack:', info.componentStack);
 
-    // Chunk не загрузился из-за сети — молча перезагружаем страницу.
-    // Временна́я метка предотвращает петлю: повторный авторелоад не ранее чем через 15 с.
-    if (isChunkError(error)) {
-      const key = 'chunk-reload-at';
-      const last = Number(sessionStorage.getItem(key) ?? 0);
-      if (Date.now() - last > 15_000) {
-        sessionStorage.setItem(key, String(Date.now()));
-        window.location.reload();
-      }
-    }
+    // React 18: ошибки, пойманные boundary, не доходят до window.onerror — без явного
+    // captureException Sentry их не видит. Chunk-ошибки лечатся релоадом — warning.
+    Sentry.captureException(error, {
+      level: chunk ? 'warning' : 'error',
+      contexts: { react: { componentStack: info.componentStack ?? '' } },
+    });
+
+    // Chunk не загрузился (деплой или сеть) — один раз перезагружаем страницу.
+    if (chunk) reloadOnceForChunkError();
   }
 
   reset = () => {
-    sessionStorage.removeItem('chunk-reload-at');
+    resetChunkReloadGuard();
     this.setState({ error: null });
   };
 

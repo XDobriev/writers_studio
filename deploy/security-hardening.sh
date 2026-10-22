@@ -1,6 +1,7 @@
 #!/bin/bash
 # Одноразовый скрипт усиления безопасности VPS для avtorstudio.com.
 # Запускать от root после vps-setup.sh:
+#   scp deploy/deploy-nginx-conf.sh root@72.56.232.231:/tmp/deploy-nginx-conf.sh
 #   ssh root@72.56.232.231 'bash -s' < deploy/security-hardening.sh
 
 set -e
@@ -12,30 +13,16 @@ NGINX_WRAPPER="/usr/local/sbin/deploy-nginx-conf.sh"
 
 echo "==> [1/5] Установка root-owned обёртки для копирования nginx.conf..."
 
-cat > "$NGINX_WRAPPER" << 'EOF'
-#!/bin/bash
-# Управляется автоматически — см. deploy/deploy-nginx-conf.sh в репозитории.
-# Копирует staged nginx.conf в sites-available только если источник — обычный файл
-# (не симлинк). Без этой проверки голый `sudo cp` был arbitrary-root-file-read:
-# deploy владеет /var/www/avtorstudio/nginx.conf и мог подменить его симлинком на
-# /etc/shadow — cp по умолчанию разыменовывает симлинки источника.
-set -euo pipefail
-
-SRC="/var/www/avtorstudio/nginx.conf"
-DST="/etc/nginx/sites-available/avtorstudio.com"
-
-if [ -L "$SRC" ]; then
-    echo "refuse: $SRC is a symlink" >&2
+# Обёртка не дублируется здесь heredoc-ом (копия расходилась с репо). Канонический
+# файл — deploy/deploy-nginx-conf.sh; перед запуском этого скрипта загрузить его:
+#   scp deploy/deploy-nginx-conf.sh root@72.56.232.231:/tmp/deploy-nginx-conf.sh
+WRAPPER_SRC="/tmp/deploy-nginx-conf.sh"
+if [ ! -f "$WRAPPER_SRC" ] || [ -L "$WRAPPER_SRC" ]; then
+    echo "ERROR: нет $WRAPPER_SRC — сначала scp deploy/deploy-nginx-conf.sh (см. комментарий выше)" >&2
     exit 1
 fi
-
-if [ ! -f "$SRC" ]; then
-    echo "refuse: $SRC is not a regular file" >&2
-    exit 1
-fi
-
-install -o root -g root -m 644 "$SRC" "$DST"
-EOF
+install -o root -g root -m 755 "$WRAPPER_SRC" "$NGINX_WRAPPER"
+rm -f "$WRAPPER_SRC"
 
 chown root:root "$NGINX_WRAPPER"
 chmod 755 "$NGINX_WRAPPER"

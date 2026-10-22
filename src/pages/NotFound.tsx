@@ -1,18 +1,21 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { usePageMeta } from '../lib/usePageMeta';
 
 export default function NotFound() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { session } = useAuth();
   const canGoBack = (window.history.state?.idx ?? 0) > 0;
   const homePath = session ? '/books' : '/';
 
-  useEffect(() => {
-    const prev = document.title;
-    document.title = 'Страница не найдена — Авторская студия';
-    return () => { document.title = prev; };
-  }, []);
+  // nginx отдаёт SPA-fallback с кодом 200 — без noindex мусорные URL попадали бы в индекс (soft-404).
+  usePageMeta({
+    title: 'Страница не найдена — Авторская студия',
+    description: 'Такой страницы нет.',
+    path: pathname,
+    noindex: true,
+  });
 
   return (
     <div
