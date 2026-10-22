@@ -17,6 +17,10 @@ const FEATURE_TEXT: Record<string, { title: string; body: string }> = {
     title: 'Экспорт недоступен',
     body: 'Экспорт в EPUB, FB2 и DOCX доступен на плане Pro.',
   },
+  import: {
+    title: 'Импорт FB2 и EPUB — в Pro',
+    body: 'Импорт из DOCX, TXT и Markdown доступен бесплатно. Перенос книг из FB2 и EPUB (Author.Today, Литнет, читалки) — на плане Pro.',
+  },
   books: {
     title: 'Лимит книг',
     body: 'Бесплатный план включает одну книгу. Перейдите на Pro, чтобы вести неограниченное количество проектов.',
