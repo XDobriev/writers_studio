@@ -1,4 +1,8 @@
 import { useCallback, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Skeleton } from '../components/Skeleton';
+import { ErrorBanner } from '../components/ErrorBanner';
+import { trapTab } from '../lib/useModalFocus';
+import { toUserMessage } from '../lib/errors';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../lib/useResponsive';
 import { useErrorState } from '../lib/useErrorState';
@@ -67,6 +71,7 @@ export default function Home() {
   const [editAuthor, setEditAuthor] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const { error: editError, setError: setEditError, clearError: clearEditError } = useErrorState();
+  const { error: createError, setError: setCreateError, clearError: clearCreateError } = useErrorState();
 
   const [createGenres, setCreateGenres] = useState<string[]>([]);
   const [createCover, setCreateCover] = useState(COVERS[0]);
@@ -115,6 +120,9 @@ export default function Home() {
     try {
       await deleteBookApi(editBook.id);
       queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => prev?.filter((b) => b.id !== editBook.id));
+      const deletedId = editBook.id;
+      queryClient.removeQueries({ predicate: (q) => q.queryKey[1] === deletedId });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.seriesList(user!.id) });
       setEditBook(null);
       setConfirmDeleteBook(false);
     } catch (e) {
@@ -143,6 +151,7 @@ export default function Home() {
     try {
       const data = await updateBook(editBook.id, { title: editTitle.trim(), genres: editGenres, goal: Math.max(0, editGoal), cover: editCover, author: editAuthor.trim() || null });
       queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => prev?.map((b) => b.id === editBook.id ? data : b));
+      queryClient.setQueryData<Book>(QUERY_KEYS.book(editBook.id), data);
       setEditBook(null);
     } catch (e) {
       setEditError(e instanceof Error ? e.message : 'Неизвестная ошибка');
@@ -199,11 +208,14 @@ export default function Home() {
     if (!title) return;
     creatingRef.current = true;
     setCreating(true);
+    clearCreateError();
+    let data: Book | null = null;
     try {
-      const data = await createBook({ user_id: user.id, title, genre: null, genres: createGenres, goal, words: 0, cover: createCover });
+      data = await createBook({ user_id: user.id, title, genre: null, genres: createGenres, goal, words: 0, cover: createCover });
       const isFirstBook = (books?.length ?? 0) === 0;
       if (isFirstBook) {
         await createChapter(data.id, user.id, { title: 'Глава 1', position: 0 });
+        queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => [data!, ...(prev ?? [])]);
         navigate(`/books/${data.id}/editor`);
         return;
       }
@@ -214,7 +226,7 @@ export default function Home() {
         await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.books(user.id) });
         await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.seriesList(user.id) });
       } else {
-        queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => [data, ...(prev ?? [])]);
+        queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => [data!, ...(prev ?? [])]);
       }
       setShowCreate(false);
       setCreateCover(COVERS[0]);
@@ -227,7 +239,10 @@ export default function Home() {
         setShowUpgrade(true);
         return;
       }
-      setErr(e instanceof Error ? e.message : 'Неизвестная ошибка');
+      // Книга создана, а следующий шаг упал — удаляем её: иначе повторное «Создать»
+      // заведёт вторую книгу, а первая останется пустым «призраком».
+      if (data) await deleteBookApi(data.id).catch(() => undefined);
+      setCreateError(e);
     } finally {
       creatingRef.current = false;
       setCreating(false);
@@ -318,13 +333,11 @@ export default function Home() {
           />
         )}
 
-        {(err ?? (booksError as Error | null)?.message) && (
-          <div className="error-banner" style={{ marginBottom: 16 }}>
-            {err ?? (booksError as Error).message}
-          </div>
+        {(err ?? booksError) && (
+          <ErrorBanner message={err ?? toUserMessage(booksError)} style={{ marginBottom: 16 }} />
         )}
 
-        {books == null && <div style={{ color: 'var(--ink-3)' }}>Загрузка…</div>}
+        {books == null && !booksError && <Skeleton lines={3} height={64} gap={14} />}
 
         {/* ─── Empty state ─── */}
         {books && books.length === 0 && (
@@ -400,14 +413,8 @@ export default function Home() {
             style={{ width: 460, maxWidth: 'calc(100vw - 32px)' }}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') { setEditBook(null); return; }
-              if (e.key === 'Tab') {
-                const focusable = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
-                const arr = Array.from(focusable);
-                if (!arr.length) return;
-                const first = arr[0], last = arr[arr.length - 1];
-                if (e.shiftKey ? document.activeElement === first : document.activeElement === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
-              }
+              if (e.key === 'Escape') { if (!editSaving) setEditBook(null); return; }
+              trapTab(e);
             }}
           >
             <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
@@ -419,7 +426,7 @@ export default function Home() {
                   className="input"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') saveEditBook(); if (e.key === 'Escape') setEditBook(null); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveEditBook(); if (e.key === 'Escape' && !editSaving) setEditBook(null); }}
                   autoFocus
                   maxLength={120}
                 />
@@ -432,7 +439,7 @@ export default function Home() {
                   className="input"
                   value={editAuthor}
                   onChange={(e) => setEditAuthor(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Escape') setEditBook(null); }}
+                  onKeyDown={(e) => { if (e.key === 'Escape' && !editSaving) setEditBook(null); }}
                   placeholder="Из профиля"
                   maxLength={120}
                 />
@@ -448,7 +455,7 @@ export default function Home() {
                   value={editGoal || ''}
                   placeholder="необязательно"
                   onChange={(e) => setEditGoal(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
-                  onKeyDown={(e) => { if (e.key === 'Escape') setEditBook(null); }}
+                  onKeyDown={(e) => { if (e.key === 'Escape' && !editSaving) setEditBook(null); }}
                 />
                 <div className="input-hint">
                   Рассказ 1–10 тыс. · Новелла 10–20 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпос / сага 120–300 тыс. слов
@@ -521,14 +528,8 @@ export default function Home() {
             style={{ width: 460, maxWidth: 'calc(100vw - 32px)' }}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') { setShowCreate(false); return; }
-              if (e.key === 'Tab') {
-                const focusable = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
-                const arr = Array.from(focusable);
-                if (!arr.length) return;
-                const first = arr[0], last = arr[arr.length - 1];
-                if (e.shiftKey ? document.activeElement === first : document.activeElement === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
-              }
+              if (e.key === 'Escape') { if (!creating) setShowCreate(false); return; }
+              trapTab(e);
             }}
           >
             <h2 style={{ font: '600 22px var(--font-serif)', marginBottom: 16 }}>Новая книга</h2>
@@ -549,7 +550,7 @@ export default function Home() {
                 value={createCover}
                 onChange={setCreateCover}
                 uploading={createUploading}
-                onFileSelect={(f) => uploadCover(f, setCreateCover, setCreateUploading, setErr)}
+                onFileSelect={(f) => uploadCover(f, setCreateCover, setCreateUploading, setCreateError)}
               />
               <SeriesTransferPicker
                 books={books ?? []}
@@ -558,6 +559,7 @@ export default function Home() {
                 disabled={creating}
               />
             </div>
+            {createError && <ErrorBanner message={createError} onDismiss={clearCreateError} size="sm" style={{ marginTop: 16 }} />}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 22 }}>
               <button type="button" className="btn btn--ghost" onClick={() => setShowCreate(false)} disabled={creating}>Отмена</button>
               <button type="submit" className="btn btn--primary" disabled={creating} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
