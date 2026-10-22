@@ -3,6 +3,7 @@ import { useResponsive } from '../lib/useResponsive';
 import { TYPE_GLYPHS, TYPE_LABELS, type Location, type LocationPatch, type LocationType } from '../lib/locations';
 import { CONNECTION_STYLES, type LocationConnection, type ConnectionPatch } from '../lib/connections';
 import { getMapTemplate, type MapTemplateId } from '../lib/mapTemplates';
+import { connectionGeometry, pinLabel, PIN_LABEL_MAX } from '../lib/mapGeometry';
 import type { MapMode } from '../pages/Map';
 import { MapStampsLayer } from './MapStampsLayer';
 import { StampPopup } from './StampPopup';
@@ -13,13 +14,6 @@ const CH = 900;
 const SCALE_MIN = 0.15;
 const SCALE_MAX = 5;
 const DRAG_THRESHOLD = 5;
-
-// Знак изгиба реки — стабилен по id связи, не зависит от порядка клика при создании.
-function riverBowSign(id: string): 1 | -1 {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  return (h & 1) ? 1 : -1;
-}
 
 interface WorldMapProps {
   locations: Location[];
@@ -582,13 +576,7 @@ export function WorldMap({
             const x2 = to.x   * CW, y2 = to.y   * CH;
             const cs = CONNECTION_STYLES[conn.style];
             const isSel = selectedConnId === conn.id;
-            // Реки — не прямая труба, а лёгкий изгиб через квадратичную Безье.
-            const dx = x2 - x1, dy = y2 - y1;
-            const dist = Math.hypot(dx, dy) || 1;
-            const bow = conn.style === 'river' ? Math.min(dist * 0.22, 60) * riverBowSign(conn.id) : 0;
-            const mx = (x1 + x2) / 2 - (dy / dist) * bow;
-            const my = (y1 + y2) / 2 + (dx / dist) * bow;
-            const pathD = bow ? `M${x1},${y1} Q${mx},${my} ${x2},${y2}` : `M${x1},${y1} L${x2},${y2}`;
+            const pathD = connectionGeometry(conn, x1, y1, x2, y2).d;
             return (
               <g key={conn.id} data-conn-id={conn.id} style={{ cursor: 'pointer' }}>
                 <path d={pathD} fill="none"
@@ -617,7 +605,7 @@ export function WorldMap({
             const effectivePinSize = isSelected ? editPinSize : (loc.size ?? 1);
             return (
               <g key={loc.id} data-loc-id={loc.id} transform={`translate(${lx},${ly}) scale(${effectivePinSize})`} style={{ cursor: 'pointer' }}>
-                {loc.name.length > 16 && <title>{loc.name}</title>}
+                {loc.name.length > PIN_LABEL_MAX && <title>{loc.name}</title>}
                 {(isSelected || isConnFrom) && <circle r={22} fill="var(--accent)" opacity={0.12} />}
                 <circle
                   r={14}
@@ -629,7 +617,7 @@ export function WorldMap({
                   {TYPE_GLYPHS[loc.type]}
                 </text>
                 <text y={26} textAnchor="middle" fontSize={9} fill="var(--ink-2)" fontFamily="var(--font-ui)" style={{ userSelect: 'none' }}>
-                  {loc.name.length > 16 ? loc.name.slice(0, 15) + '…' : loc.name}
+                  {pinLabel(loc.name)}
                 </text>
               </g>
             );
