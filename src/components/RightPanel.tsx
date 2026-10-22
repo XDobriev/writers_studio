@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
 import { ConfirmDialog } from './ConfirmDialog';
-import { createNote, updateNote, type Note, type NoteKind } from '../lib/notes';
+import type { Note, NoteKind } from '../lib/notes';
 import { useNoteMutations } from '../lib/useNoteMutations';
-import { useNotes, useChapterMembers, QUERY_KEYS } from '../lib/queries';
+import { useNotes, useChapterMembers } from '../lib/queries';
 import { getCharacterColor } from '../lib/pov';
 import { onTablistKeyDown } from '../lib/tablistKeys';
 
@@ -43,10 +42,9 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
     idea: 'var(--note-idea-soft)', question: 'var(--note-question-soft)',
     todo: 'var(--note-todo-soft)', important: 'var(--note-important-soft)',
   };
-  const queryClient = useQueryClient();
   const { error: noteError, setError: setNoteError, clearError: clearNoteError } = useErrorState();
   const { data: allNotes = [] } = useNotes(bookId);
-  const { onDelete: handleDelete } = useNoteMutations({ bookId, setError: setNoteError });
+  const { onAdd, onUpdate, onDelete: handleDelete, isSaving: saving } = useNoteMutations({ bookId, setError: setNoteError });
   const { data: chapterMembers = [] } = useChapterMembers(chapterId);
   const notes = chapterId ? allNotes.filter(n => n.chapter_id === chapterId) : allNotes;
   const [activeTab, setActiveTab] = useState<'notes' | 'versions'>('notes');
@@ -54,8 +52,6 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   const [formKind, setFormKind] = useState<NoteKind>('idea');
   const [formText, setFormText] = useState('');
   const [formCustomLabel, setFormCustomLabel] = useState('');
-  const [saving, setSaving] = useState(false);
-  const savingRef = useRef(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<NoteKind>('idea');
   const [editText, setEditText] = useState('');
@@ -70,30 +66,16 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
     setShowForm(true);
   }, [showNoteForm]);
 
-  const invalidate = () => {
-    if (bookId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notes(bookId) });
-  };
-
   const handleAdd = async () => {
-    if (!bookId || !formText.trim() || savingRef.current) return;
-    savingRef.current = true;
-    setSaving(true);
-    try {
-      await createNote(bookId, formKind, formText.trim(),
-        formKind === 'custom' ? formCustomLabel || undefined : undefined,
-        undefined, chapterId);
-      invalidate();
-      setFormText('');
-      setFormCustomLabel('');
-      setFormKind('idea');
-      setShowForm(false);
-      onNoteFormClose?.();
-    } catch (e) {
-      setNoteError(e instanceof Error ? e.message : 'Не удалось сохранить заметку');
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
-    }
+    const note = await onAdd(formKind, formText,
+      formKind === 'custom' ? formCustomLabel || undefined : undefined,
+      undefined, chapterId);
+    if (!note) return;
+    setFormText('');
+    setFormCustomLabel('');
+    setFormKind('idea');
+    setShowForm(false);
+    onNoteFormClose?.();
   };
 
   const requestDelete = (note: Note) => {
@@ -108,20 +90,10 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   };
 
   const handleUpdate = async () => {
-    if (!editingId || !editText.trim() || savingRef.current) return;
-    savingRef.current = true;
-    setSaving(true);
-    try {
-      await updateNote(editingId, editKind, editText.trim(),
-        editKind === 'custom' ? editCustomLabel || undefined : undefined);
-      invalidate();
-      setEditingId(null);
-    } catch (e) {
-      setNoteError(e instanceof Error ? e.message : 'Не удалось обновить заметку');
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
-    }
+    if (!editingId) return;
+    const updated = await onUpdate(editingId, editKind, editText,
+      editKind === 'custom' ? editCustomLabel || undefined : undefined);
+    if (updated) setEditingId(null);
   };
 
   return (
