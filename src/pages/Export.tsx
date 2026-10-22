@@ -4,19 +4,33 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useErrorState } from '../lib/useErrorState';
 import { useAuth } from '../lib/auth';
 import { getPlanLimits, markFirstExport } from '../lib/profiles';
-import { useProfile, QUERY_KEYS } from '../lib/queries';
+import {
+  useBook,
+  useBookContentCounts,
+  useChapters,
+  useConnections,
+  useLocations,
+  useNotes,
+  useProfile,
+  useSeries,
+  useStamps,
+  QUERY_KEYS,
+} from '../lib/queries';
 import { UpgradePrompt } from '../components/UpgradePrompt';
+import { ErrorBanner } from '../components/ErrorBanner';
+import { ToggleRow } from '../components/ToggleRow';
 import { Icon } from '../components/Icon';
 import { isImageUrl } from '../components/CoverPicker';
-import { getBook, updateBook } from '../lib/books';
-import { listChapters, listChaptersMeta, type ChapterMeta } from '../lib/chapters';
-import { fetchNotes, type Note } from '../lib/notes';
-import { listLocations, type Location } from '../lib/locations';
-import { listConnections, type LocationConnection } from '../lib/connections';
+import { updateBook } from '../lib/books';
+import { listChapters } from '../lib/chapters';
+import { listAllCharacters } from '../lib/characters';
 import { generateMapPngBuffer } from '../lib/mapExport';
 import { plural } from '../lib/i18n';
+import { todayLocalISODate } from '../lib/dates';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 import { type Book } from '../lib/supabase';
 import {
+  type Appendix,
   type Format,
   type ParagraphStyle,
   type BuildOpts,
@@ -25,6 +39,8 @@ import {
   FORMAT_MAIN,
   FORMAT_TEXT,
   FORMAT_EXT,
+  PRO_FORMATS,
+  LAYOUT_FORMATS,
   slugify,
   triggerDownload,
   downloadText,
@@ -32,6 +48,10 @@ import {
   buildHtmlDoc,
   buildMarkdownDoc,
   buildTextDoc,
+  buildCharactersAppendix,
+  buildLocationsAppendix,
+  fetchCoverData,
+  toEbookCover,
   estimateSize,
 } from '../lib/export';
 import { type PdfPageSize } from '../lib/exportPdf';
@@ -46,15 +66,21 @@ export default function Export() {
   const limits = getPlanLimits(profile?.plan);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [chapters, setChapters] = useState<ChapterMeta[] | null>(null);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [mapLocations, setMapLocations] = useState<Location[]>([]);
-  const [mapConnections, setMapConnections] = useState<LocationConnection[]>([]);
+  const { data: book, error: bookError } = useBook(bookId);
+  const { data: chapters, error: chaptersError } = useChapters(bookId);
+  const { data: notes = [] } = useNotes(bookId);
+  const { data: mapLocations = [] } = useLocations(bookId);
+  const { data: mapConnections = [] } = useConnections(bookId);
+  const { data: mapStamps = [] } = useStamps(bookId);
+  const { data: counts } = useBookContentCounts(bookId);
+  const { data: seriesList } = useSeries(user?.id);
+  const loadError = (bookError ?? chaptersError) as Error | null;
+
   const [includeMap, setIncludeMap] = useState(false);
   const { error, setError, clearError } = useErrorState();
   const [authorName, setAuthorName] = useState('');
-  const authorInitialized = useRef(false);
+  // Значение, которым поле предзаполнено: в книгу пишем, только если автор его поменял.
+  const authorInitial = useRef<string | null>(null);
 
   const [format, setFormat] = useState<Format>('epub');
   const formatDefaulted = useRef(false);
@@ -62,6 +88,8 @@ export default function Export() {
   const [includeChapterTitles, setIncludeChapterTitles] = useState(true);
   const [includeTitlePage, setIncludeTitlePage] = useState(true);
   const [includeNotes, setIncludeNotes] = useState(false);
+  const [includeCharacters, setIncludeCharacters] = useState(false);
+  const [includeLocations, setIncludeLocations] = useState(false);
   const [language, setLanguage] = useState('ru-RU');
   const [langOpen, setLangOpen] = useState(false);
   const [langPos, setLangPos] = useState({ top: 0, left: 0, width: 0 });
@@ -73,30 +101,8 @@ export default function Export() {
   const [busy, setBusy] = useState(false);
   const [pdfPageSize, setPdfPageSize] = useState<PdfPageSize>('a5');
 
-  useEffect(() => {
-    if (!bookId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [book, list, notesList, locs, conns] = await Promise.all([
-          getBook(bookId),
-          listChaptersMeta(bookId),
-          fetchNotes(bookId),
-          listLocations(bookId),
-          listConnections(bookId),
-        ]);
-        if (cancelled) return;
-        setBook(book);
-        setChapters(list);
-        setNotes(notesList);
-        setMapLocations(locs);
-        setMapConnections(conns);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [bookId, setError]);
+  const closeLang = useCallback(() => setLangOpen(false), []);
+  useEscapeToClose(langOpen, closeLang);
 
   useEffect(() => {
     if (formatDefaulted.current || profile === undefined) return;
@@ -105,11 +111,12 @@ export default function Export() {
   }, [profile, limits.canExportRich]);
 
   useEffect(() => {
-    if (!book || authorInitialized.current) return;
+    if (!book || authorInitial.current !== null) return;
     const meta = user?.user_metadata ?? {};
     const profileName = (meta.full_name ?? meta.name ?? meta.first_name ?? '') as string;
-    setAuthorName(book.author || profileName);
-    authorInitialized.current = true;
+    const initial = book.author || profileName;
+    authorInitial.current = initial;
+    setAuthorName(initial);
   }, [book, user]);
 
   const close = useCallback(() => {
@@ -126,12 +133,24 @@ export default function Export() {
 
   const filename = useMemo(() => {
     if (!book) return '';
-    return `${slugify(book.title)}-${new Date().toISOString().slice(0, 10)}.${FORMAT_EXT[format]}`;
+    return `${slugify(book.title)}-${todayLocalISODate()}.${FORMAT_EXT[format]}`;
   }, [book, format]);
+
+  const series = useMemo(() => {
+    if (!book?.series_id) return undefined;
+    const s = seriesList?.find((x) => x.id === book.series_id);
+    return s ? { name: s.title, number: book.series_order } : undefined;
+  }, [book, seriesList]);
+
+  const hasMapContent = !!(book?.map_bg_url || mapLocations.some((l) => l.x != null));
+  const characterCount = counts?.characters ?? 0;
+  const locationCount = mapLocations.length;
+  const chapterNotesCount = notes.filter((n) => n.chapter_id).length;
+  const bookNotesCount = notes.length - chapterNotesCount;
 
   const onDownload = useCallback(async () => {
     if (!book || !bookId) return;
-    if (!limits.canExportRich && (['epub', 'fb2', 'docx', 'pdf'] as Format[]).includes(format)) {
+    if (!limits.canExportRich && PRO_FORMATS.includes(format)) {
       setShowUpgrade(true);
       return;
     }
@@ -147,39 +166,44 @@ export default function Export() {
     }
     setBusy(true);
     clearError();
-    const bookWithAuthor = { ...book, author: authorName.trim() || book.author };
+    const trimmedAuthor = authorName.trim();
+    const bookWithAuthor: Book = { ...book, author: trimmedAuthor || book.author };
     const selectedIds = new Set(selectedChapters.map((c) => c.id));
-    let chaptersWithContent;
     try {
-      const full = await listChapters(bookId);
-      chaptersWithContent = full
+      const [full, characters] = await Promise.all([
+        listChapters(bookId),
+        includeCharacters && characterCount > 0 ? listAllCharacters(bookId) : Promise.resolve([]),
+      ]);
+      const chaptersWithContent = full
         .filter((c) => selectedIds.has(c.id))
         .sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-      setBusy(false);
-      return;
-    }
-    let coverData: CoverData | undefined;
-    if (bookWithAuthor.cover && isImageUrl(bookWithAuthor.cover)) {
-      try {
-        const resp = await fetch(bookWithAuthor.cover);
-        if (resp.ok) {
-          const mime = resp.headers.get('content-type') ?? 'image/jpeg';
-          const ext = mime.split('/')[1]?.split(';')[0] ?? 'jpg';
-          coverData = { data: await resp.arrayBuffer(), mime, ext };
-        }
-      } catch { /* no cover */ }
-    }
-    let mapImageData: ArrayBuffer | undefined;
-    const hasMapContent = book.map_bg_url || mapLocations.some(l => l.x != null);
-    if (includeMap && hasMapContent && (['epub', 'fb2', 'docx', 'html'] as Format[]).includes(format)) {
-      try {
-        mapImageData = await generateMapPngBuffer(book, mapLocations, mapConnections);
-      } catch { /* skip map on error */ }
-    }
-    const opts: BuildOpts = { includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle, cover: coverData, mapImage: mapImageData };
-    try {
+
+      const appendices: Appendix[] = [];
+      if (includeCharacters) {
+        const a = buildCharactersAppendix(characters);
+        if (a) appendices.push(a);
+      }
+      if (includeLocations) {
+        const a = buildLocationsAppendix(mapLocations);
+        if (a) appendices.push(a);
+      }
+
+      let coverData: CoverData | undefined;
+      if (bookWithAuthor.cover && isImageUrl(bookWithAuthor.cover) && format !== 'html' && format !== 'pdf') {
+        const raw = await fetchCoverData(bookWithAuthor.cover);
+        coverData = format === 'epub' || format === 'fb2' ? await toEbookCover(raw) : raw;
+      }
+      let mapImageData: ArrayBuffer | undefined;
+      if (includeMap && hasMapContent && LAYOUT_FORMATS.includes(format)) {
+        try {
+          mapImageData = await generateMapPngBuffer(book, mapLocations, mapConnections, mapStamps);
+        } catch { /* skip map on error */ }
+      }
+      const opts: BuildOpts = {
+        includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle,
+        cover: coverData, mapImage: mapImageData, appendices, series,
+      };
+
       if (format === 'docx') {
         const { buildDocxBlob } = await import('../lib/exportDocx');
         triggerDownload(await buildDocxBlob(bookWithAuthor, chaptersWithContent, opts), filename);
@@ -192,40 +216,57 @@ export default function Export() {
         downloadText(buildHtmlDoc(bookWithAuthor, chaptersWithContent, opts), 'text/html', filename);
       } else if (format === 'md') {
         downloadText(buildMarkdownDoc(bookWithAuthor, chaptersWithContent, opts), 'text/markdown', filename);
-      } else if (format === 'pdf') {
+      } else if (format === 'pdf' && pdfWindow) {
         const { openPrintPdf } = await import('../lib/exportPdf');
-        openPrintPdf(pdfWindow!, bookWithAuthor, chaptersWithContent, {
+        openPrintPdf(pdfWindow, bookWithAuthor, chaptersWithContent, {
           pageSize: pdfPageSize,
           includeChapterTitles,
           includeTitlePage,
-          authorName: authorName.trim(),
+          authorName: trimmedAuthor,
+          language,
+          includeNotes,
+          notes,
+          appendices,
         });
       } else {
         downloadText(buildTextDoc(bookWithAuthor, chaptersWithContent, opts), 'text/plain', filename);
       }
-      // Шаг онбординга «попробовать экспорт» — только после успешной выгрузки.
-      if (user && !profile?.first_export_at) {
-        await markFirstExport(user.id);
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.profile(user.id) });
-      }
-      try {
-        await updateBook(bookId, { author: authorName.trim() || null });
-      } catch { /* silent */ }
     } catch (e) {
+      pdfWindow?.close();
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-    } finally {
       setBusy(false);
+      return;
     }
+    // Файл уже выгружен — сбои ниже не должны выглядеть как «ошибка экспорта».
+    if (user && !profile?.first_export_at) {
+      try {
+        await markFirstExport(user.id);
+        void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.profile(user.id) });
+      } catch { /* silent: шаг онбординга, не экспорт */ }
+    }
+    const nextAuthor = trimmedAuthor || null;
+    if (trimmedAuthor !== (authorInitial.current ?? '').trim() && nextAuthor !== (book.author ?? null)) {
+      try {
+        const updated = await updateBook(bookId, { author: nextAuthor });
+        authorInitial.current = trimmedAuthor;
+        queryClient.setQueryData<Book>(QUERY_KEYS.book(bookId), updated);
+        if (user) {
+          queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => prev?.map((b) => (b.id === bookId ? updated : b)));
+        }
+      } catch { /* silent */ }
+    }
+    setBusy(false);
   }, [book, bookId, authorName, selectedChapters, format, limits, includeChapterTitles, includeTitlePage,
-      includeNotes, notes, language, paragraphStyle, filename, includeMap, mapLocations, mapConnections,
+      includeNotes, notes, language, paragraphStyle, filename, includeMap, hasMapContent, mapLocations, mapConnections,
+      mapStamps, includeCharacters, includeLocations, characterCount, series,
       pdfPageSize, setError, clearError, user, profile?.first_export_at, queryClient]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
-  if (error && !book) {
+  if (loadError && !book) {
     return (
       <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', padding: 32 }}>
-        <div style={{ color: 'var(--danger)', marginBottom: 16 }}>Ошибка: {error}</div>
+        <ErrorBanner message={`Ошибка: ${loadError.message}`} style={{ marginBottom: 16 }} />
         <button className="btn" onClick={close}>← К дэшборду</button>
       </div>
     );
@@ -378,43 +419,52 @@ export default function Export() {
             <ToggleRow
               label={`Все ${chapters.length} ${plural(chapters.length, 'глава', 'главы', 'глав')} (готовых: ${doneCnt} из ${chapters.length})`}
               hint={doneOnly ? `— только готовые (${doneCnt})` : undefined}
-              on={!doneOnly}
+              isOn={!doneOnly}
               onChange={(v) => setDoneOnly(!v)}
             />
             <ToggleRow
               label="Титульная страница и оглавление"
-              on={includeTitlePage}
+              isOn={includeTitlePage}
               onChange={setIncludeTitlePage}
             />
             <ToggleRow
               label="Заголовки глав внутри документа"
-              on={includeChapterTitles}
+              isOn={includeChapterTitles}
               onChange={setIncludeChapterTitles}
             />
+            <ToggleRow
+              label="Примечания автора в конце глав"
+              hint={notes.length
+                ? `— ${chapterNotesCount} к главам${bookNotesCount ? `, ${bookNotesCount} общих — отдельным разделом` : ''}`
+                : '— нет заметок'}
+              isOn={includeNotes && notes.length > 0}
+              onChange={(v) => notes.length > 0 && setIncludeNotes(v)}
+              isDisabled={notes.length === 0}
+            />
+            <ToggleRow
+              label="Действующие лица в конце книги"
+              hint={characterCount ? `— ${characterCount} ${plural(characterCount, 'персонаж', 'персонажа', 'персонажей')}` : '— нет персонажей'}
+              isOn={includeCharacters && characterCount > 0}
+              onChange={(v) => characterCount > 0 && setIncludeCharacters(v)}
+              isDisabled={characterCount === 0}
+            />
+            <ToggleRow
+              label="Локации в конце книги"
+              hint={locationCount ? `— ${locationCount} ${plural(locationCount, 'локация', 'локации', 'локаций')}` : '— нет локаций'}
+              isOn={includeLocations && locationCount > 0}
+              onChange={(v) => locationCount > 0 && setIncludeLocations(v)}
+              isDisabled={locationCount === 0}
+              isLast={format === 'pdf'}
+            />
             {format !== 'pdf' && (
-              <>
-                <ToggleRow
-                  label="Заметки на полях как примечания автора"
-                  hint={notes.length ? `— ${notes.length} ${plural(notes.length, 'заметка', 'заметки', 'заметок')}` : '— нет заметок'}
-                  on={includeNotes && notes.length > 0}
-                  onChange={(v) => notes.length > 0 && setIncludeNotes(v)}
-                  disabled={notes.length === 0}
-                />
-                {(() => {
-                  const hasMapContent = !!(book?.map_bg_url || mapLocations.some(l => l.x != null));
-                  const supportsMap = (['epub', 'fb2', 'docx', 'html'] as Format[]).includes(format);
-                  return (
-                    <ToggleRow
-                      label="Карта мира отдельной страницей"
-                      hint={!supportsMap ? '— недоступно для текстовых форматов' : !hasMapContent ? '— карта не заполнена' : undefined}
-                      on={includeMap && hasMapContent && supportsMap}
-                      onChange={(v) => hasMapContent && supportsMap && setIncludeMap(v)}
-                      disabled={!hasMapContent || !supportsMap}
-                      last
-                    />
-                  );
-                })()}
-              </>
+              <ToggleRow
+                label="Карта мира отдельной страницей"
+                hint={!LAYOUT_FORMATS.includes(format) ? '— недоступно для текстовых форматов' : !hasMapContent ? '— карта не заполнена' : undefined}
+                isOn={includeMap && hasMapContent && LAYOUT_FORMATS.includes(format)}
+                onChange={(v) => hasMapContent && LAYOUT_FORMATS.includes(format) && setIncludeMap(v)}
+                isDisabled={!hasMapContent || !LAYOUT_FORMATS.includes(format)}
+                isLast
+              />
             )}
           </div>
 
@@ -465,7 +515,7 @@ export default function Export() {
           )}
 
           {/* Paragraph style — rich formats only */}
-          {(['epub', 'fb2', 'docx', 'html'] as Format[]).includes(format) && (
+          {LAYOUT_FORMATS.includes(format) && (
             <div style={{ paddingTop: 16, marginBottom: 4 }}>
               <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Абзацы</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -501,7 +551,7 @@ export default function Export() {
             </div>
           )}
 
-          {error && <div style={{ color: 'var(--danger)', fontSize: 12.5, marginBottom: 8 }}>{error}</div>}
+          {error && <ErrorBanner message={error} onDismiss={clearError} size="sm" style={{ marginBottom: 8 }} />}
         </div>
 
         {/* Footer */}
@@ -551,23 +601,5 @@ export default function Export() {
         </div>
       )}
     </div>
-  );
-}
-
-function ToggleRow({ label, hint, on, onChange, disabled, last }: {
-  label: string; hint?: string; on: boolean; onChange: (v: boolean) => void; disabled?: boolean; last?: boolean;
-}) {
-  return (
-    <label style={{
-      display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0',
-      borderBottom: last ? 'none' : '1px solid var(--border-soft)',
-      fontSize: 13, color: disabled ? 'var(--ink-4)' : 'var(--ink-2)', cursor: disabled ? 'default' : 'pointer',
-    }}>
-      <input type="checkbox" checked={on} onChange={(e) => !disabled && onChange(e.target.checked)} disabled={disabled} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }} />
-      <span style={{ width: 32, height: 18, borderRadius: 999, background: on && !disabled ? 'var(--accent)' : 'var(--surface-2)', position: 'relative', transition: 'background 150ms', flexShrink: 0, opacity: disabled ? 0.4 : 1 }}>
-        <span style={{ position: 'absolute', top: 2, left: 2, width: 14, height: 14, borderRadius: 999, background: 'oklch(0.98 0 0)', transform: on && !disabled ? 'translateX(14px)' : 'translateX(0)', transition: 'transform 150ms' }} />
-      </span>
-      <span>{label}{hint && <span style={{ color: 'var(--ink-4)', marginLeft: 4 }}>{hint}</span>}</span>
-    </label>
   );
 }
