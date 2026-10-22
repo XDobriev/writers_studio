@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { vi, describe, it, expect } from 'vitest';
 
 vi.mock('./supabase', () => ({ supabase: {}, ensureAuthReady: vi.fn() }));
