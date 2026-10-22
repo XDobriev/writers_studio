@@ -11,6 +11,7 @@ import { trapTab, useModalFocus } from '../lib/useModalFocus';
 import { SettingsProfileTab } from './SettingsProfileTab';
 import { SettingsInterfaceTab } from './SettingsInterfaceTab';
 import { SettingsSubscriptionTab } from './SettingsSubscriptionTab';
+import { onTablistKeyDown } from '../lib/tablistKeys';
 
 type Tab = 'profile' | 'interface' | 'subscription';
 
@@ -74,6 +75,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
             {/* Tab bar */}
             <div
               role="tablist"
+              onKeyDown={onTablistKeyDown}
               aria-label="Разделы настроек"
               style={{
                 display: 'flex', padding: '12px 24px 0',

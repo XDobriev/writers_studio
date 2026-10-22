@@ -22,7 +22,7 @@ export default function Landing() {
   if (session) return <Navigate to="/books" replace />;
 
   return (
-    <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', overflowX: 'hidden' }}>
+    <div className="as" style={{ minHeight: '100dvh', background: 'var(--bg)', color: 'var(--ink)', overflowX: 'hidden' }}>
       <LandingNav />
       <main>
         <LandingHero />

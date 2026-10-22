@@ -203,7 +203,7 @@ export function VersionModal({
             variants={modalPanelVariants}
             style={{
               background: 'var(--bg)', border: '1px solid var(--border)',
-              borderRadius: 'var(--r-3)', width: 560, maxHeight: '72vh',
+              borderRadius: 'var(--r-3)', width: 560, maxWidth: 'calc(100vw - 32px)', maxHeight: '72dvh',
               display: 'flex', flexDirection: 'column',
               boxShadow: '0 20px 60px oklch(0 0 0 / 0.5)',
             }}

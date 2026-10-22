@@ -1,3 +1,4 @@
+import { onTablistKeyDown } from '../lib/tablistKeys';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCharacterFilter, type RoleFilter } from '../lib/useCharacterFilter';
 import { motion } from 'framer-motion';
@@ -383,7 +384,7 @@ export default function Characters() {
               <CharacterHeroBlock character={active} bookId={bookId!} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} isMobile={isMobile} />
 
               {/* Вкладки */}
-              <div className="char-tabs" role="tablist" aria-label="Вкладки персонажа">
+              <div className="char-tabs" role="tablist" onKeyDown={onTablistKeyDown} aria-label="Вкладки персонажа">
                 {(['info', 'chapters'] as const).map((tab) => (
                   <button
                     key={tab}

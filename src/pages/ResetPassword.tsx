@@ -2,19 +2,10 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useErrorState } from '../lib/useErrorState';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../lib/auth';
+import { useAuth, translateAuthError } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
 import { PasswordInput } from '../components/PasswordInput';
 
-const SUPABASE_ERRORS: Record<string, string> = {
-  'Password should be at least 6 characters.': 'Пароль должен содержать не менее 6 символов.',
-  'Auth session missing!': 'Сессия устарела. Запросите новую ссылку.',
-  'New password should be different from the old password.': 'Новый пароль должен отличаться от текущего.',
-};
-
-function te(msg: string): string {
-  return SUPABASE_ERRORS[msg] ?? msg;
-}
 
 type State = 'waiting' | 'ready' | 'busy' | 'done' | 'expired';
 
@@ -64,7 +55,7 @@ export default function ResetPassword() {
     clearErr();
     const { error } = await updatePassword(password);
     if (error) {
-      setErr(te(error));
+      setErr(translateAuthError(error));
       setState('ready');
     } else {
       await supabase.auth.signOut();
@@ -74,7 +65,7 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="as" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: '0 24px' }}>
+    <div className="as" style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: '0 24px' }}>
       <div style={{ width: '100%', maxWidth: 380 }}>
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', margin: '-10px 0 30px', textDecoration: 'none' }}>
           <LogoMark size={20} />

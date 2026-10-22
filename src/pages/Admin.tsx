@@ -50,7 +50,7 @@ export default function Admin() {
   const payments = visibleLog.filter((e) => e.action === 'payment_received');
 
   return (
-    <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="as" style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
       <div className="admin-header">
         <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', margin: '-10px 0', textDecoration: 'none' }}>
           <LogoMark size={18} />

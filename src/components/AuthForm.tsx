@@ -8,6 +8,7 @@ import { useVkAuth } from '../lib/useVkAuth';
 import { supabaseConfigured } from '../lib/supabase';
 import { PasswordInput } from './PasswordInput';
 import { ConsentCheckbox } from './ConsentCheckbox';
+import { onTablistKeyDown } from '../lib/tablistKeys';
 
 type Tab = 'signin' | 'signup';
 type Flow = 'auth' | 'reset-request' | 'reset-sent';
@@ -135,7 +136,7 @@ export function AuthForm() {
       {/* ── signin / signup ── */}
       {flow === 'auth' && (
         <>
-          <div role="tablist" aria-label="Режим входа" style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: '1px solid var(--border-soft)' }}>
+          <div role="tablist" aria-label="Режим входа" onKeyDown={onTablistKeyDown} style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: '1px solid var(--border-soft)' }}>
             <button
               type="button"
               role="tab"
@@ -197,6 +198,11 @@ export function AuthForm() {
                 </div>
               )}
 
+              {tab === 'signup' && !consent && (TG_BOT_USERNAME || !vkAuth.sdkFailed) && (
+                <p className="input-hint" style={{ margin: '0 0 8px' }}>
+                  Чтобы зарегистрироваться через Telegram или VK, сначала отметьте согласие ниже.
+                </p>
+              )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
                 {TG_BOT_USERNAME && (
                   <div

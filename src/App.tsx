@@ -14,7 +14,7 @@ import { useFeatureFlag } from './lib/useFeatureFlag';
 
 function MaintenancePage() {
   return (
-    <div style={{ height: '100vh', display: 'grid', placeItems: 'center', textAlign: 'center', gap: 12, padding: 24 }}>
+    <div style={{ height: '100dvh', display: 'grid', placeItems: 'center', textAlign: 'center', gap: 12, padding: 24 }}>
       <div>
         <div style={{ font: '600 18px var(--font-ui)', color: 'var(--ink)', marginBottom: 8 }}>Технические работы</div>
         <div style={{ font: '400 14px var(--font-ui)', color: 'var(--ink-3)', maxWidth: 320 }}>
@@ -55,7 +55,7 @@ const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 
 function PageFallback() {
   return (
-    <div style={{ height: '100vh', display: 'grid', placeItems: 'center' }}>
+    <div style={{ height: '100dvh', display: 'grid', placeItems: 'center' }}>
       <span style={{ color: 'var(--ink-3)', fontSize: '0.875rem' }}>Загрузка…</span>
     </div>
   );

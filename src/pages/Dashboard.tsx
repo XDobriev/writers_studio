@@ -201,7 +201,7 @@ export default function Dashboard() {
       <div
         className="as"
         style={{
-          height: '100vh',
+          height: '100dvh',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -237,7 +237,7 @@ export default function Dashboard() {
 
   if (!book || !chapters || !characters) {
     return (
-      <div className="as as-app as-app--no-right" style={{ height: '100vh', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
+      <div className="as as-app as-app--no-right" style={{ height: '100dvh', gridTemplateColumns: isMobile ? '1fr' : undefined }}>
         {!isMobile && (
           <div className="skeleton" style={{ height: '100%', borderRadius: 0 }} />
         )}

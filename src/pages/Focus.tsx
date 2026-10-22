@@ -76,7 +76,7 @@ export default function Focus() {
 
   if (error) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'oklch(0.10 0.012 50)', color: 'var(--ink)', padding: 32 }}>
+      <div className="as" style={{ minHeight: '100dvh', background: 'oklch(0.10 0.012 50)', color: 'var(--ink)', padding: 32 }}>
         <div style={{ color: 'var(--danger)' }}>Ошибка: {error}</div>
         <button className="btn" style={{ marginTop: 16 }} onClick={() => { void exit(); }}>← Назад к редактору</button>
       </div>
@@ -85,7 +85,7 @@ export default function Focus() {
 
   if (!book || !chapters) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'oklch(0.10 0.012 50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="as" style={{ minHeight: '100dvh', background: 'oklch(0.10 0.012 50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="page-spinner" style={{ borderColor: 'oklch(0.35 0.012 50)', borderTopColor: 'var(--accent)' }} />
       </div>
     );
@@ -93,7 +93,7 @@ export default function Focus() {
 
   if (!activeChapter) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'oklch(0.10 0.012 50)', color: 'var(--ink-3)', padding: 32, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'center' }}>
+      <div className="as" style={{ minHeight: '100dvh', background: 'oklch(0.10 0.012 50)', color: 'var(--ink-3)', padding: 32, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'center' }}>
         <div>В книге ещё нет глав.</div>
         <button className="btn" onClick={() => { void exit(); }}>← Открыть редактор</button>
       </div>
@@ -145,7 +145,7 @@ export default function Focus() {
           contentReady={contentReady}
           placeholder="Только текст и вы. Печатайте…"
           attributesStyle={focusEditorStyle}
-          style={{ width: 720, maxWidth: '100%', minHeight: 'calc(100vh - 200px)' }}
+          style={{ width: 720, maxWidth: '100%', minHeight: 'calc(100dvh - 200px)' }}
         />
       </div>
 

@@ -179,7 +179,7 @@ export default function Timeline() {
       <div
         className="as"
         style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           background: 'var(--bg)',
           display: 'flex',
           alignItems: 'center',
@@ -201,7 +201,7 @@ export default function Timeline() {
       <div
         className="as"
         style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           background: 'var(--bg)',
           display: 'flex',
           alignItems: 'center',

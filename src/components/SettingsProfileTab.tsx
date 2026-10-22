@@ -1,7 +1,7 @@
 import { useState, useEffect, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../lib/auth';
+import { useAuth, translateAuthError } from '../lib/auth';
 import { updateDisplayName } from '../lib/profiles';
 import { useProfile, QUERY_KEYS } from '../lib/queries';
 import { PasswordInput } from './PasswordInput';
@@ -57,7 +57,7 @@ export function SettingsProfileTab() {
     setPassSaving(true); setPassError(null);
     try {
       const { error } = await updatePassword(newPass);
-      if (error) setPassError(error);
+      if (error) setPassError(translateAuthError(error));
       else { setPassSaved(true); setNewPass(''); }
     } finally {
       setPassSaving(false);

@@ -106,7 +106,7 @@ export default function AdminUserDetail() {
   if (isAdmin === false) return <Navigate to="/books" replace />;
 
   return (
-    <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="as" style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
       <div style={{ height: 56, display: 'flex', alignItems: 'center', padding: '0 32px', gap: 12, borderBottom: '1px solid var(--border-soft)', background: 'var(--bg-deep)' }}>
         <Link to="/books" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', margin: '-10px 0', textDecoration: 'none' }}>
           <LogoMark size={18} />

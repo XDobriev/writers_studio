@@ -3,6 +3,9 @@ import { startCheckout } from '../lib/checkout';
 import { getLifetimeSlotsRemaining } from '../lib/profiles';
 import { useFeatureFlag } from '../lib/useFeatureFlag';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
+import { toUserMessage } from '../lib/errors';
+import { plural } from '../lib/i18n';
 import { BillingIntervalToggle } from './BillingIntervalToggle';
 import { RecurringConsent } from './RecurringConsent';
 import type { BillingInterval } from '../lib/pricing';
@@ -24,6 +27,7 @@ interface Props {
 
 export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }: Props) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
@@ -39,12 +43,13 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
       // Согласие на рекуррент записывает сервер (create-payment-url): IP, UA, версия текста.
       window.location.href = await startCheckout(plan, plan !== 'lifetime' && recurringConsent);
     } catch (e) {
-      setPurchaseError(e instanceof Error ? e.message : 'Ошибка оплаты');
+      setPurchaseError(toUserMessage(e, 'Не удалось перейти к оплате. Попробуйте ещё раз.'));
       setIsLoading(false);
     }
   }
 
   useEscapeToClose(true, onClose);
+  useModalFocus(true, dialogRef);
 
   useEffect(() => {
     getLifetimeSlotsRemaining().then((slots) => {
@@ -65,10 +70,12 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
       }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Перейти на Pro"
         tabIndex={-1}
+        onKeyDown={(e) => trapTab(e)}
         style={{
           background: 'var(--bg)', border: '1px solid var(--border)',
           borderRadius: 14, width: 360, maxWidth: '100%',
@@ -148,7 +155,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
                   Позже
                 </button>
                 {purchaseError && (
-                  <p style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', margin: '4px 0 0', textAlign: 'center' }}>
+                  <p role="alert" style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', margin: '4px 0 0', textAlign: 'center' }}>
                     {purchaseError}
                   </p>
                 )}
@@ -157,7 +164,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
           )}
 
           {skipPro && purchaseError && (
-            <p style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', margin: '0 0 8px', textAlign: 'center' }}>
+            <p role="alert" style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', margin: '0 0 8px', textAlign: 'center' }}>
               {purchaseError}
             </p>
           )}
@@ -183,7 +190,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
                   border: '1px solid color-mix(in oklch, var(--accent) 30%, transparent)',
                   borderRadius: 5, padding: '2px 7px',
                 }}>
-                  {lifetimeSlots} мест
+                  {lifetimeSlots} {plural(lifetimeSlots ?? 0, 'место', 'места', 'мест')}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}>

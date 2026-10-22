@@ -7,6 +7,7 @@ import { createNote, updateNote, type Note, type NoteKind } from '../lib/notes';
 import { useNoteMutations } from '../lib/useNoteMutations';
 import { useNotes, useChapterMembers, QUERY_KEYS } from '../lib/queries';
 import { getCharacterColor } from '../lib/pov';
+import { onTablistKeyDown } from '../lib/tablistKeys';
 
 const VersionsPanel = lazy(() => import('./VersionsPanel').then(m => ({ default: m.VersionsPanel })));
 import { useErrorState } from '../lib/useErrorState';
@@ -125,7 +126,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
 
   return (
     <aside className="rp">
-      <div className="rp-head" role="tablist" aria-label="Панели редактора">
+      <div className="rp-head" role="tablist" onKeyDown={onTablistKeyDown} aria-label="Панели редактора">
         <button
           type="button"
           id="rp-tab-notes"

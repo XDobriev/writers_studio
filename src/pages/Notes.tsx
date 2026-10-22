@@ -11,6 +11,7 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -18,6 +19,7 @@ import {
 import {
   SortableContext,
   useSortable,
+  sortableKeyboardCoordinates,
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -85,7 +87,11 @@ function SortableNoteCard({ note, chapterTitle, color, colorSoft, label, onOpen 
     <div
       ref={setNodeRef}
       className="note-card"
+      role="button"
+      tabIndex={0}
+      aria-label={`Открыть заметку: ${note.text.slice(0, 60) || 'без текста'}`}
       onClick={() => onOpen(note)}
+      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); onOpen(note); } }}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -266,7 +272,8 @@ export default function Notes() {
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; text: string } | null>(null);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
   const onDragEnd = (event: DragEndEvent) => {
     if (notes) void onReorder(notes, event);

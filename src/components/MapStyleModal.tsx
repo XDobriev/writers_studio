@@ -119,7 +119,7 @@ export function MapStyleModal({
                   JPG / PNG / WebP · до 5 МБ · рекомендуется 1600×900 px
                 </div>
                 <button className="btn" style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: 6 }} onClick={onPickFile}>
-                  <span>🖼</span> Выбрать файл
+                  <span aria-hidden="true">🖼</span> Выбрать файл
                 </button>
               </>
             )}

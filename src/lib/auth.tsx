@@ -11,6 +11,8 @@ const SUPABASE_ERRORS: Record<string, string> = {
   'Email rate limit exceeded': 'Слишком много попыток. Повторите позже.',
   'For security purposes, you can only request this once every 60 seconds': 'По соображениям безопасности — не чаще одного запроса в 60 секунд.',
   'Unable to validate email address: invalid format': 'Неверный формат адреса электронной почты.',
+  'Auth session missing!': 'Сессия устарела. Запросите новую ссылку.',
+  'New password should be different from the old password.': 'Новый пароль должен отличаться от текущего.',
 };
 
 export function translateAuthError(msg: string): string {
