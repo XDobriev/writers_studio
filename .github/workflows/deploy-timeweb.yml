@@ -11,6 +11,12 @@ on:
 permissions:
   contents: read
 
+# Два деплоя подряд не пишут в один каталог параллельно: второй ждёт первый.
+# cancel-in-progress выключен — прерванный rsync оставил бы прод наполовину обновлённым.
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
 jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
@@ -18,18 +24,41 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
+      # Собираем ровно тот коммит, что прошёл CI, а не текущий HEAD main
+      # (при двух мержах подряд HEAD мог уйти вперёд, мимо CI).
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22'
+          node-version-file: '.nvmrc'
+          cache: 'npm'
 
+      # npm install, а не npm ci: lockfile собирается на Windows и не содержит
+      # Linux-бинарников rollup/esbuild (см. optionalDependencies в package.json).
       - name: Install dependencies
-        run: npm install
+        run: npm install --prefer-dedupe
+
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
 
       - name: Install Playwright Chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium --with-deps
+
+      - name: Install Playwright system deps
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - name: Build
         run: npm run build
@@ -38,9 +67,14 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_ADMIN_EMAIL: admin@avtorstudio.com
           VITE_TELEGRAM_BOT_USERNAME: authorsStudioBot
+          # DSN публичный (он и так попадает в JS-бандл), поэтому строкой, а не секретом.
+          VITE_SENTRY_DSN: https://b90eee2a89433699457f48e370694a00@o4511484385427456.ingest.de.sentry.io/4511484386607184
+          VITE_DEPLOY_TARGET: vps
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          # Пререндер лендинга обязателен для SEO: без Chromium сборка падает, а не уходит пустой.
+          PRERENDER_STRICT: '1'
 
       - name: Validate nginx.conf (security check)
         run: |
@@ -69,6 +103,24 @@ jobs:
           done
           echo "nginx.conf: проверка безопасности пройдена"
 
+      - name: Find main chunk
+        id: chunk
+        run: |
+          MAIN=$(grep -oE 'src="/assets/index-[^"]+\.js"' dist/index.html | head -n 1 | sed -E 's/^src="//; s/"$//')
+          if [ -z "$MAIN" ]; then
+            echo "ERROR: в dist/index.html не найден главный чанк /assets/index-*.js"
+            exit 1
+          fi
+          echo "path=$MAIN" >> "$GITHUB_OUTPUT"
+
+      # Деплой в две фазы, чтобы открытые вкладки не ловили 404 на ленивых чанках:
+      #   1) новые хэшированные ассеты докладываются БЕЗ --delete — старые чанки остаются;
+      #   2) index.html и остальное — с --delete, но каталог assets/ исключён.
+      # rsync пишет каждый файл во временный и переименовывает, поэтому index.html
+      # во второй фазе меняется атомарно и ссылается только на уже залитые ассеты.
+      # Затем удаляются ассеты, которых не было ни в одном деплое последние 14 дней
+      # (rsync -a обновляет mtime у файлов текущей сборки, даже неизменённых).
+      # -v не используем: лог Actions публичный, список файлов там не нужен.
       - name: Deploy via rsync
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
@@ -76,18 +128,41 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           printf '%s\n' "$VPS_HOST_KEY" >> ~/.ssh/known_hosts
-          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes" dist/ "$VPS_USER@$VPS_HOST:/var/www/avtorstudio/dist/"
-          rsync -avz -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes" deploy/nginx.conf "$VPS_USER@$VPS_HOST:/var/www/avtorstudio/nginx.conf"
+          SSH_CMD="ssh -i $HOME/.ssh/id_rsa -o StrictHostKeyChecking=yes"
+          REMOTE="$VPS_USER@$VPS_HOST"
+          DEST="/var/www/avtorstudio/dist"
+
+          rsync -az --stats -e "$SSH_CMD" dist/assets/ "$REMOTE:$DEST/assets/"
+          rsync -az --stats --delete --exclude '/assets/' -e "$SSH_CMD" dist/ "$REMOTE:$DEST/"
+          $SSH_CMD "$REMOTE" "find $DEST/assets -type f -mtime +14 -delete"
+
+          rsync -az -e "$SSH_CMD" deploy/nginx.conf "$REMOTE:/var/www/avtorstudio/nginx.conf"
 
       - name: Reload nginx
         env:
-          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
+          # deploy-nginx-conf.sh сам проверяет конфиг (nginx -t) до установки и
+          # откатывается на .bak, если после установки проверка не прошла.
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" \
             "sudo /usr/local/sbin/deploy-nginx-conf.sh && sudo nginx -t && sudo systemctl reload nginx"
+
+      - name: Smoke check
+        env:
+          MAIN_CHUNK: ${{ steps.chunk.outputs.path }}
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 3 --retry-delay 5 -o /dev/null https://avtorstudio.com/
+          curl -fsS --retry 3 --retry-delay 5 -o /dev/null "https://avtorstudio.com$MAIN_CHUNK"
+          # Прод отдаёт именно эту сборку: index.html ссылается на только что залитый чанк.
+          if ! curl -fsS --retry 3 --retry-delay 5 https://avtorstudio.com/ | grep -qF "$MAIN_CHUNK"; then
+            echo "ERROR: https://avtorstudio.com/ не ссылается на $MAIN_CHUNK"
+            exit 1
+          fi
+          echo "smoke: OK ($MAIN_CHUNK)"
