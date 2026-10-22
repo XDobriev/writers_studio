@@ -118,7 +118,7 @@ describe('EPUB', () => {
   it('глава без &nbsp;-сущностей, без чекбоксов, текст кода и списков сохранён', async () => {
     const ch = await buildEpubZip(book, chapters, opts).file('OEBPS/ch001.xhtml')!.async('string');
     expect(ch).not.toContain('&nbsp;');
-    expect(ch).toContain('Первый абзац');
+    expect(ch).toContain('Первый\u00A0абзац');
     expect(ch).toContain('<br/>');
     expect(ch).toContain('<hr/>');
     expect(ch).not.toContain('<input');
