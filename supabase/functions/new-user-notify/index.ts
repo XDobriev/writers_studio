@@ -2,28 +2,8 @@
 // Вызывается асинхронно Postgres-триггером notify_new_user() через pg_net, без пользовательского JWT.
 // Защищена shared-secret заголовком X-Webhook-Secret (см. NOTIFY_WEBHOOK_SECRET).
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-function json(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  });
-}
-
-// Constant-time сравнение для webhook-секрета (без тайминг-сайдканала).
-function timingSafeEqual(a: string, b: string): boolean {
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  if (aBytes.length !== bBytes.length) return false;
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
+import { timingSafeEqual } from '../_shared/crypto.ts';
+import { json } from '../_shared/http.ts';
 
 const PROVIDER_LABELS: Record<string, string> = {
   email: 'email',
@@ -38,8 +18,6 @@ interface NotifyPayload {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-
   if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
 
   const webhookSecret = Deno.env.get('NOTIFY_WEBHOOK_SECRET');
