@@ -15,12 +15,12 @@
   /* ink */
   --ink: oklch(0.95 0.008 80);
   --ink-2: oklch(0.78 0.012 80);
-  --ink-3: oklch(0.65 0.012 70);
-  --ink-4: oklch(0.56 0.012 60); /* было 0.46 → 2.28:1; теперь ≈4.6:1, WCAG AA */
+  --ink-3: oklch(0.715 0.012 70); /* ≥4.5:1 на всех поверхностях до surface-3 */
+  --ink-4: oklch(0.625 0.012 60); /* ≥4.5:1 на bg-deep/bg/surface (WCAG AA); на surface-2/3 — только крупный текст */
 
   /* accents */
-  --accent: oklch(0.63 0.16 30);
-  --accent-soft: oklch(0.63 0.16 30 / 0.16);
+  --accent: oklch(0.66 0.16 30);            /* ≥4.5:1 как текст на bg/surface */
+  --accent-soft: oklch(0.66 0.16 30 / 0.16);
   --accent-deep: oklch(0.46 0.16 30);       /* primary-button fill: darker accent for white-text contrast */
   --accent-deep-hover: oklch(0.52 0.16 30);
   --accent-2: oklch(0.78 0.10 90);
@@ -31,6 +31,7 @@
   --info: oklch(0.72 0.10 230);
 
   /* semantic surfaces — deep tints for error toast + diff text */
+  --danger-deep: oklch(0.50 0.18 25);       /* заливка кнопок удаления под белый текст (6.2:1) */
   --danger-bg: oklch(0.28 0.06 25);         /* error-toast fill */
   --danger-border: oklch(0.45 0.12 25);     /* error-toast border */
   --danger-ink: oklch(0.92 0.04 25);        /* error-toast text */
@@ -123,7 +124,18 @@
   --ink:   oklch(0.18 0.022 60);
   --ink-2: oklch(0.36 0.018 60);
   --ink-3: oklch(0.43 0.014 60); /* было 0.52 → 3.97:1, теперь ≈4.8:1, WCAG AA */
-  --ink-4: oklch(0.50 0.012 60); /* было 0.64 → тоже ниже порога на малом тексте */
+  --ink-4: oklch(0.465 0.012 60); /* ≥4.5:1 на bg-deep/bg/surface/surface-2 */
+
+  /* Цветной текст на светлых поверхностях: тот же оттенок, но темнее —
+     тёмно-темовые значения давали 1.2–3.3:1. Стабилен оттенок, а не светлота. */
+  --accent: oklch(0.46 0.16 30);
+  --accent-soft: oklch(0.46 0.16 30 / 0.12);
+  --accent-2: oklch(0.44 0.10 90);
+  --accent-2-soft: oklch(0.44 0.10 90 / 0.14);
+  --ok: oklch(0.425 0.14 145);
+  --warn: oklch(0.445 0.14 80);
+  --danger: oklch(0.465 0.18 25);
+  --info: oklch(0.435 0.10 230);
 
   color-scheme: light;
 }
@@ -493,7 +505,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   transition: background var(--dur-instant), color var(--dur-instant);
 }
 .bubble-btn:hover { background: oklch(1 0 0 / 0.1); color: var(--ink); }
-.bubble-btn--on { background: var(--accent); color: oklch(0.98 0 0); }
+.bubble-btn--on { background: var(--accent-deep); color: oklch(0.98 0 0); }
 .bubble-sep { width: 1px; height: 18px; background: oklch(1 0 0 / 0.13); flex-shrink: 0; }
 .bubble-colors { display: flex; align-items: center; gap: 5px; }
 .bubble-color {
@@ -1435,6 +1447,13 @@ select.input {
   border: 1px solid oklch(0.65 0.18 25 / 0.25);
   color: var(--danger); font-size: 13px;
 }
+/* Кнопка подтверждения удаления внутри строки/карточки (сайдбар, «Структура», пробковая доска). */
+.btn-inline-danger {
+  flex: 1; padding: 5px 0; border: none; border-radius: 4px; cursor: pointer;
+  background: var(--danger-deep); color: oklch(0.98 0 0); font: 500 11px var(--font-ui);
+}
+.btn-inline-danger:hover { filter: brightness(1.08); }
+
 /* Выбор главы в панели «Сравнения глав» (Split). */
 .split-select {
   flex: 1; min-width: 0; height: 26px; padding: 0 6px;

@@ -17,6 +17,7 @@ import { useResponsive } from '../lib/useResponsive';
 import { computeActivityData } from '../lib/activity';
 import { toLocalISODate } from '../lib/dates';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
+import { trapTab } from '../lib/useModalFocus';
 
 const STATUS_DOT: Record<Chapter['status'], string> = {
   draft: 'var(--ink-4)',
@@ -80,19 +81,7 @@ export default function Dashboard() {
     };
   }, [showMobileSb]);
 
-  const trapMobileSbTab = (e: React.KeyboardEvent) => {
-    if (e.key !== 'Tab') return;
-    const focusable = mobileSbPanelRef.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])',
-    );
-    if (!focusable?.length) return;
-    const arr = Array.from(focusable);
-    const first = arr[0], last = arr[arr.length - 1];
-    if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-      e.preventDefault();
-      (e.shiftKey ? last : first).focus();
-    }
-  };
+  const trapMobileSbTab = (e: React.KeyboardEvent<HTMLElement>) => trapTab(e, mobileSbPanelRef.current);
 
   const openEdit = () => {
     if (!book) return;
@@ -449,13 +438,7 @@ export default function Dashboard() {
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') { setEditOpen(false); return; }
-                if (e.key === 'Tab') {
-                  const focusable = (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
-                  const arr = Array.from(focusable);
-                  if (!arr.length) return;
-                  const first = arr[0], last = arr[arr.length - 1];
-                  if (e.shiftKey ? document.activeElement === first : document.activeElement === last) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
-                }
+                trapTab(e);
               }}
             >
               <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>

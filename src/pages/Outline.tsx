@@ -536,7 +536,7 @@ function SortableChapterRow({
                   <button
                     type="button"
                     onClick={() => void onDelete(c.id)}
-                    style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--danger)', color: 'oklch(0.98 0 0)', border: 'none', borderRadius: 4, cursor: 'pointer', font: '500 11px var(--font-ui)' }}
+                    className="btn-inline-danger"
                   >Удалить</button>
                   <button
                     type="button"

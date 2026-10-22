@@ -6,6 +6,7 @@ import { useCreateOnMount } from '../lib/useCreateOnMount';
 import { useErrorState } from '../lib/useErrorState';
 import { useAutoResize } from '../lib/useAutoResize';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { trapTab } from '../lib/useModalFocus';
 import {
   DndContext,
   closestCenter,
@@ -612,16 +613,7 @@ export default function Notes() {
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') { closeModal(); return; }
-                if (e.key === 'Tab') {
-                  const focusable = e.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]),input:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])');
-                  const arr = Array.from(focusable);
-                  if (!arr.length) return;
-                  const first = arr[0], last = arr[arr.length - 1];
-                  if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-                    e.preventDefault();
-                    (e.shiftKey ? last : first).focus();
-                  }
-                }
+                trapTab(e);
               }}
               style={{
                 borderColor: `color-mix(in oklch, ${noteColor(modalNote)} 35%, var(--border-soft))`,

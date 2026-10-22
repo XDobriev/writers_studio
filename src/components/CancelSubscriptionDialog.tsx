@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { CANCEL_REASONS, type CancelReason } from '../lib/cancellations';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
 
 interface Props {
   open: boolean;
@@ -20,9 +21,9 @@ export function CancelSubscriptionDialog({ open, expiresFormatted, loading, onCo
   useEscapeToClose(open, onClose);
 
   useEffect(() => {
-    if (!open) { setReason(null); setComment(''); return; }
-    closeRef.current?.focus();
+    if (!open) { setReason(null); setComment(''); }
   }, [open]);
+  useModalFocus(open, closeRef);
 
   return (
     <AnimatePresence>
@@ -45,13 +46,7 @@ export function CancelSubscriptionDialog({ open, expiresFormatted, loading, onCo
             style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '24px 28px', width: 400, maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 24px 48px oklch(0 0 0 / 0.4)' }}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
-              if (e.key === 'Tab') {
-                const focusable = e.currentTarget.querySelectorAll<HTMLElement>('button, [href], input, textarea, [tabindex]:not([tabindex="-1"])');
-                const first = focusable[0]; const last = focusable[focusable.length - 1];
-                if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-                  e.preventDefault(); (e.shiftKey ? last : first).focus();
-                }
-              }
+              trapTab(e);
             }}
           >
             <div>

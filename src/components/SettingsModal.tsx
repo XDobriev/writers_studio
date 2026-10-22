@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { Icon } from './Icon';
@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth';
 import { useProfile } from '../lib/queries';
 import { EDITOR_SHORTCUTS, shortcutLabel } from '../lib/shortcuts';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
 import { SettingsProfileTab } from './SettingsProfileTab';
 import { SettingsInterfaceTab } from './SettingsInterfaceTab';
 import { SettingsSubscriptionTab } from './SettingsSubscriptionTab';
@@ -29,10 +30,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
 
   useEscapeToClose(open, onClose);
 
-  useEffect(() => {
-    if (!open) return;
-    dialogRef.current?.focus();
-  }, [open]);
+  useModalFocus(open, dialogRef);
 
   return (
     <AnimatePresence>
@@ -63,18 +61,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
               display: 'flex', flexDirection: 'column', outline: 'none',
               boxShadow: '0 32px 80px oklch(0.05 0.01 50 / 0.55)',
             }}
-            onKeyDown={(e) => {
-              if (e.key !== 'Tab') return;
-              const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])') ?? [];
-              const arr = Array.from(focusable);
-              if (!arr.length) return;
-              const first = arr[0];
-              const last = arr[arr.length - 1];
-              if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-                e.preventDefault();
-                (e.shiftKey ? last : first).focus();
-              }
-            }}
+            onKeyDown={(e) => trapTab(e, dialogRef.current)}
           >
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', padding: '18px 24px 0', flexShrink: 0 }}>

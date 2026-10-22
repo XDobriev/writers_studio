@@ -22,6 +22,7 @@ import { useAuth } from '../lib/auth';
 import { useProfile, QUERY_KEYS, useCharacters } from '../lib/queries';
 import { useCharacterHover } from '../lib/useCharacterHover';
 import { useAutoResize } from '../lib/useAutoResize';
+import { trapTab } from '../lib/useModalFocus';
 const CharacterHoverCard = lazy(() => import('./CharacterHoverCard').then(m => ({ default: m.CharacterHoverCard })));
 import { addWordToDictionary, type Profile } from '../lib/profiles';
 
@@ -183,19 +184,7 @@ export function EditorHybrid({
     };
   }, [sidebar.isOpen, right.isOpen, sidebar, right]);
 
-  const trapTab = (panelRef: React.RefObject<HTMLDivElement>) => (e: React.KeyboardEvent) => {
-    if (e.key !== 'Tab') return;
-    const focusable = panelRef.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])',
-    );
-    if (!focusable?.length) return;
-    const arr = Array.from(focusable);
-    const first = arr[0], last = arr[arr.length - 1];
-    if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-      e.preventDefault();
-      (e.shiftKey ? last : first).focus();
-    }
-  };
+  const trapTabIn = (panelRef: React.RefObject<HTMLDivElement>) => (e: React.KeyboardEvent<HTMLElement>) => trapTab(e, panelRef.current);
   const isReal = Boolean(chapters);
   const nextChapter = (() => {
     if (!chapters || !activeChapter) return null;
@@ -476,7 +465,7 @@ export function EditorHybrid({
             aria-modal="true"
             aria-label="Навигация"
             tabIndex={-1}
-            onKeyDown={trapTab(mobileSidebarPanelRef)}
+            onKeyDown={trapTabIn(mobileSidebarPanelRef)}
             className="as"
             style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)', outline: 'none' }}
           >
@@ -507,7 +496,7 @@ export function EditorHybrid({
             aria-modal="true"
             aria-label="Заметки и версии"
             tabIndex={-1}
-            onKeyDown={trapTab(mobileRightPanelRef)}
+            onKeyDown={trapTabIn(mobileRightPanelRef)}
             onAnimationEnd={() => setRightPanelEntered(true)}
             style={{ position: 'fixed', top: 0, right: 0, width: 300, maxWidth: '90vw', height: '100%', zIndex: 41, boxShadow: '-4px 0 32px oklch(0.05 0.01 50 / 0.35)', animation: rightPanelEntered ? 'none' : 'panel-enter-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both', outline: 'none' }}
           >

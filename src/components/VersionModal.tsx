@@ -8,6 +8,7 @@ import { updateChapter, countWords } from '../lib/chapters';
 import { ConfirmDialog } from './ConfirmDialog';
 import { QUERY_KEYS } from '../lib/queries';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
 
 type WordDiff = { type: 'same' | 'added' | 'removed'; text: string };
 type ParaDiff = { type: 'same'; text: string } | { type: 'changed'; parts: WordDiff[] } | { type: 'added'; text: string } | { type: 'removed'; text: string };
@@ -108,27 +109,10 @@ export function VersionModal({
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (open) dialogRef.current?.focus();
-  }, [open]);
+  useModalFocus(open, dialogRef);
 
-  function handleTabTrap(e: React.KeyboardEvent) {
-    if (e.key !== 'Tab') return;
-    const el = dialogRef.current;
-    if (!el) return;
-    const focusable = Array.from(
-      el.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      ),
-    );
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (e.shiftKey) {
-      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-    } else {
-      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-    }
+  function handleTabTrap(e: React.KeyboardEvent<HTMLElement>) {
+    trapTab(e, dialogRef.current);
   }
 
   const diff = useMemo(

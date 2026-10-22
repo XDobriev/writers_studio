@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
 
 export function ConfirmDialog({ message, onConfirm, onCancel, open, confirmLabel = 'Удалить' }: {
   message: string;
@@ -22,9 +23,10 @@ export function ConfirmDialog({ message, onConfirm, onCancel, open, confirmLabel
   useEscapeToClose(open, onCancel);
 
   useEffect(() => {
-    if (!open) { setClicked(false); return; }
-    cancelRef.current?.focus();
+    if (!open) setClicked(false);
   }, [open]);
+  // Фокус на «Отмена» при открытии и обратно на вызвавшую кнопку после закрытия.
+  useModalFocus(open, cancelRef);
 
   return (
     <AnimatePresence>
@@ -39,24 +41,19 @@ export function ConfirmDialog({ message, onConfirm, onCancel, open, confirmLabel
           onClick={onCancel}
         >
           <motion.div
-            role="dialog"
+            role="alertdialog"
             aria-modal="true"
             aria-label="Подтверждение действия"
+            aria-describedby="confirm-dialog-message"
             tabIndex={-1}
             variants={modalPanelVariants}
             style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '24px 28px', width: 360, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 48px oklch(0 0 0 / 0.4)' }}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
-              if (e.key === 'Tab') {
-                const focusable = e.currentTarget.querySelectorAll<HTMLElement>('button, [href], input, [tabindex]:not([tabindex="-1"])');
-                const first = focusable[0]; const last = focusable[focusable.length - 1];
-                if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-                  e.preventDefault(); (e.shiftKey ? last : first).focus();
-                }
-              }
+              trapTab(e);
             }}
           >
-            <p style={{ font: '400 14px/1.6 var(--font-ui)', color: 'var(--ink)', margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{message}</p>
+            <p id="confirm-dialog-message" style={{ font: '400 14px/1.6 var(--font-ui)', color: 'var(--ink)', margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{message}</p>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button ref={cancelRef} onClick={onCancel} disabled={clicked} className="btn btn--ghost">Отмена</button>
               <button
