@@ -4,13 +4,13 @@ import { createVersion, deleteVersion, type ChapterVersionMeta } from './version
 import { countWords } from './chapters';
 import { QUERY_KEYS } from './queries';
 
-export function useVersionMutations(chapterId: string, userId: string, isPro: boolean) {
+export function useVersionMutations(chapterId: string, userId: string) {
   const queryClient = useQueryClient();
 
   const createNamed = useCallback(async (content: string, label: string): Promise<void> => {
-    await createVersion(chapterId, userId, content, countWords(content), 'manual', isPro, label);
+    await createVersion(chapterId, userId, content, countWords(content), 'manual', label);
     await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterVersions(chapterId) });
-  }, [chapterId, userId, isPro, queryClient]);
+  }, [chapterId, userId, queryClient]);
 
   const remove = useCallback(async (id: string): Promise<void> => {
     await deleteVersion(id);

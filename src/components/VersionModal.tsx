@@ -78,7 +78,6 @@ interface VersionModalProps {
   bookId: string;
   userId: string;
   currentContent: string;
-  isPro: boolean;
   onBeforeRestore?: () => void;
   onClose: () => void;
   onRestored: (content: string) => void;
@@ -91,7 +90,6 @@ export function VersionModal({
   bookId,
   userId,
   currentContent,
-  isPro,
   onBeforeRestore,
   onClose,
   onRestored,
@@ -161,7 +159,7 @@ export function VersionModal({
     onBeforeRestore?.();
     try {
       // Снимок текущего контента как точка отмены
-      await createVersion(chapterId, userId, currentContent, countWords(currentContent), 'manual', isPro);
+      await createVersion(chapterId, userId, currentContent, countWords(currentContent), 'manual');
       await updateChapter(chapterId, { content, words: countWords(content) });
       queryClient.setQueryData<{ id: string; content: string }>(
         QUERY_KEYS.chapterContent(chapterId),

@@ -21,7 +21,7 @@ interface VersionsPanelProps {
 export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, currentContent, isPro, onRestoreContent, onBeforeRestore }: VersionsPanelProps) {
   const { error: versionError, setError: setVersionError, clearError: clearVersionError } = useErrorState();
   const { data: versions = [], isLoading } = useChapterVersions(chapterId);
-  const { createNamed, remove } = useVersionMutations(chapterId, userId, isPro);
+  const { createNamed, remove } = useVersionMutations(chapterId, userId);
   const [selected, setSelected] = useState<ChapterVersionMeta | null>(null);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -205,7 +205,6 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
         bookId={bookId}
         userId={userId}
         currentContent={currentContent}
-        isPro={isPro}
         onBeforeRestore={onBeforeRestore}
         onClose={() => setSelected(null)}
         onRestored={(restoredContent) => { onRestoreContent?.(restoredContent); setSelected(null); }}
