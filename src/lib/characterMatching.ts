@@ -44,13 +44,15 @@ export function makeAliasPattern(alias: string): RegExp | null {
   const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const boundary = '(?<![\\p{L}\\p{N}_])';
   const end = '(?![\\p{L}\\p{N}_])';
+  // Псевдоним нормализован (ё→е), а текст главы — нет: «е» в паттерне матчит обе буквы.
+  const yo = (s: string) => s.replace(/е/g, '[её]');
   try {
     if (normalized.length >= 5) {
       // stem = первые (length-2) символа; совпадаем с до 4 дополнительных символов
       const stem = escaped.slice(0, escaped.length - 2);
-      return new RegExp(`${boundary}${stem}[\\p{L}]{0,4}${end}`, 'vi');
+      return new RegExp(`${boundary}${yo(stem)}[\\p{L}]{0,4}${end}`, 'iu');
     }
-    return new RegExp(`${boundary}${escaped}${end}`, 'vi');
+    return new RegExp(`${boundary}${yo(escaped)}${end}`, 'iu');
   } catch {
     return null;
   }
