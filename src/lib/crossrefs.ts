@@ -105,11 +105,24 @@ export async function findNameVariantsInText(
     .slice(0, 8);
 }
 
+export type MatchableCharacter = Pick<Character, 'id' | 'user_id' | 'name' | 'aliases'>;
+
+// Все персонажи книги, только поля для сопоставления. Список в UI грузится
+// страницами по 50, а бэклинкам нужны все — отдельный лёгкий запрос.
+export async function listMatchableCharacters(bookId: string): Promise<MatchableCharacter[]> {
+  const { data, error } = await supabase
+    .from('characters')
+    .select('id, user_id, name, aliases')
+    .eq('book_id', bookId);
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function syncBacklinks(
   chapterId: string,
   bookId: string,
   content: string,
-  characters: Character[],
+  characters: MatchableCharacter[],
 ): Promise<void> {
   const foundRows: { book_id: string; user_id: string; chapter_id: string; character_id: string; auto_detected: boolean }[] = [];
   const notFoundIds: string[] = [];

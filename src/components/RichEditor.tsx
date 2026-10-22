@@ -341,7 +341,7 @@ export function RichEditor({
       <EditorContent editor={editor} className={className} style={contentReady ? style : { ...style, display: 'none' }} />
       {spellPopup && createPortal(
         <div
-          className="spell-popup"
+          className="spell-popup ym-hide-content"
           style={{ left: spellPopup.x, top: spellPopup.y }}
         >
           {spellPopup.suggestions.map(s => (

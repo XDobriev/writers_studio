@@ -1,5 +1,3 @@
-import { supabase } from './supabase';
-
 export type CancelReason = 'price' | 'not_writing' | 'missing_features' | 'bugs' | 'other_tool' | 'other';
 
 export const CANCEL_REASONS: { key: CancelReason; label: string }[] = [
@@ -15,18 +13,5 @@ export const CANCEL_REASON_LABELS: Record<CancelReason, string> = Object.fromEnt
   CANCEL_REASONS.map(r => [r.key, r.label]),
 ) as Record<CancelReason, string>;
 
-/** Причина отмены не должна ронять саму отмену — вызывающий глушит ошибку. */
-export async function saveCancellationReason(
-  userId: string,
-  reason: CancelReason,
-  comment: string,
-  plan: string,
-): Promise<void> {
-  const { error } = await supabase.from('cancellation_reasons').insert({
-    user_id: userId,
-    reason,
-    comment: comment.trim() || null,
-    plan,
-  });
-  if (error) throw error;
-}
+// Запись причины — на сервере: cancel-subscription принимает { reason, comment } и пишет
+// cancellation_reasons под service role после успешной отмены.

@@ -1,31 +1,25 @@
+// Retention-письмо неактивным 7+ дней (раз в неделю на пользователя).
+// Запуск: pg_cron 07:00 UTC (20261022000900), резерв — ручной workflow. Bearer = CRON_SECRET.
+// Деплой: --no-verify-jwt.
+//
+// display_name и название книги — пользовательский ввод (подтверждения email нет):
+// обрезаются и экранируются, иначе письмо от studio@avtorstudio.com можно было
+// превратить в фишинг. Адреса *.local (Telegram/VK) не получают писем — их отсекает и
+// get_inactive_users_for_retention (20261022000300), и проверка здесь.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { timingSafeEqual } from 'node:crypto';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-const UNISENDER_URL =
-  'https://goapi.unisender.ru/ru/transactional/api/v1/email/send.json';
-
-function json(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  });
-}
+import { clip, escapeHtml, timingSafeEqual } from '../_shared/crypto.ts';
+import { bearer, json } from '../_shared/http.ts';
+import { isDeliverableEmail, sendEmail } from '../_shared/email.ts';
 
 function buildHtml(name: string, title: string): string {
   return `<!DOCTYPE html>
 <html lang="ru">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:40px 20px;color:#1a1a1a;background:#fff;">
-  <p style="margin:0 0 24px;font-size:17px;line-height:1.7;">${name},</p>
+  <p style="margin:0 0 24px;font-size:17px;line-height:1.7;">${escapeHtml(name)},</p>
   <p style="margin:0 0 24px;font-size:17px;line-height:1.7;">
     Прошла неделя с вашего последнего визита.<br>
-    <strong>«${title}»</strong> всё ещё здесь — ждёт продолжения.
+    <strong>«${escapeHtml(title)}»</strong> всё ещё здесь — ждёт продолжения.
   </p>
   <p style="margin:0 0 32px;font-size:17px;line-height:1.7;">
     Один абзац сегодня — и текст снова движется.
@@ -67,92 +61,53 @@ type InactiveUser = {
 };
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
 
-  const supabaseUrl  = Deno.env.get('SUPABASE_URL');
-  const serviceKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const cronSecret   = Deno.env.get('CRON_SECRET');
-  const unisenderKey = Deno.env.get('UNISENDER_GO_API_KEY');
-
-  if (!supabaseUrl || !serviceKey || !cronSecret || !unisenderKey) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const cronSecret  = Deno.env.get('CRON_SECRET');
+  if (!supabaseUrl || !serviceKey || !cronSecret || !Deno.env.get('UNISENDER_GO_API_KEY')) {
     console.error('[retention-email] missing env');
     return json(500, { error: 'server misconfigured' });
   }
 
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return json(401, { error: 'unauthorized' });
-  const token = new TextEncoder().encode(authHeader.slice(7));
-  const secret = new TextEncoder().encode(cronSecret);
-  if (token.byteLength !== secret.byteLength || !timingSafeEqual(token, secret)) {
-    return json(401, { error: 'unauthorized' });
-  }
+  const token = bearer(req);
+  if (!token || !timingSafeEqual(token, cronSecret)) return json(401, { error: 'unauthorized' });
 
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-
   const { data: users, error: fetchErr } = await db.rpc('get_inactive_users_for_retention');
   if (fetchErr) {
-    console.error('[retention-email] rpc error', fetchErr);
-    return json(500, { error: fetchErr.message });
-  }
-
-  if (!users || (users as InactiveUser[]).length === 0) {
-    console.log('[retention-email] no inactive users today');
-    return json(200, { sent: 0 });
+    console.error('[retention-email] rpc error', fetchErr.message);
+    return json(500, { error: 'db error' });
   }
 
   let sent = 0;
-  const failed: string[] = [];
+  let failed = 0;
+  for (const user of (users ?? []) as InactiveUser[]) {
+    if (!isDeliverableEmail(user.email)) continue;
+    const name  = clip(user.display_name || 'Автор', 60);
+    const title = clip(user.book_title || 'ваша книга', 80);
 
-  for (const user of users as InactiveUser[]) {
-    const name  = user.display_name || 'Автор';
-    const title = user.book_title   || 'ваша книга';
-
-    try {
-      const resp = await fetch(UNISENDER_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-KEY': unisenderKey,
-        },
-        body: JSON.stringify({
-          message: {
-            recipients: [{ email: user.email }],
-            subject: `«${title}» ждёт вас`,
-            from_email: 'studio@avtorstudio.com',
-            from_name: 'Авторская студия',
-            body: {
-              html: buildHtml(name, title),
-              plaintext: buildPlaintext(name, title),
-            },
-            track_links: 1,
-            track_read: 1,
-          },
-        }),
-      });
-
-      const result = await resp.json();
-
-      // UniSender Go может вернуть status:'success', но с адресом в failed_emails (отклонён/невалиден).
-      // Помечаем отправленным только если письмо реально ушло на этот адрес.
-      const failedEmails = result.failed_emails ?? {};
-      if (result.status === 'success' && !failedEmails[user.email]) {
-        await db
-          .from('profiles')
-          .update({ retention_email_sent_at: new Date().toISOString() })
-          .eq('user_id', user.user_id);
-        sent++;
-        console.log(`[retention-email] sent → ${user.email}`);
-      } else {
-        console.error(`[retention-email] api error for ${user.email}:`, result);
-        failed.push(user.email);
-      }
-    } catch (err) {
-      console.error(`[retention-email] exception for ${user.email}:`, err);
-      failed.push(user.email);
+    const res = await sendEmail({
+      to: user.email,
+      subject: `«${title}» ждёт вас`,
+      html: buildHtml(name, title),
+      plaintext: buildPlaintext(name, title),
+      track: true,
+    });
+    if (res.ok) {
+      const { error } = await db
+        .from('profiles')
+        .update({ retention_email_sent_at: new Date().toISOString() })
+        .eq('user_id', user.user_id);
+      if (error) console.error('[retention-email] mark sent failed:', error.message);
+      sent++;
+    } else {
+      console.error('[retention-email] send failed:', res.error);
+      failed++;
     }
   }
 
-  console.log(`[retention-email] done: sent=${sent} failed=${failed.length}`);
-  return json(200, { sent, failed_count: failed.length });
+  console.log(`[retention-email] done: sent=${sent} failed=${failed}`);
+  return json(200, { sent, failed_count: failed });
 });

@@ -4,6 +4,8 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 import { countWords } from './chapters';
 import { createVersion, createVersionKeepAlive } from './versions';
 
+const SNAPSHOT_KEEPALIVE_MAX = 24_000;
+
 export function useChapterVersioning({
   chapterId,
   userId,
@@ -20,8 +22,6 @@ export function useChapterVersioning({
   chapterIdRef.current = chapterId;
   const userIdRef = useRef(userId);
   userIdRef.current = userId;
-  const isProRef = useRef(isPro);
-  isProRef.current = isPro;
 
   const onVersionCreatedRef = useRef(onVersionCreated);
   onVersionCreatedRef.current = onVersionCreated;
@@ -51,7 +51,7 @@ export function useChapterVersioning({
       if (!cId || !uId || !content) return;
       if (lastVersionContentRef.current.get(cId) === content) return;
       lastVersionContentRef.current.set(cId, content);
-      void createVersion(cId, uId, content, countWords(content), 'timer', isProRef.current)
+      void createVersion(cId, uId, content, countWords(content), 'timer')
         .then(() => onVersionCreatedRef.current?.());
     }, intervalMs);
     return () => clearInterval(id);
@@ -73,24 +73,29 @@ export function useChapterVersioning({
     if (!uId || !content) return;
     if (lastVersionContentRef.current.get(prevChapterId) !== content) {
       lastVersionContentRef.current.set(prevChapterId, content);
-      void createVersion(prevChapterId, uId, content, countWords(content), 'chapter_switch', isProRef.current)
+      void createVersion(prevChapterId, uId, content, countWords(content), 'chapter_switch')
         .then(() => onVersionCreatedRef.current?.());
     }
   }, []);
 
-  // Call inside beforeunload handler for version keepalive.
+  // Keepalive-снимок при закрытии вкладки. Лимит keepalive (64 КиБ) общий с сохранением
+  // самой главы (useChapterAutosave), поэтому снимок шлём только для небольших глав —
+  // текст главы в любом случае страхует локальный черновик.
   // createVersionKeepAlive uses raw fetch — no server-side dedup, so we guard here.
-  const onBeforeUnload = useCallback(() => {
-    const cId = chapterIdRef.current;
-    const uId = userIdRef.current;
-    const content = currentContentRef.current;
-    const token = sessionTokenRef.current;
-    const supabaseUrl = SUPABASE_URL;
-    const anonKey = SUPABASE_ANON_KEY;
-    if (cId && uId && content && token && lastVersionContentRef.current.get(cId) !== content) {
-      createVersionKeepAlive(cId, uId, content, countWords(content), supabaseUrl, anonKey, token);
-    }
+  useEffect(() => {
+    const onBeforeUnload = () => {
+      const cId = chapterIdRef.current;
+      const uId = userIdRef.current;
+      const content = currentContentRef.current;
+      const token = sessionTokenRef.current;
+      if (!cId || !uId || !content || !token) return;
+      if (content.length * 2 > SNAPSHOT_KEEPALIVE_MAX) return;
+      if (lastVersionContentRef.current.get(cId) === content) return;
+      createVersionKeepAlive(cId, uId, content, countWords(content), SUPABASE_URL, SUPABASE_ANON_KEY, token);
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, []);
 
-  return { currentContentRef, onContentTracked, onChapterSwitch, onBeforeUnload };
+  return { currentContentRef, onContentTracked, onChapterSwitch };
 }

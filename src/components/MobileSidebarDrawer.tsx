@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Book } from '../lib/supabase';
 import type { ChapterMeta, ChapterActions } from '../lib/chapters';
 import { Sidebar } from './Sidebar';
+import { trapTab } from '../lib/useModalFocus';
 
 interface MobileSidebarDrawerProps {
   open: boolean;
@@ -77,18 +78,7 @@ export function MobileSidebarDrawer({
         tabIndex={-1}
         className="as"
         onKeyDown={(e) => {
-          if (e.key === 'Tab') {
-            const focusable = panelRef.current?.querySelectorAll<HTMLElement>(
-              'button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])',
-            );
-            if (!focusable?.length) return;
-            const arr = Array.from(focusable);
-            const first = arr[0], last = arr[arr.length - 1];
-            if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-              e.preventDefault();
-              (e.shiftKey ? last : first).focus();
-            }
-          }
+          trapTab(e);
         }}
         onAnimationEnd={() => setEntered(true)}
         style={{

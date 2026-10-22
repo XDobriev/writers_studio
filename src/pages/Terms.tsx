@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { LogoMark } from '../components/LogoMark';
 import { usePageMeta } from '../lib/usePageMeta';
+import { breadcrumbJsonLd, useJsonLd } from '../lib/useJsonLd';
 
 export default function Terms() {
   usePageMeta({
@@ -8,8 +9,9 @@ export default function Terms() {
     description: 'Пользовательское соглашение сервиса Авторская студия. Условия использования, права и обязанности сторон.',
     path: '/terms',
   });
+  useJsonLd('breadcrumb', breadcrumbJsonLd('Условия использования', '/terms'));
   return (
-    <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)', padding: '56px 24px' }}>
+    <div className="as" style={{ minHeight: '100dvh', background: 'var(--bg)', padding: '56px 24px' }}>
       <div style={{ maxWidth: 680, margin: '0 auto', overflowWrap: 'break-word' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 48 }}>
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', margin: '-10px 0', textDecoration: 'none' }}>
@@ -22,7 +24,7 @@ export default function Terms() {
           Пользовательское соглашение
         </h1>
         <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 48 }}>
-          Дата вступления в силу: 19 мая 2026 г.
+          Дата вступления в силу: 19 мая 2026 г. Редакция от 22 октября 2026 г.
         </p>
 
         <Section title="1. Стороны и предмет соглашения">
@@ -55,7 +57,12 @@ export default function Terms() {
 
         <Section title="3. Регистрация и аккаунт">
           <ul>
-            <li>Для использования сервиса необходима регистрация через email или Google OAuth.</li>
+            <li>
+              Для использования сервиса необходима регистрация: по email и паролю, через Telegram
+              или через VK ID. При входе через Telegram или VK ID мы получаем имя, фото профиля и
+              идентификатор аккаунта (подробнее — в{' '}
+              <Link to="/privacy" style={{ color: 'var(--accent)' }}>политике конфиденциальности</Link>).
+            </li>
             <li>Вы несёте ответственность за сохранность данных для входа в аккаунт.</li>
             <li>Один человек — один аккаунт. Массовая регистрация и боты запрещены.</li>
             <li>Возраст регистрирующегося — не менее 14 лет. Заключение платного договора (тарифы Pro и Lifetime) допускается только для лиц, достигших 18 лет, либо с письменного согласия законного представителя.</li>
@@ -82,7 +89,10 @@ export default function Terms() {
             Актуальные условия тарифов опубликованы на главной странице сайта.
           </p>
           <p>
-            Оплата осуществляется через сервис Robokassa. При отмене подписки доступ к
+            Оплата осуществляется через сервис Robokassa. Подписка Pro продлевается автоматически
+            (рекуррентные платежи) на условиях{' '}
+            <Link to="/offer" style={{ color: 'var(--accent)' }}>публичной оферты</Link>; согласие на
+            автоматические списания даётся при оплате. При отмене подписки доступ к
             платным функциям сохраняется до конца оплаченного периода. Возврат средств —
             в течение 14 дней с момента оплаты по письменному запросу на{' '}
             <a href="mailto:support@avtorstudio.com?subject=Возврат средств" style={{ color: 'var(--accent)' }}>support@avtorstudio.com</a>.
@@ -107,8 +117,8 @@ export default function Terms() {
           </ul>
           <p>
             Мы прикладываем разумные усилия для обеспечения сохранности данных:
-            автосохранение, регулярные резервные копии через Supabase. Тем не менее
-            рекомендуем периодически экспортировать рукописи.
+            автосохранение и история версий глав. Тем не менее рекомендуем периодически
+            экспортировать рукописи и хранить копию у себя.
           </p>
         </Section>
 
@@ -116,7 +126,9 @@ export default function Terms() {
           <p>
             Вы можете удалить аккаунт в любой момент, написав на{' '}
             <a href="mailto:support@avtorstudio.com?subject=Удаление аккаунта" style={{ color: 'var(--accent)' }}>support@avtorstudio.com</a>{' '}
-            с темой «Удаление аккаунта». Все данные будут удалены в течение 3 рабочих дней.
+            с темой «Удаление аккаунта». Все данные будут удалены в течение 3 рабочих дней,
+            кроме обезличенных записей о платежах, которые хранятся для налогового учёта и
+            обработки возвратов.
           </p>
           <p>
             Мы оставляем за собой право заблокировать аккаунт при нарушении правил

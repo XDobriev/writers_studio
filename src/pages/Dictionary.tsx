@@ -83,7 +83,7 @@ export default function Dictionary() {
   const wordCount = words.length;
 
   return (
-    <div className="as" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="as" style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 560, margin: '0 auto', paddingBottom: 80 }}>
 
         {/* Header */}

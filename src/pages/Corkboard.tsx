@@ -3,20 +3,19 @@ import { useDropdownPosition } from '../lib/useDropdownPosition';
 import { useErrorState } from '../lib/useErrorState';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   closestCenter,
   PointerSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
   useSortable,
+  sortableKeyboardCoordinates,
   rectSortingStrategy,
-  arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
@@ -24,13 +23,9 @@ import { WithMode, Sidebar } from '../components/Chrome';
 import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
 import { useResponsive } from '../lib/useResponsive';
 import { useAuth } from '../lib/auth';
-import { createChapter, deleteChapter, reorderChapters, updateChapter, type ChapterMeta, type ChapterStatus } from '../lib/chapters';
-import { QUERY_KEYS, useBook, useChapters } from '../lib/queries';
-import {
-  createChapterWithCache,
-  deleteChapterWithCache,
-  invalidateChaptersCache,
-} from '../lib/chapterMutations';
+import { type ChapterMeta, type ChapterStatus } from '../lib/chapters';
+import { useBook, useChapters } from '../lib/queries';
+import { useOutlineMutations } from '../lib/useOutlineMutations';
 import { plural } from '../lib/i18n';
 
 type Filter = 'all' | ChapterStatus;
@@ -261,7 +256,7 @@ function SortableCorkCard({
                     <button
                       type="button"
                       onClick={() => { onDeleteChapter(c.id); setMenuOpen(false); setDeleteConfirm(false); }}
-                      style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--danger)', color: 'oklch(0.98 0 0)', border: 'none', borderRadius: 4, cursor: 'pointer', font: '500 11px var(--font-ui)' }}
+                      className="btn-inline-danger"
                     >Удалить</button>
                     <button
                       type="button"
@@ -293,7 +288,6 @@ export default function Corkboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const queryClient = useQueryClient();
   const { data: book } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
   const { error: mutationError, setError } = useErrorState();
@@ -304,6 +298,7 @@ export default function Corkboard() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const counts = useMemo(() => {
@@ -324,74 +319,14 @@ export default function Corkboard() {
     return chapters.filter((c) => c.status === filter);
   }, [chapters, filter]);
 
-  const onStatusChange = async (id: string, status: ChapterStatus) => {
-    if (bookId) {
-      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-        prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev
-      );
-    }
-    await updateChapter(id, { status }).catch((e: Error) => {
-      setError(e.message);
-      if (bookId) invalidateChaptersCache(queryClient, bookId);
-    });
-  };
-
-  const onDeleteChapter = async (id: string) => {
-    if (bookId) deleteChapterWithCache(queryClient, bookId, id);
-    await deleteChapter(id).catch((e: Error) => {
-      setError(e.message);
-      if (bookId) invalidateChaptersCache(queryClient, bookId);
-    });
-  };
-
-  const onSynopsisChange = async (id: string, synopsis: string) => {
-    if (bookId) {
-      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-        prev ? prev.map((c) => (c.id === id ? { ...c, synopsis } : c)) : prev
-      );
-    }
-    await updateChapter(id, { synopsis }).catch((e: Error) => {
-      setError(e.message);
-      if (bookId) invalidateChaptersCache(queryClient, bookId);
-    });
-  };
-
-  const onDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || !bookId || !chapters || active.id === over.id) return;
-
-    const oldIndex = chapters.findIndex((c) => c.id === active.id);
-    const newIndex = chapters.findIndex((c) => c.id === over.id);
-    const reordered = arrayMove(chapters, oldIndex, newIndex).map((c, i) => ({ ...c, position: i }));
-
-    queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), reordered);
-
-    try {
-      await reorderChapters(reordered.map((c) => ({ id: c.id, position: c.position })));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-      invalidateChaptersCache(queryClient, bookId);
-    }
-  };
-
-  const creatingRef = useRef(false);
-  const onCreate = async () => {
-    if (!bookId || !user || creatingRef.current) return;
-    creatingRef.current = true;
-    try {
-      const nums = (chapters ?? []).map((c) => c.title.match(/^Глава (\d+)$/)).filter(Boolean).map((m) => parseInt(m![1]));
-      const nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
-      const created = await createChapter(bookId, user.id, {
-        title: `Глава ${nextNum}`,
-        position: chapters?.length ?? 0,
-      });
-      createChapterWithCache(queryClient, bookId, created);
-      navigate(`/books/${bookId}/editor?chapter=${created.id}`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-    } finally {
-      creatingRef.current = false;
-    }
+  // Мутации глав — общие со «Структурой» (useOutlineMutations), без копии здесь.
+  const { onCreate, onDelete: onDeleteChapter, onPatch, onDragEnd } = useOutlineMutations({
+    bookId, userId: user?.id, chapters, navigate, setError,
+  });
+  const onStatusChange = (id: string, status: ChapterStatus) => onPatch(id, { status });
+  const onSynopsisChange = (id: string, synopsis: string) => {
+    if (chapters?.find((c) => c.id === id)?.synopsis === synopsis) return;
+    return onPatch(id, { synopsis });
   };
 
   const filterItems: Array<[Filter, string]> = [

@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useResponsive } from '../lib/useResponsive';
 import { TYPE_GLYPHS, TYPE_LABELS, type Location, type LocationPatch, type LocationType } from '../lib/locations';
 import { CONNECTION_STYLES, type LocationConnection, type ConnectionPatch } from '../lib/connections';
+import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { getMapTemplate, type MapTemplateId } from '../lib/mapTemplates';
+import { connectionGeometry, pinLabel, PIN_LABEL_MAX } from '../lib/mapGeometry';
 import type { MapMode } from '../pages/Map';
 import { MapStampsLayer } from './MapStampsLayer';
 import { StampPopup } from './StampPopup';
@@ -14,25 +16,18 @@ const SCALE_MIN = 0.15;
 const SCALE_MAX = 5;
 const DRAG_THRESHOLD = 5;
 
-// Знак изгиба реки — стабилен по id связи, не зависит от порядка клика при создании.
-function riverBowSign(id: string): 1 | -1 {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  return (h & 1) ? 1 : -1;
-}
-
 interface WorldMapProps {
   locations: Location[];
   connections: LocationConnection[];
   bgUrl: string | null;
   template?: string | null;
   mode: MapMode;
-  onUpdate: (id: string, patch: LocationPatch) => void;
+  onUpdate: (id: string, patch: LocationPatch) => Promise<boolean> | void;
   onCreate: (x: number, y: number) => void;
   onDelete: (id: string) => void;
   onCreateConnection: (fromId: string, toId: string) => Promise<LocationConnection | undefined>;
   onDeleteConnection: (id: string) => void;
-  onUpdateConnection: (id: string, patch: ConnectionPatch) => void;
+  onUpdateConnection: (id: string, patch: ConnectionPatch) => Promise<boolean> | void;
   stamps: MapStamp[];
   onCreateStamp: (x: number, y: number) => void;
   onUpdateStamp: (id: string, patch: StampPatch) => void;
@@ -170,20 +165,13 @@ export function WorldMap({
   const [editType, setEditType] = useState<LocationType>('city');
   const [editRole, setEditRole] = useState('');
   const [editDesc, setEditDesc] = useState('');
-  const editTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingPatch = useRef<LocationPatch>({});
 
   // Connection popup edit state
   const [editConnLabel, setEditConnLabel] = useState('');
   const [editConnStyle, setEditConnStyle] = useState<LocationConnection['style']>('road');
-  const connEditTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editPinSize, setEditPinSize] = useState(1);
   const [previewStampSize, setPreviewStampSize] = useState<{ id: string; size: number } | null>(null);
 
-  useEffect(() => () => {
-    if (editTimer.current) clearTimeout(editTimer.current);
-    if (connEditTimer.current) clearTimeout(connEditTimer.current);
-  }, []);
 
   // ── Initial fit ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -244,8 +232,13 @@ export function WorldMap({
         cx: (e.touches[0].clientX + e.touches[1].clientX) / 2,
         cy: (e.touches[0].clientY + e.touches[1].clientY) / 2,
       };
-      // Второе касание — отменяем pan-drag от первого пальца, иначе pinch и pan дерутся за setPan
+      // Второе касание — отменяем pan-drag и перетаскивание пина/штампа от первого пальца,
+      // иначе pinch и drag дерутся: пин уезжает вслед за зумом.
       panRef.current = null;
+      pinDragRef.current = null;
+      stampDragRef.current = null;
+      setDragPinPos(null);
+      setDragStampPos(null);
     }
   }, []);
 
@@ -315,41 +308,47 @@ export function WorldMap({
   }, [locations, pendingPinPos]);
 
   // ── Popup field sync when selection changes ──────────────────────────────
+  // Поля попапа заполняются из кэша только при выборе другой локации/связи.
+  // Синхронизация на каждое изменение массива (ответ сервера, перетаскивание пина)
+  // откатывала текст, напечатанный за время запроса.
+  const syncedLocRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId) { syncedLocRef.current = null; return; }
+    if (syncedLocRef.current === selectedId) return;
     const loc = locations.find(l => l.id === selectedId);
     if (!loc) return;
+    syncedLocRef.current = selectedId;
     setEditName(loc.name);
     setEditType(loc.type);
     setEditRole(loc.role);
     setEditDesc(loc.description);
     setEditPinSize(loc.size ?? 1);
-    pendingPatch.current = {};
   }, [selectedId, locations]);
 
+  const syncedConnRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!selectedConnId) return;
+    if (!selectedConnId) { syncedConnRef.current = null; return; }
+    if (syncedConnRef.current === selectedConnId) return;
     const conn = connections.find(c => c.id === selectedConnId);
     if (!conn) return;
+    syncedConnRef.current = selectedConnId;
     setEditConnLabel(conn.label);
     setEditConnStyle(conn.style);
   }, [selectedConnId, connections]);
 
   // ── Debounced patch helpers ──────────────────────────────────────────────
-  const scheduleUpdate = useCallback((id: string, patch: LocationPatch) => {
-    pendingPatch.current = { ...pendingPatch.current, ...patch };
-    if (editTimer.current) clearTimeout(editTimer.current);
-    editTimer.current = setTimeout(() => {
-      const p = pendingPatch.current;
-      pendingPatch.current = {};
-      onUpdate(id, p);
-    }, 500);
-  }, [onUpdate]);
-
-  const scheduleConnUpdate = useCallback((id: string, patch: ConnectionPatch) => {
-    if (connEditTimer.current) clearTimeout(connEditTimer.current);
-    connEditTimer.current = setTimeout(() => onUpdateConnection(id, patch), 500);
-  }, [onUpdateConnection]);
+  // Очереди по id: патчи копятся (название и стиль связи не затирают друг друга),
+  // смена выбранной локации и уход со страницы дописывают незаписанное.
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+  const onUpdateConnRef = useRef(onUpdateConnection);
+  onUpdateConnRef.current = onUpdateConnection;
+  const { scheduleSave: scheduleUpdate } = useDebouncedSave<LocationPatch>(async (id, p) => {
+    if ((await onUpdateRef.current(id, p)) === false) throw new Error('location save failed');
+  }, 500);
+  const { scheduleSave: scheduleConnUpdate } = useDebouncedSave<ConnectionPatch>(async (id, p) => {
+    if ((await onUpdateConnRef.current(id, p)) === false) throw new Error('connection save failed');
+  }, 500);
 
   // ── Auto-resize textarea helper ──────────────────────────────────────────
   const autoResize = (el: HTMLTextAreaElement) => {
@@ -582,13 +581,7 @@ export function WorldMap({
             const x2 = to.x   * CW, y2 = to.y   * CH;
             const cs = CONNECTION_STYLES[conn.style];
             const isSel = selectedConnId === conn.id;
-            // Реки — не прямая труба, а лёгкий изгиб через квадратичную Безье.
-            const dx = x2 - x1, dy = y2 - y1;
-            const dist = Math.hypot(dx, dy) || 1;
-            const bow = conn.style === 'river' ? Math.min(dist * 0.22, 60) * riverBowSign(conn.id) : 0;
-            const mx = (x1 + x2) / 2 - (dy / dist) * bow;
-            const my = (y1 + y2) / 2 + (dx / dist) * bow;
-            const pathD = bow ? `M${x1},${y1} Q${mx},${my} ${x2},${y2}` : `M${x1},${y1} L${x2},${y2}`;
+            const pathD = connectionGeometry(conn, x1, y1, x2, y2).d;
             return (
               <g key={conn.id} data-conn-id={conn.id} style={{ cursor: 'pointer' }}>
                 <path d={pathD} fill="none"
@@ -617,7 +610,7 @@ export function WorldMap({
             const effectivePinSize = isSelected ? editPinSize : (loc.size ?? 1);
             return (
               <g key={loc.id} data-loc-id={loc.id} transform={`translate(${lx},${ly}) scale(${effectivePinSize})`} style={{ cursor: 'pointer' }}>
-                {loc.name.length > 16 && <title>{loc.name}</title>}
+                {loc.name.length > PIN_LABEL_MAX && <title>{loc.name}</title>}
                 {(isSelected || isConnFrom) && <circle r={22} fill="var(--accent)" opacity={0.12} />}
                 <circle
                   r={14}
@@ -629,7 +622,7 @@ export function WorldMap({
                   {TYPE_GLYPHS[loc.type]}
                 </text>
                 <text y={26} textAnchor="middle" fontSize={9} fill="var(--ink-2)" fontFamily="var(--font-ui)" style={{ userSelect: 'none' }}>
-                  {loc.name.length > 16 ? loc.name.slice(0, 15) + '…' : loc.name}
+                  {pinLabel(loc.name)}
                 </text>
               </g>
             );

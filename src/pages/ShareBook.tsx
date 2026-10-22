@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import { supabase } from '../lib/supabase';
 import type { Book } from '../lib/supabase';
 import { LogoMark } from '../components/LogoMark';
+import { usePageMeta } from '../lib/usePageMeta';
 
 interface Chapter {
   id: string;
@@ -21,6 +22,15 @@ export default function ShareBook() {
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Расшаренная рукопись не должна попасть в поисковую выдачу, даже если ссылка утекла.
+  // path без токена: canonical не должен раскрывать доступ к книге.
+  usePageMeta({
+    title: 'Рукопись — Авторская студия',
+    description: 'Книга, которой поделился автор в Авторской студии.',
+    path: '/share',
+    noindex: true,
+  });
 
   useEffect(() => {
     if (!token) { setState('not_found'); return; }
@@ -46,7 +56,7 @@ export default function ShareBook() {
 
   if (state === 'loading') {
     return (
-      <div className="as" style={{ height: '100vh', display: 'grid', placeItems: 'center', background: 'var(--bg-deep)' }}>
+      <div className="as" style={{ height: '100dvh', display: 'grid', placeItems: 'center', background: 'var(--bg-deep)' }}>
         <span style={{ font: '400 0.875rem var(--font-ui)', color: 'var(--ink-4)' }}>Загрузка…</span>
       </div>
     );
@@ -54,7 +64,7 @@ export default function ShareBook() {
 
   if (state === 'not_found') {
     return (
-      <div className="as" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, background: 'var(--bg-deep)' }}>
+      <div className="as" style={{ height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, background: 'var(--bg-deep)' }}>
         <div style={{ font: '300 6rem/1 var(--font-serif)', color: 'var(--ink-4)' }}>404</div>
         <div style={{ font: '400 1rem var(--font-serif)', color: 'var(--ink-2)', marginTop: 16 }}>Ссылка недействительна или доступ отключён</div>
         <Link to="/" style={{ marginTop: 24, font: '400 0.8125rem var(--font-ui)', color: 'var(--ink-3)', textDecoration: 'underline' }}>
@@ -66,7 +76,7 @@ export default function ShareBook() {
 
   if (state === 'error') {
     return (
-      <div className="as" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, background: 'var(--bg-deep)' }}>
+      <div className="as" style={{ height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, background: 'var(--bg-deep)' }}>
         <div style={{ font: '300 6rem/1 var(--font-serif)', color: 'var(--ink-4)' }}>!</div>
         <div style={{ font: '400 1rem var(--font-serif)', color: 'var(--ink-2)', marginTop: 16 }}>Не удалось загрузить книгу</div>
         <Link to="/" style={{ marginTop: 24, font: '400 0.8125rem var(--font-ui)', color: 'var(--ink-3)', textDecoration: 'underline' }}>
@@ -80,7 +90,7 @@ export default function ShareBook() {
   const meta = [book?.author, book?.genre].filter(Boolean).join(' · ');
 
   return (
-    <div className="as" style={{ minHeight: '100vh', background: 'var(--bg-deep)', display: 'flex', flexDirection: 'column' }}>
+    <div className="as" style={{ minHeight: '100dvh', background: 'var(--bg-deep)', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <header style={{ borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 12, height: 48 }}>

@@ -7,6 +7,7 @@ import { createNote, updateNote, type Note, type NoteKind } from '../lib/notes';
 import { useNoteMutations } from '../lib/useNoteMutations';
 import { useNotes, useChapterMembers, QUERY_KEYS } from '../lib/queries';
 import { getCharacterColor } from '../lib/pov';
+import { onTablistKeyDown } from '../lib/tablistKeys';
 
 const VersionsPanel = lazy(() => import('./VersionsPanel').then(m => ({ default: m.VersionsPanel })));
 import { useErrorState } from '../lib/useErrorState';
@@ -21,7 +22,8 @@ interface RightPanelProps {
   currentContent?: string;
   isPro?: boolean;
   onRestoreContent?: (content: string) => void;
-  onBeforeRestore?: () => void;
+  onBeforeRestore?: () => void | Promise<void>;
+  onRebase?: (chapterId: string, updatedAt: string) => void;
   /** Ctrl+Shift+M из EditorHybrid — переключает панель на заметки и открывает форму */
   showNoteForm?: boolean;
   onNoteFormClose?: () => void;
@@ -30,7 +32,7 @@ interface RightPanelProps {
   demo?: boolean;
 }
 
-export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, onBeforeRestore, showNoteForm, onNoteFormClose, demo }: RightPanelProps) {
+export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, onBeforeRestore, onRebase, showNoteForm, onNoteFormClose, demo }: RightPanelProps) {
   const navigate = useNavigate();
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно', custom: 'Прочее' };
   const KIND_COLORS: Record<string, string> = {
@@ -124,7 +126,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
 
   return (
     <aside className="rp">
-      <div className="rp-head" role="tablist" aria-label="Панели редактора">
+      <div className="rp-head" role="tablist" onKeyDown={onTablistKeyDown} aria-label="Панели редактора">
         <button
           type="button"
           id="rp-tab-notes"
@@ -171,6 +173,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                 isPro={isPro ?? false}
                 onRestoreContent={onRestoreContent}
                 onBeforeRestore={onBeforeRestore}
+                onRebase={onRebase}
               />
               </Suspense>
             )}

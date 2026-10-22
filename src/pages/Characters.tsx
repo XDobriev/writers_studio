@@ -1,3 +1,4 @@
+import { onTablistKeyDown } from '../lib/tablistKeys';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCharacterFilter, type RoleFilter } from '../lib/useCharacterFilter';
 import { motion } from 'framer-motion';
@@ -50,7 +51,7 @@ export default function Characters() {
   const navigate = useNavigate();
 
   const { data: profile } = useProfile(user?.id);
-  const limits = getPlanLimits(profile?.plan);
+  const limits = getPlanLimits(profile);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const { data: book } = useBook(bookId);
@@ -87,6 +88,9 @@ export default function Characters() {
     isMobile,
     characters,
     filtered,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
   });
 
   const active = useMemo(
@@ -161,6 +165,7 @@ export default function Characters() {
     onError: setError,
     onCreated: handleCreated,
     onDeleted: handleDeleted,
+    onPlanLimit: () => setShowUpgrade(true),
   });
 
   const onCreateRef = useRef(onCreate);
@@ -379,7 +384,7 @@ export default function Characters() {
               <CharacterHeroBlock character={active} bookId={bookId!} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} isMobile={isMobile} />
 
               {/* Вкладки */}
-              <div className="char-tabs" role="tablist" aria-label="Вкладки персонажа">
+              <div className="char-tabs" role="tablist" onKeyDown={onTablistKeyDown} aria-label="Вкладки персонажа">
                 {(['info', 'chapters'] as const).map((tab) => (
                   <button
                     key={tab}
@@ -455,7 +460,7 @@ export default function Characters() {
               ) : (
                 <CharacterChaptersTab
                   characterId={active.id}
-                  characterIndex={characters ? characters.findIndex((c) => c.id === active.id) : 0}
+                  characterIndex={active.position}
                   onNavigate={(chapterId) => navigate(`/books/${bookId}/editor?chapter=${chapterId}`)}
                 />
               )}

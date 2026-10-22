@@ -47,7 +47,9 @@ export function useKeyboardShortcuts({
       if (!mod) return;
 
       const target = e.target as HTMLElement;
-      const inInput = target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA';
+      // Открытая модалка (версия главы, настройки…) — навигация по главам под ней запрещена.
+      const inInput = target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA'
+        || document.querySelector('[aria-modal="true"]') !== null;
 
       if (e.code === 'KeyS' && !e.shiftKey && !e.altKey) {
         e.preventDefault();

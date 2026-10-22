@@ -8,6 +8,7 @@ import { updateChapter, countWords } from '../lib/chapters';
 import { ConfirmDialog } from './ConfirmDialog';
 import { QUERY_KEYS } from '../lib/queries';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
 
 type WordDiff = { type: 'same' | 'added' | 'removed'; text: string };
 type ParaDiff = { type: 'same'; text: string } | { type: 'changed'; parts: WordDiff[] } | { type: 'added'; text: string } | { type: 'removed'; text: string };
@@ -78,8 +79,8 @@ interface VersionModalProps {
   bookId: string;
   userId: string;
   currentContent: string;
-  isPro: boolean;
-  onBeforeRestore?: () => void;
+  onBeforeRestore?: () => void | Promise<void>;
+  onRebase?: (chapterId: string, updatedAt: string) => void;
   onClose: () => void;
   onRestored: (content: string) => void;
 }
@@ -91,8 +92,8 @@ export function VersionModal({
   bookId,
   userId,
   currentContent,
-  isPro,
   onBeforeRestore,
+  onRebase,
   onClose,
   onRestored,
 }: VersionModalProps) {
@@ -106,27 +107,10 @@ export function VersionModal({
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (open) dialogRef.current?.focus();
-  }, [open]);
+  useModalFocus(open, dialogRef);
 
-  function handleTabTrap(e: React.KeyboardEvent) {
-    if (e.key !== 'Tab') return;
-    const el = dialogRef.current;
-    if (!el) return;
-    const focusable = Array.from(
-      el.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      ),
-    );
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (e.shiftKey) {
-      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-    } else {
-      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-    }
+  function handleTabTrap(e: React.KeyboardEvent<HTMLElement>) {
+    trapTab(e, dialogRef.current);
   }
 
   const diff = useMemo(
@@ -152,17 +136,23 @@ export function VersionModal({
   useEscapeToClose(open, onClose);
 
   async function handleRestore() {
-    if (!content) return;
+    if (content === null || !version) return;
+    // Глава могла смениться горячей клавишей при открытой модалке —
+    // версию главы A нельзя записывать в главу B.
+    if (version.chapter_id !== chapterId) {
+      setRestoreError('Эта версия относится к другой главе. Откройте её из нужной главы.');
+      return;
+    }
     setRestoring(true);
-    // Отменяем pending-автосейв редактора ДО записи: черновик, набранный за
-    // <700 мс до «Восстановить», иначе флашнулся бы после restore и затёр бы
-    // восстановленную версию. Сам черновик уже входит в currentContent и
-    // сохраняется ниже как точка отмены — потери нет.
-    onBeforeRestore?.();
     try {
+      // Отменяем незаписанный автосейв редактора и ждём запрос в полёте ДО записи:
+      // иначе он долетит после restore и затрёт восстановленную версию.
+      // Сам черновик уже входит в currentContent и сохраняется ниже как точка отмены.
+      await onBeforeRestore?.();
       // Снимок текущего контента как точка отмены
-      await createVersion(chapterId, userId, currentContent, countWords(currentContent), 'manual', isPro);
-      await updateChapter(chapterId, { content, words: countWords(content) });
+      await createVersion(chapterId, userId, currentContent, countWords(currentContent), 'manual');
+      const restored = await updateChapter(chapterId, { content, words: countWords(content) });
+      onRebase?.(chapterId, restored.updated_at);
       queryClient.setQueryData<{ id: string; content: string }>(
         QUERY_KEYS.chapterContent(chapterId),
         { id: chapterId, content },
@@ -213,7 +203,7 @@ export function VersionModal({
             variants={modalPanelVariants}
             style={{
               background: 'var(--bg)', border: '1px solid var(--border)',
-              borderRadius: 'var(--r-3)', width: 560, maxHeight: '72vh',
+              borderRadius: 'var(--r-3)', width: 560, maxWidth: 'calc(100vw - 32px)', maxHeight: '72dvh',
               display: 'flex', flexDirection: 'column',
               boxShadow: '0 20px 60px oklch(0 0 0 / 0.5)',
             }}

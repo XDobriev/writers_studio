@@ -11,8 +11,33 @@ import {
   chapterNotes,
   bookNotes,
   notesBlockHtml,
+  appendixHtml,
+  BOOK_NOTES_TITLE,
 } from './export';
+import { serializeXhtml } from './exportModel';
 import { todayLocalISODate } from './dates';
+
+/**
+ * HTML главы -> XHTML: читалки (Apple Books, Kobo, epubcheck) разбирают главу XML-парсером,
+ * и `&nbsp;`, `<br>`, `<hr>` без закрытия делают её невалидной. Чекбоксы списка задач
+ * в книге не нужны. Заголовки в тексте опускаем ниже заголовка главы (h2).
+ */
+export function chapterHtmlToXhtml(html: string, demoteHeadings: boolean): string {
+  const frag = DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ['input', 'label', 'button', 'form'],
+    RETURN_DOM_FRAGMENT: true,
+  });
+  if (demoteHeadings) {
+    for (const h of Array.from(frag.querySelectorAll('h1, h2'))) {
+      const h3 = h.ownerDocument.createElement('h3');
+      for (const a of Array.from(h.attributes)) h3.setAttribute(a.name, a.value);
+      while (h.firstChild) h3.appendChild(h.firstChild);
+      h.replaceWith(h3);
+    }
+  }
+  return serializeXhtml(Array.from(frag.childNodes));
+}
 
 function getEpubCss(paragraphStyle: ParagraphStyle): string {
   const pRule = paragraphStyle === 'indent'
@@ -26,6 +51,9 @@ h1.title{font-size:2em;text-align:center;margin-top:4em}
 .meta{text-align:center;color:#666;margin-bottom:4em}
 ${pRule}
 blockquote{margin:1em 2em;font-style:italic;border-left:3px solid #bbb;padding-left:1em}
+.appendix-entry{margin:0 0 1.2em}
+.appendix-entry h3{margin:0 0 0.2em;font-size:1.05em}
+.appendix-meta{margin:0 0 0.3em;font-style:italic;color:#666;text-indent:0}
 strong{font-weight:bold}em{font-style:italic}
 .chapter-notes{margin:2em 0 0;padding:0.8em 1em;background:#f5f0e8;border-left:3px solid #c8b89a}
 .chapter-notes-title{margin:0 0 0.5em;font-size:0.75em;color:#8a7d70;text-transform:uppercase;letter-spacing:0.08em;font-weight:600}
@@ -39,7 +67,7 @@ function chapterXhtml(title: string, html: string, lang: string, includeTitle: b
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="${lang}" xml:lang="${lang}">
 <head><meta charset="utf-8"/><title>${escapeHtml(title)}</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
-<body><section>${heading}${html || '<p> </p>'}${notesHtml}</section></body>
+<body><section>${heading}${html || '<p>\u00a0</p>'}${notesHtml}</section></body>
 </html>`;
 }
 
@@ -60,8 +88,23 @@ function titleXhtml(book: Book, lang: string): string {
 </html>`;
 }
 
-export async function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): Promise<Blob> {
-  const uuid = crypto.randomUUID?.() ?? `book-${Date.now()}`;
+function simpleXhtml(title: string, lang: string, body: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="${lang}" xml:lang="${lang}">
+<head><meta charset="utf-8"/><title>${escapeHtml(title)}</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
+<body>${body}</body>
+</html>`;
+}
+
+export function buildEpubBlob(book: Book, chapters: Chapter[], opts: BuildOpts): Promise<Blob> {
+  // DEFLATE для всего архива; mimetype остаётся STORE (опция на уровне файла приоритетнее).
+  return buildEpubZip(book, chapters, opts).generateAsync({ type: 'blob', mimeType: 'application/epub+zip', compression: 'DEFLATE' });
+}
+
+export function buildEpubZip(book: Book, chapters: Chapter[], opts: BuildOpts): JSZip {
+  // Стабильный идентификатор: повторный экспорт обновляет книгу в читалке, а не дублирует её.
+  const uuid = book.id;
   const hasCover = !!opts.cover;
   const coverMime = opts.cover?.mime ?? 'image/jpeg';
   const coverExt = opts.cover?.ext ?? 'jpg';
@@ -78,6 +121,7 @@ export async function buildEpubBlob(book: Book, chapters: Chapter[], opts: Build
 
   const hasBookNotes = opts.includeNotes && bookNotes(opts.notes).length > 0;
   const hasMap = !!opts.mapImage;
+  const apps = (opts.appendices ?? []).map((a) => ({ id: `appendix-${a.id}`, href: `appendix-${a.id}.xhtml`, a }));
 
   const manifestParts = [
     ...(hasCover ? [
@@ -93,6 +137,7 @@ export async function buildEpubBlob(book: Book, chapters: Chapter[], opts: Build
       `<item id="map-xhtml" href="map.xhtml" media-type="application/xhtml+xml"/>`,
     ] : []),
     ...chs.map((c) => `<item id="${c.id}" href="${c.href}" media-type="application/xhtml+xml"/>`),
+    ...apps.map((p) => `<item id="${p.id}" href="${p.href}" media-type="application/xhtml+xml"/>`),
     ...(hasBookNotes ? [`<item id="booknotes" href="notes.xhtml" media-type="application/xhtml+xml"/>`] : []),
   ];
   const spineParts = [
@@ -100,6 +145,7 @@ export async function buildEpubBlob(book: Book, chapters: Chapter[], opts: Build
     ...(opts.includeTitlePage ? [`<itemref idref="title"/>`] : []),
     ...(hasMap ? [`<itemref idref="map-xhtml"/>`] : []),
     ...chs.map((c) => `<itemref idref="${c.id}"/>`),
+    ...apps.map((p) => `<itemref idref="${p.id}"/>`),
     ...(hasBookNotes ? [`<itemref idref="booknotes"/>`] : []),
   ];
 
@@ -123,10 +169,19 @@ export async function buildEpubBlob(book: Book, chapters: Chapter[], opts: Build
     navLi.push(`<li><a href="${c.href}">${escapeHtml(c.title)}</a></li>`);
     ncxPts.push(`<navPoint id="${c.id}" playOrder="${po++}"><navLabel><text>${escapeXml(c.title)}</text></navLabel><content src="${c.href}"/></navPoint>`);
   }
-  if (hasBookNotes) {
-    navLi.push(`<li><a href="notes.xhtml">Примечания автора</a></li>`);
-    ncxPts.push(`<navPoint id="booknotes" playOrder="${po++}"><navLabel><text>Примечания автора</text></navLabel><content src="notes.xhtml"/></navPoint>`);
+  for (const p of apps) {
+    navLi.push(`<li><a href="${p.href}">${escapeHtml(p.a.title)}</a></li>`);
+    ncxPts.push(`<navPoint id="${p.id}" playOrder="${po++}"><navLabel><text>${escapeXml(p.a.title)}</text></navLabel><content src="${p.href}"/></navPoint>`);
   }
+  if (hasBookNotes) {
+    navLi.push(`<li><a href="notes.xhtml">${BOOK_NOTES_TITLE}</a></li>`);
+    ncxPts.push(`<navPoint id="booknotes" playOrder="${po++}"><navLabel><text>${BOOK_NOTES_TITLE}</text></navLabel><content src="notes.xhtml"/></navPoint>`);
+  }
+  const seriesMeta = opts.series
+    ? `<meta property="belongs-to-collection" id="series">${escapeXml(opts.series.name)}</meta>
+  <meta refines="#series" property="collection-type">series</meta>${opts.series.number != null ? `
+  <meta refines="#series" property="group-position">${opts.series.number}</meta>` : ''}`
+    : '';
 
   const opf = `<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid">
@@ -137,6 +192,7 @@ export async function buildEpubBlob(book: Book, chapters: Chapter[], opts: Build
   <dc:language>${lang}</dc:language>
   <dc:date>${today}</dc:date>
   <meta property="dcterms:modified">${today}T00:00:00Z</meta>
+  ${seriesMeta}
   ${hasCover ? `<meta name="cover" content="cover-image"/>` : ''}
 </metadata>
 <manifest>\n  ${manifestParts.join('\n  ')}\n</manifest>
@@ -172,7 +228,7 @@ export async function buildEpubBlob(book: Book, chapters: Chapter[], opts: Build
     zip.file(`OEBPS/images/cover.${coverExt}`, opts.cover.data);
     zip.file('OEBPS/cover.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="${lang}" xml:lang="${lang}">
 <head><meta charset="utf-8"/><title>Обложка</title>
 <style>body{margin:0;padding:0}img{display:block;width:100%;height:100vh;object-fit:contain}</style>
 </head>
@@ -194,23 +250,17 @@ export async function buildEpubBlob(book: Book, chapters: Chapter[], opts: Build
   for (const c of chs) {
     const nHtml = opts.includeNotes ? notesBlockHtml(chapterNotes(opts.notes, c.chapterId)) : '';
     const rawContent = opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(c.content) : c.content;
-    const content = DOMPurify.sanitize(rawContent, { USE_PROFILES: { html: true } });
+    const content = chapterHtmlToXhtml(rawContent, opts.includeChapterTitles);
     zip.file(`OEBPS/${c.href}`, chapterXhtml(c.title, content, lang, opts.includeChapterTitles, nHtml));
   }
-
-  if (opts.includeNotes) {
-    const bn = bookNotes(opts.notes);
-    if (bn.length) {
-      const bnHtml = notesBlockHtml(bn);
-      const bnXhtml = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="${lang}" xml:lang="${lang}">
-<head><meta charset="utf-8"/><title>Примечания автора</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
-<body><section><h2>Примечания автора</h2>${bnHtml}</section></body>
-</html>`;
-      zip.file('OEBPS/notes.xhtml', bnXhtml);
-    }
+  for (const p of apps) {
+    zip.file(`OEBPS/${p.href}`, simpleXhtml(p.a.title, lang, appendixHtml(p.a)));
   }
 
-  return zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' });
+  if (hasBookNotes) {
+    const bnHtml = notesBlockHtml(bookNotes(opts.notes), BOOK_NOTES_TITLE);
+    zip.file('OEBPS/notes.xhtml', simpleXhtml(BOOK_NOTES_TITLE, lang, `<section><h2>${BOOK_NOTES_TITLE}</h2>${bnHtml}</section>`));
+  }
+
+  return zip;
 }

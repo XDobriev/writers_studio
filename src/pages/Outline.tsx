@@ -9,12 +9,14 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
 import {
   SortableContext,
   useSortable,
+  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -112,8 +114,8 @@ function BulkPovButton({
                 Применить POV ко всем главам
               </div>
               <div style={{ overflowY: 'auto', maxHeight: 240 }}>
-              {characters.map((char, idx) => {
-                const color = getCharacterColor(idx);
+              {characters.map((char) => {
+                const color = getCharacterColor(char.position);
                 const displayName = char.name || 'Без имени';
                 return (
                   <button
@@ -301,9 +303,9 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
             POV персонаж
           </div>
           <div style={{ overflowY: 'auto', maxHeight: 240 }}>
-          {allCharacters.map((char, idx) => {
+          {allCharacters.map((char) => {
             const isPov = povEntries.some((e) => e.character_id === char.id);
-            const color = getCharacterColor(idx);
+            const color = getCharacterColor(char.position);
             const displayName = char.name || 'Без имени';
             return (
               <button
@@ -536,7 +538,7 @@ function SortableChapterRow({
                   <button
                     type="button"
                     onClick={() => void onDelete(c.id)}
-                    style={{ flex: 1, fontSize: 11, padding: '5px 0', background: 'var(--danger)', color: 'oklch(0.98 0 0)', border: 'none', borderRadius: 4, cursor: 'pointer', font: '500 11px var(--font-ui)' }}
+                    className="btn-inline-danger"
                   >Удалить</button>
                   <button
                     type="button"
@@ -596,6 +598,7 @@ export default function Outline() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   useEffect(() => {

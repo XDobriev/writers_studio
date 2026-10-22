@@ -1,34 +1,25 @@
-// Отправляет email-подтверждение после успешной оплаты через Robokassa.
-// Вызывается из robokassa-webhook (§4) при успешном платеже.
+// Письмо об успешной оплате (первая покупка и каждое рекуррентное продление).
+// Вызывается из robokassa-webhook в фоне с Bearer = SUPABASE_SERVICE_ROLE_KEY
+// (сверяется здесь за постоянное время). Деплой: --no-verify-jwt.
 //
-// Требуемые секреты Supabase:
-//   UNISENDER_API_KEY — ключ UniSender Go (go.unisender.ru)
-//   EMAIL_FROM        — отправитель, например "Авторская студия <noreply@avtorstudio.com>"
+// Secrets: UNISENDER_GO_API_KEY (как retention-email, хост goapi.unisender.ru),
+// EMAIL_FROM (необязателен). Синтетические адреса *.local (Telegram/VK) пропускаются.
+import { escapeHtml, timingSafeEqual } from '../_shared/crypto.ts';
+import { bearer, json } from '../_shared/http.ts';
+import { isDeliverableEmail, sendEmail } from '../_shared/email.ts';
 
-import { timingSafeEqual } from 'node:crypto';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-function json(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  });
-}
+type ConfirmPlan = 'pro_monthly' | 'pro_yearly' | 'lifetime';
 
 interface PaymentConfirmationPayload {
   user_email: string;
   transaction_id: string;
   amount: string;
-  plan: 'pro_monthly' | 'pro_yearly' | 'lifetime';
+  plan: ConfirmPlan;
   plan_expires_at?: string;
+  auto_renew?: boolean;
 }
 
-function planLabel(plan: PaymentConfirmationPayload['plan']): string {
+function planLabel(plan: ConfirmPlan): string {
   switch (plan) {
     case 'pro_monthly': return 'Pro — ежемесячная подписка';
     case 'pro_yearly':  return 'Pro — годовая подписка';
@@ -36,12 +27,23 @@ function planLabel(plan: PaymentConfirmationPayload['plan']): string {
   }
 }
 
-function buildEmailHtml(payload: PaymentConfirmationPayload): string {
-  const { transaction_id, amount, plan, plan_expires_at } = payload;
-  const label = planLabel(plan);
-  const expiresLine = plan_expires_at
-    ? `<p style="margin:0 0 8px">Следующее списание: <strong>${new Date(plan_expires_at).toLocaleDateString('ru-RU')}</strong></p>`
-    : '';
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' });
+}
+
+function periodLine(p: PaymentConfirmationPayload): string | null {
+  if (p.plan === 'lifetime' || !p.plan_expires_at) return null;
+  return p.auto_renew
+    ? `Оплачено до ${fmtDate(p.plan_expires_at)}. Следующее списание — в этот день, если не отменить подписку в настройках.`
+    : `Оплачено до ${fmtDate(p.plan_expires_at)}. Автопродление не подключено.`;
+}
+
+function buildEmailHtml(p: PaymentConfirmationPayload): string {
+  const label = escapeHtml(planLabel(p.plan));
+  const amount = escapeHtml(p.amount);
+  const tx = escapeHtml(p.transaction_id);
+  const period = periodLine(p);
+  const periodHtml = period ? `<p style="margin:0 0 8px;font-size:14px;color:#3d3730;">${escapeHtml(period)}</p>` : '';
 
   return `<!DOCTYPE html>
 <html lang="ru">
@@ -57,8 +59,8 @@ function buildEmailHtml(payload: PaymentConfirmationPayload): string {
           <hr style="border:none;border-top:1px solid #e8e3dc;margin:0 0 24px">
           <p style="margin:0 0 8px;font-size:14px;color:#3d3730;"><strong>Тариф:</strong> ${label}</p>
           <p style="margin:0 0 8px;font-size:14px;color:#3d3730;"><strong>Сумма:</strong> ${amount} ₽</p>
-          ${expiresLine}
-          <p style="margin:0 0 24px;font-size:13px;color:#8a7f76;font-family:'IBM Plex Mono',monospace;">Транзакция: ${transaction_id}</p>
+          ${periodHtml}
+          <p style="margin:0 0 24px;font-size:13px;color:#8a7f76;font-family:'IBM Plex Mono',monospace;">Счёт: ${tx}</p>
           <hr style="border:none;border-top:1px solid #e8e3dc;margin:0 0 24px">
           <p style="margin:0 0 16px;font-size:14px;color:#5a5249;line-height:1.65;">
             Если у вас есть вопросы — напишите на
@@ -77,47 +79,28 @@ function buildEmailHtml(payload: PaymentConfirmationPayload): string {
 </html>`;
 }
 
-function buildEmailText(payload: PaymentConfirmationPayload): string {
-  const { transaction_id, amount, plan, plan_expires_at } = payload;
-  const label = planLabel(plan);
-  const expiresLine = plan_expires_at
-    ? `Следующее списание: ${new Date(plan_expires_at).toLocaleDateString('ru-RU')}\n`
-    : '';
-  return `АВТОРСКАЯ СТУДИЯ — Подтверждение оплаты
-
-Тариф: ${label}
-Сумма: ${amount} ₽
-${expiresLine}Транзакция: ${transaction_id}
-
-По вопросам: support@avtorstudio.com
-Условия возврата: avtorstudio.com/offer
-`;
+function buildEmailText(p: PaymentConfirmationPayload): string {
+  const period = periodLine(p);
+  return [
+    'АВТОРСКАЯ СТУДИЯ — Подтверждение оплаты',
+    '',
+    `Тариф: ${planLabel(p.plan)}`,
+    `Сумма: ${p.amount} ₽`,
+    ...(period ? [period] : []),
+    `Счёт: ${p.transaction_id}`,
+    '',
+    'По вопросам: support@avtorstudio.com',
+    'Условия возврата: avtorstudio.com/offer',
+  ].join('\n');
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
 
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!serviceKey) return json(500, { error: 'server misconfigured' });
-
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return json(401, { error: 'unauthorized' });
-  const token = new TextEncoder().encode(authHeader.slice(7));
-  const expected = new TextEncoder().encode(serviceKey);
-  if (token.byteLength !== expected.byteLength || !timingSafeEqual(token, expected)) {
-    return json(401, { error: 'unauthorized' });
-  }
-
-  const apiKey = Deno.env.get('UNISENDER_API_KEY');
-  const emailFromRaw = Deno.env.get('EMAIL_FROM') ?? 'Авторская студия <noreply@avtorstudio.com>';
-
-  if (!apiKey) return json(500, { error: 'UNISENDER_API_KEY secret is not set' });
-
-  // Разбираем "Имя <email>" → отдельные поля для UniSender Go
-  const fromMatch = emailFromRaw.match(/^(.+?)\s*<(.+?)>$/) ?? [null, 'Авторская студия', 'noreply@avtorstudio.com'];
-  const fromName = fromMatch[1]?.trim() ?? 'Авторская студия';
-  const fromEmail = fromMatch[2]?.trim() ?? 'noreply@avtorstudio.com';
+  const token = bearer(req);
+  if (!token || !timingSafeEqual(token, serviceKey)) return json(401, { error: 'unauthorized' });
 
   let payload: PaymentConfirmationPayload;
   try {
@@ -127,35 +110,20 @@ Deno.serve(async (req) => {
   }
 
   const { user_email, transaction_id, amount, plan } = payload;
-  if (!user_email || !transaction_id || !amount || !plan) {
-    return json(400, { error: 'missing required fields: user_email, transaction_id, amount, plan' });
+  if (!user_email || !transaction_id || !amount || !['pro_monthly', 'pro_yearly', 'lifetime'].includes(plan)) {
+    return json(400, { error: 'missing or invalid fields' });
   }
+  if (!isDeliverableEmail(user_email)) return json(200, { ok: true, skipped: 'undeliverable address' });
 
-  const res = await fetch('https://go.unisender.ru/ru/transactional/api/v1/email/send.json', {
-    method: 'POST',
-    headers: {
-      'X-API-KEY': apiKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      message: {
-        from_email: fromEmail,
-        from_name: fromName,
-        subject: `Оплата подтверждена — ${planLabel(plan)}`,
-        body: {
-          html: buildEmailHtml(payload),
-          plaintext: buildEmailText(payload),
-        },
-        recipients: [{ email: user_email }],
-      },
-    }),
+  const sent = await sendEmail({
+    to: user_email,
+    subject: `Оплата подтверждена — ${planLabel(plan)}`,
+    html: buildEmailHtml(payload),
+    plaintext: buildEmailText(payload),
   });
-
-  if (!res.ok) {
-    const err = await res.text();
-    return json(502, { error: `unisender error: ${err}` });
+  if (!sent.ok) {
+    console.error(`[payment-confirmation] send failed tx=${transaction_id}: ${sent.error}`);
+    return json(502, { error: 'send failed' });
   }
-
-  const data = await res.json();
-  return json(200, { ok: true, job_id: data.job_id });
+  return json(200, { ok: true });
 });

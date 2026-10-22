@@ -334,7 +334,10 @@ function SortableNode({
 
   const card = (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
       style={{
         width: 148,
         background: isSelected ? 'var(--surface-2)' : 'var(--surface)',

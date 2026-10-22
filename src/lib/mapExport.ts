@@ -3,6 +3,7 @@ import { TYPE_GLYPHS, type Location } from './locations';
 import type { LocationConnection } from './connections';
 import { getMapTemplate, renderTemplateBgSvg } from './mapTemplates';
 import { STAMP_SVG, STAMP_BASE_SCALE, type MapStamp, type StampType } from './mapStamps';
+import { connectionGeometry, pinLabel } from './mapGeometry';
 
 const CW = 1600;
 const CH = 900;
@@ -62,20 +63,19 @@ function buildSvgString(
     if (!from || !to || from.x == null || from.y == null || to.x == null || to.y == null) return '';
     const cs = CONN_STROKES[c.style] ?? CONN_STROKES.path;
     const dashAttr = cs.dash ? ` stroke-dasharray="${cs.dash}"` : '';
-    const mx = ((from.x + to.x) / 2) * CW;
-    const my = ((from.y + to.y) / 2) * CH - 8;
+    const geo = connectionGeometry(c, from.x * CW, from.y * CH, to.x * CW, to.y * CH);
     const label = c.label
-      ? `<text x="${mx}" y="${my}" text-anchor="middle" font-size="11" fill="${nameClr}" font-family="Georgia,serif" opacity="0.7">${escXml(c.label)}</text>`
+      ? `<text x="${geo.midX}" y="${geo.midY - 8}" text-anchor="middle" font-size="11" fill="${nameClr}" font-family="Georgia,serif" opacity="0.7">${escXml(c.label)}</text>`
       : '';
-    return `<line x1="${from.x * CW}" y1="${from.y * CH}" x2="${to.x * CW}" y2="${to.y * CH}" stroke="${cs.stroke}" stroke-width="${cs.width}"${dashAttr} opacity="0.65"/>
+    return `<path d="${geo.d}" fill="none" stroke="${cs.stroke}" stroke-width="${cs.width}"${dashAttr} opacity="0.65"/>
 ${label}`;
   }).join('\n');
 
   const pinsSvg = locations
     .filter(l => l.x != null && l.y != null)
     .map(l => {
-      const name = l.name.length > 18 ? l.name.slice(0, 17) + '…' : l.name;
-      return `<g transform="translate(${l.x! * CW},${l.y! * CH})">
+      const name = pinLabel(l.name);
+      return `<g transform="translate(${l.x! * CW},${l.y! * CH}) scale(${l.size ?? 1})">
   <circle r="16" fill="${pinFill}" stroke="${pinStroke}" stroke-width="1.5"/>
   <text text-anchor="middle" dominant-baseline="central" font-size="13" fill="${glyphClr}" font-family="Georgia,serif">${TYPE_GLYPHS[l.type]}</text>
   <text y="28" text-anchor="middle" font-size="9.5" fill="${nameClr}" font-family="Georgia,serif" font-weight="500">${escXml(name)}</text>
@@ -102,8 +102,11 @@ export async function generateMapPngBuffer(
   if (book.map_bg_url) {
     try {
       const resp = await fetch(book.map_bg_url);
-      const blob = await resp.blob();
-      bgDataUrl = await blobToDataUrl(blob);
+      // 404/HTML-ответ молча превратился бы в битый фон — рисуем шаблон.
+      if (resp.ok) {
+        const blob = await resp.blob();
+        if (blob.type.startsWith('image/')) bgDataUrl = await blobToDataUrl(blob);
+      }
     } catch { /* render template only */ }
   }
 

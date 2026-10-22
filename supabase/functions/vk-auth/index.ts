@@ -1,17 +1,9 @@
+// VK ID 2.1: верификация access_token, поиск/создание пользователя, token_hash для verifyOtp.
+// Поиск — RPC find_auth_user_by_email (без лимита 1000); новые аккаунты не создаются при
+// registration_open = false; CORS — белый список origin.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-function json(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  });
-}
+import { corsHeaders, json as jsonBase } from '../_shared/http.ts';
+import { findUserByEmail, isRegistrationOpen } from '../_shared/authUsers.ts';
 
 const VK_APP_ID = 54634821;
 
@@ -41,7 +33,9 @@ interface VkApiResponse {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  const cors = corsHeaders(req);
+  const json = (status: number, body: unknown) => jsonBase(status, body, cors);
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -120,26 +114,18 @@ Deno.serve(async (req) => {
     provider: 'vk',
   };
 
-  let userId: string | null = null;
-  let existingAppMeta: Record<string, unknown> | null = null;
-  for (let page = 1; page <= 5; page++) {
-    const { data: list, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) {
-      console.error('[vk-auth] listUsers failed:', error.message);
-      return json(500, { error: 'auth lookup failed' });
-    }
-    const hit = list.users.find((u) => u.email === email);
-    if (hit) {
-      userId = hit.id;
-      existingAppMeta = (hit.app_metadata ?? null) as Record<string, unknown> | null;
-      break;
-    }
-    if (list.users.length < 200) break;
+  const found = await findUserByEmail(admin, email);
+  if (!found.ok) {
+    console.error('[vk-auth] user lookup failed:', found.error);
+    return json(500, { error: 'auth lookup failed' });
   }
+  const userId = found.user?.id ?? null;
+  const existingAppMeta = found.user?.app_metadata ?? null;
 
   const appMeta = { provider: 'vk', providers: ['vk'], vk_id: Number(vkUser.user_id) };
 
   if (!userId) {
+    if (!(await isRegistrationOpen(admin))) return json(403, { error: 'registration_closed' });
     const { data: created, error } = await admin.auth.admin.createUser({
       email,
       email_confirm: true,
@@ -150,11 +136,10 @@ Deno.serve(async (req) => {
       console.error('[vk-auth] createUser failed:', error?.message ?? 'unknown');
       return json(500, { error: 'account creation failed' });
     }
-    userId = created.user.id;
   } else {
     // Guard: vk_id in app_metadata is set by this function and not overridden by Supabase.
     // provider field is unreliable — Supabase may reset it to "email" on createUser.
-    if (!existingAppMeta?.vk_id || existingAppMeta.vk_id !== Number(vkUser.user_id)) {
+    if (!existingAppMeta?.vk_id || Number(existingAppMeta.vk_id) !== Number(vkUser.user_id)) {
       return json(409, { error: 'email conflict: account exists with different provider' });
     }
     const { error: updateErr } = await admin.auth.admin.updateUserById(userId, {

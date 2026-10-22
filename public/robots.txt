@@ -3,6 +3,7 @@ Allow: /
 
 Disallow: /books/
 Disallow: /admin/
+Disallow: /share/
 
 # Block Common Crawl training bot (data harvesting, not search/citation)
 User-agent: CCBot

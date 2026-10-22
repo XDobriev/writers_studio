@@ -14,7 +14,7 @@ import { useFeatureFlag } from './lib/useFeatureFlag';
 
 function MaintenancePage() {
   return (
-    <div style={{ height: '100vh', display: 'grid', placeItems: 'center', textAlign: 'center', gap: 12, padding: 24 }}>
+    <div style={{ height: '100dvh', display: 'grid', placeItems: 'center', textAlign: 'center', gap: 12, padding: 24 }}>
       <div>
         <div style={{ font: '600 18px var(--font-ui)', color: 'var(--ink)', marginBottom: 8 }}>Технические работы</div>
         <div style={{ font: '400 14px var(--font-ui)', color: 'var(--ink-3)', maxWidth: 320 }}>
@@ -55,15 +55,22 @@ const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 
 function PageFallback() {
   return (
-    <div style={{ height: '100vh', display: 'grid', placeItems: 'center' }}>
+    <div style={{ height: '100dvh', display: 'grid', placeItems: 'center' }}>
       <span style={{ color: 'var(--ink-3)', fontSize: '0.875rem' }}>Загрузка…</span>
     </div>
   );
 }
 
+// Приватное содержимое (рукописи, персонажи, заметки, админка) не попадает в запись
+// Вебвизора: ym-hide-content скрывает текст, ym-disable-keys — нажатия клавиш.
+// display: contents — обёртка не влияет на раскладку. См. src/lib/analytics.ts.
+function AnalyticsPrivate({ children }: { children: ReactNode }) {
+  return <div className="ym-hide-content ym-disable-keys analytics-private">{children}</div>;
+}
+
 function Guard({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
-  return <AuthGuard><ErrorBoundary key={pathname}>{children}</ErrorBoundary></AuthGuard>;
+  return <AuthGuard><ErrorBoundary key={pathname}><AnalyticsPrivate>{children}</AnalyticsPrivate></ErrorBoundary></AuthGuard>;
 }
 
 // Не рендерим маршруты пока auth не определён (нет session из localStorage И getSession ещё не вернул ответ).
@@ -107,7 +114,7 @@ function AnimatedRoutes() {
         <Route path="/books/:id/notes" element={<PageMotion><Guard><Notes /></Guard></PageMotion>} />
         <Route path="/books/:id/export" element={<PageMotion><Guard><Export /></Guard></PageMotion>} />
 
-        <Route path="/share/:token" element={<PageMotion><ShareBook /></PageMotion>} />
+        <Route path="/share/:token" element={<PageMotion><AnalyticsPrivate><ShareBook /></AnalyticsPrivate></PageMotion>} />
         <Route path="/admin" element={<PageMotion><Guard><Admin /></Guard></PageMotion>} />
         <Route path="/admin/users/:userId" element={<PageMotion><Guard><AdminUserDetail /></Guard></PageMotion>} />
         <Route path="/privacy" element={<PageMotion><Privacy /></PageMotion>} />

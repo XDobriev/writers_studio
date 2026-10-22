@@ -8,10 +8,16 @@ export function useCharacterNavigation({
   isMobile,
   characters,
   filtered,
+  hasNextPage = false,
+  isFetchingNextPage = false,
+  fetchNextPage,
 }: {
   isMobile: boolean;
   characters: Character[] | undefined;
   filtered: Character[];
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  fetchNextPage?: () => unknown;
 }) {
   const [search, setSearch] = useSearchParams();
   const activeId = search.get('character');
@@ -36,13 +42,19 @@ export function useCharacterNavigation({
     // Guard: activeId=null is a transient state between setViewMode and URL update — skip
     if (!activeId) return;
     const exists = characters.some((c) => c.id === activeId);
+    // Персонаж может быть на ещё не загруженной странице (список грузится по 50) —
+    // сначала догружаем, подменяем первым только если его действительно нет.
+    if (!exists && (hasNextPage || isFetchingNextPage)) {
+      if (!isFetchingNextPage) void fetchNextPage?.();
+      return;
+    }
     if (!exists) {
       const first = filtered[0] ?? characters[0];
       const next = new URLSearchParams(search);
       next.set('character', first.id);
       setSearch(next, { replace: true });
     }
-  }, [isMobile, viewMode, characters, filtered, activeId, search, setSearch]);
+  }, [isMobile, viewMode, characters, filtered, activeId, search, setSearch, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const selectCharacter = useCallback((id: string) => {
     const next = new URLSearchParams(search);

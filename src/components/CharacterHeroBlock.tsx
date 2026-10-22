@@ -29,7 +29,7 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
   const [editingQuote, setEditingQuote] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarDeleting, setAvatarDeleting] = useState(false);
-  const [avatarHovered, setAvatarHovered] = useState(false);
+  const avatarBusy = avatarUploading || avatarDeleting;
   const quoteRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const aliasTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -149,11 +149,14 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
   return (
     <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 16 : 32, alignItems: isMobile ? 'center' : 'flex-start', marginBottom: 36 }}>
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={character.avatar_url ? 'Сменить портрет' : 'Загрузить портрет'}
         onClick={() => fileInputRef.current?.click()}
-        onMouseEnter={() => setAvatarHovered(true)}
-        onMouseLeave={() => setAvatarHovered(false)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
         title={character.avatar_url ? 'Сменить портрет' : 'Загрузить портрет'}
-        style={{ width: isMobile ? 120 : 160, height: isMobile ? 150 : 200, borderRadius: 8, background: 'linear-gradient(160deg, oklch(0.45 0.04 50), oklch(0.25 0.02 50))', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 18, position: 'relative', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}
+        className={`char-portrait${avatarBusy ? ' char-portrait--busy' : ''}`}
+        style={{ width: isMobile ? 120 : 160, height: isMobile ? 150 : 200 }}
       >
         {!character.avatar_url && (
           <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(135deg, oklch(0.40 0.04 50) 0 6px, oklch(0.36 0.04 50) 6px 12px)', opacity: 0.4 }} />
@@ -166,20 +169,21 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
             {initialsFromName(name)}
           </div>
         )}
-        {(avatarHovered || avatarUploading || avatarDeleting) && (
-          <div style={{ position: 'absolute', inset: 0, background: 'oklch(0 0 0 / 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 6, color: 'oklch(0.98 0 0)' }}>
-            {(avatarUploading || avatarDeleting)
+        {/* Оверлей и кнопка удаления видны по hover/focus через CSS, на таче — всегда. */}
+        <div className="char-portrait__overlay">
+            {avatarBusy
               ? <span style={{ font: '400 11px var(--font-ui)' }}>{avatarDeleting ? 'Удаление…' : 'Загрузка…'}</span>
               : <><Icon name="camera" size={20} /><span style={{ font: '400 10px var(--font-ui)', letterSpacing: '0.04em' }}>{character.avatar_url ? 'Сменить' : 'Загрузить'}</span></>
             }
-          </div>
-        )}
-        {avatarHovered && character.avatar_url && !avatarUploading && !avatarDeleting && (
+        </div>
+        {character.avatar_url && !avatarBusy && (
           <button
+            type="button"
+            className="char-portrait__delete"
             onClick={(e) => { e.stopPropagation(); void onAvatarDelete(); }}
+            onKeyDown={(e) => e.stopPropagation()}
             title="Удалить портрет"
             aria-label="Удалить портрет"
-            style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 4, background: 'oklch(0.35 0.18 20 / 0.85)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(0.98 0 0)', zIndex: 2, padding: 0 }}
           >
             <Icon name="trash" size={11} />
           </button>

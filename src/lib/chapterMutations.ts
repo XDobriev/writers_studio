@@ -2,18 +2,16 @@ import type { QueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from './queries';
 import type { Chapter, ChapterMeta } from './chapters';
 
+// Только метаданные: текст главы в кэш из ответа сервера не пишется —
+// источник правды для текста редактор (иначе запоздавший ответ откатывает ввод).
 export function updateChapterWithCache(
   queryClient: QueryClient,
   bookId: string,
-  updated: Chapter,
+  updated: Chapter | ChapterMeta,
 ): void {
-  const { content: _, ...updatedMeta } = updated;
+  const { content: _, ...updatedMeta } = updated as Chapter;
   queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
     prev ? prev.map((c) => (c.id === updated.id ? { ...c, ...updatedMeta } : c)) : prev,
-  );
-  queryClient.setQueryData<{ id: string; content: string }>(
-    QUERY_KEYS.chapterContent(updated.id),
-    { id: updated.id, content: updated.content },
   );
 }
 
@@ -29,6 +27,8 @@ export function createChapterWithCache(
   ]);
 }
 
+// В БД удаление главы обнуляет chapter_id у событий и заметок, каскадом удаляет
+// связи с персонажами и пересчитывает слова книги — освежаем всё это в кэше.
 export function deleteChapterWithCache(
   queryClient: QueryClient,
   bookId: string,
@@ -37,6 +37,17 @@ export function deleteChapterWithCache(
   queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
     prev ? prev.filter((c) => c.id !== chapterId) : prev,
   );
+  queryClient.removeQueries({ queryKey: QUERY_KEYS.chapterContent(chapterId) });
+  for (const key of [
+    QUERY_KEYS.timelineEvents(bookId),
+    QUERY_KEYS.notes(bookId),
+    QUERY_KEYS.chapterPovMap(bookId),
+    QUERY_KEYS.book(bookId),
+    ['books'],
+    QUERY_KEYS.chapterCharactersAll(),
+  ]) {
+    void queryClient.invalidateQueries({ queryKey: key });
+  }
 }
 
 export function invalidateChaptersCache(queryClient: QueryClient, bookId: string): void {

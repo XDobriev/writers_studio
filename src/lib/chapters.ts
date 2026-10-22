@@ -41,11 +41,13 @@ export async function listChapters(bookId: string): Promise<Chapter[]> {
   return (data ?? []) as Chapter[];
 }
 
+const META_COLUMNS = 'id, book_id, user_id, title, position, synopsis, words, status, created_at, updated_at';
+
 // Только метаданные — для сайдбара, списков, дашборда (без контента)
 export async function listChaptersMeta(bookId: string): Promise<ChapterMeta[]> {
   const { data, error } = await supabase
     .from('chapters')
-    .select('id, book_id, user_id, title, position, synopsis, words, status, created_at, updated_at')
+    .select(META_COLUMNS)
     .eq('book_id', bookId)
     .order('position', { ascending: true })
     .order('created_at', { ascending: true });
@@ -83,6 +85,48 @@ export async function createChapter(
   return data as Chapter;
 }
 
+// Прокси Supabase на VPS принимает тело запроса до 5 МБ (client_max_body_size в nginx).
+const BULK_BATCH_BYTES = 3 * 1024 * 1024;
+
+/**
+ * Массовая вставка глав (импорт рукописи): один insert массивом, а для очень больших
+ * книг — несколько последовательных пачек по ~3 МБ. Возвращает главы в порядке position.
+ */
+export async function createChaptersBulk(
+  bookId: string,
+  userId: string,
+  items: { title: string; content: string; words: number }[],
+): Promise<ChapterMeta[]> {
+  const rows = items.map((it, i) => ({
+    book_id: bookId,
+    user_id: userId,
+    title: it.title,
+    content: it.content,
+    words: it.words,
+    position: i,
+  }));
+  const batches: (typeof rows)[] = [];
+  let cur: typeof rows = [];
+  let size = 0;
+  for (const r of rows) {
+    const s = new Blob([JSON.stringify(r)]).size;
+    if (cur.length && size + s > BULK_BATCH_BYTES) { batches.push(cur); cur = []; size = 0; }
+    cur.push(r);
+    size += s;
+  }
+  if (cur.length) batches.push(cur);
+  const out: ChapterMeta[] = [];
+  for (const batch of batches) {
+    const { data, error } = await supabase
+      .from('chapters')
+      .insert(batch)
+      .select('id, book_id, user_id, title, position, synopsis, words, status, created_at, updated_at');
+    if (error) throw error;
+    out.push(...((data ?? []) as ChapterMeta[]));
+  }
+  return out.sort((a, b) => a.position - b.position);
+}
+
 export async function updateChapter(id: string, patch: ChapterPatch): Promise<Chapter> {
   const { data, error } = await supabase
     .from('chapters')
@@ -92,6 +136,31 @@ export async function updateChapter(id: string, patch: ChapterPatch): Promise<Ch
     .single();
   if (error) throw error;
   return data as Chapter;
+}
+
+// Автосохранение: в ответ только метаданные (без эха контента — источник правды
+// для текста в редакторе, а не ответ сервера). С expectedUpdatedAt — оптимистичная
+// блокировка: null = 0 строк, глава изменилась (или удалена) с момента загрузки.
+export async function updateChapterMeta(
+  id: string,
+  patch: ChapterPatch,
+  expectedUpdatedAt?: string | null,
+): Promise<ChapterMeta | null> {
+  let q = supabase.from('chapters').update(patch).eq('id', id);
+  if (expectedUpdatedAt) q = q.eq('updated_at', expectedUpdatedAt);
+  const { data, error } = await q.select(META_COLUMNS).maybeSingle();
+  if (error) throw error;
+  return (data as ChapterMeta | null) ?? null;
+}
+
+export async function getChapterState(id: string): Promise<{ content: string; updated_at: string } | null> {
+  const { data, error } = await supabase
+    .from('chapters')
+    .select('content, updated_at')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
 export async function deleteChapter(id: string): Promise<void> {

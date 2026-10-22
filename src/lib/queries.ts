@@ -27,6 +27,7 @@ export const QUERY_KEYS = {
   chapters: (bookId: string) => ['chapters', bookId] as const,
   chapterContent: (id: string) => ['chapter-content', id] as const,
   characters: (bookId: string) => ['characters', bookId] as const,
+  matchableCharacters: (bookId: string) => ['characters-match', bookId] as const,
   notes: (bookId: string) => ['notes', bookId] as const,
   relationships: (bookId: string) => ['relationships', bookId] as const,
   writingSnapshots: (bookId: string) => ['writing-snapshots', bookId] as const,

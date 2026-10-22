@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { MAP_TEMPLATES, type MapTemplateId } from '../lib/mapTemplates';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 
 interface MapStyleModalProps {
   open: boolean;
@@ -20,15 +22,8 @@ export function MapStyleModal({
 }: MapStyleModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    panelRef.current?.focus();
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose(); }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, onClose]);
+  useModalFocus(open, panelRef);
+  useEscapeToClose(open, onClose);
 
   return (
     <AnimatePresence>
@@ -52,14 +47,7 @@ export function MapStyleModal({
             style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '22px 24px', width: 360, maxWidth: 'calc(100vw - 32px)', boxShadow: '0 8px 40px oklch(0 0 0 / 0.6)', outline: 'none' }}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
-              if (e.key === 'Tab') {
-                const focusable = e.currentTarget.querySelectorAll<HTMLElement>('button, [href], input, [tabindex]:not([tabindex="-1"])');
-                const first = focusable[0]; const last = focusable[focusable.length - 1];
-                if (!first) return;
-                if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-                  e.preventDefault(); (e.shiftKey ? last : first).focus();
-                }
-              }
+              trapTab(e);
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -131,7 +119,7 @@ export function MapStyleModal({
                   JPG / PNG / WebP · до 5 МБ · рекомендуется 1600×900 px
                 </div>
                 <button className="btn" style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: 6 }} onClick={onPickFile}>
-                  <span>🖼</span> Выбрать файл
+                  <span aria-hidden="true">🖼</span> Выбрать файл
                 </button>
               </>
             )}

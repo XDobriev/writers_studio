@@ -15,14 +15,21 @@ interface VersionsPanelProps {
   currentContent: string;
   isPro: boolean;
   onRestoreContent?: (content: string) => void;
-  onBeforeRestore?: () => void;
+  onBeforeRestore?: () => void | Promise<void>;
+  onRebase?: (chapterId: string, updatedAt: string) => void;
 }
 
-export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, currentContent, isPro, onRestoreContent, onBeforeRestore }: VersionsPanelProps) {
+export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, currentContent, isPro, onRestoreContent, onBeforeRestore, onRebase }: VersionsPanelProps) {
   const { error: versionError, setError: setVersionError, clearError: clearVersionError } = useErrorState();
   const { data: versions = [], isLoading } = useChapterVersions(chapterId);
-  const { createNamed, remove } = useVersionMutations(chapterId, userId, isPro);
+  const { createNamed, remove } = useVersionMutations(chapterId, userId);
   const [selected, setSelected] = useState<ChapterVersionMeta | null>(null);
+  // Смена главы при открытой версии — закрыть её, иначе «Восстановить» ушло бы в чужую главу.
+  const [selectedFor, setSelectedFor] = useState(chapterId);
+  if (selectedFor !== chapterId) {
+    setSelectedFor(chapterId);
+    setSelected(null);
+  }
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [labelInput, setLabelInput] = useState('');
@@ -205,8 +212,8 @@ export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, current
         bookId={bookId}
         userId={userId}
         currentContent={currentContent}
-        isPro={isPro}
         onBeforeRestore={onBeforeRestore}
+        onRebase={onRebase}
         onClose={() => setSelected(null)}
         onRestored={(restoredContent) => { onRestoreContent?.(restoredContent); setSelected(null); }}
       />

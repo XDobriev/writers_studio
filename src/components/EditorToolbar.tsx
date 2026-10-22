@@ -398,7 +398,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
               onMouseDown={e => { e.preventDefault(); apply(); }}
               style={{
                 flex: 1, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
-                background: 'var(--accent)', color: 'oklch(0.98 0 0)', fontSize: 12, fontWeight: 500,
+                background: 'var(--accent-deep)', color: 'oklch(0.98 0 0)', fontSize: 12, fontWeight: 500,
               }}
             >Применить</button>
             {active && (

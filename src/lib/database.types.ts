@@ -120,6 +120,7 @@ export type Database = {
           genres: string[] | null
           goal: number
           id: string
+          imported_words: number
           map_bg_url: string | null
           map_template: string | null
           series_id: string | null
@@ -139,6 +140,7 @@ export type Database = {
           genres?: string[] | null
           goal?: number
           id?: string
+          imported_words?: number
           map_bg_url?: string | null
           map_template?: string | null
           series_id?: string | null
@@ -158,6 +160,7 @@ export type Database = {
           genres?: string[] | null
           goal?: number
           id?: string
+          imported_words?: number
           map_bg_url?: string | null
           map_template?: string | null
           series_id?: string | null
@@ -185,7 +188,7 @@ export type Database = {
           id: string
           plan: string | null
           reason: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           comment?: string | null
@@ -193,7 +196,7 @@ export type Database = {
           id?: string
           plan?: string | null
           reason: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           comment?: string | null
@@ -201,7 +204,7 @@ export type Database = {
           id?: string
           plan?: string | null
           reason?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -264,6 +267,7 @@ export type Database = {
         Row: {
           chapter_id: string
           content: string
+          content_hash: string | null
           created_at: string
           id: string
           label: string | null
@@ -274,6 +278,7 @@ export type Database = {
         Insert: {
           chapter_id: string
           content: string
+          content_hash?: string | null
           created_at?: string
           id?: string
           label?: string | null
@@ -284,6 +289,7 @@ export type Database = {
         Update: {
           chapter_id?: string
           content?: string
+          content_hash?: string | null
           created_at?: string
           id?: string
           label?: string | null
@@ -673,7 +679,7 @@ export type Database = {
       map_stamps: {
         Row: {
           book_id: string
-          created_at: string | null
+          created_at: string
           id: string
           size: number
           type: string
@@ -683,7 +689,7 @@ export type Database = {
         }
         Insert: {
           book_id: string
-          created_at?: string | null
+          created_at?: string
           id?: string
           size?: number
           type: string
@@ -693,7 +699,7 @@ export type Database = {
         }
         Update: {
           book_id?: string
-          created_at?: string | null
+          created_at?: string
           id?: string
           size?: number
           type?: string
@@ -774,8 +780,10 @@ export type Database = {
           op_key: string | null
           paid_at: string
           plan: string
+          recurring: boolean | null
           refund_request_id: string | null
           refunded_at: string | null
+          source: string
           user_id: string | null
         }
         Insert: {
@@ -786,8 +794,10 @@ export type Database = {
           op_key?: string | null
           paid_at?: string
           plan?: string
+          recurring?: boolean | null
           refund_request_id?: string | null
           refunded_at?: string | null
+          source?: string
           user_id?: string | null
         }
         Update: {
@@ -798,14 +808,17 @@ export type Database = {
           op_key?: string | null
           paid_at?: string
           plan?: string
+          recurring?: boolean | null
           refund_request_id?: string | null
           refunded_at?: string | null
+          source?: string
           user_id?: string | null
         }
         Relationships: []
       }
       profiles: {
         Row: {
+          billing_attempts: number
           cancel_at_period_end: boolean
           checklist_dismissed_at: string | null
           created_at: string
@@ -813,18 +826,21 @@ export type Database = {
           first_export_at: string | null
           grandfathered: boolean
           is_test: boolean
+          last_billed_at: string | null
           last_billed_expiry: string | null
           onboarded_at: string | null
           plan: string
           plan_expires_at: string | null
           plan_interval: string
           recurring_inv_id: string | null
+          renewal_reminder_sent_for: string | null
           retention_email_sent_at: string | null
           updated_at: string
           user_dictionary: string[] | null
           user_id: string
         }
         Insert: {
+          billing_attempts?: number
           cancel_at_period_end?: boolean
           checklist_dismissed_at?: string | null
           created_at?: string
@@ -832,18 +848,21 @@ export type Database = {
           first_export_at?: string | null
           grandfathered?: boolean
           is_test?: boolean
+          last_billed_at?: string | null
           last_billed_expiry?: string | null
           onboarded_at?: string | null
           plan?: string
           plan_expires_at?: string | null
           plan_interval?: string
           recurring_inv_id?: string | null
+          renewal_reminder_sent_for?: string | null
           retention_email_sent_at?: string | null
           updated_at?: string
           user_dictionary?: string[] | null
           user_id: string
         }
         Update: {
+          billing_attempts?: number
           cancel_at_period_end?: boolean
           checklist_dismissed_at?: string | null
           created_at?: string
@@ -851,12 +870,14 @@ export type Database = {
           first_export_at?: string | null
           grandfathered?: boolean
           is_test?: boolean
+          last_billed_at?: string | null
           last_billed_expiry?: string | null
           onboarded_at?: string | null
           plan?: string
           plan_expires_at?: string | null
           plan_interval?: string
           recurring_inv_id?: string | null
+          renewal_reminder_sent_for?: string | null
           retention_email_sent_at?: string | null
           updated_at?: string
           user_dictionary?: string[] | null
@@ -866,28 +887,37 @@ export type Database = {
       }
       recurring_consents: {
         Row: {
+          consent_text: string | null
+          consent_version: string | null
           created_at: string
           id: string
+          inv_id: string | null
           ip: string | null
           plan: string
           user_agent: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
+          consent_text?: string | null
+          consent_version?: string | null
           created_at?: string
           id?: string
+          inv_id?: string | null
           ip?: string | null
           plan: string
           user_agent?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
+          consent_text?: string | null
+          consent_version?: string | null
           created_at?: string
           id?: string
+          inv_id?: string | null
           ip?: string | null
           plan?: string
           user_agent?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1027,12 +1057,42 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_payment: {
+        Args: {
+          p_amount: number
+          p_grandfather?: boolean
+          p_inv_id: string
+          p_plan: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       append_user_dictionary_word: {
         Args: { p_user_id: string; p_word: string }
         Returns: undefined
       }
+      apply_refund: {
+        Args: { p_payment_id: string; p_request_id: string }
+        Returns: Json
+      }
+      claim_billing_attempt: {
+        Args: { p_expiry: string; p_max_attempts?: number; p_user_id: string }
+        Returns: number
+      }
+      claim_renewal_reminder: {
+        Args: { p_expiry: string; p_user_id: string }
+        Returns: boolean
+      }
       compute_synopsis: { Args: { html: string }; Returns: string }
       decrement_lifetime_slot: { Args: never; Returns: boolean }
+      downgrade_expired_subscriptions: {
+        Args: { p_grace?: string }
+        Returns: {
+          old_expires_at: string
+          reason: string
+          user_id: string
+        }[]
+      }
       duplicate_book_content: {
         Args: {
           p_characters: boolean
@@ -1047,6 +1107,14 @@ export type Database = {
       extend_plan: {
         Args: { days: number; target_user_id: string }
         Returns: undefined
+      }
+      find_auth_user_by_email: {
+        Args: { p_email: string }
+        Returns: {
+          app_metadata: Json
+          email: string
+          id: string
+        }[]
       }
       get_admin_activation_funnel: { Args: never; Returns: Json }
       get_admin_anomalies: { Args: never; Returns: Json }
@@ -1088,6 +1156,20 @@ export type Database = {
           words_total: number
         }[]
       }
+      get_billing_due: {
+        Args: { p_max_attempts?: number }
+        Returns: {
+          billing_attempts: number
+          email: string
+          grandfathered: boolean
+          is_retry: boolean
+          pending_inv_id: string
+          plan_expires_at: string
+          plan_interval: string
+          recurring_inv_id: string
+          user_id: string
+        }[]
+      }
       get_feature_flags: {
         Args: never
         Returns: {
@@ -1105,13 +1187,33 @@ export type Database = {
         }[]
       }
       get_public_stats: { Args: never; Returns: Json }
+      get_renewal_reminders_due: {
+        Args: never
+        Returns: {
+          email: string
+          grandfathered: boolean
+          plan_expires_at: string
+          plan_interval: string
+          user_id: string
+        }[]
+      }
       get_shared_book: { Args: { p_token: string }; Returns: Json }
+      invoke_edge_function: {
+        Args: { p_function: string; p_secret_name: string }
+        Returns: number
+      }
       is_admin: { Args: never; Returns: boolean }
+      is_paid: { Args: { p_user_id: string }; Returns: boolean }
+      release_renewal_reminder: {
+        Args: { p_expiry: string; p_user_id: string }
+        Returns: undefined
+      }
       remove_user_dictionary_word: {
         Args: { p_user_id: string; p_word: string }
         Returns: undefined
       }
       reorder_chapters: { Args: { updates: Json }; Returns: undefined }
+      reorder_notes: { Args: { updates: Json }; Returns: undefined }
       reorder_timeline_events: { Args: { updates: Json }; Returns: undefined }
       set_feature_flag: {
         Args: { p_enabled: boolean; p_key: string }
@@ -1153,12 +1255,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1182,11 +1284,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1207,11 +1309,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1232,11 +1334,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1249,11 +1351,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

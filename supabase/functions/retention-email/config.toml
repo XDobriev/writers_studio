@@ -1,0 +1,4 @@
+# Вызывается pg_cron (pg_net) с Bearer = CRON_SECRET; секрет сверяется внутри функции.
+# Деплой: --no-verify-jwt.
+[functions.retention-email]
+verify_jwt = false

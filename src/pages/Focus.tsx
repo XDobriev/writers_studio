@@ -1,24 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { RichEditor } from '../components/RichEditor';
-import {
-  countWords,
-  updateChapter,
-  type ChapterPatch,
-  type SaveState,
-} from '../lib/chapters';
+import { type SaveState } from '../lib/chapters';
 import { plural } from '../lib/i18n';
 import { useBook, useChapters, useChapterContent } from '../lib/queries';
-import { updateChapterWithCache } from '../lib/chapterMutations';
-import { useDebouncedSave } from '../lib/useDebouncedSave';
-import { useBeforeUnloadSave } from '../lib/useBeforeUnloadSave';
+import { useAuth } from '../lib/auth';
+import { useUserDisplay } from '../lib/useUserDisplay';
+import { useChapterVersioning } from '../lib/useChapterVersioning';
+import { useChapterAutosave, useRecoveredChapterContent } from '../lib/useChapterAutosave';
+import { SaveNotice, UnsavedBanner } from '../components/SaveStatusBanners';
 
 export default function Focus() {
   const { id: bookId } = useParams<{ id: string }>();
   const [search] = useSearchParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { plan } = useUserDisplay();
+  const isPro = plan === 'pro' || plan === 'lifetime';
 
   const { data: book, error: bookError } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
@@ -30,40 +28,28 @@ export default function Focus() {
     return chapters[0].id;
   }, [chapters, requestedId]);
 
+  // Тот же путь сохранения, что в редакторе: очередь, черновик, версии, бэклинки.
+  const autosave = useChapterAutosave({ bookId, userId: user?.id, isPro });
+  const { flush, saveState } = autosave;
   const { data: chapterContentData } = useChapterContent(activeId ?? undefined);
-  const activeContent = chapterContentData?.content ?? '';
-  const contentReady = chapterContentData !== undefined;
+  const activeUpdatedAt = chapters?.find((c) => c.id === activeId)?.updated_at;
+  const { content: activeContent, ready: contentReady } = useRecoveredChapterContent(
+    activeId, chapterContentData, activeUpdatedAt, autosave, { userId: user?.id, isPro },
+  );
+  const { onContentTracked } = useChapterVersioning({ chapterId: activeId, userId: user?.id, isPro });
+  useEffect(() => { onContentTracked(activeContent); }, [activeContent, onContentTracked]);
 
   const activeChapter = useMemo(
     () => (chapters && activeId ? chapters.find((c) => c.id === activeId) ?? null : null),
     [chapters, activeId],
   );
 
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-
-  const { scheduleSave, flush, pendingPatchRef, targetIdRef } = useDebouncedSave<ChapterPatch>(
-    async (id, patch) => {
-      if (!bookId) return;
-      setSaveState('saving');
-      try {
-        const updated = await updateChapter(id, patch);
-        updateChapterWithCache(queryClient, bookId, updated);
-        setSaveState('saved');
-      } catch (e) {
-        setSaveState('error');
-        throw e;
-      }
-    },
-    700,
-  );
-
-  // Keepalive: дописать незаписанный патч при закрытии вкладки в окне debounce.
-  useBeforeUnloadSave(pendingPatchRef, targetIdRef);
-
   const error = (bookError ?? chaptersError)?.message ?? null;
 
-  const exit = useCallback(() => {
-    void flush();
+  // Выход: дождаться записи (не дольше 3 с), чтобы редактор открылся с актуальной
+  // точкой отсчёта на сервере. Текст в любом случае уже в кэше и в локальном черновике.
+  const exit = useCallback(async () => {
+    await Promise.race([flush(), new Promise((r) => setTimeout(r, 3000))]);
     const target = activeId
       ? `/books/${bookId}/editor?chapter=${activeId}`
       : `/books/${bookId}/editor`;
@@ -71,30 +57,35 @@ export default function Focus() {
   }, [activeId, bookId, flush, navigate]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') exit(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { void exit(); return; }
+      const mod = /mac/i.test(navigator.platform) ? e.metaKey : e.ctrlKey;
+      if (mod && e.code === 'KeyS') { e.preventDefault(); void flush(); }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [exit]);
+  }, [exit, flush]);
 
   const onContentChange = useCallback((html: string) => {
     if (!activeId) return;
-    scheduleSave(activeId, { content: html, words: countWords(html) });
-  }, [activeId, scheduleSave]);
+    onContentTracked(html);
+    autosave.scheduleContent(activeId, html);
+  }, [activeId, autosave, onContentTracked]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
   if (error) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'oklch(0.10 0.012 50)', color: 'var(--ink)', padding: 32 }}>
+      <div className="as" style={{ minHeight: '100dvh', background: 'oklch(0.10 0.012 50)', color: 'var(--ink)', padding: 32 }}>
         <div style={{ color: 'var(--danger)' }}>Ошибка: {error}</div>
-        <button className="btn" style={{ marginTop: 16 }} onClick={exit}>← Назад к редактору</button>
+        <button className="btn" style={{ marginTop: 16 }} onClick={() => { void exit(); }}>← Назад к редактору</button>
       </div>
     );
   }
 
   if (!book || !chapters) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'oklch(0.10 0.012 50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="as" style={{ minHeight: '100dvh', background: 'oklch(0.10 0.012 50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="page-spinner" style={{ borderColor: 'oklch(0.35 0.012 50)', borderTopColor: 'var(--accent)' }} />
       </div>
     );
@@ -102,9 +93,9 @@ export default function Focus() {
 
   if (!activeChapter) {
     return (
-      <div className="as" style={{ minHeight: '100vh', background: 'oklch(0.10 0.012 50)', color: 'var(--ink-3)', padding: 32, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'center' }}>
+      <div className="as" style={{ minHeight: '100dvh', background: 'oklch(0.10 0.012 50)', color: 'var(--ink-3)', padding: 32, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'center' }}>
         <div>В книге ещё нет глав.</div>
-        <button className="btn" onClick={exit}>← Открыть редактор</button>
+        <button className="btn" onClick={() => { void exit(); }}>← Открыть редактор</button>
       </div>
     );
   }
@@ -134,8 +125,11 @@ export default function Focus() {
         )}
       </div>
 
+      {saveState === 'error' && <UnsavedBanner onRetry={() => { void flush(); }} />}
+      {autosave.notice && <SaveNotice message={autosave.notice} onDismiss={autosave.clearNotice} />}
+
       <button
-        onClick={exit}
+        onClick={() => { void exit(); }}
         title="Выйти из фокус-режима (Esc)"
         className="tb-btn"
         style={{ position: 'absolute', top: 18, right: 18, padding: '0 12px', height: 30, font: '400 10.5px var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-3)', border: '1px solid var(--border-soft)', background: 'oklch(from var(--bg-deep) l c h / 0.7)', backdropFilter: 'blur(8px)', borderRadius: 8 }}
@@ -151,7 +145,7 @@ export default function Focus() {
           contentReady={contentReady}
           placeholder="Только текст и вы. Печатайте…"
           attributesStyle={focusEditorStyle}
-          style={{ width: 720, maxWidth: '100%', minHeight: 'calc(100vh - 200px)' }}
+          style={{ width: 720, maxWidth: '100%', minHeight: 'calc(100dvh - 200px)' }}
         />
       </div>
 

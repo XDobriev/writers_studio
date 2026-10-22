@@ -14,7 +14,7 @@ import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
-import { getPlanLimits } from '../lib/profiles';
+import { getPlanLimits, isPlanLimitError } from '../lib/profiles';
 import {
   createTimelineEvent,
   deleteTimelineEvent,
@@ -27,6 +27,7 @@ import {
 import { TimelineEventCard } from '../components/TimelineEventCard';
 import { TimelineFilters } from '../components/TimelineFilters';
 import { QUERY_KEYS, useBook, useChapters, useTimelineEvents, useProfile } from '../lib/queries';
+import { mergeConfirmedInList } from '../lib/cacheMerge';
 import { TimelineLane } from '../components/TimelineLane';
 import { EventDetailPanel } from '../components/EventDetailPanel';
 
@@ -38,7 +39,7 @@ export default function Timeline() {
 
   const queryClient = useQueryClient();
   const { data: profile } = useProfile(user?.id);
-  const limits = getPlanLimits(profile?.plan);
+  const limits = getPlanLimits(profile);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const { data: book } = useBook(bookId);
@@ -80,6 +81,10 @@ export default function Timeline() {
       );
       setJustCreatedId(created.id);
     } catch (e) {
+      if (isPlanLimitError(e)) {
+        setShowUpgrade(true);
+        return;
+      }
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       creatingRef.current = false;
@@ -105,11 +110,12 @@ export default function Timeline() {
       try {
         const updated = await updateTimelineEvent(id, patch);
         queryClient.setQueryData<TimelineEvent[]>(QUERY_KEYS.timelineEvents(bookId), (prev) =>
-          prev ? prev.map((e) => (e.id === id ? updated : e)) : prev
+          mergeConfirmedInList(prev, updated, patch as Partial<TimelineEvent>)
         );
       } catch (e) {
+        // Набранное не откатываем: карточка вернёт патч в очередь и повторит запись.
         setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-        void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timelineEvents(bookId) });
+        throw e;
       }
     },
     [bookId, queryClient, setError]
@@ -173,7 +179,7 @@ export default function Timeline() {
       <div
         className="as"
         style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           background: 'var(--bg)',
           display: 'flex',
           alignItems: 'center',
@@ -195,7 +201,7 @@ export default function Timeline() {
       <div
         className="as"
         style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           background: 'var(--bg)',
           display: 'flex',
           alignItems: 'center',

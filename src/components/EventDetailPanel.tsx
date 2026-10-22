@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
 import { TimelineEventCard } from './TimelineEventCard';
 import { TYPE_COLORS, type TimelineEvent, type TimelineEventPatch } from '../lib/timeline';
 import type { ChapterMeta } from '../lib/chapters';
@@ -12,22 +14,17 @@ export function EventDetailPanel({
 }: {
   event: TimelineEvent;
   chapters: ChapterMeta[];
-  onUpdate: (patch: TimelineEventPatch) => void;
+  onUpdate: (patch: TimelineEventPatch) => Promise<void> | void;
   onDelete: () => void;
   onClose: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const color = TYPE_COLORS[event.type];
 
-  useEffect(() => { panelRef.current?.focus(); }, []);
+  useModalFocus(true, panelRef);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose(); }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  // Через общий стек: подтверждение удаления поверх панели закрывается Escape отдельно.
+  useEscapeToClose(true, onClose);
 
   return (
     <>
@@ -47,18 +44,7 @@ export function EventDetailPanel({
         aria-modal="true"
         aria-label="Детали события"
         tabIndex={-1}
-        onKeyDown={(e) => {
-          if (e.key !== 'Tab') return;
-          const focusable = e.currentTarget.querySelectorAll<HTMLElement>(
-            'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])'
-          );
-          const first = focusable[0];
-          const last = focusable[focusable.length - 1];
-          if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-            e.preventDefault();
-            (e.shiftKey ? last : first).focus();
-          }
-        }}
+        onKeyDown={(e) => trapTab(e)}
         style={{
           position: 'fixed',
           top: 0,
