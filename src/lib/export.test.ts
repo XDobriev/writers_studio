@@ -25,6 +25,7 @@ import { buildDocxDocument } from './exportDocx';
 const book: Book = {
   id: '3f1d2c4b-1111-4222-8333-444455556666',
   user_id: 'u1',
+  imported_words: 0,
   title: 'Тестовая книга & «кавычки»',
   author: 'Иван Петров',
   cover: null,

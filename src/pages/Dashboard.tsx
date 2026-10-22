@@ -118,8 +118,8 @@ export default function Dashboard() {
   }, [book, chapters, characters]);
 
   const activityData = useMemo(
-    () => (snapshots === undefined ? null : computeActivityData(snapshots)),
-    [snapshots],
+    () => (snapshots === undefined ? null : computeActivityData(snapshots, undefined, book?.imported_words ?? 0)),
+    [snapshots, book?.imported_words],
   );
 
   useEffect(() => {

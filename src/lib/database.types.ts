@@ -120,6 +120,7 @@ export type Database = {
           genres: string[] | null
           goal: number
           id: string
+          imported_words: number
           map_bg_url: string | null
           map_template: string | null
           series_id: string | null
@@ -139,6 +140,7 @@ export type Database = {
           genres?: string[] | null
           goal?: number
           id?: string
+          imported_words?: number
           map_bg_url?: string | null
           map_template?: string | null
           series_id?: string | null
@@ -158,6 +160,7 @@ export type Database = {
           genres?: string[] | null
           goal?: number
           id?: string
+          imported_words?: number
           map_bg_url?: string | null
           map_template?: string | null
           series_id?: string | null

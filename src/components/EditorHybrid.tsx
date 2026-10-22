@@ -191,7 +191,7 @@ export function EditorHybrid({
     const idx = chapters.findIndex((c) => c.id === activeChapter.id);
     return idx !== -1 && idx < chapters.length - 1 ? chapters[idx + 1] : null;
   })();
-  const writingStats = useWritingStats(book?.id);
+  const writingStats = useWritingStats(book?.id, book?.imported_words ?? 0);
   const { refetch: refetchStats } = writingStats;
   const { plan } = useUserDisplay();
   const isPro = plan === 'pro' || plan === 'lifetime';

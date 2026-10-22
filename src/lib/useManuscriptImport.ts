@@ -2,7 +2,8 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useErrorState } from './useErrorState';
-import { createBook, deleteBook } from './books';
+import { createBook, deleteBook, updateBook } from './books';
+import { toUserMessage } from './errors';
 import { createChaptersBulk } from './chapters';
 import { QUERY_KEYS } from './queries';
 import type { Book } from './supabase';
@@ -104,6 +105,9 @@ export function useManuscriptImport({ userId, isPro, cover, onNeedUpgrade }: {
         chapters.map((c) => ({ title: c.title, content: c.html, words: c.words })),
       );
       const words = chapters.reduce((s, c) => s + c.words, 0);
+      // Импортированный текст — точка отсчёта статистики, а не «написано сегодня».
+      // Некритично: при ошибке книга уже создана, страдает только тепловая карта.
+      await updateBook(book.id, { imported_words: words }).catch(() => undefined);
       const created0 = created[0];
       queryClient.setQueryData<Book[]>(QUERY_KEYS.books(userId), (prev) => [{ ...book!, words }, ...(prev ?? [])]);
       navigate(`/books/${book.id}/editor${created0 ? `?chapter=${created0.id}` : ''}`);
@@ -111,9 +115,7 @@ export function useManuscriptImport({ userId, isPro, cover, onNeedUpgrade }: {
       // Атомарность: книга без глав никому не нужна и съедает лимит Free.
       if (book) await deleteBook(book.id).catch(() => undefined);
       setState({ ...state, kind: 'preview' });
-      const msg = e instanceof Error ? e.message
-        : typeof e === 'object' && e && 'message' in e ? String(e.message) : '';
-      setError(msg ? `Не удалось создать книгу: ${msg}` : 'Не удалось создать книгу');
+      setError(`Не удалось создать книгу. ${toUserMessage(e)}`);
     }
   }, [state, userId, chapters, title, cover, clearError, setError, queryClient, navigate]);
 

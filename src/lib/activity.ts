@@ -33,6 +33,7 @@ export interface ActivityData {
 export function computeActivityData(
   snapshots: ActivitySnapshot[],
   today: Date = new Date(),
+  startWords = 0,
 ): ActivityData {
   const snap: Record<string, number> = {};
   for (const row of snapshots) snap[row.date] = row.words;
@@ -52,7 +53,8 @@ export function computeActivityData(
   // относительно него — как cumulativeAsOf в useWritingStats.ts, но за один проход.
   const startDateStr = toLocalISODate(startDate);
   const beforeWindow = Object.keys(snap).filter(d => d < startDateStr).sort();
-  let cumulativeBaseline = beforeWindow.length ? snap[beforeWindow[beforeWindow.length - 1]] : 0;
+  // Нет снапшотов до окна — база = объём, с которого книга началась (импорт рукописи), иначе 0.
+  let cumulativeBaseline = beforeWindow.length ? snap[beforeWindow[beforeWindow.length - 1]] : startWords;
 
   const cells: ActivityCell[] = [];
   for (let i = 0; i < HEATMAP_WEEKS * 7; i++) {

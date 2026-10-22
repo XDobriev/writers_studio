@@ -27,6 +27,13 @@ describe('computeActivityData', () => {
     expect(d.streak).toBe(2);
   });
 
+  it('импортированная рукопись — точка отсчёта, а не «написано сегодня»', () => {
+    // Импорт 50 000 слов сегодня, потом дописано 300.
+    const d = computeActivityData([{ date: todayStr, words: 50_300 }], today, 50_000);
+    expect(d.todayWords).toBe(300);
+    expect(d.maxDelta).toBe(300);
+  });
+
   it('будущие дни не учитываются (delta = 0)', () => {
     const d = computeActivityData([{ date: todayStr, words: 500 }], today);
     expect(d.cells.filter(c => c.future).every(c => c.delta === 0)).toBe(true);

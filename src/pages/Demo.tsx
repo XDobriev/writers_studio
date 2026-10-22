@@ -19,6 +19,7 @@ const demoChapterId = (num: number) => `00000000-0000-0000-0000-${String(1000 + 
 const DEMO_BOOK: Book = {
   id: DEMO_BOOK_ID,
   user_id: DEMO_USER_ID,
+  imported_words: 0,
   title: NOVEL.title,
   author: NOVEL.author,
   genre: NOVEL.genre,
