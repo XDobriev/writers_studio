@@ -35,7 +35,6 @@ interface AuthContextValue {
   initializing: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
-  signInWithGoogle: () => Promise<{ error: string | null }>;
   signInWithTelegram: (data: TelegramAuthData) => Promise<{ error: string | null }>;
   signInWithVk: (accessToken: string, userId: number) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -141,16 +140,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
-  const signInWithGoogle: AuthContextValue['signInWithGoogle'] = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/login`,
-      },
-    });
-    return { error: error?.message ?? null };
-  };
-
   // Мемоизированы: useTelegramAuth/useVkAuth держат их в deps эффекта, монтирующего
   // SDK-виджет. Нестабильная идентичность → эффект перезапускается на каждый рендер
   // AuthProvider (в т.ч. на SIGNED_IN, вызванном самим логином) → повторный монтаж
@@ -217,7 +206,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         initializing,
         signIn,
         signUp,
-        signInWithGoogle,
         signInWithTelegram,
         signInWithVk,
         signOut,

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from './Icon';
 import { ConfirmDialog } from './ConfirmDialog';
-import { createNote, updateNote, deleteNote, type Note, type NoteKind } from '../lib/notes';
+import { createNote, updateNote, type Note, type NoteKind } from '../lib/notes';
+import { useNoteMutations } from '../lib/useNoteMutations';
 import { useNotes, useChapterMembers, QUERY_KEYS } from '../lib/queries';
 import { getCharacterColor } from '../lib/pov';
 
@@ -43,6 +44,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   const queryClient = useQueryClient();
   const { error: noteError, setError: setNoteError, clearError: clearNoteError } = useErrorState();
   const { data: allNotes = [] } = useNotes(bookId);
+  const { onDelete: handleDelete } = useNoteMutations({ bookId, setError: setNoteError });
   const { data: chapterMembers = [] } = useChapterMembers(chapterId);
   const notes = chapterId ? allNotes.filter(n => n.chapter_id === chapterId) : allNotes;
   const [activeTab, setActiveTab] = useState<'notes' | 'versions'>('notes');
@@ -94,15 +96,6 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
 
   const requestDelete = (note: Note) => {
     setConfirmDelete({ id: note.id, text: note.text });
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteNote(id);
-      invalidate();
-    } catch (e) {
-      setNoteError(e instanceof Error ? e.message : 'Не удалось удалить заметку');
-    }
   };
 
   const startEdit = (n: Note) => {
@@ -408,7 +401,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
             : 'Удалить заметку?\nЭто действие нельзя отменить.'
         }
         onConfirm={() => {
-          void handleDelete(confirmDelete!.id);
+          handleDelete(confirmDelete!.id);
           setConfirmDelete(null);
         }}
         onCancel={() => setConfirmDelete(null)}

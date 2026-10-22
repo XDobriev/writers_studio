@@ -153,6 +153,7 @@ export function TimelineEventCard({
         />
 
         <textarea
+          className="tl-event-desc"
           value={description}
           onChange={onDescChange}
           placeholder="Что произошло"

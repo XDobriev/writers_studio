@@ -417,6 +417,14 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   scrollbar-width: none;
 }
 .tb::-webkit-scrollbar { display: none; }
+/* Мобильные фильтры хронологии: горизонтальная прокрутка без полосы — как у тулбара (.tb). */
+.tl-filters {
+  display: flex; gap: 4px; padding: 6px 12px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border-soft);
+  overflow-x: auto; scrollbar-width: none;
+}
+.tl-filters::-webkit-scrollbar { display: none; }
+.tl-event-desc { scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
 .tb--wrap { flex-wrap: nowrap; }
 .tb > * { flex-shrink: 0; }
 .tb-grp { display: flex; align-items: center; gap: 1px; }
@@ -544,6 +552,11 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   border-radius: 4px 4px 0 0;
   position: relative;
   letter-spacing: 0.005em;
+}
+.sheet-title {
+  display: block; width: 100%; margin: 0 0 22px; padding: 0;
+  background: transparent; border: none; outline: none; resize: none; overflow: hidden;
+  font: 600 30px var(--font-serif); letter-spacing: -0.012em; color: var(--paper-ink);
 }
 .sheet h1, .sheet .ch-num, .sheet .ch-title {
   font-family: var(--font-editor);
@@ -726,7 +739,7 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .mn:hover .mn-actions,
 .mn:focus-within .mn-actions { opacity: 1; }
-.mn-text { font-size: 12px; color: var(--ink-2); line-height: 1.6; }
+.mn-text { font-size: 12px; color: var(--ink-2); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
 /* «Добавить заметку» под списком: пунктир = место, куда встанет следующая карточка */
 .rp-add-note {
   width: 100%; height: 36px; justify-content: center;
@@ -995,6 +1008,17 @@ select.input {
 }
 .focus-mode .sheet .sheet-title:focus {
   opacity: 1;
+}
+/* Футер страницы /focus — обычный flex-ряд под областью прокрутки, а не absolute поверх неё:
+   иначе последние строки текста уходят под него. */
+.focus-foot {
+  flex-shrink: 0; display: flex; align-items: center; gap: 14px; padding: 12px 24px;
+  font: 400 11px var(--font-mono); color: var(--ink-4);
+}
+.focus-foot > span { white-space: nowrap; }
+@media (max-width: 479px) {
+  .focus-foot { gap: 10px; padding: 10px 16px; }
+  .focus-foot__label, .focus-foot__bar { display: none; }
 }
 .focus-mode .sheet .tiptap {
   caret-color: oklch(0.76 0.25 68);
@@ -1821,7 +1845,8 @@ select.input {
 @media (max-width: 1023px) {
   .lnd-hero-grid { grid-template-columns: 1fr; }
   .lnd-hero-sheet { display: none; }
-  .lnd-feat-row { grid-template-columns: 1fr; gap: 40px; padding: 40px 0; }
+  /* minmax(0,…): иначе трек растягивается по min-content мока шире контейнера и режется справа. */
+  .lnd-feat-row { grid-template-columns: minmax(0, 1fr); gap: 40px; padding: 40px 0; }
   .lnd-feat-row--rev > :first-child { order: 1; }
   .lnd-feat-row--rev > :last-child { order: 2; }
   .lnd-feat-row-full { padding: 40px 0; }
