@@ -13,6 +13,7 @@ export interface BookCreateInput {
   goal: number;
   words: number;
   cover: string;
+  author?: string | null;
 }
 
 export async function getBook(id: string): Promise<Book> {

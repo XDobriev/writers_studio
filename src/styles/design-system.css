@@ -2388,3 +2388,45 @@ select.input {
   padding-bottom: 10px;
   max-height: 40vh; overflow-y: auto;
 }
+
+/* ── Импорт рукописи (ImportManuscriptModal) ── */
+.import-drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  padding: 32px 20px; text-align: center; cursor: pointer;
+  border: 1px dashed var(--border-strong); border-radius: var(--r-3);
+  background: var(--surface);
+  color: var(--ink-2); font: 400 13px/1.5 var(--font-ui);
+  transition: background var(--dur-hover), border-color var(--dur-hover);
+}
+.import-drop:hover, .import-drop--over { background: var(--surface-2); border-color: var(--accent); }
+.import-drop:focus-within { border-color: var(--accent); }
+.import-drop__input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.import-drop__title { font: 500 14px var(--font-ui); color: var(--ink); }
+.import-drop__hint { font: 400 12px var(--font-ui); color: var(--ink-3); }
+.import-modes { display: flex; gap: 6px; flex-wrap: wrap; }
+.import-mode {
+  padding: 6px 12px; border-radius: 8px; cursor: pointer; text-align: left;
+  border: 1px solid var(--border-soft); background: var(--surface);
+  font: 500 12.5px var(--font-ui); color: var(--ink-2);
+  transition: background var(--dur-hover);
+}
+.import-mode:not([aria-checked="true"]):not(:disabled):hover { background: var(--surface-2); }
+.import-mode[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.import-mode:disabled { opacity: 0.5; cursor: default; }
+.import-mode__count { font: 400 11px var(--font-mono); color: var(--ink-4); margin-left: 6px; }
+.import-chapters {
+  max-height: 260px; overflow-y: auto;
+  margin: 0; padding: 0; list-style: none;
+  border: 1px solid var(--border-soft); border-radius: 8px;
+  scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent;
+}
+.import-chapter-row {
+  display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: baseline;
+  padding: 7px 12px; border-bottom: 1px solid var(--border-soft);
+  font: 400 13px var(--font-ui); color: var(--ink);
+}
+.import-chapter-row:last-child { border-bottom: none; }
+.import-chapter-row__num, .import-chapter-row__words { font: 400 11px var(--font-mono); color: var(--ink-4); }
+.import-chapter-row__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.import-summary { font: 400 12px var(--font-mono); color: var(--ink-3); }
+.import-status { display: flex; align-items: center; gap: 10px; padding: 24px 4px; font: 400 13px var(--font-ui); color: var(--ink-2); }

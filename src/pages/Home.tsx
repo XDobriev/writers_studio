@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../lib/useResponsive';
 import { useErrorState } from '../lib/useErrorState';
@@ -24,6 +24,7 @@ import {
 import { createChapter } from '../lib/chapters';
 import { getPlanLimits, isPlanLimitError } from '../lib/profiles';
 import { UpgradePrompt } from '../components/UpgradePrompt';
+import { ImportManuscriptModal } from '../components/ImportManuscriptModal';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useHasAnyCharacter, useProfile, useSeries, QUERY_KEYS } from '../lib/queries';
@@ -55,6 +56,8 @@ export default function Home() {
   const { data: hasCharacter } = useHasAnyCharacter(user?.id, checklistVisible);
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState<'books' | 'import'>('books');
+  const [showImport, setShowImport] = useState(false);
 
   const [editBook, setEditBook] = useState<Book | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -151,17 +154,35 @@ export default function Home() {
 
   const handleNewBookClick = () => {
     if ((books?.length ?? 0) >= limits.maxBooks) {
+      setUpgradeFeature('books');
       setShowUpgrade(true);
     } else {
       openCreateModal();
     }
   };
 
+  // Импорт создаёт новую книгу — тот же лимит Free, что и «Новая книга».
+  const handleImportClick = () => {
+    if ((books?.length ?? 0) >= limits.maxBooks) {
+      setUpgradeFeature('books');
+      setShowUpgrade(true);
+    } else {
+      setShowImport(true);
+    }
+  };
+
+  const handleImportNeedsPro = useCallback(() => {
+    setShowImport(false);
+    setUpgradeFeature('import');
+    setShowUpgrade(true);
+  }, []);
+
   // Второй вход в перенос: тот же модал, что «Новая книга», но источник уже выбран.
   // Галка в модале невидима, пока не нажмёшь «Новая книга», — а продолжение затевают,
   // глядя на книгу-источник.
   const handleCreateSequel = (source: Book) => {
     if ((books?.length ?? 0) >= limits.maxBooks) {
+      setUpgradeFeature('books');
       setShowUpgrade(true);
       return;
     }
@@ -276,6 +297,9 @@ export default function Home() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn" onClick={handleImportClick}>
+              <Icon name="book" size={14} /> Импорт рукописи
+            </button>
             <button className="btn btn--primary" onClick={handleNewBookClick}>
               <Icon name="plus" size={14} /> Новая книга
             </button>
@@ -321,9 +345,14 @@ export default function Home() {
             <p style={{ font: '400 14px/1.6 var(--font-ui)', color: 'var(--ink-3)', maxWidth: 360, marginBottom: 28 }}>
               Создайте книгу — все главы, персонажи и заметки будут храниться в вашем аккаунте.
             </p>
-            <button className="btn btn--primary btn--lg" onClick={handleNewBookClick}>
-              <Icon name="plus" size={15} /> Создать книгу
-            </button>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button className="btn btn--primary btn--lg" onClick={handleNewBookClick}>
+                <Icon name="plus" size={15} /> Создать книгу
+              </button>
+              <button className="btn btn--lg" onClick={handleImportClick}>
+                <Icon name="book" size={15} /> Импортировать рукопись
+              </button>
+            </div>
           </div>
         )}
 
@@ -461,7 +490,16 @@ export default function Home() {
         </div>
       )}
 
-      <UpgradePrompt open={showUpgrade} feature="books" onClose={() => setShowUpgrade(false)} />
+      <UpgradePrompt open={showUpgrade} feature={upgradeFeature} onClose={() => setShowUpgrade(false)} />
+
+      <ImportManuscriptModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        userId={user?.id}
+        isPro={limits.canExportRich}
+        cover={COVERS[(books?.length ?? 0) % COVERS.length]}
+        onNeedUpgrade={handleImportNeedsPro}
+      />
 
       <ConfirmDialog
         open={confirmDeleteBook && !!editBook}
