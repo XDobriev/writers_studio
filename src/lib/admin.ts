@@ -51,7 +51,7 @@ export interface ActivationFunnel {
   dismissed_early: number;
 }
 
-export interface CancellationEntry {
+interface CancellationEntry {
   id: string;
   reason: CancelReason;
   comment: string | null;
