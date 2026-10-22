@@ -67,6 +67,10 @@ const rootEl = document.getElementById('root')!;
 // Анти-флэш: index.html помечает <html class="prerender-stale">, когда предотрисованный
 // лендинг из SPA-fallback не относится к текущему роуту (см. комментарий в index.html).
 // Чистим устаревшую разметку и снимаем класс — #root становится виден уже под React.
+// JSON-LD страниц (useJsonLd) запечён пререндером в HTML; index.html лендинга отдаётся
+// SPA-fallback-ом для всех роутов, поэтому его FAQPage оказался бы на /offer, /books и т.д.
+// Убираем запечённые скрипты — каждая страница вставит свой заново при монтировании.
+document.querySelectorAll('script[data-jsonld]').forEach((el) => el.remove());
 if (document.documentElement.classList.contains('prerender-stale')) {
   rootEl.textContent = '';
   document.documentElement.classList.remove('prerender-stale');
