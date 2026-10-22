@@ -15,12 +15,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { importX509, jwtVerify } from 'https://esm.sh/jose@5.6.3';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
 // X.509 сертификат Robokassa (https://docs.robokassa.ru/media/files/jwtsign.cer)
 // Выпущен 2026-06-16, действует до 2027-06-16. При ротации — обновить и задеплоить.
 const ROBOKASSA_CERT = `-----BEGIN CERTIFICATE-----
@@ -61,7 +55,6 @@ async function getRobokassaKey() {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return new Response('method not allowed', { status: 405 });
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -76,18 +69,17 @@ Deno.serve(async (req) => {
     rawBody = await req.text();
     if (!rawBody) throw new Error('empty body');
   } catch (e) {
-    console.error('[payment-result2] cannot read body:', e);
+    console.error('[payment-result2] cannot read body:', e instanceof Error ? e.message : String(e));
     return new Response('bad body', { status: 400 });
   }
 
-  const contentType = req.headers.get('content-type') ?? 'not set';
-  console.log(`[payment-result2] content-type="${contentType}" body[0:300]="${rawBody.slice(0, 300)}"`);
+  // Сырое тело и JWS в лог не пишем (2026-10-22): там op_key и данные платежа.
+  console.log(`[payment-result2] received body length=${rawBody.length}`);
 
   // Robokassa отправляет JWS base64-кодированным в теле запроса (подтверждено поддержкой 22.06.2026)
   let jws: string;
   try {
     jws = atob(rawBody.trim());
-    console.log('[payment-result2] base64-decoded body, jws[0:100]:', jws.slice(0, 100));
   } catch {
     // Запасной вариант: raw JWS или form-urlencoded
     jws = rawBody.trim();
@@ -107,7 +99,7 @@ Deno.serve(async (req) => {
     const result = await jwtVerify(jws, pubKey, { algorithms: ['RS256'] });
     payload = result.payload as Record<string, unknown>;
   } catch (e) {
-    console.error('[payment-result2] JWS verify failed:', e, '| jws[0:200]:', jws.slice(0, 200));
+    console.error('[payment-result2] JWS verify failed:', e instanceof Error ? e.message : String(e));
     return new Response('bad jws', { status: 400 });
   }
 
@@ -116,7 +108,7 @@ Deno.serve(async (req) => {
   const invId  = data?.['invId']  as string | undefined;
 
   if (!opKey || !invId) {
-    console.error('[payment-result2] missing opKey or invId in payload:', JSON.stringify(payload).slice(0, 300));
+    console.error('[payment-result2] missing opKey or invId in payload');
     return new Response('missing fields', { status: 200 });
   }
 
@@ -140,10 +132,7 @@ Deno.serve(async (req) => {
     return new Response('OK', { status: 200 });
   }
 
-  const { error } = await db.from('payments').upsert(
-    { inv_id: invId, op_key: opKey },
-    { onConflict: 'inv_id' },
-  );
+  const { error } = await db.from('payments').update({ op_key: opKey }).eq('inv_id', invId);
   if (error) {
     console.error('[payment-result2] upsert failed:', error.message);
     return new Response('db error', { status: 500 });

@@ -1,46 +1,30 @@
 // supabase/functions/create-payment-url/index.ts
+//
+// Ссылка оплаты Робокассы. Body: { plan: 'pro'|'pro_annual'|'lifetime', consent?: boolean }.
+//
+// Серверные проверки (раньше были только в UI):
+//   * feature flag payments_enabled = false → 503 payments_disabled;
+//   * Lifetime у пользователя → 409 already_lifetime (Pro поверх Lifetime понизил бы его);
+//   * активная автопродлеваемая Pro → 409 already_pro (отменённую/без мандата можно купить заново);
+//   * Lifetime: слотов 0 → 409 lifetime_sold_out;
+//   * Pro при включённых рекуррентах: без consent:true → 400 consent_required. Согласие пишется
+//     здесь же в recurring_consents (service role): IP из x-forwarded-for, UA, версия и текст.
+//     Не записалось — ссылка не выдаётся (без доказательства согласия Recurring не ставим).
+// Счёт пред-создаётся в payments (source='checkout', recurring = был ли флаг Recurring) —
+// вебхук по нему понимает, что это новый мандат, а не дочерний платёж.
+//
+// Ранняя цена: окно GRANDFATHERING_ENDS_AT для новых покупок, либо profiles.grandfathered
+// у пользователя, чья Pro ещё числится (истекла, но в grace). После понижения флаг сброшен.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { Md5 } from 'https://esm.sh/ts-md5@1.3.1';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-// Боевые цены (соответствуют оферте /offer и лендингу).
-const BASE_PRICES: Record<string, string> = {
-  pro:        '399.00',
-  pro_annual: '3490.00',
-  lifetime:   '4990.00',
-};
-
-// Грандфазерская цена — сохраняется навсегда для profiles.grandfathered = true
-const GRANDFATHERED_PRICES: Record<string, string> = {
-  pro:        '290.00',
-  pro_annual: '2900.00',
-};
-
-const DESCRIPTIONS: Record<string, string> = {
-  pro:        'Подписка Pro — Авторская студия',
-  pro_annual: 'Подписка Pro (год) — Авторская студия',
-  lifetime:   'Lifetime — Авторская студия',
-};
-
-function json(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  });
-}
-
-function md5hex(input: string): string {
-  return Md5.hashStr(input) as string;
-}
+import { md5hex } from '../_shared/crypto.ts';
+import { bearer, clientIp, corsHeaders, json } from '../_shared/http.ts';
+import { DESCRIPTIONS, RECURRING_CONSENT_VERSION, isPaidPlan, priceFor, recurringConsentText } from '../_shared/pricing.ts';
+import { buildReceipt, newInvId } from '../_shared/robokassa.ts';
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-  if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
+  const cors = corsHeaders(req);
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  if (req.method !== 'POST') return json(405, { error: 'method not allowed' }, cors);
 
   const merchantLogin = Deno.env.get('ROBOKASSA_MERCHANT_LOGIN');
   const supabaseUrl   = Deno.env.get('SUPABASE_URL');
@@ -52,87 +36,112 @@ Deno.serve(async (req) => {
 
   if (!merchantLogin || !supabaseUrl || !serviceKey || !password1) {
     console.error('[create-payment-url] missing env');
-    return json(500, { error: 'server misconfigured' });
+    return json(500, { error: 'server misconfigured' }, cors);
   }
 
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return json(401, { error: 'missing auth' });
-  }
-  const token = authHeader.slice(7);
+  const token = bearer(req);
+  if (!token) return json(401, { error: 'missing auth' }, cors);
 
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
   const { data: { user }, error: userError } = await db.auth.getUser(token);
-  if (userError || !user) {
-    return json(401, { error: 'invalid token' });
-  }
+  if (userError || !user) return json(401, { error: 'invalid token' }, cors);
 
-  let plan: string;
+  let plan: unknown;
+  let consent = false;
   try {
     const body = await req.json();
     plan = body?.plan;
+    consent = body?.consent === true;
   } catch {
-    return json(400, { error: 'invalid body' });
+    return json(400, { error: 'invalid body' }, cors);
   }
+  if (!isPaidPlan(plan)) return json(400, { error: 'unknown plan' }, cors);
 
-  if (!BASE_PRICES[plan]) {
-    return json(400, { error: `unknown plan: ${plan}` });
+  const { data: flag, error: flagErr } = await db
+    .from('feature_flags').select('enabled').eq('key', 'payments_enabled').maybeSingle();
+  if (flagErr) {
+    console.error('[create-payment-url] flag read failed:', flagErr.message);
+    return json(500, { error: 'db error' }, cors);
   }
+  if (flag && flag.enabled === false) return json(503, { error: 'payments_disabled' }, cors);
 
-  // Грандфазер: ранняя цена 290₽ действует если:
-  // (а) флаг уже стоит на профиле (рекуррентные платежи существующих пользователей), или
-  // (б) текущая дата в пределах окна GRANDFATHERING_ENDS_AT (первая покупка нового пользователя)
-  const { data: profile } = await db
+  const { data: profile, error: profileErr } = await db
     .from('profiles')
-    .select('grandfathered')
+    .select('plan, plan_expires_at, grandfathered, recurring_inv_id, cancel_at_period_end')
     .eq('user_id', user.id)
     .single();
-  const isGrandfathered = profile?.grandfathered === true;
+  if (profileErr || !profile) {
+    console.error('[create-payment-url] profile read failed:', profileErr?.message ?? 'no row');
+    return json(500, { error: 'db error' }, cors);
+  }
+
+  if (profile.plan === 'lifetime') return json(409, { error: 'already_lifetime' }, cors);
+
+  const proActive = profile.plan === 'pro'
+    && (profile.plan_expires_at === null || new Date(profile.plan_expires_at) > new Date());
+  if (plan !== 'lifetime' && proActive && profile.recurring_inv_id && !profile.cancel_at_period_end) {
+    return json(409, { error: 'already_pro' }, cors);
+  }
+
+  if (plan === 'lifetime') {
+    const { data: slots, error: slotsErr } = await db
+      .from('app_settings').select('value').eq('key', 'lifetime_slots_remaining').maybeSingle();
+    if (slotsErr) return json(500, { error: 'db error' }, cors);
+    const remaining = slots ? parseInt(slots.value, 10) : 0;
+    if (!(remaining > 0)) return json(409, { error: 'lifetime_sold_out' }, cors);
+  }
 
   const grandfatheringEndsAt = Deno.env.get('GRANDFATHERING_ENDS_AT');
-  const isInGrandfatheringWindow = grandfatheringEndsAt
-    ? new Date() < new Date(grandfatheringEndsAt)
-    : false;
-
-  const baseOutSum = ((isGrandfathered || isInGrandfatheringWindow) && GRANDFATHERED_PRICES[plan])
-    ? GRANDFATHERED_PRICES[plan]
-    : BASE_PRICES[plan];
-  // BILLING_TEST_AMOUNT — тест-override суммы (напр. 1₽ для E2E). Применяется ТОЛЬКО в тест-режиме,
-  // иначе в бою обвалил бы боевую цену для всех. Установить Secret → удалить после теста.
+  const inWindow = grandfatheringEndsAt ? new Date() < new Date(grandfatheringEndsAt) : false;
+  const keepsEarlyPrice = profile.grandfathered === true && profile.plan === 'pro';
+  const baseOutSum = priceFor(plan, inWindow || keepsEarlyPrice);
+  // BILLING_TEST_AMOUNT — тест-override суммы. Только в тест-режиме.
   const outSum = isTestMode ? (Deno.env.get('BILLING_TEST_AMOUNT') ?? baseOutSum) : baseOutSum;
-  // Числовой InvId с случайным суффиксом — Робокасса требует целое число, поэтому не UUID.
-  const invId       = String(Date.now()) + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
-  const shpPlan     = plan;
-  const shpUserId   = user.id;
-  const result2Url  = `${supabaseUrl}/functions/v1/payment-result2`;
 
-  // Receipt с номенклатурой (обязателен по ФЗ-54)
-  // tax: 'none' — без НДС (СМЗ/УСН). Если ОСНО → менять на 'vat20'.
-  // email — куда Robokassa отправит электронный чек покупателю.
-  const receipt: Record<string, unknown> = {
-    items: [{
-      name: DESCRIPTIONS[plan],
-      quantity: 1,
-      sum: parseFloat(outSum),
-      payment_method: 'full_payment',
-      payment_object: 'service',
-      tax: 'none',
-    }],
-  };
-  if (user.email) receipt['email'] = user.email;
-  const receiptJson    = JSON.stringify(receipt);
-  const receiptEncoded = encodeURIComponent(receiptJson);
-
-  // Подпись: MerchantLogin:OutSum:InvId:ReceiptJSON:ResultUrl2:Password1:Shp_...
-  // В подпись входит RAW JSON (не URL-encoded) — подтверждено рабочими платежами 17-18.06.2026.
-  // В URL-параметр Receipt идёт receiptEncoded. Два разных представления одного JSON.
-  const sigString = `${merchantLogin}:${outSum}:${invId}:${receiptJson}:${result2Url}:${password1}:Shp_plan=${shpPlan}:Shp_user_id=${shpUserId}`;
-  const signature = md5hex(sigString);
-
-  // Recurring отправляем ТОЛЬКО при ROBOKASSA_RECURRING_ENABLED=true.
-  // Диагностика ошибки 29: по умолчанию off → точная рабочая конфигурация без Recurring.
   const recurringEnabled = Deno.env.get('ROBOKASSA_RECURRING_ENABLED') === 'true';
-  const sendRecurring = (plan === 'pro' || plan === 'pro_annual') && recurringEnabled;
+  const isPro = plan === 'pro' || plan === 'pro_annual';
+  if (isPro && recurringEnabled && !consent) {
+    return json(400, { error: 'consent_required' }, cors);
+  }
+  const sendRecurring = isPro && recurringEnabled && consent;
+
+  const invId     = newInvId();
+  const result2Url = `${supabaseUrl}/functions/v1/payment-result2`;
+
+  if (sendRecurring) {
+    const { error: consentErr } = await db.from('recurring_consents').insert({
+      user_id: user.id,
+      plan,
+      inv_id: invId,
+      ip: clientIp(req),
+      user_agent: req.headers.get('user-agent')?.slice(0, 512) ?? null,
+      consent_version: RECURRING_CONSENT_VERSION,
+      consent_text: recurringConsentText(plan === 'pro_annual' ? 'pro_annual' : 'pro'),
+    });
+    if (consentErr) {
+      console.error('[create-payment-url] consent insert failed:', consentErr.message);
+      return json(500, { error: 'consent_not_saved' }, cors);
+    }
+  }
+
+  const { error: payErr } = await db.from('payments').insert({
+    inv_id: invId,
+    user_id: user.id,
+    amount: parseFloat(outSum),
+    plan,
+    source: 'checkout',
+    recurring: sendRecurring,
+  });
+  if (payErr) {
+    console.error('[create-payment-url] payments pre-insert failed:', payErr.message);
+    return json(500, { error: 'db error' }, cors);
+  }
+
+  const receipt = buildReceipt(DESCRIPTIONS[plan], outSum, user.email);
+  // Подпись: MerchantLogin:OutSum:InvId:ReceiptJSON:ResultUrl2:Password1:Shp_plan=…:Shp_user_id=…
+  // Receipt в подписи — raw JSON, в URL — encodeURIComponent (рабочая формула 17-18.06.2026).
+  const sigString = `${merchantLogin}:${outSum}:${invId}:${receipt.json}:${result2Url}:${password1}:Shp_plan=${plan}:Shp_user_id=${user.id}`;
+  const signature = md5hex(sigString);
 
   const params = new URLSearchParams({
     MerchantLogin:  merchantLogin,
@@ -142,13 +151,12 @@ Deno.serve(async (req) => {
     SignatureValue: signature,
     IsTest:         isTestMode ? '1' : '0',
     ResultUrl2:     result2Url,
-    Shp_plan:       shpPlan,
-    Shp_user_id:    shpUserId,
+    Shp_plan:       plan,
+    Shp_user_id:    user.id,
     ...(sendRecurring ? { Recurring: 'true' } : {}),
   });
 
-  // Receipt добавляем вручную — encodeURIComponent, не двойное кодирование через URLSearchParams
-  const url = `https://auth.robokassa.ru/Merchant/Index.aspx?${params.toString()}&Receipt=${receiptEncoded}`;
-  console.log(`[create-payment-url] plan=${plan} invId=${invId} userId=${user.id} isTest=${isTestMode} recurring=${sendRecurring}`);
-  return json(200, { url });
+  const url = `https://auth.robokassa.ru/Merchant/Index.aspx?${params.toString()}&Receipt=${receipt.encoded}`;
+  console.log(`[create-payment-url] plan=${plan} invId=${invId} isTest=${isTestMode} recurring=${sendRecurring}`);
+  return json(200, { url }, cors);
 });
