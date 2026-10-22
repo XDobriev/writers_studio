@@ -18,7 +18,10 @@ const repo = createRepository<Character>(
   [{ column: 'position', ascending: true }, { column: 'created_at', ascending: true }],
 );
 
-
+/** Все персонажи книги одним запросом — для экспорта (глоссарий «Действующие лица»). */
+export function listAllCharacters(bookId: string): Promise<Character[]> {
+  return repo.list(bookId);
+}
 
 export async function listCharactersPage(bookId: string, from: number, to: number): Promise<Character[]> {
   const { data, error } = await supabase

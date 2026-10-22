@@ -1,7 +1,17 @@
 import DOMPurify from 'dompurify';
 import { type Book } from './supabase';
 import { type Chapter } from './chapters';
-import { escapeHtml, addNoIndentToFirst } from './export';
+import { type Note } from './notes';
+import {
+  type Appendix,
+  escapeHtml,
+  addNoIndentToFirst,
+  appendixHtml,
+  chapterNotes,
+  bookNotes,
+  notesBlockHtml,
+  BOOK_NOTES_TITLE,
+} from './export';
 
 export type PdfPageSize = 'a5' | 'a4';
 
@@ -10,6 +20,11 @@ export interface PdfBuildOpts {
   includeChapterTitles: boolean;
   includeTitlePage: boolean;
   authorName: string;
+  /** BCP-47 язык документа: от него зависят переносы (`hyphens`). */
+  language: string;
+  includeNotes: boolean;
+  notes: Note[];
+  appendices: Appendix[];
 }
 
 function getPrintCss(pageSize: PdfPageSize): string {
@@ -59,6 +74,13 @@ function getPrintCss(pageSize: PdfPageSize): string {
       margin: 1em 2em;
       font-style: italic;
     }
+    .chapter-notes { margin: 2em 0 0; padding: 0.8em 1em; border: 1px solid #ddd2c0; border-radius: 4px; font-size: 0.9em; }
+    .chapter-notes-title { margin: 0 0 0.5em; font-weight: bold; text-indent: 0; }
+    .note-item { text-indent: 0; margin: 0 0 0.3em; }
+    .appendix-entry { margin: 0 0 1.2em; break-inside: avoid; }
+    .appendix-entry h3 { margin: 0 0 0.2em; font-size: 1em; }
+    .appendix-meta { font-style: italic; text-indent: 0; }
+    .book-notes { break-before: page; }
     strong, b { font-weight: bold; }
     em, i { font-style: italic; }
   `;
@@ -79,15 +101,19 @@ function buildPrintHtml(book: Book, chapters: Chapter[], opts: PdfBuildOpts): st
     const titleHtml = opts.includeChapterTitles
       ? `<h2 class="chapter-title">${escapeHtml(ch.title)}</h2>`
       : (!isFirst ? '<div style="break-before:page"></div>' : '');
-    const sanitized = DOMPurify.sanitize(ch.content || '');
+    const sanitized = DOMPurify.sanitize(ch.content || '', { FORBID_TAGS: ['input', 'label'] });
     const content = opts.pageSize === 'a5'
       ? addNoIndentToFirst(sanitized)
       : sanitized;
-    return `<div class="${isFirst ? 'chapter-first' : 'chapter'}">${titleHtml}${content}</div>`;
+    const notesHtml = opts.includeNotes ? notesBlockHtml(chapterNotes(opts.notes, ch.id)) : '';
+    return `<div class="${isFirst ? 'chapter-first' : 'chapter'}">${titleHtml}${content}${notesHtml}</div>`;
   }).join('\n');
+  const appendices = opts.appendices.map((a) => appendixHtml(a)).join('\n');
+  const bn = opts.includeNotes ? bookNotes(opts.notes) : [];
+  const bookNotesHtml = bn.length ? `<div class="book-notes">${notesBlockHtml(bn, BOOK_NOTES_TITLE)}</div>` : '';
 
   return `<!DOCTYPE html>
-<html lang="ru">
+<html lang="${escapeHtml(opts.language)}">
 <head>
 <meta charset="utf-8">
 <title>${escapeHtml(book.title)}</title>
@@ -96,6 +122,8 @@ function buildPrintHtml(book: Book, chapters: Chapter[], opts: PdfBuildOpts): st
 <body>
 ${titlePage}
 ${body}
+${appendices}
+${bookNotesHtml}
 <script>window.addEventListener('load', function() { window.print(); });<\/script>
 </body>
 </html>`;
