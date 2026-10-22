@@ -87,6 +87,9 @@ export default function Characters() {
     isMobile,
     characters,
     filtered,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
   });
 
   const active = useMemo(
@@ -455,7 +458,7 @@ export default function Characters() {
               ) : (
                 <CharacterChaptersTab
                   characterId={active.id}
-                  characterIndex={characters ? characters.findIndex((c) => c.id === active.id) : 0}
+                  characterIndex={active.position}
                   onNavigate={(chapterId) => navigate(`/books/${bookId}/editor?chapter=${chapterId}`)}
                 />
               )}

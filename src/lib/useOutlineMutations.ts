@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { arrayMove } from '@dnd-kit/sortable';
 import type { DragEndEvent } from '@dnd-kit/core';
 import type { NavigateFunction } from 'react-router-dom';
-import { createChapter, deleteChapter, updateChapter, reorderChapters, renumberChapters, type ChapterMeta } from './chapters';
+import { createChapter, deleteChapter, updateChapter, reorderChapters, renumberChapters, type ChapterMeta, type ChapterPatch } from './chapters';
 import { QUERY_KEYS } from './queries';
 import { createChapterWithCache, deleteChapterWithCache, invalidateChaptersCache } from './chapterMutations';
 
@@ -54,18 +54,21 @@ export function useOutlineMutations({
     }
   }, [bookId, queryClient, setError]);
 
-  const onRename = useCallback(async (id: string, title: string) => {
+  // Правка метаданных главы (название, статус, синопсис) с оптимистичным кэшем.
+  const onPatch = useCallback(async (id: string, patch: Omit<ChapterPatch, 'content' | 'words'>) => {
     if (!bookId) return;
     queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-      (prev ?? []).map((c) => (c.id === id ? { ...c, title } : c)),
+      (prev ?? []).map((c) => (c.id === id ? { ...c, ...patch } : c)),
     );
     try {
-      await updateChapter(id, { title });
+      await updateChapter(id, patch);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       invalidateChaptersCache(queryClient, bookId);
     }
   }, [bookId, queryClient, setError]);
+
+  const onRename = useCallback((id: string, title: string) => onPatch(id, { title }), [onPatch]);
 
   const onDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -112,5 +115,5 @@ export function useOutlineMutations({
     }
   }, [bookId, chapters, queryClient, setError]);
 
-  return { onCreate, onDelete, onRename, onDragEnd, onPovChanged, onRenumber };
+  return { onCreate, onDelete, onRename, onPatch, onDragEnd, onPovChanged, onRenumber };
 }

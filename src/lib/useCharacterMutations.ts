@@ -8,6 +8,7 @@ import {
   type CharacterPatch,
 } from './characters';
 import { syncCharacterAcrossAllChapters } from './crossrefs';
+import { mergeConfirmed } from './cacheMerge';
 
 // ─── InfiniteData helpers ────────────────────────────────────────────────────
 // Чистые функции: единственное место, знающее о структуре InfiniteData<Character[]>.
@@ -21,12 +22,14 @@ export function charInfiniteUpdate(
   return { ...prev, pages: prev.pages.map((page) => page.map((c) => (c.id === id ? { ...c, ...patch } as Character : c))) };
 }
 
+// Подтверждение сервера без «эха»: поля, допечатанные за время запроса, не откатываются.
 function charInfiniteConfirm(
   prev: InfiniteData<Character[]> | undefined,
   updated: Character,
+  sent: CharacterPatch,
 ): InfiniteData<Character[]> | undefined {
   if (!prev) return prev;
-  return { ...prev, pages: prev.pages.map((page) => page.map((c) => (c.id === updated.id ? updated : c))) };
+  return { ...prev, pages: prev.pages.map((page) => page.map((c) => (c.id === updated.id ? mergeConfirmed(c, updated, sent as Partial<Character>) : c))) };
 }
 
 function charInfiniteAppend(
@@ -61,7 +64,7 @@ interface UseCharacterMutationsOptions {
   characters: Character[] | undefined;
   active: Character | null;
   hasNextPage?: boolean;
-  cancelSave: () => void;
+  cancelSave: (id?: string) => void;
   onError: (msg: string) => void;
   onCreated: (id: string) => void;
   onDeleted: (remaining: Character[], deletedId: string) => void;
@@ -80,6 +83,15 @@ export function useCharacterMutations({
 }: UseCharacterMutationsOptions) {
   const queryClient = useQueryClient();
   const creatingRef = useRef(false);
+
+  // Всё, что выведено из списка персонажей и живёт под другими ключами:
+  // поиск, бэклинки, POV-бейджи «Структуры», состав главы в правой панели.
+  const invalidateCharacterDerived = useCallback((b: string) => {
+    void queryClient.invalidateQueries({ queryKey: ['character-search', b] });
+    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.matchableCharacters(b) });
+    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterPovMap(b) });
+    void queryClient.invalidateQueries({ queryKey: ['chapter-members'] });
+  }, [queryClient]);
   const creatingRelRef = useRef(false);
   const onCreate = useCallback(async () => {
     if (!bookId || !userId || creatingRef.current) return;
@@ -103,17 +115,18 @@ export function useCharacterMutations({
       }
       // Шаг онбординга «добавить персонажа» считается из БД — сбрасываем закэшированный факт.
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.hasAnyCharacter(userId) });
+      invalidateCharacterDerived(bookId);
       onCreated(created.id);
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       creatingRef.current = false;
     }
-  }, [bookId, userId, characters, hasNextPage, queryClient, onCreated, onError]);
+  }, [bookId, userId, characters, hasNextPage, queryClient, onCreated, onError, invalidateCharacterDerived]);
 
   const onDeleteConfirmed = useCallback(async (characterId: string) => {
     if (!characters || !bookId) return;
-    cancelSave();
+    cancelSave(characterId);
     try {
       await deleteCharacter(characterId);
       const remaining = characters.filter((c) => c.id !== characterId);
@@ -123,11 +136,12 @@ export function useCharacterMutations({
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) =>
         prev ? prev.filter((r) => r.char_a_id !== characterId && r.char_b_id !== characterId) : prev
       );
+      invalidateCharacterDerived(bookId);
       onDeleted(remaining, characterId);
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     }
-  }, [characters, bookId, queryClient, cancelSave, onDeleted, onError]);
+  }, [characters, bookId, queryClient, cancelSave, onDeleted, onError, invalidateCharacterDerived]);
 
   const onCreateRelationship = useCallback(async (toId: string, labelMine: string, labelTheirs: string) => {
     if (!bookId || !userId || !active || creatingRelRef.current) return;
@@ -170,26 +184,25 @@ export function useCharacterMutations({
     }
   }, [bookId, active, queryClient, onError]);
 
+  // Ошибка не откатывает набранное: кэш остаётся оптимистичным, а вызывающий
+  // useDebouncedSave вернёт патч в очередь и повторит запись.
   const onUpdate = useCallback(async (id: string, patch: CharacterPatch): Promise<Character | undefined> => {
     if (!bookId) return;
-    const snapshot = queryClient.getQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId));
-    try {
-      const updated = await updateCharacter(id, patch);
-      queryClient.setQueryData<InfiniteData<Character[]>>(
-        QUERY_KEYS.characters(bookId),
-        (prev) => charInfiniteConfirm(prev, updated),
-      );
-      if (patch.name !== undefined || patch.aliases !== undefined) {
-        void syncCharacterAcrossAllChapters(updated, bookId)
-          .then(() => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterCharactersAll() }))
-          .catch(() => {});
-      }
-      return updated;
-    } catch (e) {
-      queryClient.setQueryData(QUERY_KEYS.characters(bookId), snapshot);
-      throw e;
+    const updated = await updateCharacter(id, patch);
+    queryClient.setQueryData<InfiniteData<Character[]>>(
+      QUERY_KEYS.characters(bookId),
+      (prev) => charInfiniteConfirm(prev, updated, patch),
+    );
+    if (patch.name !== undefined || patch.aliases !== undefined || patch.role !== undefined) {
+      invalidateCharacterDerived(bookId);
     }
-  }, [bookId, queryClient]);
+    if (patch.name !== undefined || patch.aliases !== undefined) {
+      void syncCharacterAcrossAllChapters(updated, bookId)
+        .then(() => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterCharactersAll() }))
+        .catch((e: unknown) => onError(e instanceof Error ? `Упоминания в главах не обновились: ${e.message}` : 'Упоминания в главах не обновились'));
+    }
+    return updated;
+  }, [bookId, queryClient, invalidateCharacterDerived, onError]);
 
   return { onCreate, onUpdate, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange };
 }

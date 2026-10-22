@@ -27,6 +27,7 @@ import {
 import { TimelineEventCard } from '../components/TimelineEventCard';
 import { TimelineFilters } from '../components/TimelineFilters';
 import { QUERY_KEYS, useBook, useChapters, useTimelineEvents, useProfile } from '../lib/queries';
+import { mergeConfirmedInList } from '../lib/cacheMerge';
 import { TimelineLane } from '../components/TimelineLane';
 import { EventDetailPanel } from '../components/EventDetailPanel';
 
@@ -105,11 +106,12 @@ export default function Timeline() {
       try {
         const updated = await updateTimelineEvent(id, patch);
         queryClient.setQueryData<TimelineEvent[]>(QUERY_KEYS.timelineEvents(bookId), (prev) =>
-          prev ? prev.map((e) => (e.id === id ? updated : e)) : prev
+          mergeConfirmedInList(prev, updated, patch as Partial<TimelineEvent>)
         );
       } catch (e) {
+        // Набранное не откатываем: карточка вернёт патч в очередь и повторит запись.
         setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-        void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.timelineEvents(bookId) });
+        throw e;
       }
     },
     [bookId, queryClient, setError]

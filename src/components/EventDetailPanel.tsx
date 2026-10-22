@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 import { TimelineEventCard } from './TimelineEventCard';
 import { TYPE_COLORS, type TimelineEvent, type TimelineEventPatch } from '../lib/timeline';
 import type { ChapterMeta } from '../lib/chapters';
@@ -12,7 +13,7 @@ export function EventDetailPanel({
 }: {
   event: TimelineEvent;
   chapters: ChapterMeta[];
-  onUpdate: (patch: TimelineEventPatch) => void;
+  onUpdate: (patch: TimelineEventPatch) => Promise<void> | void;
   onDelete: () => void;
   onClose: () => void;
 }) {
@@ -21,13 +22,8 @@ export function EventDetailPanel({
 
   useEffect(() => { panelRef.current?.focus(); }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose(); }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  // Через общий стек: подтверждение удаления поверх панели закрывается Escape отдельно.
+  useEscapeToClose(true, onClose);
 
   return (
     <>

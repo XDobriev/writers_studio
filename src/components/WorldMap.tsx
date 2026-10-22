@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useResponsive } from '../lib/useResponsive';
 import { TYPE_GLYPHS, TYPE_LABELS, type Location, type LocationPatch, type LocationType } from '../lib/locations';
 import { CONNECTION_STYLES, type LocationConnection, type ConnectionPatch } from '../lib/connections';
+import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { getMapTemplate, type MapTemplateId } from '../lib/mapTemplates';
 import type { MapMode } from '../pages/Map';
 import { MapStampsLayer } from './MapStampsLayer';
@@ -27,12 +28,12 @@ interface WorldMapProps {
   bgUrl: string | null;
   template?: string | null;
   mode: MapMode;
-  onUpdate: (id: string, patch: LocationPatch) => void;
+  onUpdate: (id: string, patch: LocationPatch) => Promise<boolean> | void;
   onCreate: (x: number, y: number) => void;
   onDelete: (id: string) => void;
   onCreateConnection: (fromId: string, toId: string) => Promise<LocationConnection | undefined>;
   onDeleteConnection: (id: string) => void;
-  onUpdateConnection: (id: string, patch: ConnectionPatch) => void;
+  onUpdateConnection: (id: string, patch: ConnectionPatch) => Promise<boolean> | void;
   stamps: MapStamp[];
   onCreateStamp: (x: number, y: number) => void;
   onUpdateStamp: (id: string, patch: StampPatch) => void;
@@ -170,20 +171,13 @@ export function WorldMap({
   const [editType, setEditType] = useState<LocationType>('city');
   const [editRole, setEditRole] = useState('');
   const [editDesc, setEditDesc] = useState('');
-  const editTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingPatch = useRef<LocationPatch>({});
 
   // Connection popup edit state
   const [editConnLabel, setEditConnLabel] = useState('');
   const [editConnStyle, setEditConnStyle] = useState<LocationConnection['style']>('road');
-  const connEditTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editPinSize, setEditPinSize] = useState(1);
   const [previewStampSize, setPreviewStampSize] = useState<{ id: string; size: number } | null>(null);
 
-  useEffect(() => () => {
-    if (editTimer.current) clearTimeout(editTimer.current);
-    if (connEditTimer.current) clearTimeout(connEditTimer.current);
-  }, []);
 
   // ── Initial fit ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -244,8 +238,13 @@ export function WorldMap({
         cx: (e.touches[0].clientX + e.touches[1].clientX) / 2,
         cy: (e.touches[0].clientY + e.touches[1].clientY) / 2,
       };
-      // Второе касание — отменяем pan-drag от первого пальца, иначе pinch и pan дерутся за setPan
+      // Второе касание — отменяем pan-drag и перетаскивание пина/штампа от первого пальца,
+      // иначе pinch и drag дерутся: пин уезжает вслед за зумом.
       panRef.current = null;
+      pinDragRef.current = null;
+      stampDragRef.current = null;
+      setDragPinPos(null);
+      setDragStampPos(null);
     }
   }, []);
 
@@ -315,41 +314,47 @@ export function WorldMap({
   }, [locations, pendingPinPos]);
 
   // ── Popup field sync when selection changes ──────────────────────────────
+  // Поля попапа заполняются из кэша только при выборе другой локации/связи.
+  // Синхронизация на каждое изменение массива (ответ сервера, перетаскивание пина)
+  // откатывала текст, напечатанный за время запроса.
+  const syncedLocRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId) { syncedLocRef.current = null; return; }
+    if (syncedLocRef.current === selectedId) return;
     const loc = locations.find(l => l.id === selectedId);
     if (!loc) return;
+    syncedLocRef.current = selectedId;
     setEditName(loc.name);
     setEditType(loc.type);
     setEditRole(loc.role);
     setEditDesc(loc.description);
     setEditPinSize(loc.size ?? 1);
-    pendingPatch.current = {};
   }, [selectedId, locations]);
 
+  const syncedConnRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!selectedConnId) return;
+    if (!selectedConnId) { syncedConnRef.current = null; return; }
+    if (syncedConnRef.current === selectedConnId) return;
     const conn = connections.find(c => c.id === selectedConnId);
     if (!conn) return;
+    syncedConnRef.current = selectedConnId;
     setEditConnLabel(conn.label);
     setEditConnStyle(conn.style);
   }, [selectedConnId, connections]);
 
   // ── Debounced patch helpers ──────────────────────────────────────────────
-  const scheduleUpdate = useCallback((id: string, patch: LocationPatch) => {
-    pendingPatch.current = { ...pendingPatch.current, ...patch };
-    if (editTimer.current) clearTimeout(editTimer.current);
-    editTimer.current = setTimeout(() => {
-      const p = pendingPatch.current;
-      pendingPatch.current = {};
-      onUpdate(id, p);
-    }, 500);
-  }, [onUpdate]);
-
-  const scheduleConnUpdate = useCallback((id: string, patch: ConnectionPatch) => {
-    if (connEditTimer.current) clearTimeout(connEditTimer.current);
-    connEditTimer.current = setTimeout(() => onUpdateConnection(id, patch), 500);
-  }, [onUpdateConnection]);
+  // Очереди по id: патчи копятся (название и стиль связи не затирают друг друга),
+  // смена выбранной локации и уход со страницы дописывают незаписанное.
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+  const onUpdateConnRef = useRef(onUpdateConnection);
+  onUpdateConnRef.current = onUpdateConnection;
+  const { scheduleSave: scheduleUpdate } = useDebouncedSave<LocationPatch>(async (id, p) => {
+    if ((await onUpdateRef.current(id, p)) === false) throw new Error('location save failed');
+  }, 500);
+  const { scheduleSave: scheduleConnUpdate } = useDebouncedSave<ConnectionPatch>(async (id, p) => {
+    if ((await onUpdateConnRef.current(id, p)) === false) throw new Error('connection save failed');
+  }, 500);
 
   // ── Auto-resize textarea helper ──────────────────────────────────────────
   const autoResize = (el: HTMLTextAreaElement) => {

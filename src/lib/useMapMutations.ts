@@ -7,6 +7,7 @@ import { createStamp, updateStamp, deleteStamp, type MapStamp, type StampPatch, 
 import { updateBook } from './books';
 import { supabase, ensureAuthReady } from './supabase';
 import { QUERY_KEYS } from './queries';
+import { mergeConfirmedInList } from './cacheMerge';
 import { optimizeImage, MAP_BG_OPTS } from './imageOptimize';
 
 interface UseMapMutationsOptions {
@@ -45,19 +46,21 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     } catch (e) { setError(e instanceof Error ? e.message : 'Неизвестная ошибка'); }
   }, [bookId, userId, locations, queryClient, setError]);
 
-  const onUpdate = useCallback(async (id: string, patch: LocationPatch) => {
-    if (!bookId) return;
+  // true — записано. При ошибке набранное не откатывается (очередь в WorldMap повторит запись).
+  const onUpdate = useCallback(async (id: string, patch: LocationPatch): Promise<boolean> => {
+    if (!bookId) return false;
     queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), (prev) =>
       prev ? prev.map((l) => (l.id === id ? { ...l, ...patch } as Location : l)) : prev
     );
     try {
       const updated = await updateLocation(id, patch);
       queryClient.setQueryData<Location[]>(QUERY_KEYS.locations(bookId), (prev) =>
-        prev ? prev.map((l) => (l.id === id ? updated : l)) : prev
+        mergeConfirmedInList(prev, updated, patch as Partial<Location>)
       );
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.locations(bookId) });
+      return false;
     }
   }, [bookId, queryClient, setError]);
 
@@ -129,19 +132,20 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     }
   }, [bookId, userId, queryClient, setError]);
 
-  const onUpdateConnection = useCallback(async (id: string, patch: ConnectionPatch) => {
-    if (!bookId) return;
+  const onUpdateConnection = useCallback(async (id: string, patch: ConnectionPatch): Promise<boolean> => {
+    if (!bookId) return false;
     queryClient.setQueryData<LocationConnection[]>(QUERY_KEYS.connections(bookId), (prev) =>
       prev ? prev.map((c) => (c.id === id ? { ...c, ...patch } as LocationConnection : c)) : prev
     );
     try {
       const updated = await updateConnection(id, patch);
       queryClient.setQueryData<LocationConnection[]>(QUERY_KEYS.connections(bookId), (prev) =>
-        prev ? prev.map((c) => (c.id === id ? updated : c)) : prev
+        mergeConfirmedInList(prev, updated, patch as Partial<LocationConnection>)
       );
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.connections(bookId) });
+      return false;
     }
   }, [bookId, queryClient, setError]);
 

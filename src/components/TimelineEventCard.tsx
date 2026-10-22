@@ -7,6 +7,7 @@ import {
   type TimelineEventType,
 } from '../lib/timeline';
 import type { ChapterMeta } from '../lib/chapters';
+import { useDebouncedSave } from '../lib/useDebouncedSave';
 
 export function TimelineEventCard({
   event,
@@ -17,22 +18,27 @@ export function TimelineEventCard({
 }: {
   event: TimelineEvent;
   chapters: ChapterMeta[];
-  onUpdate: (patch: TimelineEventPatch) => void;
+  onUpdate: (patch: TimelineEventPatch) => Promise<void> | void;
   onDelete: () => void;
   focusOnMount?: boolean;
 }) {
   const [era, setEra] = useState(event.era);
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pending = useRef<TimelineEventPatch>({});
+  // Очередь сохранения: при закрытии панели/смене фильтра/уходе со страницы
+  // незаписанный ввод дописывается (flush при размонтировании), а не выбрасывается.
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+  const { scheduleSave, flush } = useDebouncedSave<TimelineEventPatch>(
+    async (_id, patch) => { await onUpdateRef.current(patch); },
+    700,
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setEra(event.era); }, [event.id, event.era]);
   useEffect(() => { setTitle(event.title); }, [event.id, event.title]);
   useEffect(() => { setDescription(event.description); }, [event.id, event.description]);
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   // Только что созданное событие иначе теряется в конце списка без обратной связи —
   // пользователь не видит, что вообще что-то произошло, и уходит, оставляя запись-«призрак».
   // Карточка монтируется с focusOnMount=false (react-query уведомляет подписчиков
@@ -45,15 +51,7 @@ export function TimelineEventCard({
     titleRef.current?.select();
   }, [focusOnMount]);
 
-  const schedule = (patch: TimelineEventPatch) => {
-    pending.current = { ...pending.current, ...patch };
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      const p = pending.current;
-      pending.current = {};
-      onUpdate(p);
-    }, 700);
-  };
+  const schedule = (patch: TimelineEventPatch) => scheduleSave(event.id, patch);
 
   const onEraChange = (e: ChangeEvent<HTMLInputElement>) => {
     setEra(e.target.value);
@@ -68,9 +66,11 @@ export function TimelineEventCard({
     setDescription(e.target.value);
     schedule({ description: e.target.value });
   };
-  const onTypeChange = (type: TimelineEventType) => onUpdate({ type });
+  // Выбор из списка — без задержки, но через ту же очередь (порядок и повтор при ошибке).
+  const onTypeChange = (type: TimelineEventType) => { schedule({ type }); void flush(); };
   const onChapterChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    onUpdate({ chapter_id: e.target.value === '' ? null : e.target.value });
+    schedule({ chapter_id: e.target.value === '' ? null : e.target.value });
+    void flush();
   };
 
   const color = TYPE_COLORS[event.type];

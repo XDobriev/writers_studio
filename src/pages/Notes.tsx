@@ -675,7 +675,8 @@ export default function Notes() {
                     onChange={(e) => setModalEditText(e.target.value)}
                     onKeyDown={(e) => {
                       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void handleModalSave(); }
-                      if (e.key === 'Escape') setModalEditing(false);
+                      // Escape — выйти из правки, а не закрыть всю заметку (событие не всплывает к модалке).
+                      if (e.key === 'Escape') { e.stopPropagation(); setModalEditing(false); }
                     }}
                     aria-label="Текст заметки"
                     style={{ fontSize: 13 }}

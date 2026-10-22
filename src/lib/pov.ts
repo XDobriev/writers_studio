@@ -37,6 +37,7 @@ export async function listBookPovEntries(bookId: string): Promise<PovEntry[]> {
     chapter_id: row.chapter_id,
     character_id: row.character_id,
     character_name: row.characters?.name ?? '',
+    // Цвет персонажа во всём приложении — по characters.position.
     character_index: row.characters?.position ?? i,
   }));
 }
@@ -47,11 +48,21 @@ export async function setPovCharacter(
   bookId: string,
   userId: string,
 ): Promise<void> {
+  // Существующая строка (персонаж уже упоминается) — только флаг POV:
+  // auto_detected не трогаем, иначе снятие POV удалило бы и запись об упоминании.
+  const { data: updated, error: updErr } = await supabase
+    .from('chapter_characters')
+    .update({ is_pov: true })
+    .eq('chapter_id', chapterId)
+    .eq('character_id', characterId)
+    .select('id');
+  if (updErr) throw updErr;
+  if (updated && updated.length > 0) return;
   const { error } = await supabase
     .from('chapter_characters')
     .upsert(
       { chapter_id: chapterId, character_id: characterId, book_id: bookId, user_id: userId, is_pov: true, auto_detected: false },
-      { onConflict: 'chapter_id,character_id' },
+      { onConflict: 'chapter_id,character_id', ignoreDuplicates: true },
     );
   if (error) throw error;
 }
@@ -63,6 +74,29 @@ export async function setPovForAllChapters(
   userId: string,
 ): Promise<void> {
   if (chapterIds.length === 0) return;
+  // «Один POV на все главы» — заменить, а не добавить: прежние POV снимаются.
+  // Строки «только POV» удаляются, у найденных в тексте снимается лишь флаг.
+  const { error: delErr } = await supabase
+    .from('chapter_characters')
+    .delete()
+    .in('chapter_id', chapterIds)
+    .neq('character_id', characterId)
+    .eq('is_pov', true)
+    .eq('auto_detected', false);
+  if (delErr) throw delErr;
+  const { error: unsetErr } = await supabase
+    .from('chapter_characters')
+    .update({ is_pov: false })
+    .in('chapter_id', chapterIds)
+    .neq('character_id', characterId)
+    .eq('is_pov', true);
+  if (unsetErr) throw unsetErr;
+  const { error: setErr } = await supabase
+    .from('chapter_characters')
+    .update({ is_pov: true })
+    .in('chapter_id', chapterIds)
+    .eq('character_id', characterId);
+  if (setErr) throw setErr;
   const rows = chapterIds.map((chapter_id) => ({
     chapter_id,
     character_id: characterId,
@@ -73,7 +107,7 @@ export async function setPovForAllChapters(
   }));
   const { error } = await supabase
     .from('chapter_characters')
-    .upsert(rows, { onConflict: 'chapter_id,character_id' });
+    .upsert(rows, { onConflict: 'chapter_id,character_id', ignoreDuplicates: true });
   if (error) throw error;
 }
 
@@ -81,12 +115,13 @@ export async function removePovCharacter(
   chapterId: string,
   characterId: string,
 ): Promise<void> {
-  const { data: existing } = await supabase
+  const { data: existing, error: selErr } = await supabase
     .from('chapter_characters')
     .select('id, auto_detected')
     .eq('chapter_id', chapterId)
     .eq('character_id', characterId)
-    .single();
+    .maybeSingle();
+  if (selErr) throw selErr;
 
   if (!existing) return;
 

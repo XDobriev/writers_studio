@@ -112,8 +112,8 @@ function BulkPovButton({
                 Применить POV ко всем главам
               </div>
               <div style={{ overflowY: 'auto', maxHeight: 240 }}>
-              {characters.map((char, idx) => {
-                const color = getCharacterColor(idx);
+              {characters.map((char) => {
+                const color = getCharacterColor(char.position);
                 const displayName = char.name || 'Без имени';
                 return (
                   <button
@@ -301,9 +301,9 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
             POV персонаж
           </div>
           <div style={{ overflowY: 'auto', maxHeight: 240 }}>
-          {allCharacters.map((char, idx) => {
+          {allCharacters.map((char) => {
             const isPov = povEntries.some((e) => e.character_id === char.id);
-            const color = getCharacterColor(idx);
+            const color = getCharacterColor(char.position);
             const displayName = char.name || 'Без имени';
             return (
               <button
