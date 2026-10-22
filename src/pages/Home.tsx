@@ -22,7 +22,7 @@ import {
   type SeriesTransferState,
 } from '../components/SeriesTransferPicker';
 import { createChapter } from '../lib/chapters';
-import { getPlanLimits } from '../lib/profiles';
+import { getPlanLimits, isPlanLimitError } from '../lib/profiles';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
@@ -46,7 +46,7 @@ export default function Home() {
   const { data: books, error: booksError } = useBooks(user?.id);
   const { data: seriesList } = useSeries(user?.id);
   const { data: profile } = useProfile(user?.id);
-  const limits = getPlanLimits(profile?.plan);
+  const limits = getPlanLimits(profile);
   const { isMobile } = useResponsive();
   const { error: err, setError: setErr } = useErrorState();
   const { enabled: onboardingEnabled } = useFeatureFlag('onboarding_checklist');
@@ -200,6 +200,12 @@ export default function Home() {
       setCreateGenres([]);
       setSeriesTransfer(INITIAL_SERIES_TRANSFER);
     } catch (e) {
+      // Серверный лимит Free (книги) — показываем пейволл, а не текст ошибки БД.
+      if (isPlanLimitError(e)) {
+        setShowCreate(false);
+        setShowUpgrade(true);
+        return;
+      }
       setErr(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       creatingRef.current = false;

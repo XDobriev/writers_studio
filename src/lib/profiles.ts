@@ -8,11 +8,42 @@ export interface PlanLimits {
   canExportRich: boolean;
 }
 
-export function getPlanLimits(plan: string | undefined): PlanLimits {
-  if (!plan || plan === 'free') {
+type EffectivePlan = 'free' | 'pro' | 'lifetime';
+
+type PlanFields = { plan: string; plan_expires_at: string | null };
+
+/**
+ * Единственный источник «оплачен ли тариф» на фронте. Зеркалит SQL public.is_paid:
+ * lifetime — всегда; pro — пока plan_expires_at в будущем (NULL у pro = бессрочный грант админа).
+ * Истёкший pro (в т.ч. в 3-дневном окне повторных списаний) считается free.
+ */
+export function isPaidPlan(profile: PlanFields | null | undefined, now: Date = new Date()): boolean {
+  if (!profile) return false;
+  if (profile.plan === 'lifetime') return true;
+  if (profile.plan !== 'pro') return false;
+  return profile.plan_expires_at === null || new Date(profile.plan_expires_at) > now;
+}
+
+/** План с учётом срока: истёкший pro → 'free'. */
+export function effectivePlan(profile: PlanFields | null | undefined, now: Date = new Date()): EffectivePlan {
+  if (!profile || !isPaidPlan(profile, now)) return 'free';
+  return profile.plan === 'lifetime' ? 'lifetime' : 'pro';
+}
+
+/** Лимиты Free зеркалят серверные триггеры 20261022000400_free_plan_limits.sql. */
+export function getPlanLimits(profile: PlanFields | null | undefined): PlanLimits {
+  if (!isPaidPlan(profile)) {
     return { maxBooks: 1, maxCharacters: 3, maxTimelineEvents: 10, canExportRich: false };
   }
   return { maxBooks: Infinity, maxCharacters: Infinity, maxTimelineEvents: Infinity, canExportRich: true };
+}
+
+/** Ошибка серверного лимита Free: RAISE 'plan_limit' USING ERRCODE 'P0001' (PostgrestError или DbError). */
+export function isPlanLimitError(e: unknown): boolean {
+  if (typeof e !== 'object' || e === null) return false;
+  const code = 'code' in e ? e.code : undefined;
+  const message = 'message' in e ? e.message : undefined;
+  return code === 'P0001' && typeof message === 'string' && message.includes('plan_limit');
 }
 
 // Частичная выборка из БД (Tables<'profiles'>); user_dictionary — non-null (контракт приложения).
@@ -27,7 +58,12 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     .select('user_id, plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered, recurring_inv_id, cancel_at_period_end, display_name, checklist_dismissed_at, first_export_at')
     .eq('user_id', userId)
     .single();
-  if (error) console.error('[profiles] getProfile failed:', error.message);
+  // PGRST116 — строки нет: это ответ, а не сбой. Остальное бросаем, чтобы React Query
+  // повторил запрос, а не закэшировал null (null = «free» → неверные лимиты и пейволлы).
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
   return (data as Profile | null) ?? null;
 }
 

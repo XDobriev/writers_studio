@@ -7,6 +7,7 @@ import {
   type Character,
   type CharacterPatch,
 } from './characters';
+import { isPlanLimitError } from './profiles';
 import { syncCharacterAcrossAllChapters } from './crossrefs';
 
 // ─── InfiniteData helpers ────────────────────────────────────────────────────
@@ -65,6 +66,8 @@ interface UseCharacterMutationsOptions {
   onError: (msg: string) => void;
   onCreated: (id: string) => void;
   onDeleted: (remaining: Character[], deletedId: string) => void;
+  /** Серверный лимит Free (plan_limit) при создании — вызывающий показывает пейволл. */
+  onPlanLimit?: () => void;
 }
 
 export function useCharacterMutations({
@@ -77,6 +80,7 @@ export function useCharacterMutations({
   onError,
   onCreated,
   onDeleted,
+  onPlanLimit,
 }: UseCharacterMutationsOptions) {
   const queryClient = useQueryClient();
   const creatingRef = useRef(false);
@@ -105,11 +109,15 @@ export function useCharacterMutations({
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.hasAnyCharacter(userId) });
       onCreated(created.id);
     } catch (e) {
+      if (isPlanLimitError(e) && onPlanLimit) {
+        onPlanLimit();
+        return;
+      }
       onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     } finally {
       creatingRef.current = false;
     }
-  }, [bookId, userId, characters, hasNextPage, queryClient, onCreated, onError]);
+  }, [bookId, userId, characters, hasNextPage, queryClient, onCreated, onError, onPlanLimit]);
 
   const onDeleteConfirmed = useCallback(async (characterId: string) => {
     if (!characters || !bookId) return;

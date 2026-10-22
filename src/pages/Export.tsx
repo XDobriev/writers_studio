@@ -43,7 +43,7 @@ export default function Export() {
   const queryClient = useQueryClient();
 
   const { data: profile } = useProfile(user?.id);
-  const limits = getPlanLimits(profile?.plan);
+  const limits = getPlanLimits(profile);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const [book, setBook] = useState<Book | null>(null);

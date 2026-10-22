@@ -50,7 +50,7 @@ export default function Characters() {
   const navigate = useNavigate();
 
   const { data: profile } = useProfile(user?.id);
-  const limits = getPlanLimits(profile?.plan);
+  const limits = getPlanLimits(profile);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const { data: book } = useBook(bookId);
@@ -161,6 +161,7 @@ export default function Characters() {
     onError: setError,
     onCreated: handleCreated,
     onDeleted: handleDeleted,
+    onPlanLimit: () => setShowUpgrade(true),
   });
 
   const onCreateRef = useRef(onCreate);

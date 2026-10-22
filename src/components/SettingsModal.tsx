@@ -4,6 +4,7 @@ import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { Icon } from './Icon';
 import { useAuth } from '../lib/auth';
 import { useProfile } from '../lib/queries';
+import { isPaidPlan } from '../lib/profiles';
 import { EDITOR_SHORTCUTS, shortcutLabel } from '../lib/shortcuts';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
 import { SettingsProfileTab } from './SettingsProfileTab';
@@ -21,7 +22,7 @@ const TABS: { key: Tab; label: string }[] = [
 export function SettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useAuth();
   const { data: profile } = useProfile(user?.id);
-  const isFreePlan = profile?.plan === 'free';
+  const isFreePlan = profile ? !isPaidPlan(profile) : false;
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [helpOpen, setHelpOpen] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
