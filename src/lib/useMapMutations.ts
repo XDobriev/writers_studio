@@ -4,7 +4,7 @@ import type { ChangeEvent } from 'react';
 import { createLocation, updateLocation, deleteLocation, type Location, type LocationPatch } from './locations';
 import { createConnection, updateConnection, deleteConnection, type LocationConnection, type ConnectionPatch } from './connections';
 import { createStamp, updateStamp, deleteStamp, type MapStamp, type StampPatch, type StampType } from './mapStamps';
-import { updateBook } from './books';
+import { mapBackgroundPath, removeMapBackgroundFile, updateBook } from './books';
 import { supabase, ensureAuthReady } from './supabase';
 import { QUERY_KEYS } from './queries';
 import { mergeConfirmedInList } from './cacheMerge';
@@ -171,7 +171,7 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     try {
       await ensureAuthReady();
       const optimized = await optimizeImage(file, MAP_BG_OPTS);
-      const path = `${userId}/${bookId}/background`;
+      const path = mapBackgroundPath(userId, bookId);
       const { error: uploadError } = await supabase.storage
         .from('map-backgrounds')
         .upload(path, optimized, { upsert: true, contentType: optimized.type });
@@ -195,8 +195,9 @@ export function useMapMutations({ bookId, userId, locations, selectedStampType, 
     try {
       await updateBook(bookId, { map_bg_url: null });
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
+      if (userId) removeMapBackgroundFile(userId, bookId);
     } catch (e) { setError(e instanceof Error ? e.message : 'Неизвестная ошибка'); }
-  }, [bookId, queryClient, setError]);
+  }, [bookId, userId, queryClient, setError]);
 
   return {
     onCreate, onUpdate, onDeleteConfirmed,
