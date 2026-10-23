@@ -11,14 +11,27 @@ export type TimelineEventPatch = Partial<
   Pick<TimelineEvent, 'era' | 'title' | 'description' | 'type' | 'chapter_id' | 'position'>
 >;
 
+const DEFAULT_EVENT_TITLE = 'Событие';
+
 const repo = createRepository<TimelineEvent>(
   'timeline_events',
-  { era: '', title: 'Событие', type: 'plot', position: 0 },
+  { era: '', title: DEFAULT_EVENT_TITLE, type: 'plot', position: 0 },
   [{ column: 'position', ascending: true }, { column: 'created_at', ascending: true }],
 );
 
 export function listTimelineEvents(bookId: string): Promise<TimelineEvent[]> {
   return repo.list(bookId);
+}
+
+/** Событие, которое только что создали и ни разу не тронули: заголовок по умолчанию, остальное пусто. */
+export function isBlankTimelineEvent(e: TimelineEvent): boolean {
+  return (
+    e.title === DEFAULT_EVENT_TITLE &&
+    e.era === '' &&
+    e.description === '' &&
+    e.type === 'plot' &&
+    e.chapter_id === null
+  );
 }
 
 export function createTimelineEvent(

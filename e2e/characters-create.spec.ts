@@ -21,6 +21,10 @@ test('characters: создать нового персонажа', async ({ page
   // Создание открывает detail-mode: URL должен содержать ?character=
   await expect(page).toHaveURL(/character=/, { timeout: 10_000 });
 
+  // Пустой персонаж при уходе удаляется (B-4) — вводим имя, чтобы проверить сохранение
+  await page.getByPlaceholder('Имя персонажа').fill('Тестовый персонаж');
+  await page.waitForTimeout(1500);
+
   // Сохраняем URL нового персонажа для последующей проверки
   const newCharUrl = page.url();
 
@@ -35,4 +39,5 @@ test('characters: создать нового персонажа', async ({ page
   // Персонаж сохранился: прямая навигация к его URL открывает detail-mode
   await page.goto(newCharUrl);
   await expect(page).toHaveURL(/character=/, { timeout: 5_000 });
+  await expect(page.getByPlaceholder('Имя персонажа')).toHaveValue('Тестовый персонаж', { timeout: 10_000 });
 });
