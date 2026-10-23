@@ -17,6 +17,7 @@ test.describe('Пустые черновики', () => {
     await page.locator('button[title="Картотека (сетка)"]').click();
     await expect(cards.first()).toBeVisible({ timeout: 10_000 });
 
+    await page.waitForTimeout(3500); // дать удалению дойти до сервера и сброситься в сохранённый кэш
     // Серверная правда, а не кэш: перезагрузка
     await page.goto(bookHref + '/characters');
     await expect(cards.first()).toBeVisible({ timeout: 15_000 });
