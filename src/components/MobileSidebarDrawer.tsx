@@ -68,7 +68,7 @@ export function MobileSidebarDrawer({
       <div
         role="presentation"
         onClick={onClose}
-        style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
+        style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 'calc(var(--z-drawer) - 1)' }}
       />
       <div
         ref={panelRef}
@@ -83,7 +83,7 @@ export function MobileSidebarDrawer({
         onAnimationEnd={() => setEntered(true)}
         style={{
           position: 'fixed', top: 0, left: 0, width: 280, height: '100%',
-          zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)',
+          zIndex: 'var(--z-drawer)', boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)',
           animation: entered ? 'none' : 'panel-enter-left 0.2s cubic-bezier(0.22, 1, 0.36, 1) both',
           outline: 'none',
         }}

@@ -60,7 +60,7 @@ export function CharacterHoverCard({ state, bookId, onMouseEnter, onMouseLeave }
         left,
         top,
         width: 256,
-        zIndex: 9000,
+        zIndex: 'var(--z-popover)',
         background: 'var(--surface-2)',
         border: '1px solid var(--border)',
         borderRadius: 10,

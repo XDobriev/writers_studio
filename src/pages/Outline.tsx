@@ -56,7 +56,7 @@ function BulkPovButton({
   const [open, setOpen] = useState(false);
   const [applying, setApplying] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const dropdownStyle = useDropdownPosition(triggerRef, open ? 'open' : null, 300);
+  const dropdownStyle = useDropdownPosition(triggerRef, open ? 'open' : null);
 
   useEffect(() => {
     if (!open) return;
@@ -97,7 +97,7 @@ function BulkPovButton({
 
       {open && (
         <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 299 }} onMouseDown={() => setOpen(false)} />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 'calc(var(--z-dropdown) - 1)' }} onMouseDown={() => setOpen(false)} />
           {dropdownStyle && (
             <div style={{
               ...dropdownStyle,
@@ -156,7 +156,7 @@ interface PovBadgeProps {
 function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChanged, setError, compact = false }: PovBadgeProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const dropdownStyle = useDropdownPosition(triggerRef, open ? 'open' : null, 300);
+  const dropdownStyle = useDropdownPosition(triggerRef, open ? 'open' : null);
 
   useEffect(() => {
     if (!open) return;
@@ -287,7 +287,7 @@ function PovBadge({ chapterId, bookId, povEntries, allCharacters, userId, onChan
 
       {open && (
         <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 299 }} onMouseDown={() => setOpen(false)} />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 'calc(var(--z-dropdown) - 1)' }} onMouseDown={() => setOpen(false)} />
           {dropdownStyle && <div style={{
             ...dropdownStyle,
             background: 'var(--bg-deep)', border: '1px solid var(--border-strong)',
@@ -520,7 +520,7 @@ function SortableChapterRow({
         </button>
 
         {menuFor === c.id && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 199 }} onMouseDown={() => setMenuFor(null)} />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 'calc(var(--z-dropdown) - 1)' }} onMouseDown={() => setMenuFor(null)} />
         )}
         {menuFor === c.id && menuDropdownStyle && (
           <div style={{

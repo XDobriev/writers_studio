@@ -3,11 +3,11 @@ import { useLayoutEffect, useState, type RefObject, type CSSProperties } from 'r
 export function useDropdownPosition(
   ref: RefObject<HTMLElement | null>,
   openKey: string | null,
-  zIndex = 200,
 ): CSSProperties | null {
   const [style, setStyle] = useState<CSSProperties | null>(null);
 
   useLayoutEffect(() => {
+    const zIndex = 'var(--z-dropdown)';
     if (!openKey || !ref.current) {
       setStyle(null);
       return;
@@ -20,7 +20,7 @@ export function useDropdownPosition(
         ? { position: 'fixed', bottom: window.innerHeight - rect.top + 4, right, zIndex }
         : { position: 'fixed', top: rect.bottom + 4, right, zIndex },
     );
-  }, [openKey, ref, zIndex]);
+  }, [openKey, ref]);
 
   return style;
 }

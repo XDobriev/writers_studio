@@ -37,7 +37,7 @@ export function ConfirmDialog({ message, onConfirm, onCancel, open, confirmLabel
           initial="initial"
           animate="animate"
           exit="exit"
-          style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 'var(--z-modal-top)' }}
           onClick={onCancel}
         >
           <motion.div

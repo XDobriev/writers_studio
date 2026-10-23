@@ -582,9 +582,9 @@ export default function Export() {
       </div>
 
       <UpgradePrompt open={showUpgrade} feature="export" onClose={() => setShowUpgrade(false)} />
-      {langOpen && <div onClick={() => setLangOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />}
+      {langOpen && <div onClick={() => setLangOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 'calc(var(--z-dropdown) - 1)' }} />}
       {langOpen && (
-        <div role="listbox" aria-label="Язык документа" style={{ position: 'fixed', top: langPos.top, left: langPos.left, width: langPos.width, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, zIndex: 9999, boxShadow: '0 8px 24px oklch(0 0 0 / 0.5)', overflow: 'hidden' }}>
+        <div role="listbox" aria-label="Язык документа" style={{ position: 'fixed', top: langPos.top, left: langPos.left, width: langPos.width, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, zIndex: 'var(--z-dropdown)', boxShadow: '0 8px 24px oklch(0 0 0 / 0.5)', overflow: 'hidden' }}>
           {LANGUAGES.map(l => (
             <button
               key={l.value}

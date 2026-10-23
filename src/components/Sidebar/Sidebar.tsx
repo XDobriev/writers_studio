@@ -252,7 +252,7 @@ export function Sidebar({
                   {statusMenuFor === c.id && (
                     <>
                       <div
-                        style={{ position: 'fixed', inset: 0, zIndex: 199 }}
+                        style={{ position: 'fixed', inset: 0, zIndex: 'calc(var(--z-dropdown) - 1)' }}
                         onMouseDown={() => { setStatusMenuFor(null); setDeleteConfirmFor(null); }}
                       />
                       {dropdownStyle && <div style={{ ...dropdownStyle, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)', animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both' }}>

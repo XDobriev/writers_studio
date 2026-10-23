@@ -10,7 +10,7 @@ export function OfflineBanner() {
       style={{
         position: 'fixed',
         top: 0, left: 0, right: 0,
-        zIndex: 9999,
+        zIndex: 'calc(var(--z-system) + 10)',
         background: 'var(--warn)',
         color: 'var(--bg-deep)',
         font: '500 12px var(--font-ui)',

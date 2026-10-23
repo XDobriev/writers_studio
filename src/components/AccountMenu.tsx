@@ -58,7 +58,7 @@ export function AccountMenu({ placement = 'above', children }: AccountMenuProps)
                 borderRadius: 8,
                 padding: 4,
                 boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)',
-                zIndex: 100,
+                zIndex: 'var(--z-dropdown)',
               }}
             >
               {isAdmin && (

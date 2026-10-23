@@ -64,7 +64,7 @@ export function ExitIntentPopup() {
           initial="initial"
           animate="animate"
           exit="exit"
-          style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}
+          style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 'var(--z-modal)', padding: 16 }}
           onClick={() => setOpen(false)}
         >
           <motion.div

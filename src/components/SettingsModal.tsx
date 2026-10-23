@@ -45,7 +45,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
           exit="exit"
           onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
           style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
+            position: 'fixed', inset: 0, zIndex: 'var(--z-modal)',
             background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(3px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
           }}

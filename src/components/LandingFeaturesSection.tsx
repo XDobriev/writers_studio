@@ -143,7 +143,7 @@ function MockStatusBar() {
           Aa
         </button>
         {fontOpen && (
-          <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, width: 172, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: 6, zIndex: 200, boxShadow: '0 4px 16px oklch(0 0 0 / 0.18)' }}>
+          <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, width: 172, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: 6, zIndex: 'var(--z-dropdown)', boxShadow: '0 4px 16px oklch(0 0 0 / 0.18)' }}>
             {MOCK_FONTS.map((f, i) => (
               <button
                 key={f.label}
@@ -174,7 +174,7 @@ function MockStatusBar() {
           </svg>
         </button>
         {soundOpen && (
-          <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, width: 220, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', zIndex: 200, boxShadow: '0 4px 16px oklch(0 0 0 / 0.18)' }}>
+          <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, width: 220, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 12px', zIndex: 'var(--z-dropdown)', boxShadow: '0 4px 16px oklch(0 0 0 / 0.18)' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
               {MOCK_SOUNDS.map(s => (
                 <button

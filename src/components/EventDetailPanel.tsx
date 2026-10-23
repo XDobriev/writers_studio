@@ -34,7 +34,7 @@ export function EventDetailPanel({
         style={{
           position: 'fixed',
           inset: 0,
-          zIndex: 100,
+          zIndex: 'calc(var(--z-drawer) - 1)',
           background: 'oklch(0 0 0 / 0.22)',
         }}
       />
@@ -53,7 +53,7 @@ export function EventDetailPanel({
           width: 'min(380px, 100%)',
           background: 'var(--bg)',
           borderLeft: '1px solid var(--border-soft)',
-          zIndex: 101,
+          zIndex: 'var(--z-drawer)',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '-8px 0 32px oklch(0 0 0 / 0.1)',

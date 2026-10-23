@@ -50,7 +50,7 @@ export function UpgradePrompt({ open, feature, onClose }: { open: boolean; featu
           initial="initial"
           animate="animate"
           exit="exit"
-          style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 'var(--z-modal)' }}
           onClick={onClose}
         >
           <motion.div
