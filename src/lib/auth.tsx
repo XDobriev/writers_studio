@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { stopAmbientSound } from './ambientSound';
 
 const SUPABASE_ERRORS: Record<string, string> = {
   'Invalid login credentials': 'Неверная почта или пароль. Проверьте раскладку и регистр.',
@@ -176,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     deliberateSignOut.current = true;
+    stopAmbientSound();
     try {
       await supabase.auth.signOut();
     } finally {
