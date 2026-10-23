@@ -6,7 +6,7 @@
 
 - `src/pages/Notes.tsx` — UI: поиск, форма создания, DnD-карточки.
 - `src/lib/notes.ts` — CRUD заметок + `reorderNotes`.
-- `src/lib/useNoteMutations.ts` — mutation-хук: `onAdd`, `onUpdate`, `onDelete`, `onReorder` + `isSaving`.
+- `src/lib/useNoteMutations.ts` — mutation-хук: `onAdd`, `onUpdate`, `onDelete`, `onReorder` + `isSaving`. Единственный путь мутаций заметок — и для `Notes.tsx`, и для `RightPanel` (панель передаёт `chapterId` в `onAdd`).
 - `src/lib/useCreateOnMount.ts` — хук «создать сразу при переходе» (`?create=true` в URL).
 - `src/components/RightPanel.tsx` — заметки главы в правой панели редактора. Добавление: «+» в шапке, CTA в пустом состоянии и пунктирная кнопка `.rp-add-note` под списком, когда заметки уже есть и ни одна не открыта на создание/редактирование.
 - `src/lib/useAutoResize.ts` — авторост полей ввода заметок (`.input--textarea`): от `rows` до 240px, дальше прокрутка внутри поля. Во всех 4 полях: создание/редактирование в панели и на странице.

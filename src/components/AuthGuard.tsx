@@ -7,7 +7,7 @@ function SessionExpiredOverlay({ onDismiss }: { onDismiss: () => void }) {
     <div style={{
       position: 'fixed',
       inset: 0,
-      zIndex: 9999,
+      zIndex: 'calc(var(--z-system) + 10)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',

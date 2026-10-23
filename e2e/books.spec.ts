@@ -1,5 +1,4 @@
-import { test, expect } from '@playwright/test';
-import { loginAndGetBookHref } from './fixtures';
+import { test, expect, loginAndGetBookHref } from './fixtures';
 
 /**
  * Создание новой главы в существующей книге.

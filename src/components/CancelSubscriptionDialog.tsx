@@ -34,7 +34,7 @@ export function CancelSubscriptionDialog({ open, expiresFormatted, loading, onCo
           initial="initial"
           animate="animate"
           exit="exit"
-          style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}
+          style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 'var(--z-modal-top)', padding: 16 }}
           onClick={onClose}
         >
           <motion.div

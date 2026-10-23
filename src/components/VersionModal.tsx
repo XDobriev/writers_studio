@@ -189,7 +189,7 @@ export function VersionModal({
           exit="exit"
           style={{
             position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 'var(--z-modal)',
           }}
           onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
         >

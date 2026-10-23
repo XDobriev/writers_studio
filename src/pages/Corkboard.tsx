@@ -67,7 +67,7 @@ function SortableCorkCard({
   const [editingSynopsis, setEditingSynopsis] = useState(false);
   const [synopsisValue, setSynopsisValue] = useState('');
   const menuRef = useRef<HTMLButtonElement>(null);
-  const dropdownStyle = useDropdownPosition(menuRef, menuOpen ? 'open' : null, 100);
+  const dropdownStyle = useDropdownPosition(menuRef, menuOpen ? 'open' : null);
 
   const startSynopsisEdit = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -228,7 +228,7 @@ function SortableCorkCard({
           </button>
           {menuOpen && (
             <>
-              <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onMouseDown={() => { setMenuOpen(false); setDeleteConfirm(false); }} />
+              <div style={{ position: 'fixed', inset: 0, zIndex: 'calc(var(--z-dropdown) - 1)' }} onMouseDown={() => { setMenuOpen(false); setDeleteConfirm(false); }} />
               {dropdownStyle && <div role="menu" aria-label="Статус главы" style={{ ...dropdownStyle, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px oklch(0 0 0 / 0.18)' }}>
               <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px 6px' }}>Статус</div>
               {STATUS_ORDER.map((s) => (

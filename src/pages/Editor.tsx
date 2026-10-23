@@ -246,7 +246,7 @@ export default function Editor() {
           message={mutationError}
           onDismiss={clearError}
           style={{
-            position: 'fixed', top: saveState === 'error' ? 40 : 0, left: 0, right: 0, zIndex: 1000,
+            position: 'fixed', top: saveState === 'error' ? 40 : 0, left: 0, right: 0, zIndex: 'var(--z-toast)',
             borderRadius: 0,
           }}
         />

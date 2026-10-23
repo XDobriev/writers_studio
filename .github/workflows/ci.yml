@@ -27,9 +27,8 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      # npm install вместо npm ci — lockfile собирается на Windows,
-      # поэтому не содержит Linux optional deps (esbuild, @emnapi).
-      - run: npm install --prefer-dedupe
+      # npm ci: lockfile (npm ≥ 10) содержит бинарники всех платформ, версии ровно как локально.
+      - run: npm ci
 
       - name: TypeScript
         run: npm run typecheck
@@ -72,10 +71,7 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - run: npm install --prefer-dedupe
-      # Rollup-lockfile генерируется на Windows — Linux-бинарник не включён.
-      # Без него Vite не стартует. Доставляем явно.
-      - run: npm install @rollup/rollup-linux-x64-gnu --no-save
+      - run: npm ci
 
       - name: Playwright version
         id: pw

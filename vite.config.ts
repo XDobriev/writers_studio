@@ -30,17 +30,19 @@ export default defineConfig({
   },
   build: {
     sourcemap: uploadSourcemaps ? 'hidden' : false,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return;
-          if (id.includes('@tiptap') || id.includes('prosemirror')) return 'vendor-tiptap';
-          if (id.includes('@dnd-kit')) return 'vendor-dnd';
-          if (id.includes('@supabase')) return 'vendor-supabase';
-          if (id.includes('@tanstack')) return 'vendor-query';
-          // До react-правила: иначе '/react/' ловит node_modules/@sentry/react/.
-          if (id.includes('@sentry')) return 'vendor-sentry';
-          if (id.includes('react-dom') || id.includes('react-router') || id.includes('/react/')) return 'vendor-react';
+        // Группа забирает и зависимости своих модулей, поэтому порядок задаёт priority:
+        // иначе react-dom (зависимость @dnd-kit) уезжал в vendor-dnd и грузился на лендинге.
+        codeSplitting: {
+          groups: [
+            { name: 'vendor-react', test: /node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/, priority: 60 },
+            { name: 'vendor-sentry', test: /node_modules[\\/]@sentry[\\/]/, priority: 50 },
+            { name: 'vendor-supabase', test: /node_modules[\\/]@supabase[\\/]/, priority: 40 },
+            { name: 'vendor-query', test: /node_modules[\\/]@tanstack[\\/]/, priority: 40 },
+            { name: 'vendor-tiptap', test: /node_modules[\\/](@tiptap|prosemirror-[^\\/]+)[\\/]/, priority: 30 },
+            { name: 'vendor-dnd', test: /node_modules[\\/]@dnd-kit[\\/]/, priority: 20 },
+          ],
         },
       },
     },

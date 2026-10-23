@@ -90,7 +90,9 @@ for (const { path, out } of ROUTES) {
     await page.goto(url, { waitUntil: 'networkidle', timeout: 30_000 });
     // Wait for React to mount at least one child in #root
     await page.waitForSelector('#root > *', { timeout: 10_000 });
-    const html = await page.content();
+    // Vite 8 вставляет modulepreload ленивых чанков с абсолютным href — origin этого
+    // preview-сервера попал бы в прод-HTML (у посетителей — ERR_CONNECTION_REFUSED).
+    const html = (await page.content()).split(base + '/').join('/');
     const outPath = join(DIST, out);
     mkdirSync(dirname(outPath), { recursive: true });
     writeFileSync(outPath, html, 'utf8');

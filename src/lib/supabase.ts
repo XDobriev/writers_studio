@@ -29,5 +29,14 @@ export async function ensureAuthReady(): Promise<void> {
   await supabase.auth.getSession();
 }
 
+// Путь файла в бакете из его public URL (без `?t=`); null — ссылка не на этот бакет.
+export function storagePathFromPublicUrl(url: string | null, bucket: string): string | null {
+  if (!url) return null;
+  const marker = `/${bucket}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  return decodeURIComponent(url.slice(idx + marker.length).split('?')[0]);
+}
+
 // Выведено из БД (Tables<'books'>); genres сужен до non-null — таков контракт приложения.
 export type Book = Omit<Tables<'books'>, 'genres'> & { genres: string[] };

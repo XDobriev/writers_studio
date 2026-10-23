@@ -130,7 +130,7 @@ function PortalDropdown({
   return createPortal(
     <div
       ref={ref}
-      style={{ position: 'fixed', ...posY, left: rect.left, zIndex: 1000 }}
+      style={{ position: 'fixed', ...posY, left: rect.left, zIndex: 'var(--z-dropdown)' }}
       onMouseDown={(e) => { e.preventDefault(); e.nativeEvent.stopPropagation(); }}
     >
       {children}
@@ -372,7 +372,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
               ? { bottom: window.innerHeight - rect.top + 4 }
               : { top: rect.bottom + 4 }
             ),
-            left: rect.left, zIndex: 1000,
+            left: rect.left, zIndex: 'var(--z-dropdown)',
             background: 'var(--bg-deep)', border: '1px solid var(--border)',
             borderRadius: 10, padding: 10, boxShadow: '0 12px 28px oklch(0.05 0.01 50 / 0.35)',
             minWidth: 280, display: 'flex', flexDirection: 'column', gap: 6,

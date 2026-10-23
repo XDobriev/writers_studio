@@ -1208,6 +1208,10 @@ export type Database = {
         Args: { p_expiry: string; p_user_id: string }
         Returns: undefined
       }
+      remap_character_avatars: {
+        Args: { p_book: string; p_map: Json }
+        Returns: number
+      }
       remove_user_dictionary_word: {
         Args: { p_user_id: string; p_word: string }
         Returns: undefined

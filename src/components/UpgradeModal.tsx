@@ -64,7 +64,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
       ref={overlayRef}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
       style={{
-        position: 'fixed', inset: 0, zIndex: 1100,
+        position: 'fixed', inset: 0, zIndex: 'var(--z-modal-top)',
         background: 'oklch(0 0 0 / 0.55)', backdropFilter: 'blur(2px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       }}

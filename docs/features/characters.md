@@ -15,7 +15,7 @@
 ## БД
 
 - Таблица `characters`. Поля: `name`, `role`, `age`, `quote`, `appearance`, `personality`, `interior_life`, `exterior_life`, `gap`, `backstory`, `notes`, `position`, `avatar_url`, `aliases` (text[]).
-- Таблица `character_relationships` — `char_a_id + char_b_id` (каноническое хранение: `char_a_id < char_b_id`), `label_a`, `label_b` (пусто = симметрия), `book_id`. RLS по `user_id`. Миграция: `0020_character_relationships.sql`.
+- Таблица `character_relationships` — `char_a_id + char_b_id` (каноническое хранение: `char_a_id < char_b_id`), `label_a`, `label_b` (пусто = симметрия), `book_id`. При создании пустая подпись партнёра («Как они видят вас») заполняется подписью автора (`createRelationship`) — иначе у партнёра связь без подписи. RLS по `user_id`. Миграция: `0020_character_relationships.sql`.
 - Таблица `character_relations` — **устаревшая** (директивные связи). Файл `character_relations.ts` существует, но UI не использует. Данные мигрированы в `character_relationships`.
 - Таблица `chapter_characters` — many-to-many character ↔ chapter. Поля: `auto_detected: boolean` (проставляется `crossrefs.ts`), `is_pov: boolean`. UNIQUE по `chapter_id,character_id`, on delete cascade.
 
@@ -35,3 +35,8 @@
 - **POV:** `is_pov` в `chapter_characters`. `setPovCharacter` / `removePovCharacter` из `pov.ts`. Цвета персонажей — 5 oklch-цветов, назначаются по `position % 5`.
 - Данные через `@tanstack/react-query` (хуки `useCharacters`, `useRelationships`, `useChapterCharacters`, `useChapterMembers` из `queries.ts`).
 - **Персонажи в правой панели редактора:** `RightPanel.tsx` показывает секцию «Персонажи главы» в табе «Заметки» — список персонажей текущей главы с POV-меткой. Данные — `useChapterMembers(chapterId)` → `listChapterMembers` (запрос по `chapter_id`). Добавлен в `crossrefs.ts` рядом с `listChapterCharacters`.
+
+## Аватары и перенос в серию
+
+- Файл аватара: бакет `character-avatars`, путь `<uid>/<characterId>.<ext>` (upsert при перезагрузке).
+- После `duplicate_book_content` клиент (`copyCharacterAvatars` в `books.ts`) копирует файлы аватаров под id копий и перешивает ссылки одним RPC `remap_character_avatars(p_book, p_map)` (миграция `20261023000100`, `SECURITY INVOKER`). Без этого удаление аватара в книге-источнике удаляло картинку и у копии. Не через `upsert`: на `characters` висит `BEFORE INSERT`-триггер лимита Free, он срабатывает и при `ON CONFLICT`.

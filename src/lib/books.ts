@@ -1,4 +1,5 @@
-import { supabase, type Book } from './supabase';
+import * as Sentry from '@sentry/react';
+import { ensureAuthReady, storagePathFromPublicUrl, supabase, type Book } from './supabase';
 import type { Tables } from './database.types';
 
 export type BookPatch = Partial<
@@ -109,6 +110,7 @@ export async function getBookContentCounts(bookId: string): Promise<BookContentC
 export async function duplicateBookContent(
   sourceBookId: string,
   targetBookId: string,
+  userId: string,
   opts: SeriesTransferOptions,
 ): Promise<void> {
   const { error } = await supabase.rpc('duplicate_book_content', {
@@ -120,6 +122,80 @@ export async function duplicateBookContent(
     p_timeline: opts.timeline,
   });
   if (error) throw error;
+  if (opts.locationsMap) await copyMapBackground(targetBookId, userId);
+  if (opts.characters) await copyCharacterAvatars(targetBookId, userId);
+}
+
+const AVATAR_BUCKET = 'character-avatars';
+
+// Копии персонажей ссылаются на файлы аватаров оригиналов: удаление аватара в книге-источнике
+// удаляло бы картинку и у копии, новая загрузка — меняла бы её. Копируем файлы под id копий
+// и одним RPC перешиваем ссылки (upsert нельзя — BEFORE INSERT-триггер лимита Free).
+// Как и с фоном карты: сбой не валит создание книги.
+async function copyCharacterAvatars(targetBookId: string, userId: string): Promise<void> {
+  try {
+    const { data: rows, error } = await supabase
+      .from('characters')
+      .select('id, avatar_url')
+      .eq('book_id', targetBookId)
+      .not('avatar_url', 'is', null);
+    if (error) throw error;
+    const jobs = (rows ?? []).flatMap((r) => {
+      const src = storagePathFromPublicUrl(r.avatar_url, AVATAR_BUCKET);
+      if (!src || src.split('/')[1]?.startsWith(`${r.id}.`)) return [];
+      const ext = src.split('.').pop() ?? 'webp';
+      return [{ id: r.id, src, dest: `${userId}/${r.id}.${ext}` }];
+    });
+    if (jobs.length === 0) return;
+    await ensureAuthReady();
+    const bucket = supabase.storage.from(AVATAR_BUCKET);
+    const copied = await Promise.all(jobs.map(async (j) => {
+      const { error: copyError } = await bucket.copy(j.src, j.dest);
+      if (copyError) { Sentry.captureException(copyError, { tags: { op: 'series-copy-avatar' } }); return null; }
+      return [j.id, `${bucket.getPublicUrl(j.dest).data.publicUrl}?t=${Date.now()}`] as const;
+    }));
+    const map = Object.fromEntries(copied.filter((c) => c !== null));
+    if (Object.keys(map).length === 0) return;
+    const { error: rpcError } = await supabase.rpc('remap_character_avatars', { p_book: targetBookId, p_map: map });
+    if (rpcError) throw rpcError;
+  } catch (e) {
+    Sentry.captureException(e, { tags: { op: 'series-copy-avatars' } });
+  }
+}
+
+const MAP_BG_BUCKET = 'map-backgrounds';
+
+// Фон карты у книги один, путь стабилен и перезаписывается при новой загрузке.
+export function mapBackgroundPath(userId: string, bookId: string): string {
+  return `${userId}/${bookId}/background`;
+}
+
+// Удаляем только свой файл книги: у продолжения, созданного до копирования фонов,
+// ссылка может вести на файл источника — по своему пути его нет, удалять нечего.
+// Фоново: файл без ссылки на него — мусор, а не ошибка для пользователя.
+export function removeMapBackgroundFile(userId: string, bookId: string): void {
+  void supabase.storage.from(MAP_BG_BUCKET).remove([mapBackgroundPath(userId, bookId)])
+    .then(({ error }) => { if (error) Sentry.captureException(error, { tags: { op: 'remove-map-bg' } }); });
+}
+
+// RPC копирует ссылку на фон карты, а не файл. Путь фона привязан к книге и
+// перезаписывается (upsert) — без своей копии новый фон источника менял бы карту продолжения.
+// Сбой копирования не валит создание книги: остаётся общая ссылка, как было до фикса.
+async function copyMapBackground(targetBookId: string, userId: string): Promise<void> {
+  try {
+    const { data: book, error } = await supabase.from('books').select('map_bg_url').eq('id', targetBookId).single();
+    if (error) throw error;
+    const src = storagePathFromPublicUrl(book.map_bg_url, MAP_BG_BUCKET);
+    const dest = mapBackgroundPath(userId, targetBookId);
+    if (!src || src === dest) return;
+    await ensureAuthReady();
+    const { error: copyError } = await supabase.storage.from(MAP_BG_BUCKET).copy(src, dest);
+    if (copyError) throw copyError;
+    const { data } = supabase.storage.from(MAP_BG_BUCKET).getPublicUrl(dest);
+    await updateBook(targetBookId, { map_bg_url: `${data.publicUrl}?t=${Date.now()}` });
+  } catch (e) {
+    Sentry.captureException(e, { tags: { op: 'series-copy-map-bg' } });
+  }
 }
 
 export async function updateBook(id: string, patch: BookPatch): Promise<Book> {
@@ -136,17 +212,32 @@ export async function updateBook(id: string, patch: BookPatch): Promise<Book> {
 export async function deleteBook(id: string): Promise<void> {
   const { error } = await supabase.from('books').delete().eq('id', id);
   if (error) throw error;
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user.id;
+  if (userId) removeMapBackgroundFile(userId, id);
 }
 
 export type WritingSnapshot = Pick<Tables<'writing_snapshots'>, 'date' | 'words'>;
 
+// Плюс последний снапшот до окна: снапшоты разрежённые, без него база первой клетки = 0
+// и у книги старше окна весь объём падает в один день.
 export async function listWritingSnapshots(bookId: string, fromDate: string): Promise<WritingSnapshot[]> {
-  const { data, error } = await supabase
-    .from('writing_snapshots')
-    .select('date, words')
-    .eq('book_id', bookId)
-    .gte('date', fromDate)
-    .order('date', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as WritingSnapshot[];
+  const [inWindow, before] = await Promise.all([
+    supabase
+      .from('writing_snapshots')
+      .select('date, words')
+      .eq('book_id', bookId)
+      .gte('date', fromDate)
+      .order('date', { ascending: true }),
+    supabase
+      .from('writing_snapshots')
+      .select('date, words')
+      .eq('book_id', bookId)
+      .lt('date', fromDate)
+      .order('date', { ascending: false })
+      .limit(1),
+  ]);
+  if (inWindow.error) throw inWindow.error;
+  if (before.error) throw before.error;
+  return [...(before.data ?? []), ...(inWindow.data ?? [])] as WritingSnapshot[];
 }

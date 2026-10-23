@@ -21,6 +21,21 @@ declare global {
 }
 
 let started = false;
+let lastUrl: string | null = null;
+
+// Токен /share/<token> — ключ доступа к книге: в Метрику (и в отчёты о реферерах) не уходит.
+function pageUrl(): string {
+  return location.href.replace(/\/share\/[^/?#]+/, '/share/[token]');
+}
+
+// init считает только первую страницу; переходы внутри SPA Метрика сама не видит.
+export function trackPageView(): void {
+  if (!started || !window.ym) return;
+  const url = pageUrl();
+  if (url === lastUrl) return;
+  window.ym(COUNTER_ID, 'hit', url, { referer: lastUrl ?? document.referrer });
+  lastUrl = url;
+}
 
 export function getConsent(): ConsentValue | null {
   try {
@@ -34,6 +49,19 @@ export function getConsent(): ConsentValue | null {
 export function setConsent(value: ConsentValue): void {
   try { localStorage.setItem(CONSENT_KEY, value); } catch { /* приватный режим */ }
   if (value === 'accepted') startAnalytics();
+  else if (started) stopAnalytics();
+}
+
+// Загруженный tag.js не выгрузить — стираем его куки и перезагружаем страницу без счётчика.
+function stopAnalytics(): void {
+  for (const c of document.cookie.split(';')) {
+    const name = c.split('=')[0].trim();
+    if (!name.startsWith('_ym')) continue;
+    for (const domain of ['', `; domain=${location.hostname}`, `; domain=.${location.hostname}`]) {
+      document.cookie = `${name}=; max-age=0; path=/${domain}`;
+    }
+  }
+  location.reload();
 }
 
 export function initAnalyticsIfConsented(): void {
@@ -71,7 +99,7 @@ function startAnalytics(): void {
     clickmap: true,
     ecommerce: 'dataLayer',
     referrer: document.referrer,
-    url: location.href,
+    url: lastUrl = pageUrl(),
     accurateTrackBounce: true,
     trackLinks: true,
   });

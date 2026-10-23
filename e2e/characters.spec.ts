@@ -1,5 +1,4 @@
-import { test, expect } from '@playwright/test';
-import { loginAndGetBookHref } from './fixtures';
+import { test, expect, loginAndGetBookHref } from './fixtures';
 
 test.describe('Картотека персонажей', () => {
   test('detail → клик по «Персонажи» в сайдбаре не показывает пустое состояние', async ({ page }) => {

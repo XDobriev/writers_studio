@@ -229,6 +229,8 @@ Box shadows appear only when an element has physically left its containing surfa
 
 ### Named Rules
 
+**The Layer Scale Rule.** Stacking order is a token, never a magic number. Global layers live in `:root` (`design-system.css`): `--z-drawer` 200 (slide-in panels) < `--z-dropdown` 300 (menus, popovers; the invisible click-outside backdrop is `calc(var(--z-dropdown) - 1)`) < `--z-modal` 1000 < `--z-modal-top` 1050 (anything opened on top of a modal: confirmation, checkout) < `--z-toast` 1100 < `--z-popover` 1200 (character hover card, spelling suggestions) < `--z-system` 9000 (cookie banner; `+ 10` for offline and session-expired overlays). The cookie banner sits above modals on purpose — consent must always be reachable. Local overlaps inside one component (0–50) stay plain numbers.
+
 **The Shadowless Default Rule.** At rest, all surfaces are differentiated by background luminance, not by elevation. Borders (`oak-border-soft`, 1px) mark edges; tonal steps mark hierarchy. A box shadow is a signal that an element has left its context. Use it only for genuinely floating elements.
 
 ## 5. Components

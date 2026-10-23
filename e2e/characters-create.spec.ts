@@ -1,5 +1,4 @@
-import { test, expect } from '@playwright/test';
-import { loginAndGetBookHref } from './fixtures';
+import { test, expect, loginAndGetBookHref } from './fixtures';
 
 test('characters: создать нового персонажа', async ({ page }) => {
   const bookHref = await loginAndGetBookHref(page);
