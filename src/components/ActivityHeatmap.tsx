@@ -134,8 +134,10 @@ export function ActivityHeatmap({ activityData }: ActivityHeatmapProps) {
           </div>
 
           {/* Cumulative volume line chart */}
-          {activityData.cumulativeLine.length > 1 && (() => {
-            const pts = activityData.cumulativeLine;
+          {(() => {
+            const windowStart = visibleCells[0].date;
+            const pts = activityData.cumulativeLine.filter(p => p.date >= windowStart);
+            if (pts.length < 2) return null;
             const maxW = Math.max(1, ...pts.map(p => p.words));
             const vH = 60, vW = 100;
             const toX = (i: number) => (i / (pts.length - 1)) * vW;
