@@ -205,10 +205,6 @@ html, body, #root {
   animation: spin 0.75s linear infinite;
 }
 
-.page-loading {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-}
-
 /* Полноэкранные состояния страницы */
 .page-fill {
   min-height: 100vh; min-height: 100dvh; background: var(--bg);
@@ -221,12 +217,6 @@ html, body, #root {
   min-height: 100vh; min-height: 100dvh; background: var(--bg); color: var(--ink);
   padding: 32px; display: flex; flex-direction: column; gap: 12px;
 }
-
-/* mode-page rail */
-.mode-page .as.as-app { grid-template-columns: 56px 1fr !important; }
-.mode-page .as.as-app--no-right { grid-template-columns: 56px 1fr !important; }
-.mode-page .sb { display: none !important; }
-.mode-page .rp { display: none !important; }
 
 /* artboard reset — wrapped in :where() so utility classes (.btn, .input, .chip)
    can override these with single-class specificity. */
@@ -247,19 +237,16 @@ html, body, #root {
   background: var(--bg);
 }
 .as-app--no-right { grid-template-columns: 260px 1fr; }
-.as-app--rail { grid-template-columns: 56px 1fr 320px; }
 
 /* ── Планшет portrait (768–1023px): скрыть правую панель ── */
 @media (max-width: 1023px) {
   .as-app       { grid-template-columns: 260px 1fr; }
-  .as-app--rail { grid-template-columns: 56px 1fr; }
 }
 
 /* ── Мобильный (<768px): одна колонка ── */
 @media (max-width: 767px) {
   .as-app,
-  .as-app--no-right,
-  .as-app--rail { grid-template-columns: 1fr; }
+  .as-app--no-right { grid-template-columns: 1fr; }
 
   /* sidebar скрыт по умолчанию — компоненты управляют через showSidebar */
   .as-app > .sb { display: none; }
@@ -347,7 +334,6 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   letter-spacing: 0.12em; text-transform: uppercase;
   font-weight: 500;
 }
-.sb-section-meta { font: 500 10px var(--font-mono); color: var(--ink-3); }
 
 .sb-list { padding: 0 8px 8px; display: flex; flex-direction: column; gap: 1px; }
 /* scrollIntoView активной главы не должен прятать её под липким заголовком «Главы» */
@@ -368,13 +354,6 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .sb-item-title { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb-item-meta { font: 400 10.5px var(--font-mono); color: var(--ink-3); }
-.sb-item-dot {
-  width: 6px; height: 6px; border-radius: 999px;
-  background: var(--ink-4);
-}
-.sb-item-dot--draft { background: var(--ink-4); }
-.sb-item-dot--progress { background: var(--accent-2); }
-.sb-item-dot--done { background: var(--ok); }
 
 .sb-body {
   flex: 1; min-height: 0;
@@ -437,7 +416,6 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .tl-filters::-webkit-scrollbar { display: none; }
 .tl-event-desc { scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
-.tb--wrap { flex-wrap: nowrap; }
 .tb > * { flex-shrink: 0; }
 .tb-grp { display: flex; align-items: center; gap: 1px; }
 .tb-sep { width: 1px; height: 18px; background: var(--border-soft); margin: 0 2px; flex-shrink: 0; }
@@ -452,8 +430,6 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .tb-btn:hover { background: var(--surface); color: var(--ink); }
 .tb-btn--on { background: var(--surface-2); color: var(--ink); }
-.tb-btn--accent { color: var(--accent); }
-.tb-spacer { flex: 1; }
 @media (max-width: 768px) {
   .tb-btn { min-height: 44px; min-width: 44px; }
   .btn    { min-height: 44px; }
@@ -570,15 +546,9 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   background: transparent; border: none; outline: none; resize: none; overflow: hidden;
   font: 600 30px var(--font-serif); letter-spacing: -0.012em; color: var(--paper-ink);
 }
-.sheet h1, .sheet .ch-num, .sheet .ch-title {
+.sheet h1, .sheet .ch-title {
   font-family: var(--font-editor);
   color: var(--paper-ink);
-}
-.sheet .ch-num {
-  font: 500 11px/1 var(--font-mono);
-  letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--paper-ink-2);
-  margin-bottom: 14px;
 }
 .sheet .ch-title {
   font-size: 32px; font-weight: 600;
@@ -656,13 +626,6 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 
 .lt-spell {
   text-decoration: underline wavy oklch(0.65 0.18 25);
-  text-underline-offset: 4px;
-  text-decoration-thickness: 1.5px;
-  cursor: default;
-}
-
-.lt-grammar {
-  text-decoration: underline wavy oklch(0.55 0.16 250);
   text-underline-offset: 4px;
   text-decoration-thickness: 1.5px;
   cursor: default;
@@ -758,7 +721,6 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   border: 1px dashed var(--border); color: var(--ink-3); font-size: 12px;
 }
 .rp-add-note:hover { border-color: var(--border-strong); color: var(--ink); }
-.mn-quote { font-size: 11.5px; color: var(--ink-3); font-style: italic; line-height: 1.45; padding-left: 8px; border-left: 1.5px solid var(--border); }
 
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
@@ -868,15 +830,6 @@ button.chip:not(.chip--accent):hover { background: var(--surface-2); }
 .as ::-webkit-scrollbar { width: 10px; height: 10px; }
 .as ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
 .as ::-webkit-scrollbar-track { background: transparent; }
-
-.imgp {
-  background:
-    repeating-linear-gradient(135deg, oklch(0.4 0.012 50) 0 6px, oklch(0.36 0.012 50) 6px 12px);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--ink-3);
-  font: 400 10px var(--font-mono);
-  letter-spacing: 0.08em; text-transform: uppercase;
-}
 
 /* form inputs (used by Auth + book create) */
 .input {
@@ -1432,33 +1385,6 @@ select.input {
 .btn--sm { font-size: 12px; }
 .tb-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* ── onboarding feature item (Home › Welcome modal) ── */
-.feature-item {
-  display: flex; align-items: flex-start; gap: 14px;
-  padding: 10px 12px; border-radius: var(--r-10);
-  background: var(--surface);
-}
-.feature-item__icon {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: oklch(0.63 0.16 30 / 0.15);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; color: var(--accent);
-}
-.feature-item__name { font: 500 13px var(--font-ui); color: var(--ink); margin-bottom: 2px; }
-.feature-item__desc { font: 400 12px var(--font-ui); color: var(--ink-3); }
-
-/* ── upgrade feature checkmark row (Home › Upgrade modal) ── */
-.upgrade-check {
-  display: flex; align-items: center; gap: 10px;
-  font: 400 13.5px var(--font-ui); color: var(--ink-2);
-}
-.upgrade-check__icon {
-  width: 18px; height: 18px; border-radius: 999px;
-  background: var(--accent);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; font-size: 11px; color: oklch(0.98 0 0); font-weight: 600;
-}
-
 /* ── error banner ── */
 .error-banner {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -1560,7 +1486,7 @@ select.input {
 
 /* ── Toast notifications (fixed bottom) ── */
 .toast {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
   border-radius: var(--r-10); padding: 10px 18px;
   display: flex; align-items: center; gap: 10px;
   font: 500 13px var(--font-ui);
@@ -1937,7 +1863,7 @@ select.input {
    тёмным с тёмным текстом (раньше был захардкожен тёмный oklch). */
 .cookie-banner {
   position: fixed;
-  bottom: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: 9990;
@@ -1971,9 +1897,7 @@ select.input {
   .lnd-feat-row { padding: 24px 0; gap: 24px; }
   .lnd-feat-row-full { padding: 24px 0; }
   .lnd-manifesto-row { padding: 20px 0; }
-  .lnd-nav-cta,
-  .lnd-nav-sep,
-  .lnd-nav-spacer { display: none !important; }
+  .lnd-nav-sep { display: none !important; }
   .lnd-header { justify-content: space-between; }
 }
 
@@ -2061,35 +1985,6 @@ select.input {
   border-radius: var(--r-1);
   padding: 1px 4px;
   flex-shrink: 0;
-}
-
-/* --- custom checkbox --- */
-.as-checkbox {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border: 1.5px solid var(--border);
-  border-radius: 4px;
-  background: transparent;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.12s, border-color 0.12s;
-  position: relative;
-}
-.as-checkbox:checked {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-.as-checkbox:checked::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 8'%3E%3Cpath d='M1 4l3 3 5-5' stroke='oklch(0.98 0 0)' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 10px no-repeat;
-}
-.as-checkbox:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 /* --- custom radio --- */
