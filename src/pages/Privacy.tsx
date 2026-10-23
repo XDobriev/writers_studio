@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { LogoMark } from '../components/LogoMark';
+import { CookieConsentControl } from '../components/CookieConsentControl';
 import { usePageMeta } from '../lib/usePageMeta';
 import { breadcrumbJsonLd, useJsonLd } from '../lib/useJsonLd';
 
@@ -142,11 +143,12 @@ export default function Privacy() {
               (запись действий на странице). Подключается <strong>только после вашего согласия</strong>{' '}
               в уведомлении о куки; если нажать «Отклонить», счётчик не загружается. Текст рукописей,
               персонажей и заметок, страницы расшаренных книг и админка в запись Вебвизора не попадают:
-              их содержимое скрыто, нажатия клавиш не записываются. Отозвать согласие можно, очистив
-              данные сайта в браузере, или написав нам.{' '}
+              их содержимое скрыто, нажатия клавиш не записываются. Отозвать согласие можно кнопкой
+              ниже, очистив данные сайта в браузере, или написав нам.{' '}
               <a href="https://yandex.ru/legal/metrica_termsofuse/" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
                 Условия использования Яндекс.Метрики
               </a>.
+              <CookieConsentControl />
             </li>
             <li>
               <strong>Робокасса</strong> (robokassa.ru) — приём платежей, автоматические списания
