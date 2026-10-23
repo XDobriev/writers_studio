@@ -1,4 +1,5 @@
-import { supabase, type Book } from './supabase';
+import * as Sentry from '@sentry/react';
+import { ensureAuthReady, storagePathFromPublicUrl, supabase, type Book } from './supabase';
 import type { Tables } from './database.types';
 
 export type BookPatch = Partial<
@@ -109,6 +110,7 @@ export async function getBookContentCounts(bookId: string): Promise<BookContentC
 export async function duplicateBookContent(
   sourceBookId: string,
   targetBookId: string,
+  userId: string,
   opts: SeriesTransferOptions,
 ): Promise<void> {
   const { error } = await supabase.rpc('duplicate_book_content', {
@@ -120,6 +122,29 @@ export async function duplicateBookContent(
     p_timeline: opts.timeline,
   });
   if (error) throw error;
+  if (opts.locationsMap) await copyMapBackground(targetBookId, userId);
+}
+
+const MAP_BG_BUCKET = 'map-backgrounds';
+
+// RPC копирует ссылку на фон карты, а не файл. Путь фона привязан к книге и
+// перезаписывается (upsert) — без своей копии новый фон источника менял бы карту продолжения.
+// Сбой копирования не валит создание книги: остаётся общая ссылка, как было до фикса.
+async function copyMapBackground(targetBookId: string, userId: string): Promise<void> {
+  try {
+    const { data: book, error } = await supabase.from('books').select('map_bg_url').eq('id', targetBookId).single();
+    if (error) throw error;
+    const src = storagePathFromPublicUrl(book.map_bg_url, MAP_BG_BUCKET);
+    const dest = `${userId}/${targetBookId}/background`;
+    if (!src || src === dest) return;
+    await ensureAuthReady();
+    const { error: copyError } = await supabase.storage.from(MAP_BG_BUCKET).copy(src, dest);
+    if (copyError) throw copyError;
+    const { data } = supabase.storage.from(MAP_BG_BUCKET).getPublicUrl(dest);
+    await updateBook(targetBookId, { map_bg_url: `${data.publicUrl}?t=${Date.now()}` });
+  } catch (e) {
+    Sentry.captureException(e, { tags: { op: 'series-copy-map-bg' } });
+  }
 }
 
 export async function updateBook(id: string, patch: BookPatch): Promise<Book> {

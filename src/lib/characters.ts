@@ -1,4 +1,4 @@
-import { supabase, ensureAuthReady } from './supabase';
+import { supabase, ensureAuthReady, storagePathFromPublicUrl } from './supabase';
 import { createRepository, DbError } from './repository';
 import { optimizeImage, AVATAR_OPTS } from './imageOptimize';
 import type { Tables } from './database.types';
@@ -82,10 +82,8 @@ export async function uploadCharacterAvatar(characterId: string, userId: string,
  * удалять чужой файл нельзя — у книги-источника пропала бы картинка.
  */
 function ownAvatarPath(characterId: string, avatarUrl: string): string | null {
-  const marker = '/character-avatars/';
-  const idx = avatarUrl.indexOf(marker);
-  if (idx === -1) return null;
-  const path = decodeURIComponent(avatarUrl.slice(idx + marker.length).split('?')[0]);
+  const path = storagePathFromPublicUrl(avatarUrl, 'character-avatars');
+  if (!path) return null;
   const file = path.split('/')[1] ?? '';
   return file.startsWith(`${characterId}.`) ? path : null;
 }

@@ -220,7 +220,7 @@ export default function Home() {
         return;
       }
       if (seriesTransfer.enabled && seriesTransfer.sourceBookId) {
-        await duplicateBookContent(seriesTransfer.sourceBookId, data.id, toTransferOptions(seriesTransfer));
+        await duplicateBookContent(seriesTransfer.sourceBookId, data.id, user.id, toTransferOptions(seriesTransfer));
         // Книга-источник тоже изменилась (получила series_id/series_order) —
         // точечный setQueryData не покрывает, перезапрашиваем список.
         await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.books(user.id) });
