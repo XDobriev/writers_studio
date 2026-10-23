@@ -49,4 +49,4 @@
 
 ## Storage
 
-Бакет `map-backgrounds` (public read). Путь: `{user_id}/{book_id}/background`.
+Бакет `map-backgrounds` (public read). Путь: `{user_id}/{book_id}/background`. Путь — `mapBackgroundPath` (`books.ts`). Политики INSERT/UPDATE/SELECT/DELETE по первой папке = uid (DELETE — с миграции `20261023000000`). «Убрать фон» и удаление книги удаляют файл (`removeMapBackgroundFile`). При переносе в серию фон копируется в папку новой книги (`copyMapBackground`).
