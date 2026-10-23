@@ -26,6 +26,7 @@ import { SYSTEM_ADMIN_ID, bearer, json } from '../_shared/http.ts';
 import { isDeliverableEmail, sendEmail } from '../_shared/email.ts';
 import { DESCRIPTIONS, planForInterval, priceFor, type BillingInterval } from '../_shared/pricing.ts';
 import { buildReceipt, fetchOpState, newInvId } from '../_shared/robokassa.ts';
+import { retryDecision } from '../_shared/billingRetry.ts';
 
 const RECURRING_URL = 'https://auth.robokassa.ru/Merchant/Recurring';
 const MAX_ATTEMPTS = 4;
@@ -149,16 +150,16 @@ Deno.serve(async (req) => {
 
   for (const [i, p] of rows.entries()) {
     // Повтор: если прошлый дочерний счёт оплачен или ещё обрабатывается — не списываем снова.
-    if (p.is_retry && p.pending_inv_id && password2) {
-      const state = await fetchOpState(merchantLogin, p.pending_inv_id, password2);
-      if (state === null) {
+    // Без password2 статус не узнать — повтор откладывается, а не идёт вслепую.
+    if (p.is_retry && p.pending_inv_id) {
+      const state = password2 ? await fetchOpState(merchantLogin, p.pending_inv_id, password2) : null;
+      const verdict = retryDecision(state);
+      if (verdict !== 'charge') {
         counts.skipped++;
-        console.warn(`[billing-scheduler] OpStateExt unavailable for pending ${p.pending_inv_id}, retry postponed`);
-        continue;
-      }
-      if (state.resultCode === 0 && state.stateCode !== null && [5, 50, 80, 100].includes(state.stateCode)) {
-        counts.skipped++;
-        if (state.stateCode === 100) {
+        if (verdict === 'postpone') {
+          console.warn(`[billing-scheduler] OpStateExt unavailable for pending ${p.pending_inv_id}, retry postponed`);
+        }
+        if (verdict === 'paid') {
           await audit('recurring_paid_webhook_missing', p.user_id, { inv_id: p.pending_inv_id });
         }
         continue;
