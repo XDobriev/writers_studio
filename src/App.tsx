@@ -185,7 +185,7 @@ export default function App() {
         }}
     >
     <AuthProvider>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <AuthQuerySync />
         <OfflineBanner />
         <CookieBanner />
