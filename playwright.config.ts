@@ -1,9 +1,23 @@
+import fs from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
+
+// Локально переменные лежат в .env / .env.local — подхватываем их сами (окружение важнее).
+// Без этого `npx playwright test` молча давал «7 skipped», что легко принять за зелёный прогон.
+for (const file of ['.env', '.env.local']) {
+  if (!fs.existsSync(file)) continue;
+  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
+    const m = line.match(/^(\w+)=(.*)$/);
+    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].trim();
+  }
+}
+if (process.env.CI && (!process.env.E2E_TEST_EMAIL || !process.env.E2E_TEST_PASSWORD)) {
+  throw new Error('E2E_TEST_EMAIL / E2E_TEST_PASSWORD не заданы — в CI тесты не должны пропускаться молча.');
+}
 
 /**
  * Playwright config — golden-path E2E тесты против dev-сервера.
  *
- * Переменные окружения (локально — .env, в CI — GitHub Secrets):
+ * Переменные окружения (локально — .env / .env.local, в CI — GitHub Secrets):
  *   VITE_SUPABASE_URL      — URL проекта Supabase
  *   VITE_SUPABASE_ANON_KEY — anon-ключ
  *   E2E_TEST_EMAIL         — почта тест-пользователя

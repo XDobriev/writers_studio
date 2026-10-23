@@ -1,4 +1,19 @@
 import { test as base, expect, type Page } from '@playwright/test';
+import { bookIdFromHref, deleteCreatedSince } from './cleanup';
+
+let currentBookId = '';
+
+// После каждого теста удаляем то, что он создал в книге e2e-аккаунта (см. cleanup.ts).
+// Запас в минуту — на расхождение часов машины с сервером (created_at = now() в БД).
+export const test = base.extend<{ cleanupCreated: void }>({
+  cleanupCreated: [async ({}, use) => {
+    const since = new Date(Date.now() - 60_000);
+    currentBookId = '';
+    await use();
+    await deleteCreatedSince(currentBookId, since);
+  }, { auto: true }],
+});
+export { expect };
 
 // ВАЖНО: аккаунт E2E_TEST_EMAIL должен быть на плане 'pro' в таблице profiles.
 // На Free-плане: DOCX заблокирован (canExportRich=false), лимит персонажей=3.
@@ -31,5 +46,7 @@ export async function loginAndGetBookHref(page: Page): Promise<string> {
     }
   }
 
-  return (await link.getAttribute('href')) as string;
+  const href = (await link.getAttribute('href')) as string;
+  currentBookId = bookIdFromHref(href);
+  return href;
 }
