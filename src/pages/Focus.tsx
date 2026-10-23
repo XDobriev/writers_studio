@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useChapterVersioning } from '../lib/useChapterVersioning';
 import { useChapterAutosave, useRecoveredChapterContent } from '../lib/useChapterAutosave';
+import { AmbientSoundControl } from '../components/AmbientSoundControl';
 import { SaveNotice, UnsavedBanner } from '../components/SaveStatusBanners';
 
 export default function Focus() {
@@ -136,6 +137,10 @@ export default function Focus() {
       >
         ESC ↩
       </button>
+
+      <div className="focus-sound">
+        <AmbientSoundControl variant="focus" />
+      </div>
 
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '80px 40px 60px', overflow: 'auto' }}>
         <RichEditor

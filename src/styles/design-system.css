@@ -670,6 +670,20 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   transition: background var(--dur-hover);
 }
 .status-icon-btn:hover { background: color-mix(in oklch, var(--ink) 8%, transparent); }
+/* Кнопка звуков в шапке /focus — в паре с кнопкой ESC */
+.ambient-btn--focus {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0;
+  border: 1px solid var(--border-soft); border-radius: 8px;
+  background: oklch(from var(--bg-deep) l c h / 0.7); backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: background var(--dur-hover);
+}
+.ambient-btn--focus:hover { background: var(--surface); }
+.focus-sound { position: absolute; top: 18px; right: 110px; }
+@media (max-width: 768px) {
+  .ambient-btn--focus { width: 44px; height: 44px; }
+}
 
 /* right panel */
 .rp {
@@ -1012,7 +1026,7 @@ select.input {
 .focus-pill__sep { width: 1px; height: 14px; background: var(--border-soft); }
 /* Узкий экран: от центра плашка упёрлась бы в ESC справа — прижимаем влево, книгу прячем. */
 @media (max-width: 479px) {
-  .focus-pill { left: 16px; transform: none; max-width: calc(100% - 120px); }
+  .focus-pill { left: 16px; transform: none; max-width: calc(100% - 190px); }
   .focus-pill__book { display: none; }
 }
 .focus-mode .sheet .tiptap {
