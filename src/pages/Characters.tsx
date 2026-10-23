@@ -17,6 +17,7 @@ import { getPlanLimits } from '../lib/profiles';
 import { useProfile } from '../lib/queries';
 import {
   initialsFromName,
+  isBlankCharacter,
   ROLE_LABELS,
   ROLE_COLOR,
   ROLE_PORTRAIT_BG,
@@ -28,6 +29,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { useCharacterNavigation } from '../lib/useCharacterNavigation';
 import { useCreateOnMount } from '../lib/useCreateOnMount';
+import { useDiscardEmptyDraft } from '../lib/useDiscardEmptyDraft';
 import { useCharacterMutations, charInfiniteUpdate } from '../lib/useCharacterMutations';
 import { CharacterHeroBlock } from '../components/CharacterHeroBlock';
 import { CharacterRelationsBlock } from '../components/CharacterRelationsBlock';
@@ -134,13 +136,24 @@ export default function Characters() {
     lastActiveIdRef.current = newId;
   }, [active, flush]);
 
+  const { markDraft } = useDiscardEmptyDraft({
+    isViewing: (id) => active?.id === id && (isMobile || viewMode === 'detail'),
+    isEmpty: (id) => {
+      const c = characters?.find((x) => x.id === id);
+      const hasRelations = relationships?.some((r) => r.char_a_id === id || r.char_b_id === id) ?? true;
+      return !!c && isBlankCharacter(c) && !hasRelations;
+    },
+    discard: (id) => onDeleteConfirmed(id),
+  });
+
   const handleCreated = useCallback((id: string) => {
+    markDraft(id);
     const next = new URLSearchParams(search);
     next.delete('create'); // prevent stale ?create=true being reintroduced after async creation
     next.set('character', id);
     setSearch(next, { replace: false });
     setViewMode('detail');
-  }, [search, setSearch, setViewMode]);
+  }, [search, setSearch, setViewMode, markDraft]);
 
   const handleDeleted = useCallback((remaining: Character[], deletedId: string) => {
     setCharToDelete(null);

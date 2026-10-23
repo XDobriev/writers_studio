@@ -46,6 +46,19 @@ export async function hasAnyCharacter(userId: string): Promise<boolean> {
   return (data ?? []).length > 0;
 }
 
+const BLANK_TEXT_FIELDS = ['name', 'quote', 'appearance', 'personality', 'interior_life', 'exterior_life', 'gap', 'backstory', 'notes'] as const;
+
+/** Персонаж, которого только что создали и ни разу не тронули: ни текста, ни возраста, ни аватара, роль по умолчанию. */
+export function isBlankCharacter(c: Character): boolean {
+  return (
+    BLANK_TEXT_FIELDS.every((f) => c[f].trim() === '') &&
+    c.age === null &&
+    !c.avatar_url &&
+    c.aliases.length === 0 &&
+    c.role === 'protagonist'
+  );
+}
+
 export function createCharacter(
   bookId: string,
   userId: string,

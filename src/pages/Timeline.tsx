@@ -5,6 +5,7 @@ import { ErrorBanner } from '../components/ErrorBanner';
 import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useParams } from 'react-router-dom';
 import { useCreateOnMount } from '../lib/useCreateOnMount';
+import { useDiscardEmptyDraft } from '../lib/useDiscardEmptyDraft';
 import { useQueryClient } from '@tanstack/react-query';
 import { type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
@@ -18,6 +19,7 @@ import { getPlanLimits, isPlanLimitError } from '../lib/profiles';
 import {
   createTimelineEvent,
   deleteTimelineEvent,
+  isBlankTimelineEvent,
   reorderTimelineEvents,
   updateTimelineEvent,
   type TimelineEvent,
@@ -68,6 +70,28 @@ export default function Timeline() {
     localStorage.setItem('timeline-view', v);
   };
 
+  // Ввод в карточках живёт в их локальном состоянии и доходит до кэша с задержкой, поэтому
+  // «тронута ли» запись узнаём по самому факту ввода на странице (после создания).
+  const typedSinceCreateRef = useRef(false);
+  const { markDraft } = useDiscardEmptyDraft({
+    isEmpty: (id) => {
+      const ev = events?.find((e) => e.id === id);
+      return !!ev && isBlankTimelineEvent(ev) && !typedSinceCreateRef.current;
+    },
+    discard: async (id) => {
+      if (!bookId) return;
+      try {
+        await deleteTimelineEvent(id);
+        queryClient.setQueryData<TimelineEvent[]>(QUERY_KEYS.timelineEvents(bookId), (prev) =>
+          prev ? prev.filter((e) => e.id !== id) : prev
+        );
+        setActiveEventId((cur) => (cur === id ? null : cur));
+      } catch {
+        // Не удалось убрать пустышку — остаётся как раньше; пользователя это не касается.
+      }
+    },
+  });
+
   const creatingRef = useRef(false);
   const handleCreateCore = useCallback(async () => {
     if (!bookId || !user || creatingRef.current) return;
@@ -79,6 +103,8 @@ export default function Timeline() {
         QUERY_KEYS.timelineEvents(bookId),
         (prev) => [...(prev ?? []), created]
       );
+      typedSinceCreateRef.current = false;
+      markDraft(created.id);
       setJustCreatedId(created.id);
     } catch (e) {
       if (isPlanLimitError(e)) {
@@ -89,7 +115,7 @@ export default function Timeline() {
     } finally {
       creatingRef.current = false;
     }
-  }, [bookId, user, events, queryClient, setError]);
+  }, [bookId, user, events, queryClient, setError, markDraft]);
 
   const handleCreate = useCallback(() => {
     if ((events?.length ?? 0) >= limits.maxTimelineEvents) {
@@ -256,7 +282,7 @@ export default function Timeline() {
   const showLane = view === 'lane' && !isMobile;
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%' }}>
+    <motion.div onInputCapture={() => { typedSinceCreateRef.current = true; }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%' }}>
     <WithMode>
       <div
         className="as as-app as-app--no-right"
