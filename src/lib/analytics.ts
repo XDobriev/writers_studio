@@ -21,6 +21,21 @@ declare global {
 }
 
 let started = false;
+let lastUrl: string | null = null;
+
+// Токен /share/<token> — ключ доступа к книге: в Метрику (и в отчёты о реферерах) не уходит.
+function pageUrl(): string {
+  return location.href.replace(/\/share\/[^/?#]+/, '/share/[token]');
+}
+
+// init считает только первую страницу; переходы внутри SPA Метрика сама не видит.
+export function trackPageView(): void {
+  if (!started || !window.ym) return;
+  const url = pageUrl();
+  if (url === lastUrl) return;
+  window.ym(COUNTER_ID, 'hit', url, { referer: lastUrl ?? document.referrer });
+  lastUrl = url;
+}
 
 export function getConsent(): ConsentValue | null {
   try {
@@ -71,7 +86,7 @@ function startAnalytics(): void {
     clickmap: true,
     ecommerce: 'dataLayer',
     referrer: document.referrer,
-    url: location.href,
+    url: lastUrl = pageUrl(),
     accurateTrackBounce: true,
     trackLinks: true,
   });

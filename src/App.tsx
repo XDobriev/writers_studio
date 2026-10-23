@@ -11,6 +11,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineBanner } from './components/OfflineBanner';
 import { CookieBanner } from './components/CookieBanner';
 import { useFeatureFlag } from './lib/useFeatureFlag';
+import { trackPageView } from './lib/analytics';
 
 function MaintenancePage() {
   return (
@@ -93,6 +94,7 @@ function AppContent() {
 
 function AnimatedRoutes() {
   const location = useLocation();
+  useEffect(() => { trackPageView(); }, [location.pathname]);
   return (
     <AnimatePresence mode="sync">
       <Routes location={location} key={location.pathname}>
