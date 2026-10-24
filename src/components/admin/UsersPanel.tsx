@@ -130,6 +130,7 @@ export function UsersPanel({
           className="input"
           type="number"
           min={0}
+          aria-label="Количество lifetime-слотов"
           placeholder="Кол-во слотов"
           value={lifetimeSlots}
           onChange={(e) => setLifetimeSlots(e.target.value)}
@@ -166,6 +167,7 @@ export function UsersPanel({
           </button>
           <input
             className="input"
+            aria-label="Поиск по email"
             placeholder="Поиск по email…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -186,7 +188,9 @@ export function UsersPanel({
                   scope="col"
                   className="admin-th admin-th--sort"
                   aria-sort={sortKey === 'created_at' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                  tabIndex={0}
                   onClick={() => handleSort('created_at')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('created_at'); } }}
                 >
                   Зарегистрирован <SortIcon active={sortKey === 'created_at'} dir={sortDir} />
                 </th>
@@ -195,7 +199,9 @@ export function UsersPanel({
                   scope="col"
                   className="admin-th admin-th--sort"
                   aria-sort={sortKey === 'words_total' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                  tabIndex={0}
                   onClick={() => handleSort('words_total')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('words_total'); } }}
                 >
                   Слов <SortIcon active={sortKey === 'words_total'} dir={sortDir} />
                 </th>
@@ -203,7 +209,9 @@ export function UsersPanel({
                   scope="col"
                   className="admin-th admin-th--sort"
                   aria-sort={sortKey === 'last_active' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                  tabIndex={0}
                   onClick={() => handleSort('last_active')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('last_active'); } }}
                 >
                   Последняя активность <SortIcon active={sortKey === 'last_active'} dir={sortDir} />
                 </th>
@@ -236,6 +244,7 @@ export function UsersPanel({
                   <td style={{ padding: '8px 16px' }}>
                     <select
                       value={u.plan}
+                      aria-label={`План пользователя ${u.email}`}
                       disabled={planChanging === u.id}
                       onChange={(e) => onPlanChange(u, e.target.value as Plan)}
                       style={{

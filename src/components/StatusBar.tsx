@@ -101,6 +101,7 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
               <span>сегодня · {todayWords.toLocaleString('ru')}/</span>
               <input
                 autoFocus
+                aria-label="Дневная цель, слов"
                 value={goalInput}
                 onChange={(e) => setGoalInput(e.target.value.replace(/\D/g, ''))}
                 onKeyDown={(e) => {

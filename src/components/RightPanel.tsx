@@ -217,6 +217,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                 {formKind === 'custom' && (
                   <input
                     className="input"
+                    aria-label="Название своего типа заметки"
                     placeholder="Название типа…"
                     value={formCustomLabel}
                     onChange={(e) => setFormCustomLabel(e.target.value)}
@@ -299,6 +300,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                 {editKind === 'custom' && (
                   <input
                     className="input"
+                    aria-label="Название своего типа заметки"
                     placeholder="Название типа…"
                     value={editCustomLabel}
                     onChange={(e) => setEditCustomLabel(e.target.value)}
@@ -308,6 +310,7 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
                 )}
                 <textarea
                   ref={editTextRef}
+                  aria-label="Текст заметки"
                   className="input input--textarea"
                   rows={3}
                   value={editText}

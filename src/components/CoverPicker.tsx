@@ -21,10 +21,12 @@ export function CoverPicker({
     <div>
       <label className="label">Обложка</label>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6, alignItems: 'center' }}>
-        {COVERS.map((c) => (
+        {COVERS.map((c, i) => (
           <button
             key={c}
             type="button"
+            aria-label={`Обложка ${i + 1}`}
+            aria-pressed={!hasImage && value === c}
             onClick={() => onChange(c)}
             disabled={uploading}
             className="cover-swatch"

@@ -135,6 +135,7 @@ export default function Dictionary() {
               value={newWord}
               onChange={e => setNewWord(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
+              aria-label="Новое слово"
               placeholder="Новое слово…"
               disabled={adding}
               style={{ flex: 1, fontSize: 13 }}
@@ -162,6 +163,7 @@ export default function Dictionary() {
               className="input"
               value={search}
               onChange={e => setSearch(e.target.value)}
+              aria-label="Поиск по словарю"
               placeholder="Найти в словаре…"
               style={{ width: '100%', fontSize: 13, paddingLeft: 34 }}
             />

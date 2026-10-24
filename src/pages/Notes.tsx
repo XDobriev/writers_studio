@@ -515,6 +515,7 @@ export default function Notes() {
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <input
                         className="input"
+                        aria-label="Название своего типа заметки"
                         placeholder="Название типа…"
                         value={formCustomLabel}
                         onChange={(e) => setFormCustomLabel(e.target.value)}
@@ -530,6 +531,7 @@ export default function Notes() {
                     ref={formTextRef}
                     className="input input--textarea"
                     rows={3}
+                    aria-label="Текст заметки"
                     placeholder="Текст заметки…"
                     value={formText}
                     onChange={(e) => setFormText(e.target.value)}
@@ -655,6 +657,7 @@ export default function Notes() {
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <input
                         className="input"
+                        aria-label="Название своего типа заметки"
                         placeholder="Название типа…"
                         value={modalEditCustomLabel}
                         onChange={(e) => setModalEditCustomLabel(e.target.value)}

@@ -405,6 +405,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
           <input
             ref={inputRef}
             type="url"
+            aria-label="Адрес ссылки"
             value={url}
             onChange={e => setUrl(e.target.value)}
             onKeyDown={e => {

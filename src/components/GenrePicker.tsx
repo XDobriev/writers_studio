@@ -94,6 +94,7 @@ export function GenrePicker({
           className="input"
           style={{ marginTop: 8 }}
           value={customInput}
+          aria-label="Свой жанр"
           placeholder="Введите свой жанр…"
           onChange={(e) => setCustomInput(e.target.value)}
           onBlur={handleCustomBlur}

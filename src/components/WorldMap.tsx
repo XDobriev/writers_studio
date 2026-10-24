@@ -808,6 +808,8 @@ export function WorldMap({
                 <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc.name}</span>
                 <button
                   title="Разместить на карте"
+                  aria-label={`Разместить на карте: ${loc.name}`}
+                  aria-pressed={pendingPlaceId === loc.id}
                   onClick={() => setPendingPlaceId(prev => prev === loc.id ? null : loc.id)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: pendingPlaceId === loc.id ? 'var(--accent)' : 'var(--ink-4)', padding: '2px 4px', font: '14px var(--font-ui)', lineHeight: 1, flexShrink: 0 }}
                 >+</button>
