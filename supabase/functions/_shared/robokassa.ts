@@ -65,6 +65,24 @@ export async function fetchOpKey(login: string, invId: string, password2: string
   return state?.opKey ?? null;
 }
 
+export type RefundCreateResult =
+  | { kind: 'created'; requestId: string }
+  | { kind: 'already_created' }
+  | { kind: 'rejected'; message: string };
+
+/**
+ * Разбор ответа Refund/Create. Повторный запрос по уже возвращённому OpKey Робокасса
+ * отклоняет с `NotEnoughOperationFunds` (поддержка, 23.10.2026) — это «возврат уже
+ * создан» (или создавать нечего), повторять бессмысленно. Тексты ошибок API возвратов
+ * Робокасса сама называет неинформативными и обещает менять: узнаём только эту строку,
+ * остальное — общий `rejected`.
+ */
+export function classifyRefundCreate(data: { success?: boolean; message?: string; requestId?: string | null }): RefundCreateResult {
+  if (data.success && data.requestId) return { kind: 'created', requestId: data.requestId };
+  if (data.message === 'NotEnoughOperationFunds') return { kind: 'already_created' };
+  return { kind: 'rejected', message: data.message ?? 'unknown' };
+}
+
 /** Числовой InvId: Date.now() + 3 цифры (Робокасса требует целое). */
 export function newInvId(suffix?: number): string {
   const tail = suffix ?? Math.floor(Math.random() * 1000);

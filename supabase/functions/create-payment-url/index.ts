@@ -106,7 +106,6 @@ Deno.serve(async (req) => {
   const sendRecurring = isPro && recurringEnabled && consent;
 
   const invId     = newInvId();
-  const result2Url = `${supabaseUrl}/functions/v1/payment-result2`;
 
   if (sendRecurring) {
     const { error: consentErr } = await db.from('recurring_consents').insert({
@@ -138,9 +137,9 @@ Deno.serve(async (req) => {
   }
 
   const receipt = buildReceipt(DESCRIPTIONS[plan], outSum, user.email);
-  // Подпись: MerchantLogin:OutSum:InvId:ReceiptJSON:ResultUrl2:Password1:Shp_plan=…:Shp_user_id=…
+  // Подпись: MerchantLogin:OutSum:InvId:ReceiptJSON:Password1:Shp_plan=…:Shp_user_id=…
   // Receipt в подписи — raw JSON, в URL — encodeURIComponent (рабочая формула 17-18.06.2026).
-  const sigString = `${merchantLogin}:${outSum}:${invId}:${receipt.json}:${result2Url}:${password1}:Shp_plan=${plan}:Shp_user_id=${user.id}`;
+  const sigString = `${merchantLogin}:${outSum}:${invId}:${receipt.json}:${password1}:Shp_plan=${plan}:Shp_user_id=${user.id}`;
   const signature = md5hex(sigString);
 
   const params = new URLSearchParams({
@@ -150,7 +149,6 @@ Deno.serve(async (req) => {
     Description:    DESCRIPTIONS[plan],
     SignatureValue: signature,
     IsTest:         isTestMode ? '1' : '0',
-    ResultUrl2:     result2Url,
     Shp_plan:       plan,
     Shp_user_id:    user.id,
     ...(sendRecurring ? { Recurring: 'true' } : {}),
