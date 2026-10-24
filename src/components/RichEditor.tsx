@@ -297,16 +297,20 @@ export function RichEditor({
                 <button
                   key={name}
                   title={label}
+                  aria-label={label}
                   className={'bubble-btn' + (editor.isActive(name) ? ' bubble-btn--on' : '')}
-                  onMouseDown={e => { e.preventDefault(); runFmt(name); }}
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => { runFmt(name); }}
                 >
                   <Icon name={icon} size={14} />
                 </button>
               ))}
               <button
                 title="Очистить форматирование"
+                aria-label="Очистить форматирование"
                 className="bubble-btn"
-                onMouseDown={e => { e.preventDefault(); editor.chain().focus().unsetAllMarks().clearNodes().run(); }}
+                onMouseDown={e => e.preventDefault()}
+                  onClick={() => { editor.chain().focus().unsetAllMarks().clearNodes().run(); }}
               >
                 <Icon name="clear" size={14} />
               </button>
@@ -319,9 +323,11 @@ export function RichEditor({
                   <button
                     key={label}
                     title={label}
+                    aria-label={label}
                     className={'bubble-color' + (isOn ? ' bubble-color--on' : '') + (bg === null ? ' bubble-color--clear' : '')}
                     style={bg ? { background: bg } : undefined}
-                    onMouseDown={e => { e.preventDefault(); applyColor(value); }}
+                    onMouseDown={e => e.preventDefault()}
+                  onClick={() => { applyColor(value); }}
                   >
                     {bg === null && <span style={{ fontSize: 10, color: 'oklch(72% 0 0)', lineHeight: 1 }}>×</span>}
                   </button>
