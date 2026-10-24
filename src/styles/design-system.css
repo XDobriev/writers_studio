@@ -1911,8 +1911,13 @@ select.input {
 .consent-control { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 8px; }
 .consent-control__state { color: var(--ink-2); }
 
-/* Демо /demo: на всю высоту; на мобилке — минус баннер согласия (его высота — --cookie-banner-h) */
-.demo-shell { height: 100dvh; display: flex; flex-direction: column; background: var(--bg); }
+/* Демо /demo: на всю высоту минус место под баннером согласия (--cookie-banner-space, пока он виден) */
+.demo-shell {
+  height: calc(100dvh - var(--cookie-banner-space, 0px));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
 
 /* Cookie-баннер на узких экранах: плоская панель у нижнего края — текст сверху, кнопки рядом под ним */
 @media (max-width: 560px) {
@@ -1930,8 +1935,7 @@ select.input {
     font-size: 12px;
   }
   .cookie-banner__text { line-height: 1.4; }
-  .cookie-banner__actions .btn { flex: 1; }
-  .demo-shell { height: calc(100dvh - var(--cookie-banner-h, 0px)); }
+  .cookie-banner__actions .btn { flex: 1; justify-content: center; }
 }
 @media (max-width: 479px) {
   .lnd-footer-grid { grid-template-columns: 1fr; }

@@ -8,17 +8,19 @@ export function CookieBanner() {
   const [decided, setDecided] = useState(() => getConsent() !== null);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Высота баннера → --cookie-banner-h: экраны на 100dvh (/demo) на мобилке ужимаются на неё,
-  // чтобы баннер не перекрывал редактор.
+  // Место, которое баннер занимает снизу экрана (высота + отступ от края) → --cookie-banner-space:
+  // экраны на 100dvh (/demo) ужимаются на него, чтобы баннер не перекрывал редактор.
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
     const root = document.documentElement;
-    const observer = new ResizeObserver(() => root.style.setProperty('--cookie-banner-h', `${el.getBoundingClientRect().height}px`));
+    const observer = new ResizeObserver(() =>
+      root.style.setProperty('--cookie-banner-space', `${window.innerHeight - el.getBoundingClientRect().top}px`),
+    );
     observer.observe(el);
     return () => {
       observer.disconnect();
-      root.style.removeProperty('--cookie-banner-h');
+      root.style.removeProperty('--cookie-banner-space');
     };
   }, [decided]);
 
