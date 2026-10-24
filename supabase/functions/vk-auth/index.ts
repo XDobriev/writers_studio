@@ -3,7 +3,7 @@
 // registration_open = false; CORS — белый список origin.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders, json as jsonBase } from '../_shared/http.ts';
-import { findUserByEmail, isRegistrationOpen } from '../_shared/authUsers.ts';
+import { findUserByEmail, isEmailSquatter, isRegistrationOpen, releaseSquattedEmail } from '../_shared/authUsers.ts';
 
 const VK_APP_ID = 54634821;
 
@@ -119,8 +119,17 @@ Deno.serve(async (req) => {
     console.error('[vk-auth] user lookup failed:', found.error);
     return json(500, { error: 'auth lookup failed' });
   }
-  const userId = found.user?.id ?? null;
-  const existingAppMeta = found.user?.app_metadata ?? null;
+  let existing = found.user;
+  if (existing && isEmailSquatter(existing.app_metadata)) {
+    const released = await releaseSquattedEmail(admin, existing.id);
+    if (!released.ok) {
+      console.error('[vk-auth] release squatted email failed:', released.error);
+      return json(500, { error: 'account creation failed' });
+    }
+    existing = null;
+  }
+  const userId = existing?.id ?? null;
+  const existingAppMeta = existing?.app_metadata ?? null;
 
   const appMeta = { provider: 'vk', providers: ['vk'], vk_id: Number(vkUser.user_id) };
 
