@@ -255,6 +255,7 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
               onChange={onAliasChange}
               onKeyDown={onAliasKeyDown}
               onBlur={() => { if (aliasInput.trim()) addAlias(aliasInput); }}
+              aria-label="Псевдонимы персонажа"
               placeholder={aliases.length === 0 ? 'Ваня, Иваныч, Дядя Ваня…' : '+ имя'}
               style={{ flex: '1 1 120px', minWidth: 80, background: 'transparent', border: 'none', outline: 'none', font: '400 12px var(--font-ui)', color: 'var(--ink)', padding: '2px 0' }}
             />
@@ -292,13 +293,18 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
             onChange={onQuoteChange}
             onBlur={() => setEditingQuote(false)}
             onKeyDown={(e) => { if (e.key === 'Escape') setEditingQuote(false); }}
+            aria-label="Цитата или девиз персонажа"
             placeholder="Цитата или девиз персонажа"
             rows={1}
             style={{ width: '100%', maxWidth: 560, font: '400 15px/1.65 var(--font-serif)', color: 'var(--ink-2)', fontStyle: 'italic', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-soft)', outline: 'none', resize: 'none', overflow: 'hidden', padding: '0 0 6px 0', display: 'block' }}
           />
         ) : (
           <div
+            role="button"
+            tabIndex={0}
+            aria-label={`Цитата: ${quote || 'не задана'}. Нажмите, чтобы изменить`}
             onClick={() => setEditingQuote(true)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditingQuote(true); } }}
             title="Нажмите, чтобы редактировать"
             style={{ width: '100%', maxWidth: 560, font: '400 15px/1.65 var(--font-serif)', color: quote ? 'var(--ink-2)' : 'var(--ink-4)', fontStyle: 'italic', borderBottom: '1px solid var(--border-soft)', padding: '0 0 6px 0', cursor: 'text', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', minHeight: '1.65em' }}
           >
