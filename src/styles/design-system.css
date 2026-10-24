@@ -387,7 +387,8 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .sb-foot:hover { background: var(--surface); }
 .sb-avatar {
   width: 28px; height: 28px; border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  /* белый 11px текст: оба конца градиента ≥4.5:1 (7.3 и 5.7) */
+  background: linear-gradient(135deg, var(--accent-deep), oklch(0.50 0.10 90));
   display: flex; align-items: center; justify-content: center;
   font: 500 11px var(--font-ui); color: oklch(0.98 0 0);
   overflow: hidden;
@@ -755,6 +756,8 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   background: transparent;
 }
 .chip--accent { border-color: var(--accent); color: color-mix(in oklch, var(--accent) 62%, oklch(0.98 0 0)); background: var(--accent-soft); }
+/* в светлой теме смесь с белым даёт ≈2.5:1 — берём сам акцент (6.0:1 на подложке) */
+[data-theme="light"] .chip--accent { color: var(--accent); }
 .chip--ok { border-color: oklch(0.72 0.14 145 / 0.5); color: var(--ok); background: oklch(0.72 0.14 145 / 0.12); }
 .chip--sm { font-size: 10px; height: 18px; padding: 0 6px; }
 button.chip:not(.chip--accent):hover { background: var(--surface-2); }
