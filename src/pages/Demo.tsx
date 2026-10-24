@@ -126,8 +126,7 @@ export default function Demo() {
 
   return (
     <div
-      className="as"
-      style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}
+      className="as demo-shell"
       onClickCapture={handleCaptureClick}
     >
       <DemoBanner />
