@@ -6,40 +6,15 @@ import { LogoMark } from './LogoMark';
 export function DemoBanner() {
   const navigate = useNavigate();
   return (
-    <div
-      style={{
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        height: 46,
-        padding: '0 16px',
-        background: 'var(--bg-deep)',
-        borderBottom: '1px solid var(--border-soft)',
-      }}
-    >
+    <div className="demo-banner">
       <LogoMark size={18} />
-      <span style={{ font: '500 12px var(--font-ui)', color: 'var(--ink)', flexShrink: 0 }}>
-        Демо-режим
-      </span>
-      <span
-        className="demo-banner-desc"
-        style={{
-          font: '400 12px var(--font-ui)',
-          color: 'var(--ink-3)',
-          flex: 1,
-          minWidth: 0,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
+      <span className="demo-banner__title">Демо-режим</span>
+      <span className="demo-banner__desc">
         Печатайте и переключайте главы — это живой редактор. Изменения не сохранятся.
       </span>
       <button
         type="button"
-        className="btn btn--primary btn--sm"
-        style={{ flexShrink: 0 }}
+        className="btn btn--primary btn--sm demo-banner__cta"
         onClick={() => navigate('/login?tab=signup')}
       >
         Начать свою книгу →

@@ -1877,7 +1877,35 @@ select.input {
   /* На узкой мобилке текст сжимается ellipsis-ом почти до нуля из-за
      CTA-кнопки справа — обрезка выглядит бессмысленно ("Печатайте и...").
      Скрываем целиком, оставляя «Демо-режим» + CTA. */
-  .demo-banner-desc { display: none; }
+  .demo-banner__desc { display: none; }
+}
+
+/* Полоса демо-режима над редактором /demo (DemoBanner) */
+.demo-banner {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  padding: 0 16px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border-soft);
+}
+.demo-banner__title { font: 500 12px var(--font-ui); color: var(--ink); flex-shrink: 0; }
+.demo-banner__desc {
+  font: 400 12px var(--font-ui);
+  color: var(--ink-3);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* margin-left: auto — прижимает кнопку вправо, когда описание скрыто (≤479px) */
+.demo-banner__cta { flex-shrink: 0; margin-left: auto; }
+/* На мобилке .btn тянется до 44px (touch target) — полоса выше, чтобы кнопка не упиралась в края */
+@media (max-width: 768px) {
+  .demo-banner { height: 58px; }
 }
 
 /* Обёртка приватного контента для Вебвизора (App.tsx → AnalyticsPrivate): без своего бокса */
