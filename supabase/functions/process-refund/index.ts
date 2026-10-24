@@ -7,13 +7,17 @@
 //   * после одобрения — public.apply_refund: снимается ровно оплаченный этим платежом
 //     период (если оплачен и следующий — Pro остаётся до новой даты), рекуррент
 //     закрывается (recurring_inv_id = NULL), ранняя цена сгорает.
+//   * повтор по уже возвращённому OpKey (ответ первой попытки потерялся) Робокасса отклоняет
+//     с NotEnoughOperationFunds: claim остаётся, автопродление выключается
+//     (cancel_at_period_end — обратимо, мандат не стирается), план не трогаем — деньги
+//     могли и не вернуться; audit refund_needs_review, сверяет админ;
 //   * статус 'processing' после 20 с поллинга считается успехом (Робокасса приняла заявку);
 //     отмену такой заявки позже нужно сверять вручную (см. отчёт).
 //
 // Secrets: ROBOKASSA_PASSWORD3, ROBOKASSA_MERCHANT_LOGIN, ROBOKASSA_PASSWORD2 (fallback OpKey).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { bearer, corsHeaders, json } from '../_shared/http.ts';
-import { fetchOpKey } from '../_shared/robokassa.ts';
+import { SYSTEM_ADMIN_ID, bearer, corsHeaders, json } from '../_shared/http.ts';
+import { classifyRefundCreate, fetchOpKey } from '../_shared/robokassa.ts';
 
 function base64url(data: Uint8Array): string {
   return btoa(String.fromCharCode(...data)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -124,13 +128,30 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(jwt),
     });
-    const data = await res.json() as { success?: boolean; message?: string; requestId?: string };
-    if (!data.success || !data.requestId) {
-      console.error('[process-refund] Robokassa rejected:', data.message ?? res.status);
+    const data = await res.json() as { success?: boolean; message?: string; requestId?: string | null };
+    const result = classifyRefundCreate(data);
+    if (result.kind === 'already_created') {
+      console.error(`[process-refund] refund already created inv=${payment.inv_id}, needs review`);
+      const { error: stopErr } = await db.from('profiles')
+        .update({ cancel_at_period_end: true })
+        .eq('user_id', user.id);
+      if (stopErr) console.error('[process-refund] stop renewal failed:', stopErr.message);
+      const { error: auditErr } = await db.from('admin_audit_log').insert({
+        admin_id: SYSTEM_ADMIN_ID,
+        admin_email: 'system',
+        action: 'refund_needs_review',
+        target_user_id: user.id,
+        payload: { inv_id: payment.inv_id, reason: 'NotEnoughOperationFunds', renewal_stopped: !stopErr },
+      });
+      if (auditErr) console.error('[process-refund] audit failed:', auditErr.message);
+      return json(409, { error: 'refund_already_created' }, cors);
+    }
+    if (result.kind === 'rejected') {
+      console.error('[process-refund] Robokassa rejected:', result.message, res.status);
       await releaseRefundClaim();
       return json(502, { error: 'robokassa_error' }, cors);
     }
-    requestId = data.requestId;
+    requestId = result.requestId;
   } catch (e) {
     console.error('[process-refund] Robokassa fetch failed:', e instanceof Error ? e.message : String(e));
     await releaseRefundClaim();

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   buildReceipt,
+  classifyRefundCreate,
   fetchOpKey,
   fetchOpState,
   newInvId,
@@ -146,5 +147,32 @@ describe('fetchOpKey', () => {
   it('нет ключа или нет ответа — null', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okResponse(xml(0, 100))));
     expect(await fetchOpKey('shop', '42', 'pw2', 1)).toBeNull();
+  });
+});
+
+// Повтор Refund/Create по уже возвращённому OpKey (ответ поддержки Робокассы, 23.10.2026).
+describe('classifyRefundCreate', () => {
+  it('success + requestId — возврат создан', () => {
+    expect(classifyRefundCreate({ success: true, message: null as unknown as string, requestId: 'r-1' }))
+      .toEqual({ kind: 'created', requestId: 'r-1' });
+  });
+
+  it('NotEnoughOperationFunds — возврат по OpKey уже создан', () => {
+    expect(classifyRefundCreate({ success: false, message: 'NotEnoughOperationFunds', requestId: null }))
+      .toEqual({ kind: 'already_created' });
+  });
+
+  it('прочие отказы — rejected с текстом', () => {
+    expect(classifyRefundCreate({ success: false, message: 'InvalidToken', requestId: null }))
+      .toEqual({ kind: 'rejected', message: 'InvalidToken' });
+  });
+
+  it('success без requestId не считается созданием', () => {
+    expect(classifyRefundCreate({ success: true })).toEqual({ kind: 'rejected', message: 'unknown' });
+  });
+
+  it('NotEnoughOperationFunds при success: true не перекрывает успех', () => {
+    expect(classifyRefundCreate({ success: true, message: 'NotEnoughOperationFunds', requestId: 'r-2' }))
+      .toEqual({ kind: 'created', requestId: 'r-2' });
   });
 });
