@@ -39,6 +39,15 @@ jobs:
       - name: Unit tests
         run: npm run test
 
+      # Мёртвый код: неиспользуемые файлы, экспорты, зависимости (конфиг — knip.json).
+      # knip читает playwright.config.ts, а тот в CI без E2E-кредов падает — заглушки
+      # нужны только чтобы загрузить конфиг, тесты здесь не запускаются.
+      - name: Knip
+        run: npm run knip
+        env:
+          E2E_TEST_EMAIL: ci-placeholder
+          E2E_TEST_PASSWORD: ci-placeholder
+
       # Сборка без пререндера (SKIP_PRERENDER=1: пререндер требует Chromium и идёт
       # в деплое со строгим PRERENDER_STRICT=1). Ловит ошибки Rollup/vite build до мержа,
       # а не на проде. Переменные Supabase нужны только для инициализации клиента.
