@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Skeleton } from '../components/Skeleton';
 import { ErrorBanner } from '../components/ErrorBanner';
-import { trapTab } from '../lib/useModalFocus';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 import { toUserMessage } from '../lib/errors';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../lib/useResponsive';
@@ -88,6 +89,14 @@ export default function Home() {
   const [confirmDeleteBook, setConfirmDeleteBook] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [creating, setCreating] = useState(false);
+  const editPanelRef = useRef<HTMLDivElement>(null);
+  const editTitleRef = useRef<HTMLInputElement>(null);
+  const createPanelRef = useRef<HTMLFormElement>(null);
+  const createTitleRef = useRef<HTMLInputElement>(null);
+  useModalFocus(editBook !== null, editPanelRef, editTitleRef);
+  useModalFocus(showCreate, createPanelRef, createTitleRef);
+  useEscapeToClose(editBook !== null, () => { if (!editSaving) setEditBook(null); });
+  useEscapeToClose(showCreate, () => { if (!creating) setShowCreate(false); });
   const creatingRef = useRef(false);
   const editSavingRef = useRef(false);
 
@@ -405,6 +414,7 @@ export default function Home() {
       {editBook && (
         <div className="modal-overlay" onClick={() => { if (!editSaving) setEditBook(null); }}>
           <div
+            ref={editPanelRef}
             role="dialog"
             aria-modal="true"
             aria-label="Редактировать книгу"
@@ -412,10 +422,7 @@ export default function Home() {
             className="modal-panel"
             style={{ width: 460, maxWidth: 'calc(100vw - 32px)' }}
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') { if (!editSaving) setEditBook(null); return; }
-              trapTab(e);
-            }}
+            onKeyDown={(e) => trapTab(e)}
           >
             <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -423,11 +430,11 @@ export default function Home() {
                 <label htmlFor="edit-book-title" className="label">Название</label>
                 <input
                   id="edit-book-title"
+                  ref={editTitleRef}
                   className="input"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') saveEditBook(); if (e.key === 'Escape' && !editSaving) setEditBook(null); }}
-                  autoFocus
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveEditBook(); }}
                   maxLength={120}
                 />
               </div>
@@ -519,6 +526,7 @@ export default function Home() {
       {showCreate && (
         <div className="modal-overlay" style={{ zIndex: 50 }} onClick={() => { if (!creating) setShowCreate(false); }}>
           <form
+            ref={createPanelRef}
             onSubmit={onCreate}
             role="dialog"
             aria-modal="true"
@@ -527,16 +535,13 @@ export default function Home() {
             className="modal-panel"
             style={{ width: 460, maxWidth: 'calc(100vw - 32px)' }}
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') { if (!creating) setShowCreate(false); return; }
-              trapTab(e);
-            }}
+            onKeyDown={(e) => trapTab(e)}
           >
             <h2 style={{ font: '600 22px var(--font-serif)', marginBottom: 16 }}>Новая книга</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label htmlFor="create-book-title" className="label">Название</label>
-                <input id="create-book-title" className="input" name="title" required autoFocus maxLength={120} />
+                <input id="create-book-title" ref={createTitleRef} className="input" name="title" required maxLength={120} />
               </div>
               <GenrePicker value={createGenres} onChange={setCreateGenres} />
               <div>
