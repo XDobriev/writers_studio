@@ -15,7 +15,7 @@ const MODE_LABELS: Record<SplitMode, string> = {
 
 /**
  * Импорт рукописи в новую книгу: выбор файла → предпросмотр глав (название книги,
- * способ разбивки) → «Создать книгу». Логика — useManuscriptImport.
+ * способ разбивки, склейка соседних глав) → «Создать книгу». Логика — useManuscriptImport.
  */
 export function ImportManuscriptModal({ isOpen, onClose, userId, isPro, cover, onNeedUpgrade }: {
   isOpen: boolean;
@@ -146,10 +146,38 @@ export function ImportManuscriptModal({ isOpen, onClose, userId, isPro, cover, o
               </div>
               <ol className="import-chapters" aria-label="Найденные главы">
                 {imp.chapters.map((c, i) => (
-                  <li key={i} className="import-chapter-row">
+                  <li key={c.first} className="import-chapter-row">
                     <span className="import-chapter-row__num">{i + 1}</span>
-                    <span className="import-chapter-row__title" title={c.title}>{c.title}</span>
+                    <span className="import-chapter-row__title" title={c.title}>
+                      {c.title}
+                      {c.last > c.first && <span className="import-chapter-row__joined"> + {c.last - c.first}</span>}
+                    </span>
                     <span className="import-chapter-row__words">{c.words.toLocaleString('ru-RU')}</span>
+                    <span className="import-chapter-row__acts">
+                      {c.last > c.first && (
+                        <button
+                          type="button"
+                          className="import-chapter-row__act"
+                          disabled={state.kind === 'creating'}
+                          aria-label={`Разъединить главу «${c.title}»`}
+                          onClick={() => imp.unjoin(c.first, c.last)}
+                        >
+                          Разъединить
+                        </button>
+                      )}
+                      {i > 0 && (
+                        <button
+                          type="button"
+                          className="import-chapter-row__act"
+                          disabled={state.kind === 'creating'}
+                          aria-label={`Склеить «${c.title}» с предыдущей главой`}
+                          title="Склеить с предыдущей главой"
+                          onClick={() => imp.joinWithPrevious(c.first)}
+                        >
+                          ↑ Склеить
+                        </button>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ol>

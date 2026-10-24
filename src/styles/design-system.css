@@ -194,7 +194,6 @@ html, body, #root {
 @keyframes dropdown-in   { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes modal-in      { from { opacity: 0; transform: scale(0.97); } }
 @keyframes fade-in       { from { opacity: 0; } }
-@keyframes toast-out     { to   { opacity: 0; transform: translateY(-4px) scale(0.97); } }
 @keyframes panel-enter-right { from { transform: translateX(100%); } }
 @keyframes panel-enter-left  { from { transform: translateX(-100%); } }
 @keyframes scale-flash   { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
@@ -758,7 +757,6 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .chip--accent { border-color: var(--accent); color: color-mix(in oklch, var(--accent) 62%, oklch(0.98 0 0)); background: var(--accent-soft); }
 /* в светлой теме смесь с белым даёт ≈2.5:1 — берём сам акцент (6.0:1 на подложке) */
 [data-theme="light"] .chip--accent { color: var(--accent); }
-.chip--ok { border-color: oklch(0.72 0.14 145 / 0.5); color: var(--ok); background: oklch(0.72 0.14 145 / 0.12); }
 .chip--sm { font-size: 10px; height: 18px; padding: 0 6px; }
 button.chip:not(.chip--accent):hover { background: var(--surface-2); }
 
@@ -841,17 +839,6 @@ button.chip:not(.chip--accent):hover { background: var(--surface-2); }
   max-width: calc(100vw - 32px);
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
-}
-.modal-panel--lg {
-  border-radius: 16px;
-  padding: 32px 36px;
-  gap: 24px;
-  box-shadow: 0 24px 60px oklch(0.05 0.01 50 / 0.5);
-}
-.modal-panel--xl {
-  border-radius: var(--r-4);
-  padding: 36px 40px;
-  box-shadow: 0 32px 80px oklch(0 0 0 / 0.55);
 }
 
 .as ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -1530,7 +1517,6 @@ select.input {
   background: var(--surface-2); border: 1px solid var(--border);
   color: var(--ink); pointer-events: none;
 }
-.toast--leaving { animation: toast-out 0.1s ease-in both; }
 
 /* ── Dashboard: recent chapter link ── */
 .db-recent-link {
@@ -2414,13 +2400,22 @@ select.input {
   scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent;
 }
 .import-chapter-row {
-  display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: baseline;
+  display: grid; grid-template-columns: 28px 1fr auto auto; gap: 8px; align-items: baseline;
   padding: 7px 12px; border-bottom: 1px solid var(--border-soft);
   font: 400 13px var(--font-ui); color: var(--ink);
 }
 .import-chapter-row:last-child { border-bottom: none; }
 .import-chapter-row__num, .import-chapter-row__words { font: 400 11px var(--font-mono); color: var(--ink-4); }
 .import-chapter-row__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.import-chapter-row__joined { font: 400 11px var(--font-mono); color: var(--ink-3); }
+.import-chapter-row__acts { display: flex; gap: 4px; justify-content: flex-end; min-width: 72px; }
+.import-chapter-row__act {
+  padding: 2px 6px; border: 1px solid transparent; border-radius: 6px; background: none;
+  font: 400 11px var(--font-ui); color: var(--ink-3); cursor: pointer; white-space: nowrap;
+}
+.import-chapter-row__act:hover:not(:disabled) { color: var(--ink); border-color: var(--border-soft); background: var(--surface-2); }
+.import-chapter-row__act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.import-chapter-row__act:disabled { opacity: 0.5; cursor: default; }
 .import-summary { font: 400 12px var(--font-mono); color: var(--ink-3); }
 .import-status { display: flex; align-items: center; gap: 10px; padding: 24px 4px; font: 400 13px var(--font-ui); color: var(--ink-2); }
 

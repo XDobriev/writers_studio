@@ -219,3 +219,32 @@ export function analyzeSplits(units: ImportUnit[], bookTitle: string): { options
   const best = options.find((o) => o.mode !== 'single' && o.count > 1);
   return { options, defaultMode: best?.mode ?? 'single' };
 }
+
+export interface JoinedChapter extends ImportedChapter {
+  /** Индексы исходных глав, склеенных в эту: first..last. */
+  first: number;
+  last: number;
+}
+
+/**
+ * Ручная склейка в предпросмотре: joins — индексы глав, приклеенных к предыдущей.
+ * Название приклеенной главы остаётся подзаголовком, чтобы не потерять текст автора.
+ */
+export function joinChapters(chapters: ImportedChapter[], joins: ReadonlySet<number>): JoinedChapter[] {
+  const out: JoinedChapter[] = [];
+  const doc = document.implementation.createHTMLDocument('');
+  chapters.forEach((c, i) => {
+    const prev = out[out.length - 1];
+    if (!prev || !joins.has(i)) {
+      out.push({ ...c, first: i, last: i });
+      return;
+    }
+    const h = doc.createElement('h2');
+    h.textContent = c.title;
+    prev.html += h.outerHTML + c.html;
+    // Сумма, а не пересчёт: иначе итог «N слов» растёт от склейки на слова подзаголовков.
+    prev.words += c.words;
+    prev.last = i;
+  });
+  return out;
+}
