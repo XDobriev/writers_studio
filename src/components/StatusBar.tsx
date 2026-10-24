@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { pluralDays, plural } from '../lib/i18n';
 import { useResponsive } from '../lib/useResponsive';
 import { useDropdownPosition } from '../lib/useDropdownPosition';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 import { AmbientSoundControl } from './AmbientSoundControl';
 import { EDITOR_FONTS, getStoredEditorFont, applyEditorFont, EDITOR_FONT_EVENT, type EditorFontId } from '../lib/editorFont';
 
@@ -62,6 +63,11 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [fontOpen]);
+
+  useEscapeToClose(fontOpen, () => {
+    setFontOpen(false);
+    fontWrapperRef.current?.querySelector('button')?.focus();
+  });
 
   useEffect(() => {
     const handler = (e: Event) => setActiveFont((e as CustomEvent<EditorFontId>).detail);
@@ -160,7 +166,7 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
             title="Шрифт редактора"
             aria-label="Шрифт редактора"
             aria-expanded={fontOpen}
-            aria-haspopup="listbox"
+            aria-haspopup="true"
             className="status-icon-btn"
             style={{
               color: fontOpen ? 'var(--accent)' : 'var(--ink-3)',
