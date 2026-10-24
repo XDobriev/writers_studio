@@ -12,7 +12,7 @@ export interface Fb2Result {
 }
 
 /** Кодировка из XML-декларации; windows-1251 у старых FB2 встречается постоянно. */
-export function decodeXmlBytes(buf: ArrayBuffer): string {
+function decodeXmlBytes(buf: ArrayBuffer): string {
   const b = new Uint8Array(buf);
   if (b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf) return new TextDecoder('utf-8').decode(b.subarray(3));
   if (b[0] === 0xff && b[1] === 0xfe) return new TextDecoder('utf-16le').decode(b.subarray(2));

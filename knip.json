@@ -2,14 +2,22 @@
   "ignoreBinaries": [
     "knip"
   ],
+  "entry": [
+    "src/pages/Plan.tsx",
+    "supabase/functions/*/index.ts",
+    "scripts/*.mjs"
+  ],
   "project": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
+    "src/**/*.{ts,tsx}",
+    "e2e/**/*.ts",
+    "scripts/**/*.mjs",
+    "supabase/functions/**/*.ts"
   ],
   "ignore": [
     "src/lib/database.types.ts"
   ],
   "ignoreDependencies": [
-    "@floating-ui/dom"
+    "@floating-ui/dom",
+    "ts-md5"
   ]
 }

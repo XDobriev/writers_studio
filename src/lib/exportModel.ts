@@ -2,7 +2,7 @@
 // Её рендерят DOCX, FB2, Markdown и TXT — поэтому потеря текста (код-блок, второй абзац
 // в пункте списка, вложенный список) чинится в одном месте, а не в каждом экспортёре.
 
-export type Mark = 'b' | 'i' | 'u' | 's' | 'sub' | 'sup' | 'code';
+type Mark = 'b' | 'i' | 'u' | 's' | 'sub' | 'sup' | 'code';
 
 export type Run =
   | { kind: 'text'; text: string; marks: Mark[]; href?: string }

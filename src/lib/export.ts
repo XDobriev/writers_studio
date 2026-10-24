@@ -174,13 +174,13 @@ export async function toEbookCover(cover: CoverData | undefined): Promise<CoverD
 
 // ─── Appendices: «Действующие лица», «Локации» ───────────────────────────────
 
-export interface AppendixParagraph {
+interface AppendixParagraph {
   label?: string;
   text: string;
   italic?: boolean;
 }
 
-export interface AppendixEntry {
+interface AppendixEntry {
   title: string;
   meta: string[];
   paragraphs: AppendixParagraph[];
@@ -334,7 +334,7 @@ function getHtmlStyle(paragraphStyle: ParagraphStyle): string {
 `;
 }
 
-export interface SeriesInfo {
+interface SeriesInfo {
   name: string;
   number: number | null;
 }
@@ -464,7 +464,7 @@ function blocksToMarkdown(blocks: Block[], headingShift: number): string {
   return out.join('\n\n');
 }
 
-export function htmlToPlainText(html: string): string {
+function htmlToPlainText(html: string): string {
   return blocksToText(parseHtmlBlocks(html));
 }
 
