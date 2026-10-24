@@ -59,7 +59,7 @@ export default function Focus() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { void exit(); return; }
+      if (e.key === 'Escape') { if (!e.defaultPrevented) void exit(); return; }
       const mod = /mac/i.test(navigator.platform) ? e.metaKey : e.ctrlKey;
       if (mod && e.code === 'KeyS') { e.preventDefault(); void flush(); }
     };

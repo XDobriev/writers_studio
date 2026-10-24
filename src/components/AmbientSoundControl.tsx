@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SOUNDS, selectSound, setAmbientVolume, stopAmbientSound, useAmbientSound } from '../lib/ambientSound';
 import { useDropdownPosition } from '../lib/useDropdownPosition';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 
 interface AmbientSoundControlProps {
   variant?: 'status' | 'focus';
@@ -26,6 +27,11 @@ export function AmbientSoundControl({ variant = 'status' }: AmbientSoundControlP
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [popupOpen]);
+
+  useEscapeToClose(popupOpen, () => {
+    setPopupOpen(false);
+    wrapperRef.current?.querySelector('button')?.focus();
+  });
 
   const isActive = popupOpen || isPlaying;
 
