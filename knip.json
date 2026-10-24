@@ -1,7 +1,4 @@
 {
-  "ignoreBinaries": [
-    "knip"
-  ],
   "entry": [
     "src/pages/Plan.tsx",
     "supabase/functions/*/index.ts",

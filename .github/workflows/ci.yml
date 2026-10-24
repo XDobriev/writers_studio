@@ -39,6 +39,10 @@ jobs:
       - name: Unit tests
         run: npm run test
 
+      # Мёртвый код: неиспользуемые файлы, экспорты, зависимости (конфиг — knip.json).
+      - name: Knip
+        run: npm run knip
+
       # Сборка без пререндера (SKIP_PRERENDER=1: пререндер требует Chromium и идёт
       # в деплое со строгим PRERENDER_STRICT=1). Ловит ошибки Rollup/vite build до мержа,
       # а не на проде. Переменные Supabase нужны только для инициализации клиента.
