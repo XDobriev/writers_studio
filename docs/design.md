@@ -385,7 +385,6 @@ The studio is calm at rest. Motion communicates state change, not delight. Every
 - **`dropdown-in`**: `opacity 0→1, translateY(-6px)→0, scale(0.98)→1` — context menus, user dropdown, status menu, sound popup. Duration: `--dur-hover`, easing: `--ease-out-quint`.
 - **`modal-in`**: `opacity 0→1, scale(0.97)→1` — VersionModal and any full-screen overlays. Duration: `--dur-spring`, easing: `--ease-spring`.
 - **`fade-in`**: `opacity 0→1` — editor mode panel crossfade, scrim, page transitions. Duration: `--dur-fast`.
-- **`toast-out`**: `opacity 1→0, translateY(-4px), scale(0.97)→1` — toast exit before unmount. Duration: `--dur-exit`.
 - **`panel-enter-right`**: `translateX(100%)→0` — mobile right panel slide-in. Duration: `--dur-panel`, easing: `--ease-out-quint`.
 - **`scale-flash`**: `scale(1)→scale(1.08)→scale(1)` — copy-confirmation micro-interaction. Duration: `0.2s ease-out`.
 - **`shimmer`**: `translateX(-100%)→translateX(200%)` — skeleton loading highlight sweep. Duration: `1.4s ease-in-out infinite`. Applied via `.skeleton::after` pseudo-element.
