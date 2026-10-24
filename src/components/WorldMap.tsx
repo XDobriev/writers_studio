@@ -7,6 +7,7 @@ import { getMapTemplate, type MapTemplateId } from '../lib/mapTemplates';
 import { connectionGeometry, pinLabel, PIN_LABEL_MAX } from '../lib/mapGeometry';
 import type { MapMode } from '../pages/Map';
 import { MapStampsLayer } from './MapStampsLayer';
+import { MapLocationList } from './MapLocationList';
 import { StampPopup } from './StampPopup';
 import { type MapStamp, type StampPatch } from '../lib/mapStamps';
 
@@ -350,6 +351,51 @@ export function WorldMap({
     if ((await onUpdateConnRef.current(id, p)) === false) throw new Error('connection save failed');
   }, 500);
 
+
+  const pickForConnection = (id: string) => {
+    if (!connectFrom) {
+      setConnectFrom(id);
+    } else if (connectFrom !== id) {
+      void onCreateConnection(connectFrom, id).then(created => {
+        if (created) setSelectedConnId(created.id);
+      });
+      setConnectFrom(null);
+    }
+  };
+
+  // ── Клавиатурный путь: список локаций ────────────────────────────────────
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const focusListItem = (id: string) => {
+    containerRef.current?.parentElement
+      ?.querySelector<HTMLElement>(`[data-loc-list-id="${id}"]`)?.focus();
+  };
+  const handleListActivate = (id: string) => {
+    if (mode === 'connect') { pickForConnection(id); return; }
+    const isOpening = selectedId !== id;
+    setSelectedId(isOpening ? id : null);
+    setSelectedConnId(null);
+    if (isOpening) requestAnimationFrame(() => nameInputRef.current?.focus());
+  };
+  const viewCenter = () => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0.5, y: 0.5 };
+    const { x, y } = getLogical(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    return { x: Math.min(Math.max(x, 0), 1), y: Math.min(Math.max(y, 0), 1) };
+  };
+  const handleListAdd = () => { const { x, y } = viewCenter(); onCreate(x, y); };
+  const handleListPlaceCenter = (id: string) => { const { x, y } = viewCenter(); onUpdate(id, { x, y }); };
+  const handleListMove = (id: string, dx: number, dy: number) => {
+    const loc = locations.find(l => l.id === id);
+    if (!loc || loc.x == null || loc.y == null) return;
+    const base = pendingPinPos?.id === id ? pendingPinPos : { x: loc.x, y: loc.y };
+    const next = {
+      x: Math.min(Math.max(base.x + dx, 0), 1),
+      y: Math.min(Math.max(base.y + dy, 0), 1),
+    };
+    setPendingPinPos({ id, ...next });
+    scheduleUpdate(id, next);
+  };
+
   // ── Auto-resize textarea helper ──────────────────────────────────────────
   const autoResize = (el: HTMLTextAreaElement) => {
     el.style.height = 'auto';
@@ -450,15 +496,7 @@ export function WorldMap({
     }
 
     if (mode === 'connect' && locEl) {
-      const id = locEl.getAttribute('data-loc-id')!;
-      if (!connectFrom) {
-        setConnectFrom(id);
-      } else if (connectFrom !== id) {
-        void onCreateConnection(connectFrom, id).then(created => {
-          if (created) setSelectedConnId(created.id);
-        });
-        setConnectFrom(null);
-      }
+      pickForConnection(locEl.getAttribute('data-loc-id')!);
       return;
     }
 
@@ -639,14 +677,16 @@ export function WorldMap({
               boxShadow: '0 6px 28px oklch(0 0 0 / 0.45)', zIndex: 20,
             }}
             onPointerDown={e => e.stopPropagation()}
+            onKeyDown={e => { if (e.key === 'Escape') focusListItem(selected.id); }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
               <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-4)', background: 'var(--surface-2)', border: '1px solid var(--border-soft)', borderRadius: 4, padding: '2px 7px' }}>
                 {TYPE_GLYPHS[editType]} {TYPE_LABELS[editType]}
               </span>
-              <button onClick={() => setSelectedId(null)} aria-label="Закрыть" title="Закрыть" style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '18px var(--font-ui)', lineHeight: 1, padding: '0 3px' }}>×</button>
+              <button onClick={() => { focusListItem(selected.id); setSelectedId(null); }} aria-label="Закрыть" title="Закрыть" style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink-4)', cursor: 'pointer', font: '18px var(--font-ui)', lineHeight: 1, padding: '0 3px' }}>×</button>
             </div>
             <input
+              ref={nameInputRef}
               value={editName}
               onChange={e => { setEditName(e.target.value); scheduleUpdate(selected.id, { name: e.target.value.trim() || 'Без названия' }); }}
               aria-label="Название локации"
@@ -795,28 +835,20 @@ export function WorldMap({
         )}
       </div>
 
-      {/* ── Desktop: unmapped panel ── */}
-      {!isMobile && unmapped.length > 0 && (
-        <div style={{ width: 186, borderLeft: '1px solid var(--border-soft)', display: 'flex', flexDirection: 'column', background: 'var(--bg)', flexShrink: 0 }}>
-          <div style={{ padding: '10px 12px 6px', font: '500 9px var(--font-ui)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Не размещены · {unmapped.length}
-          </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px 8px', scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
-            {unmapped.map(loc => (
-              <div key={loc.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 4px', borderRadius: 6, background: pendingPlaceId === loc.id ? 'var(--surface-2)' : 'transparent' }}>
-                <span style={{ font: '11px var(--font-serif)', color: 'var(--ink-3)', flexShrink: 0, width: 16, textAlign: 'center' }}>{TYPE_GLYPHS[loc.type]}</span>
-                <span style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc.name}</span>
-                <button
-                  title="Разместить на карте"
-                  aria-label={`Разместить на карте: ${loc.name}`}
-                  aria-pressed={pendingPlaceId === loc.id}
-                  onClick={() => setPendingPlaceId(prev => prev === loc.id ? null : loc.id)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: pendingPlaceId === loc.id ? 'var(--accent)' : 'var(--ink-4)', padding: '2px 4px', font: '14px var(--font-ui)', lineHeight: 1, flexShrink: 0 }}
-                >+</button>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* ── Desktop: список локаций (клавиатурный доступ) ── */}
+      {!isMobile && (
+        <MapLocationList
+          locations={locations}
+          mode={mode}
+          selectedId={selectedId}
+          connectFrom={connectFrom}
+          pendingPlaceId={pendingPlaceId}
+          onActivate={handleListActivate}
+          onTogglePlace={(id) => setPendingPlaceId(prev => prev === id ? null : id)}
+          onPlaceCenter={handleListPlaceCenter}
+          onAdd={handleListAdd}
+          onMove={handleListMove}
+        />
       )}
 
       {/* ── Mobile: bottom sheet (edit location) ── */}
@@ -830,6 +862,7 @@ export function WorldMap({
             <button onClick={() => setSelectedId(null)} aria-label="Закрыть" title="Закрыть" className="icon-close-btn" style={{ marginLeft: 'auto', fontSize: 20 }}>×</button>
           </div>
           <input
+            ref={nameInputRef}
             value={editName}
             onChange={e => { setEditName(e.target.value); scheduleUpdate(selected.id, { name: e.target.value.trim() || 'Без названия' }); }}
             aria-label="Название локации"

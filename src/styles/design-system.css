@@ -2423,3 +2423,24 @@ select.input {
 .import-chapter-row__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .import-summary { font: 400 12px var(--font-mono); color: var(--ink-3); }
 .import-status { display: flex; align-items: center; gap: 10px; padding: 24px 4px; font: 400 13px var(--font-ui); color: var(--ink-2); }
+
+/* Список локаций рядом с картой (клавиатурный доступ к пинам) */
+.map-loclist { width: 186px; border-left: 1px solid var(--border-soft); display: flex; flex-direction: column; background: var(--bg); flex-shrink: 0; min-height: 0; }
+.map-loclist__head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 6px; font: 500 9px var(--font-ui); color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.1em; }
+.map-loclist__add { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--border-soft); background: var(--surface); color: var(--ink-2); font: 14px/1 var(--font-ui); cursor: pointer; }
+.map-loclist__add:hover { background: var(--surface-2); }
+.map-loclist__body { flex: 1; overflow-y: auto; padding: 0 8px 8px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.map-loclist__list { list-style: none; margin: 0; padding: 0; }
+.map-loclist__sub { padding: 10px 4px 4px; font: 500 9px var(--font-ui); color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.1em; }
+.map-loclist__empty { margin: 4px; font: 400 11px var(--font-ui); color: var(--ink-3); }
+.map-loclist__item, .map-loclist__row { display: flex; align-items: center; gap: 6px; width: 100%; padding: 5px 4px; border-radius: 6px; border: none; background: transparent; color: var(--ink-2); font: 400 11px var(--font-ui); text-align: left; }
+.map-loclist__item { cursor: pointer; }
+.map-loclist__item:hover:not(:disabled) { background: var(--surface-2); }
+.map-loclist__item:disabled { opacity: 0.5; cursor: default; }
+.map-loclist__item--on, .map-loclist__row--on { background: var(--surface-2); }
+.map-loclist__item:focus-visible, .map-loclist__act:focus-visible, .map-loclist__add:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.map-loclist__glyph { font: 11px var(--font-serif); color: var(--ink-3); flex-shrink: 0; width: 16px; text-align: center; }
+.map-loclist__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-loclist__act { background: none; border: none; cursor: pointer; color: var(--ink-4); padding: 2px 4px; font: 14px/1 var(--font-ui); flex-shrink: 0; }
+.map-loclist__act:hover, .map-loclist__act[aria-pressed="true"] { color: var(--accent); }
+.map-loclist__hint { margin: 0; padding: 8px 12px 10px; border-top: 1px solid var(--border-soft); font: 400 10px/1.4 var(--font-ui); color: var(--ink-3); }
