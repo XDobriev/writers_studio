@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Editor } from './RichEditor';
 import { Icon } from './Icon';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
+import { trapTab } from '../lib/useModalFocus';
+
+// Кнопки тулбара действуют по click (работает и с клавиатуры); mousedown гасим,
+// чтобы клик мышью не уводил фокус и выделение из текста.
+const keepFocus = (e: React.MouseEvent) => e.preventDefault();
 
 type EditorMode = 'studio' | 'left' | 'right' | 'page';
 
@@ -114,6 +120,16 @@ function PortalDropdown({
     ? { bottom: window.innerHeight - rect.top + 4 }
     : { top: rect.bottom + 4 };
 
+  useEscapeToClose(true, onClose);
+
+  // Открыли с клавиатуры (фокус остался на кнопке) — переходим к пунктам и
+  // возвращаем фокус на кнопку при закрытии. Мышью фокус остаётся в тексте.
+  useEffect(() => {
+    if (document.activeElement !== anchor) return;
+    ref.current?.querySelector<HTMLElement>('button')?.focus();
+    return () => { if (anchor.isConnected) anchor.focus(); };
+  }, [anchor]);
+
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (
@@ -132,6 +148,7 @@ function PortalDropdown({
       ref={ref}
       style={{ position: 'fixed', ...posY, left: rect.left, zIndex: 'var(--z-dropdown)' }}
       onMouseDown={(e) => { e.preventDefault(); e.nativeEvent.stopPropagation(); }}
+      onKeyDown={(e) => trapTab(e)}
     >
       {children}
     </div>,
@@ -165,8 +182,10 @@ function HeadingDropdown({ editor }: { editor: Editor | null }) {
         className="tb-sel"
         title="Уровень текста"
         aria-label="Уровень текста"
+        aria-expanded={open}
+        aria-haspopup="true"
         disabled={!editor}
-        onMouseDown={(ev) => { ev.preventDefault(); setOpen((v) => !v); }}
+        onMouseDown={keepFocus} onClick={(ev) => { ev.preventDefault(); setOpen((v) => !v); }}
       >
         {current} <Icon name="chevd" size={12} />
       </button>
@@ -181,25 +200,25 @@ function HeadingDropdown({ editor }: { editor: Editor | null }) {
               type="button"
               className={btnCls(!editor?.isActive('heading'))}
               style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 13 }}
-              onMouseDown={set(() => editor?.chain().focus().setParagraph().run())}
+              onMouseDown={keepFocus} onClick={set(() => editor?.chain().focus().setParagraph().run())}
             >Обычный текст</button>
             <button
               type="button"
               className={btnCls(!!editor?.isActive('heading', { level: 1 }))}
               style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-serif)' }}
-              onMouseDown={set(() => editor?.chain().focus().toggleHeading({ level: 1 }).run())}
+              onMouseDown={keepFocus} onClick={set(() => editor?.chain().focus().toggleHeading({ level: 1 }).run())}
             >Заголовок 1</button>
             <button
               type="button"
               className={btnCls(!!editor?.isActive('heading', { level: 2 }))}
               style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 15, fontWeight: 600, fontFamily: 'var(--font-serif)' }}
-              onMouseDown={set(() => editor?.chain().focus().toggleHeading({ level: 2 }).run())}
+              onMouseDown={keepFocus} onClick={set(() => editor?.chain().focus().toggleHeading({ level: 2 }).run())}
             >Заголовок 2</button>
             <button
               type="button"
               className={btnCls(!!editor?.isActive('heading', { level: 3 }))}
               style={{ justifyContent: 'flex-start', padding: '6px 10px', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-serif)' }}
-              onMouseDown={set(() => editor?.chain().focus().toggleHeading({ level: 3 }).run())}
+              onMouseDown={keepFocus} onClick={set(() => editor?.chain().focus().toggleHeading({ level: 3 }).run())}
             >Заголовок 3</button>
           </div>
         </PortalDropdown>
@@ -241,8 +260,10 @@ function ColorPopover({ editor, kind }: ColorPopoverProps) {
         className="tb-btn"
         title={title}
         aria-label={title}
+        aria-expanded={open}
+        aria-haspopup="true"
         disabled={!editor}
-        onMouseDown={(ev) => { ev.preventDefault(); setOpen((v) => !v); }}
+        onMouseDown={keepFocus} onClick={(ev) => { ev.preventDefault(); setOpen((v) => !v); }}
       >
         <Icon name={icon} />
       </button>
@@ -256,7 +277,7 @@ function ColorPopover({ editor, kind }: ColorPopoverProps) {
             <button
               type="button"
               title={kind === 'text' ? 'По умолчанию' : 'Снять выделение'}
-              onMouseDown={apply('')}
+              onMouseDown={keepFocus} onClick={apply('')}
               className="tb-icon-btn"
               style={{
                 height: 22, borderRadius: 5, padding: '0 8px',
@@ -275,7 +296,7 @@ function ColorPopover({ editor, kind }: ColorPopoverProps) {
                   type="button"
                   title={c.label}
                   aria-label={c.label}
-                  onMouseDown={apply(c.value)}
+                  onMouseDown={keepFocus} onClick={apply(c.value)}
                   style={{
                     width: 22, height: 22, borderRadius: 5,
                     border: '1px solid oklch(0 0 0 / 0.15)',
@@ -359,9 +380,11 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
         type="button"
         title="Ссылка"
         aria-label="Ссылка"
+        aria-expanded={open}
+        aria-haspopup="true"
         className={btnCls(active)}
         disabled={!editor}
-        onMouseDown={toggleOpen}
+        onMouseDown={keepFocus} onClick={toggleOpen}
       ><Icon name="link" /></button>
       {open && rect && createPortal(
         <div
@@ -395,7 +418,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
           <div style={{ display: 'flex', gap: 4 }}>
             <button
               type="button"
-              onMouseDown={e => { e.preventDefault(); apply(); }}
+              onMouseDown={keepFocus} onClick={e => { e.preventDefault(); apply(); }}
               style={{
                 flex: 1, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
                 background: 'var(--accent-deep)', color: 'oklch(0.98 0 0)', fontSize: 12, fontWeight: 500,
@@ -406,7 +429,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
                 type="button"
                 title="Открыть ссылку"
                 aria-label="Открыть ссылку"
-                onMouseDown={openHref}
+                onMouseDown={keepFocus} onClick={openHref}
                 className="tb-icon-btn"
                 style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-soft)', color: 'var(--ink-2)' }}
               ><Icon name="eye" size={13} /></button>
@@ -416,7 +439,7 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
                 type="button"
                 title="Убрать ссылку"
                 aria-label="Убрать ссылку"
-                onMouseDown={remove}
+                onMouseDown={keepFocus} onClick={remove}
                 className="tb-icon-btn"
                 style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-soft)', color: 'var(--ink-2)' }}
               ><Icon name="unlink" size={13} /></button>
@@ -448,7 +471,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         aria-label="Отменить (Ctrl+Z)"
         className="tb-btn"
         disabled={!can || !editor?.can().undo()}
-        onMouseDown={run((e) => e.chain().focus().undo().run())}
+        onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().undo().run())}
       ><Icon name="undo" /></button>
       <button
         type="button"
@@ -456,7 +479,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         aria-label="Повторить (Ctrl+Shift+Z)"
         className="tb-btn"
         disabled={!can || !editor?.can().redo()}
-        onMouseDown={run((e) => e.chain().focus().redo().run())}
+        onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().redo().run())}
       ><Icon name="redo" /></button>
       <span className="tb-sep" />
 
@@ -469,7 +492,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         aria-label="Жирный (Ctrl+B)"
         className={btnCls(!!editor?.isActive('bold'))}
         disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().toggleBold().run())}
+        onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().toggleBold().run())}
       ><Icon name="bold" /></button>
       <button
         type="button"
@@ -477,7 +500,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         aria-label="Курсив (Ctrl+I)"
         className={btnCls(!!editor?.isActive('italic'))}
         disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().toggleItalic().run())}
+        onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().toggleItalic().run())}
       ><Icon name="italic" /></button>
       <button
         type="button"
@@ -485,7 +508,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         aria-label="Подчёркнутый (Ctrl+U)"
         className={btnCls(!!editor?.isActive('underline'))}
         disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().toggleUnderline().run())}
+        onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().toggleUnderline().run())}
       ><Icon name="underline" /></button>
       {!isMobile && (
         <>
@@ -495,7 +518,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
             aria-label="Зачёркнутый"
             className={btnCls(!!editor?.isActive('strike'))}
             disabled={!can}
-            onMouseDown={run((e) => e.chain().focus().toggleStrike().run())}
+            onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().toggleStrike().run())}
           ><Icon name="strike" /></button>
           <button
             type="button"
@@ -503,7 +526,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
             aria-label="Очистить форматирование"
             className="tb-btn"
             disabled={!can}
-            onMouseDown={run((e) => e.chain().focus().unsetAllMarks().clearNodes().run())}
+            onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().unsetAllMarks().clearNodes().run())}
           ><Icon name="clear" /></button>
         </>
       )}
@@ -521,7 +544,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
             aria-label="По левому краю"
             className={btnCls(!!editor?.isActive({ textAlign: 'left' }))}
             disabled={!can}
-            onMouseDown={run((e) => e.chain().focus().setTextAlign('left').run())}
+            onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().setTextAlign('left').run())}
           ><Icon name="align" /></button>
           <button
             type="button"
@@ -529,7 +552,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
             aria-label="По центру"
             className={btnCls(!!editor?.isActive({ textAlign: 'center' }))}
             disabled={!can}
-            onMouseDown={run((e) => e.chain().focus().setTextAlign('center').run())}
+            onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().setTextAlign('center').run())}
           ><Icon name="aligncenter" /></button>
           <button
             type="button"
@@ -537,7 +560,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
             aria-label="По правому краю"
             className={btnCls(!!editor?.isActive({ textAlign: 'right' }))}
             disabled={!can}
-            onMouseDown={run((e) => e.chain().focus().setTextAlign('right').run())}
+            onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().setTextAlign('right').run())}
           ><Icon name="alignright" /></button>
           <button
             type="button"
@@ -545,7 +568,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
             aria-label="По ширине"
             className={btnCls(!!editor?.isActive({ textAlign: 'justify' }))}
             disabled={!can}
-            onMouseDown={run((e) => e.chain().focus().setTextAlign('justify').run())}
+            onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().setTextAlign('justify').run())}
           ><Icon name="alignjustify" /></button>
           <span className="tb-sep" />
         </>
@@ -557,7 +580,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         aria-label="Маркированный список"
         className={btnCls(!!editor?.isActive('bulletList'))}
         disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().toggleBulletList().run())}
+        onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().toggleBulletList().run())}
       ><Icon name="list" /></button>
       <button
         type="button"
@@ -565,7 +588,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
         aria-label="Нумерованный список"
         className={btnCls(!!editor?.isActive('orderedList'))}
         disabled={!can}
-        onMouseDown={run((e) => e.chain().focus().toggleOrderedList().run())}
+        onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().toggleOrderedList().run())}
       ><Icon name="olist" /></button>
       <span className="tb-sep" />
 
@@ -577,7 +600,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
             aria-label="Цитата"
             className={btnCls(!!editor?.isActive('blockquote'))}
             disabled={!can}
-            onMouseDown={run((e) => e.chain().focus().toggleBlockquote().run())}
+            onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().toggleBlockquote().run())}
           ><Icon name="quote" /></button>
           <button
             type="button"
@@ -585,7 +608,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
             aria-label="Горизонтальная линия"
             className="tb-btn"
             disabled={!can}
-            onMouseDown={run((e) => e.chain().focus().setHorizontalRule().run())}
+            onMouseDown={keepFocus} onClick={run((e) => e.chain().focus().setHorizontalRule().run())}
           ><Icon name="hr" /></button>
           <span className="tb-sep" />
         </>
