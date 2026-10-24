@@ -7,7 +7,7 @@ import JSZip from 'jszip';
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from 'docx';
 import { decodeText, markdownToHtml, txtToHtml } from './importText';
 import { normalizeImportHtml } from './importSanitize';
-import { analyzeSplits, isChapterLine, splitManuscript } from './importSplit';
+import { analyzeSplits, isChapterLine, joinChapters, splitManuscript } from './importSplit';
 import { parseManuscript } from './importManuscript';
 import { parseFb2 } from './importFb2';
 
@@ -202,5 +202,34 @@ describe('normalizeImportHtml', () => {
   it('ссылки только http(s), скрипты и картинки выброшены', () => {
     const html = '<p><a href="javascript:alert(1)">плохая</a> <a href="https://ok.ru">хорошая</a><img src="x"><script>alert(1)</script></p>';
     expect(normalizeImportHtml(html)).toBe('<p>плохая <a href="https://ok.ru">хорошая</a></p>');
+  });
+});
+
+describe('joinChapters', () => {
+  const chapters = [
+    { title: 'Глава 1', html: '<p>раз два</p>', words: 2 },
+    { title: 'Глава 2 <тайна>', html: '<p>три</p>', words: 1 },
+    { title: 'Глава 3', html: '<p>четыре</p>', words: 1 },
+    { title: 'Глава 4', html: '<p>пять</p>', words: 1 },
+  ];
+
+  it('без склеек — те же главы с диапазоном из одной', () => {
+    const out = joinChapters(chapters, new Set());
+    expect(out.map((c) => [c.first, c.last])).toEqual([[0, 0], [1, 1], [2, 2], [3, 3]]);
+  });
+
+  it('приклеенная глава становится подзаголовком, название экранируется', () => {
+    const out = joinChapters(chapters, new Set([1, 2]));
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({ title: 'Глава 1', first: 0, last: 2 });
+    expect(out[0].html).toBe('<p>раз два</p><h2>Глава 2 &lt;тайна&gt;</h2><p>три</p><h2>Глава 3</h2><p>четыре</p>');
+    expect(out[0].words).toBe(4);
+    expect(out[1]).toMatchObject({ title: 'Глава 4', first: 3, last: 3 });
+  });
+
+  it('склейка первой главы игнорируется, исходник не мутирует', () => {
+    const out = joinChapters(chapters, new Set([0]));
+    expect(out).toHaveLength(4);
+    expect(chapters[0].html).toBe('<p>раз два</p>');
   });
 });
