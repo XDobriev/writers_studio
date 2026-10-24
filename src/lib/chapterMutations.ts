@@ -2,19 +2,6 @@ import type { QueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from './queries';
 import type { Chapter, ChapterMeta } from './chapters';
 
-// Только метаданные: текст главы в кэш из ответа сервера не пишется —
-// источник правды для текста редактор (иначе запоздавший ответ откатывает ввод).
-export function updateChapterWithCache(
-  queryClient: QueryClient,
-  bookId: string,
-  updated: Chapter | ChapterMeta,
-): void {
-  const { content: _, ...updatedMeta } = updated as Chapter;
-  queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-    prev ? prev.map((c) => (c.id === updated.id ? { ...c, ...updatedMeta } : c)) : prev,
-  );
-}
-
 export function createChapterWithCache(
   queryClient: QueryClient,
   bookId: string,

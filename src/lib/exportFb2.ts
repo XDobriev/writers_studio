@@ -111,7 +111,7 @@ function blocksToFb2(blocks: Block[], inCite = false, listPrefix = ''): string[]
   return out;
 }
 
-export function htmlToFb2Content(html: string): string {
+function htmlToFb2Content(html: string): string {
   const lines = blocksToFb2(parseHtmlBlocks(html));
   return lines.length ? lines.join('\n') : '<empty-line/>';
 }

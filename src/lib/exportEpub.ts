@@ -22,7 +22,7 @@ import { todayLocalISODate } from './dates';
  * и `&nbsp;`, `<br>`, `<hr>` без закрытия делают её невалидной. Чекбоксы списка задач
  * в книге не нужны. Заголовки в тексте опускаем ниже заголовка главы (h2).
  */
-export function chapterHtmlToXhtml(html: string, demoteHeadings: boolean): string {
+function chapterHtmlToXhtml(html: string, demoteHeadings: boolean): string {
   const frag = DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
     FORBID_TAGS: ['input', 'label', 'button', 'form'],

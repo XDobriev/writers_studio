@@ -7,16 +7,12 @@ import type { ImportUnit } from './importSplit';
 
 export type ImportFormat = 'docx' | 'txt' | 'md' | 'fb2' | 'epub';
 
-export const IMPORT_FORMAT_LABELS: Record<ImportFormat, string> = {
-  docx: 'DOCX', txt: 'TXT', md: 'Markdown', fb2: 'FB2', epub: 'EPUB',
-};
-
 /** FB2 и EPUB — Pro: это переезд с площадок (Author.Today, Литнет), DOCX/TXT/MD — бесплатно. */
 export const PRO_IMPORT_FORMATS: readonly ImportFormat[] = ['fb2', 'epub'];
 
 export const IMPORT_ACCEPT = '.docx,.txt,.md,.markdown,.fb2,.epub';
 
-export const MAX_IMPORT_BYTES = 20 * 1024 * 1024;
+const MAX_IMPORT_BYTES = 20 * 1024 * 1024;
 
 export interface ParsedManuscript {
   format: ImportFormat;
@@ -35,7 +31,7 @@ export function detectImportFormat(fileName: string): ImportFormat | null {
   return null;
 }
 
-export function titleFromFileName(fileName: string): string {
+function titleFromFileName(fileName: string): string {
   const base = fileName.replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
   return base || 'Импортированная рукопись';
 }

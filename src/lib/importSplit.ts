@@ -72,7 +72,7 @@ function headingLevel(el: HTMLElement): number {
 }
 
 /** На каких уровнях заголовков резать. Пусто — заголовков для разбивки нет. */
-export function chooseSplitLevels(units: ImportUnit[]): number[] {
+function chooseSplitLevels(units: ImportUnit[]): number[] {
   const counts = [0, 0, 0, 0];
   const h2Texts: string[] = [];
   for (const u of units) {
