@@ -6,7 +6,7 @@ import { useCreateOnMount } from '../lib/useCreateOnMount';
 import { useErrorState } from '../lib/useErrorState';
 import { useAutoResize } from '../lib/useAutoResize';
 import { ErrorBanner } from '../components/ErrorBanner';
-import { trapTab } from '../lib/useModalFocus';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
 import {
   DndContext,
   closestCenter,
@@ -266,7 +266,7 @@ export default function Notes() {
   const modalPanelRef = useRef<HTMLDivElement>(null);
   const formTextRef = useAutoResize(formText);
   const modalEditTextRef = useAutoResize(modalEditText);
-  useEffect(() => { if (modalNote) modalPanelRef.current?.focus(); }, [modalNote]);
+  useModalFocus(modalNote !== null, modalPanelRef);
 
   const [filterKind, setFilterKind] = useState<NoteKind | 'all'>('all');
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);

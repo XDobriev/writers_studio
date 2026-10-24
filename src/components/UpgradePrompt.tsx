@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { UpgradeModal } from './UpgradeModal';
 import { isGrandfatheringActive } from '../lib/pricing';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
 
 const FEATURE_TEXT: Record<string, { title: string; body: string }> = {
   characters: {
@@ -28,17 +30,13 @@ const FEATURE_TEXT: Record<string, { title: string; body: string }> = {
 };
 
 export function UpgradePrompt({ open, feature, onClose }: { open: boolean; feature: string; onClose: () => void }) {
-  const closeRef = useRef<HTMLButtonElement>(null);
+  const proRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { title, body } = FEATURE_TEXT[feature] ?? { title: 'Лимит Free-плана', body: 'Перейдите на Pro.' };
 
-  useEffect(() => {
-    if (!open) return;
-    closeRef.current?.focus();
-    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, onClose]);
+  useEscapeToClose(open, onClose);
+  useModalFocus(open, panelRef, proRef);
 
   return (
     <>
@@ -54,6 +52,7 @@ export function UpgradePrompt({ open, feature, onClose }: { open: boolean; featu
           onClick={onClose}
         >
           <motion.div
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
             aria-label={title}
@@ -61,16 +60,7 @@ export function UpgradePrompt({ open, feature, onClose }: { open: boolean; featu
             variants={modalPanelVariants}
             style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '28px 32px', width: 380, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 48px oklch(0 0 0 / 0.4)' }}
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key !== 'Tab') return;
-              const focusable = e.currentTarget.querySelectorAll<HTMLElement>('a[href], button, [tabindex]:not([tabindex="-1"])');
-              const arr = Array.from(focusable);
-              if (!arr.length) return;
-              const first = arr[0], last = arr[arr.length - 1];
-              if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-                e.preventDefault(); (e.shiftKey ? last : first).focus();
-              }
-            }}
+            onKeyDown={(e) => trapTab(e)}
           >
             <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in oklch, var(--accent) 14%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -88,7 +78,7 @@ export function UpgradePrompt({ open, feature, onClose }: { open: boolean; featu
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={onClose} className="btn btn--ghost">Отмена</button>
               <button
-                ref={closeRef}
+                ref={proRef}
                 className="btn btn--primary"
                 onClick={() => { onClose(); setShowUpgradeModal(true); }}
               >

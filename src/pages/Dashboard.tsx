@@ -17,7 +17,8 @@ import { useResponsive } from '../lib/useResponsive';
 import { computeActivityData } from '../lib/activity';
 import { toLocalISODate } from '../lib/dates';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
-import { trapTab } from '../lib/useModalFocus';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 
 const STATUS_DOT: Record<Chapter['status'], string> = {
   draft: 'var(--ink-4)',
@@ -53,6 +54,10 @@ export default function Dashboard() {
   const [editGenres, setEditGenres] = useState<string[]>([]);
   const [editGoal, setEditGoal] = useState(0);
   const [editSaving, setEditSaving] = useState(false);
+  const editPanelRef = useRef<HTMLDivElement>(null);
+  const editTitleRef = useRef<HTMLInputElement>(null);
+  useModalFocus(editOpen, editPanelRef, editTitleRef);
+  useEscapeToClose(editOpen, () => { if (!editSaving) setEditOpen(false); });
   const { error: editError, setError: setEditError, clearError: clearEditError } = useErrorState();
   const [weeklyToast, setWeeklyToast] = useState<string | null>(null);
 
@@ -65,21 +70,15 @@ export default function Dashboard() {
 
   // Тот же паттерн, что чинили в EditorHybrid.tsx (019ef0c): мобильный
   // drawer сайдбара здесь — инлайновая копия MobileSidebarDrawer.tsx без
-  // её a11y-кита. Аддитивный фикс: focus + Escape + Tab-трап, без выноса
+  // её a11y-кита. Аддитивный фикс: focus + Escape (общий стек) + Tab-трап, без выноса
   // в общий компонент (другой набор пропов chapterActions/navigate).
   useEffect(() => {
     if (!showMobileSb) return;
     const prevFocus = document.activeElement as HTMLElement | null;
     mobileSbPanelRef.current?.focus();
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); setShowMobileSb(false); }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      prevFocus?.focus();
-    };
+    return () => { prevFocus?.focus(); };
   }, [showMobileSb]);
+  useEscapeToClose(showMobileSb, () => setShowMobileSb(false));
 
   const trapMobileSbTab = (e: React.KeyboardEvent<HTMLElement>) => trapTab(e, mobileSbPanelRef.current);
 
@@ -429,6 +428,7 @@ export default function Dashboard() {
         {editOpen && (
           <div className="modal-overlay" onClick={() => { if (!editSaving) setEditOpen(false); }}>
             <div
+              ref={editPanelRef}
               role="dialog"
               aria-modal="true"
               aria-label="Редактировать книгу"
@@ -436,10 +436,7 @@ export default function Dashboard() {
               className="modal-panel"
               style={{ width: 460 }}
               onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') { setEditOpen(false); return; }
-                trapTab(e);
-              }}
+              onKeyDown={(e) => trapTab(e)}
             >
               <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
 
@@ -447,11 +444,11 @@ export default function Dashboard() {
                 <label className="label" htmlFor="edit-book-title">Название</label>
                 <input
                   id="edit-book-title"
+                  ref={editTitleRef}
                   className="input"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditOpen(false); }}
-                  autoFocus
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); }}
                   maxLength={120}
                 />
               </div>

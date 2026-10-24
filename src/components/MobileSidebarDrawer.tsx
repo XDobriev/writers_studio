@@ -3,6 +3,7 @@ import type { Book } from '../lib/supabase';
 import type { ChapterMeta, ChapterActions } from '../lib/chapters';
 import { Sidebar } from './Sidebar';
 import { trapTab } from '../lib/useModalFocus';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 
 interface MobileSidebarDrawerProps {
   open: boolean;
@@ -26,7 +27,6 @@ export function MobileSidebarDrawer({
   children,
 }: MobileSidebarDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
   const prevFocusRef = useRef<HTMLElement | null>(null);
   // Незавершённая CSS-анимация (fill-mode: both) держит transform отличным от
   // none даже в состоянии покоя — это создаёт containing block и клипует
@@ -34,21 +34,7 @@ export function MobileSidebarDrawer({
   // Снимаем animation после входа, чтобы transform схлопнулся обратно в none.
   const [entered, setEntered] = useState(false);
 
-  // Keep ref current without adding onClose to effect deps
-  useEffect(() => { onCloseRef.current = onClose; });
-
-  // Escape key — dep only [open], stable via onCloseRef
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCloseRef.current();
-      }
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [open]);
+  useEscapeToClose(open, onClose);
 
   // Save focus on open, restore on close
   useEffect(() => {

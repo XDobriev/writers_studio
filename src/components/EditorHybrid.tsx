@@ -14,6 +14,7 @@ import { RightPanel } from './RightPanel';
 import { SAMPLE_PROSE } from '../data/sample';
 import { RichEditor, type Editor } from './RichEditor';
 import { EditorToolbar, ModeSegment } from './EditorToolbar';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
 import type { Book } from '../lib/supabase';
 import type { ChapterMeta, ChapterActions } from '../lib/chapters';
 import { useWritingStats } from '../lib/useWritingStats';
@@ -170,19 +171,12 @@ export function EditorHybrid({
     const panel = sidebar.isOpen ? mobileSidebarPanelRef.current : mobileRightPanelRef.current;
     const prevFocus = document.activeElement as HTMLElement | null;
     panel?.focus();
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        if (sidebar.isOpen) sidebar.close();
-        if (right.isOpen) right.close();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      prevFocus?.focus();
-    };
+    return () => { prevFocus?.focus(); };
   }, [sidebar.isOpen, right.isOpen, sidebar, right]);
+  useEscapeToClose(sidebar.isOpen || right.isOpen, () => {
+    if (sidebar.isOpen) sidebar.close();
+    if (right.isOpen) right.close();
+  });
 
   const trapTabIn = (panelRef: React.RefObject<HTMLDivElement>) => (e: React.KeyboardEvent<HTMLElement>) => trapTab(e, panelRef.current);
   const isReal = Boolean(chapters);

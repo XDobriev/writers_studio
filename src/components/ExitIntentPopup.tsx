@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { supabase } from '../lib/supabase';
 import { ConsentCheckbox } from './ConsentCheckbox';
+import { useEscapeToClose } from '../lib/useEscapeToClose';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
 
 const SESSION_KEY = 'as_exit_intent_shown';
 
@@ -13,6 +15,7 @@ export function ExitIntentPopup() {
   const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const shownRef = useRef(false);
 
   useEffect(() => {
@@ -32,15 +35,8 @@ export function ExitIntentPopup() {
     return () => document.removeEventListener('mouseout', onMouseOut);
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    inputRef.current?.focus();
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); setOpen(false); }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open]);
+  useEscapeToClose(open, () => setOpen(false));
+  useModalFocus(open, panelRef, inputRef);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +64,7 @@ export function ExitIntentPopup() {
           onClick={() => setOpen(false)}
         >
           <motion.div
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
             aria-label="Подписка на письма для авторов"
@@ -75,15 +72,7 @@ export function ExitIntentPopup() {
             variants={modalPanelVariants}
             style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: '28px 28px 24px', width: 420, maxWidth: 'calc(100vw - 32px)', boxShadow: '0 24px 48px oklch(0 0 0 / 0.4)' }}
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === 'Tab') {
-                const focusable = e.currentTarget.querySelectorAll<HTMLElement>('button, [href], input, [tabindex]:not([tabindex="-1"])');
-                const first = focusable[0]; const last = focusable[focusable.length - 1];
-                if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-                  e.preventDefault(); (e.shiftKey ? last : first).focus();
-                }
-              }
-            }}
+            onKeyDown={(e) => trapTab(e)}
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
               <h2 style={{ font: '600 22px/1.2 var(--font-serif)', letterSpacing: '-0.015em', color: 'var(--ink)', margin: 0 }}>

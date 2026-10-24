@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
+import { trapTab, useModalFocus } from '../lib/useModalFocus';
 import { useManuscriptImport } from '../lib/useManuscriptImport';
 import { IMPORT_ACCEPT } from '../lib/importManuscript';
 import type { SplitMode } from '../lib/importSplit';
@@ -38,25 +39,13 @@ export function ImportManuscriptModal({ isOpen, onClose, userId, isPro, cover, o
   };
 
   useEscapeToClose(isOpen, close);
+  useModalFocus(isOpen, panelRef);
 
   useEffect(() => {
     if (isOpen) panelRef.current?.focus();
   }, [isOpen, state.kind]);
 
   if (!isOpen) return null;
-
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== 'Tab') return;
-    const focusable = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
-    ));
-    if (!focusable.length) return;
-    const first = focusable[0], last = focusable[focusable.length - 1];
-    if (e.shiftKey ? document.activeElement === first || document.activeElement === e.currentTarget : document.activeElement === last) {
-      e.preventDefault();
-      (e.shiftKey ? last : first).focus();
-    }
-  };
 
   const onDrop = (e: DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
@@ -78,7 +67,7 @@ export function ImportManuscriptModal({ isOpen, onClose, userId, isPro, cover, o
         className="modal-panel"
         style={{ width: 560 }}
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={onKeyDown}
+        onKeyDown={(e) => trapTab(e)}
       >
         <h2 style={{ font: '600 22px var(--font-serif)' }}>Импорт рукописи</h2>
 
