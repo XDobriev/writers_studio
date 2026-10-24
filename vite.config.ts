@@ -41,7 +41,7 @@ export default defineConfig({
             { name: 'vendor-supabase', test: /node_modules[\\/]@supabase[\\/]/, priority: 40 },
             { name: 'vendor-query', test: /node_modules[\\/]@tanstack[\\/]/, priority: 40 },
             // Мелкие общие пакеты (recharts/redux в Admin, tiptap): без отдельной группы они оседали в vendor-tiptap и /admin тянул редактор.
-            { name: 'vendor-shared', test: /node_modules[\/](fast-equals|use-sync-external-store)[\/]/, priority: 35 },
+            { name: 'vendor-shared', test: /node_modules[\\/](fast-equals|use-sync-external-store)[\\/]/, priority: 35 },
             { name: 'vendor-tiptap', test: /node_modules[\\/](@tiptap|prosemirror-[^\\/]+)[\\/]/, priority: 30 },
             { name: 'vendor-dnd', test: /node_modules[\\/]@dnd-kit[\\/]/, priority: 20 },
           ],

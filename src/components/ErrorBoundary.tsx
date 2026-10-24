@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import * as Sentry from '@sentry/react';
+import * as Sentry from '../lib/monitoring';
 import { isChunkError, reloadOnceForChunkError, resetChunkReloadGuard } from '../lib/chunkReload';
 
 interface Props {

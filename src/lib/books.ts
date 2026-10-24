@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/react';
+import * as Sentry from './monitoring';
 import { ensureAuthReady, storagePathFromPublicUrl, supabase, type Book } from './supabase';
 import type { Tables } from './database.types';
 
