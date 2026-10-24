@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/react';
+import * as Sentry from './monitoring';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 import { supabase } from './supabase';

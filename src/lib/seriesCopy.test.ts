@@ -6,7 +6,7 @@ const { calls, state } = vi.hoisted(() => ({
   state: { mapBgUrl: null as string | null, chars: [] as Char[], failCopy: new Set<string>() },
 }));
 
-vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
+vi.mock('./monitoring', () => ({ captureException: vi.fn() }));
 vi.mock('./supabase', async (importOriginal) => {
   const { storagePathFromPublicUrl } = await importOriginal<typeof import('./supabase')>();
   const PUBLIC = 'https://x.test/storage/v1/object/public';

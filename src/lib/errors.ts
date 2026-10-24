@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/react';
+import * as Sentry from './monitoring';
 import { translateAuthError } from './auth';
 
 // Текст ошибки для пользователя. Сырые сообщения Postgres/PostgREST/fetch

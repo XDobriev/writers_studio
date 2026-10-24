@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('@sentry/react', () => ({ captureMessage: vi.fn() }));
+vi.mock('./monitoring', () => ({ captureMessage: vi.fn() }));
 vi.mock('./auth', () => ({
   translateAuthError: (m: string) => (m === 'Invalid login credentials' ? 'Неверная почта или пароль.' : m),
 }));
