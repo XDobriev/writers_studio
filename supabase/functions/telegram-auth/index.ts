@@ -10,7 +10,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { timingSafeEqual } from '../_shared/crypto.ts';
 import { corsHeaders, json } from '../_shared/http.ts';
-import { findUserByEmail, isRegistrationOpen } from '../_shared/authUsers.ts';
+import { findUserByEmail, isEmailSquatter, isRegistrationOpen, releaseSquattedEmail } from '../_shared/authUsers.ts';
 
 interface TelegramAuthData {
   id: number;
@@ -96,7 +96,17 @@ Deno.serve(async (req) => {
     return json(500, { error: 'auth lookup failed' }, cors);
   }
 
-  if (!found.user) {
+  let existing = found.user;
+  if (existing && isEmailSquatter(existing.app_metadata)) {
+    const released = await releaseSquattedEmail(admin, existing.id);
+    if (!released.ok) {
+      console.error('[telegram-auth] release squatted email failed:', released.error);
+      return json(500, { error: 'account creation failed' }, cors);
+    }
+    existing = null;
+  }
+
+  if (!existing) {
     if (!(await isRegistrationOpen(admin))) return json(403, { error: 'registration_closed' }, cors);
     const { data: created, error } = await admin.auth.admin.createUser({
       email,
@@ -110,10 +120,10 @@ Deno.serve(async (req) => {
     }
   } else {
     // Guard от pre-hijack: telegram_id в app_metadata пишет только эта функция (service role).
-    if (!found.user.app_metadata.telegram_id || Number(found.user.app_metadata.telegram_id) !== telegramId) {
+    if (Number(existing.app_metadata.telegram_id) !== telegramId) {
       return json(409, { error: 'email conflict: account exists with different provider' }, cors);
     }
-    const { error: updateErr } = await admin.auth.admin.updateUserById(found.user.id, {
+    const { error: updateErr } = await admin.auth.admin.updateUserById(existing.id, {
       user_metadata: meta,
       app_metadata: appMeta,
     });

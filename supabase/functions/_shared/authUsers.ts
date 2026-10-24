@@ -17,6 +17,21 @@ export async function findUserByEmail(db: Db, email: string): Promise<
   return { ok: true, user: { id: row.id, app_metadata: (row.app_metadata ?? {}) as Record<string, unknown> } };
 }
 
+type AuthAdmin = {
+  auth: { admin: { updateUserById: (id: string, attrs: Record<string, unknown>) => Promise<{ error: { message: string } | null }> } };
+};
+
+/** Аккаунт, созданный по email (или иначе без telegram_id/vk_id): служебный адрес tg-/vk-…@*.local занят до первого входа владельца. */
+export function isEmailSquatter(appMeta: Record<string, unknown>): boolean {
+  return !appMeta.telegram_id && !appMeta.vk_id;
+}
+
+/** Освобождает служебный адрес: переименовывает захватчика, ничего не удаляя. */
+export async function releaseSquattedEmail(admin: AuthAdmin, userId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { error } = await admin.auth.admin.updateUserById(userId, { email: `released-${userId}@invalid.local`, email_confirm: true });
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
 /** feature_flags.registration_open: нет строки → открыто (как на фронте); ошибка чтения → закрыто. */
 export async function isRegistrationOpen(db: Db): Promise<boolean> {
   const { data, error } = await db.from('feature_flags').select('enabled').eq('key', 'registration_open').maybeSingle();
