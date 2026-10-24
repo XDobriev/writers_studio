@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getConsent, setConsent } from '../lib/analytics';
 
@@ -6,6 +6,23 @@ import { getConsent, setConsent } from '../lib/analytics';
 // не загружается. Куки входа (сессия Supabase) нужны для работы и от выбора не зависят.
 export function CookieBanner() {
   const [decided, setDecided] = useState(() => getConsent() !== null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Место, которое баннер занимает снизу экрана (высота + отступ от края) → --cookie-banner-space:
+  // экраны на 100dvh (/demo) ужимаются на него, чтобы баннер не перекрывал редактор.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() =>
+      root.style.setProperty('--cookie-banner-space', `${window.innerHeight - el.getBoundingClientRect().top}px`),
+    );
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--cookie-banner-space');
+    };
+  }, [decided]);
 
   if (decided) return null;
 
@@ -20,7 +37,7 @@ export function CookieBanner() {
   }
 
   return (
-    <div role="region" aria-label="Согласие на аналитику" className="cookie-banner">
+    <div ref={ref} role="region" aria-label="Согласие на аналитику" className="cookie-banner">
       <span className="cookie-banner__text">
         Для входа нужны технические куки. С вашего согласия подключим Яндекс.Метрику, чтобы
         понимать, как пользуются сайтом; текст ваших книг она не видит.{' '}
