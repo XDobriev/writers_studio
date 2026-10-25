@@ -2,7 +2,7 @@
 // Вызывается из robokassa-webhook в фоне с Bearer = SUPABASE_SERVICE_ROLE_KEY
 // (сверяется здесь за постоянное время). Деплой: --no-verify-jwt.
 //
-// Secrets: UNISENDER_GO_API_KEY (как retention-email, хост goapi.unisender.ru),
+// Secrets: RESEND_API_KEY (как retention-email),
 // EMAIL_FROM (необязателен). Синтетические адреса *.local (Telegram/VK) пропускаются.
 import { escapeHtml, timingSafeEqual } from '../_shared/crypto.ts';
 import { bearer, json } from '../_shared/http.ts';
