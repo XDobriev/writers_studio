@@ -21,6 +21,9 @@ function formatPayload(entry: AuditEntry): string {
   if (entry.action === 'set_feature_flag') return `${p.key}: ${p.old_enabled} → ${p.new_enabled}`;
   if (entry.action === 'refund_needs_review') return `inv ${p.inv_id}: сверить возврат в ЛК Робокассы`;
   if (entry.action === 'refund_balance_insufficient') return `inv ${p.inv_id}: на балансе меньше ${p.amount} ₽`;
+  if (entry.action === 'recurring_duplicate') return `inv ${p.inv_id}: дубль автосписания ${p.amount} ₽, Pro не продлён`;
+  if (entry.action === 'duplicate_refunded') return `inv ${p.inv_id}: дубль ${p.amount} ₽ возвращён`;
+  if (entry.action === 'duplicate_refund_manual') return `inv ${p.inv_id}: вернуть дубль ${p.amount} ₽ вручную (${p.reason})`;
   return `${p.old_plan ?? p.email ?? '?'} → ${p.new_plan ?? p.days ?? '?'}`;
 }
 

@@ -14,7 +14,10 @@
 //      оплачен/в обработке — не списываем повторно. Затем атомарный захват попытки
 //      (claim_billing_attempt) ДО вызова Recurring — параллельный прогон получит NULL.
 //      Строка payments (source='recurring') создаётся до вызова Recurring, ошибки
-//      всех insert/update проверяются.
+//      всех insert/update проверяются. for_expiry — продлеваемый plan_expires_at: если
+//      банк позже дошлёт успех по уже отклонённой попытке, activate_payment распознает
+//      дубль периода (L-8). OpStateExt здесь видит только последний счёт — поздний успех
+//      более ранней попытки ловит webhook, а не scheduler.
 //
 // Ответ содержит только счётчики (без user_id и ответов Робокассы).
 //
@@ -189,6 +192,7 @@ Deno.serve(async (req) => {
 
     const { error: payErr } = await db.from('payments').insert({
       inv_id: invId, user_id: p.user_id, amount: parseFloat(outSum), plan: shpPlan, source: 'recurring',
+      for_expiry: p.plan_expires_at,
     });
     if (payErr) {
       counts.failed++;
