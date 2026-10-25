@@ -18,7 +18,7 @@ function buildHtml(name: string, title: string): string {
 <body style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:40px 20px;color:#1a1a1a;background:#fff;">
   <p style="margin:0 0 24px;font-size:17px;line-height:1.7;">${escapeHtml(name)},</p>
   <p style="margin:0 0 24px;font-size:17px;line-height:1.7;">
-    Прошла неделя с вашего последнего визита.<br>
+    Вы давно не заходили в студию.<br>
     <strong>«${escapeHtml(title)}»</strong> всё ещё здесь — ждёт продолжения.
   </p>
   <p style="margin:0 0 32px;font-size:17px;line-height:1.7;">
@@ -42,7 +42,7 @@ function buildPlaintext(name: string, title: string): string {
   return [
     `${name},`,
     ``,
-    `Прошла неделя с вашего последнего визита.`,
+    `Вы давно не заходили в студию.`,
     `«${title}» всё ещё здесь — ждёт продолжения.`,
     ``,
     `Один абзац сегодня — и текст снова движется.`,
