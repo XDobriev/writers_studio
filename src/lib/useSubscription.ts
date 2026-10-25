@@ -94,6 +94,7 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
         if (errCode === 'op_key_missing') throw new Error('Возврат временно недоступен. Попробуйте через несколько минут.');
         if (errCode === 'refund_not_eligible') throw new Error('Срок для возврата истёк.');
         if (errCode === 'lifetime_non_refundable') throw new Error('Lifetime-тариф не возвращается.');
+        if (errCode === 'refund_balance_insufficient') throw new Error('Сейчас оформить возврат не получилось по техническим причинам. Мы уже получили уведомление и всё исправим. Попробуйте ещё раз завтра или напишите в поддержку.');
         if (errCode === 'refund_already_created') throw new Error('Возврат по этому платежу уже оформлен, автопродление отключено. Деньги вернутся на карту; если тариф не обновится в течение дня — напишите в поддержку.');
         throw new Error('Ошибка оформления возврата. Обратитесь в поддержку.');
       }

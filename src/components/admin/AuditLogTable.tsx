@@ -20,6 +20,7 @@ function formatPayload(entry: AuditEntry): string {
   if (entry.action === 'set_lifetime_slots') return `${p.old_value} → ${p.new_value} слотов`;
   if (entry.action === 'set_feature_flag') return `${p.key}: ${p.old_enabled} → ${p.new_enabled}`;
   if (entry.action === 'refund_needs_review') return `inv ${p.inv_id}: сверить возврат в ЛК Робокассы`;
+  if (entry.action === 'refund_balance_insufficient') return `inv ${p.inv_id}: на балансе меньше ${p.amount} ₽`;
   return `${p.old_plan ?? p.email ?? '?'} → ${p.new_plan ?? p.days ?? '?'}`;
 }
 

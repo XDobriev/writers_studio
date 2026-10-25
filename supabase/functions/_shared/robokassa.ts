@@ -68,18 +68,25 @@ export async function fetchOpKey(login: string, invId: string, password2: string
 export type RefundCreateResult =
   | { kind: 'created'; requestId: string }
   | { kind: 'already_created' }
+  | { kind: 'insufficient_balance' }
   | { kind: 'rejected'; message: string };
 
 /**
- * Разбор ответа Refund/Create. Повторный запрос по уже возвращённому OpKey Робокасса
- * отклоняет с `NotEnoughOperationFunds` (поддержка, 23.10.2026) — это «возврат уже
- * создан» (или создавать нечего), повторять бессмысленно. Тексты ошибок API возвратов
- * Робокасса сама называет неинформативными и обещает менять: узнаём только эту строку,
- * остальное — общий `rejected`.
+ * Разбор ответа Refund/Create (поддержка Робокассы, 23–24.10.2026):
+ *   * `NotEnoughOperationFunds` — повтор по уже возвращённому OpKey, возврат уже создан;
+ *     при нехватке баланса этот ответ не приходит;
+ *   * `Refund error 8401` — на балансе магазина нет всей суммы возврата. Возврат не создан.
+ *     В каком поле приходит код, поддержка не уточнила — ищем и в `message`, и в сыром теле.
+ * Тексты ошибок API возвратов Робокасса называет неинформативными и обещает менять:
+ * всё нераспознанное — общий `rejected`.
  */
-export function classifyRefundCreate(data: { success?: boolean; message?: string; requestId?: string | null }): RefundCreateResult {
+export function classifyRefundCreate(
+  data: { success?: boolean; message?: string | null; requestId?: string | null },
+  raw = '',
+): RefundCreateResult {
   if (data.success && data.requestId) return { kind: 'created', requestId: data.requestId };
   if (data.message === 'NotEnoughOperationFunds') return { kind: 'already_created' };
+  if (/\b8401\b/.test(`${data.message ?? ''} ${raw}`)) return { kind: 'insufficient_balance' };
   return { kind: 'rejected', message: data.message ?? 'unknown' };
 }
 
