@@ -171,6 +171,20 @@ describe('classifyRefundCreate', () => {
     expect(classifyRefundCreate({ success: true })).toEqual({ kind: 'rejected', message: 'unknown' });
   });
 
+  it('Refund error 8401 в message — на балансе не хватает денег', () => {
+    expect(classifyRefundCreate({ success: false, message: 'Refund error 8401', requestId: null }))
+      .toEqual({ kind: 'insufficient_balance' });
+  });
+
+  it('8401 только в сыром теле (не JSON) — тоже нехватка баланса', () => {
+    expect(classifyRefundCreate({}, 'Refund error 8401')).toEqual({ kind: 'insufficient_balance' });
+  });
+
+  it('8401 внутри другого числа — не нехватка баланса', () => {
+    expect(classifyRefundCreate({ success: false, message: 'Refund error 184012' }))
+      .toEqual({ kind: 'rejected', message: 'Refund error 184012' });
+  });
+
   it('NotEnoughOperationFunds при success: true не перекрывает успех', () => {
     expect(classifyRefundCreate({ success: true, message: 'NotEnoughOperationFunds', requestId: 'r-2' }))
       .toEqual({ kind: 'created', requestId: 'r-2' });

@@ -11,6 +11,9 @@
 //     с NotEnoughOperationFunds: claim остаётся, автопродление выключается
 //     (cancel_at_period_end — обратимо, мандат не стирается), план не трогаем — деньги
 //     могли и не вернуться; audit refund_needs_review, сверяет админ;
+//   * Refund error 8401 — на балансе магазина нет всей суммы возврата: claim снимается
+//     (пользователь повторит после пополнения), audit refund_balance_insufficient,
+//     уведомление владельцу в Telegram;
 //   * статус 'processing' после 20 с поллинга считается успехом (Робокасса приняла заявку);
 //     отмену такой заявки позже нужно сверять вручную (см. отчёт).
 //
@@ -18,6 +21,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { SYSTEM_ADMIN_ID, bearer, corsHeaders, json } from '../_shared/http.ts';
 import { classifyRefundCreate, fetchOpKey } from '../_shared/robokassa.ts';
+import { notifyOwner } from '../_shared/telegram.ts';
 
 function base64url(data: Uint8Array): string {
   return btoa(String.fromCharCode(...data)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -77,7 +81,7 @@ Deno.serve(async (req) => {
   const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const { data: payment, error: payErr } = await db
     .from('payments')
-    .select('id, inv_id, op_key')
+    .select('id, inv_id, op_key, amount')
     .eq('user_id', user.id)
     .in('plan', ['pro', 'pro_annual'])
     .not('confirmed_at', 'is', null)
@@ -128,8 +132,10 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(jwt),
     });
-    const data = await res.json() as { success?: boolean; message?: string; requestId?: string | null };
-    const result = classifyRefundCreate(data);
+    const raw = await res.text();
+    let data: { success?: boolean; message?: string | null; requestId?: string | null } = {};
+    try { data = JSON.parse(raw); } catch { /* не JSON — разбираем по сырому тексту */ }
+    const result = classifyRefundCreate(data, raw);
     if (result.kind === 'already_created') {
       console.error(`[process-refund] refund already created inv=${payment.inv_id}, needs review`);
       const { error: stopErr } = await db.from('profiles')
@@ -144,7 +150,22 @@ Deno.serve(async (req) => {
         payload: { inv_id: payment.inv_id, reason: 'NotEnoughOperationFunds', renewal_stopped: !stopErr },
       });
       if (auditErr) console.error('[process-refund] audit failed:', auditErr.message);
+      await notifyOwner(`Возврат: повтор по уже возвращённой операции inv=${payment.inv_id}. Автопродление выключено. Сверить в ЛК Робокассы и выполнить apply_refund.`);
       return json(409, { error: 'refund_already_created' }, cors);
+    }
+    if (result.kind === 'insufficient_balance') {
+      console.error(`[process-refund] Refund error 8401 (balance) inv=${payment.inv_id} amount=${payment.amount}`);
+      await releaseRefundClaim();
+      const { error: auditErr } = await db.from('admin_audit_log').insert({
+        admin_id: SYSTEM_ADMIN_ID,
+        admin_email: 'system',
+        action: 'refund_balance_insufficient',
+        target_user_id: user.id,
+        payload: { inv_id: payment.inv_id, amount: payment.amount },
+      });
+      if (auditErr) console.error('[process-refund] audit failed:', auditErr.message);
+      await notifyOwner(`Возврат не прошёл: на балансе Робокассы меньше ${payment.amount} ₽ (inv=${payment.inv_id}). Пополнить баланс — пользователь повторит.`);
+      return json(503, { error: 'refund_balance_insufficient' }, cors);
     }
     if (result.kind === 'rejected') {
       console.error('[process-refund] Robokassa rejected:', result.message, res.status);
