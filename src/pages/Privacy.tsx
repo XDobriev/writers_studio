@@ -160,10 +160,10 @@ export default function Privacy() {
               </a>.
             </li>
             <li>
-              <strong>UniSender</strong> (unisender.com) — отправка служебных писем: подтверждение
+              <strong>Resend</strong> (resend.com, США) — отправка служебных писем: подтверждение
               оплаты, уведомление о предстоящем списании. Получает email и текст письма.{' '}
-              <a href="https://www.unisender.com/ru/legal/privacy/" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
-                Политика конфиденциальности UniSender
+              <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
+                Политика конфиденциальности Resend
               </a>.
             </li>
           </ul>

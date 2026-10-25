@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const cronSecret  = Deno.env.get('CRON_SECRET');
-  if (!supabaseUrl || !serviceKey || !cronSecret || !Deno.env.get('UNISENDER_GO_API_KEY')) {
+  if (!supabaseUrl || !serviceKey || !cronSecret || !Deno.env.get('RESEND_API_KEY')) {
     console.error('[retention-email] missing env');
     return json(500, { error: 'server misconfigured' });
   }
@@ -93,7 +93,6 @@ Deno.serve(async (req) => {
       subject: `«${title}» ждёт вас`,
       html: buildHtml(name, title),
       plaintext: buildPlaintext(name, title),
-      track: true,
     });
     if (res.ok) {
       const { error } = await db

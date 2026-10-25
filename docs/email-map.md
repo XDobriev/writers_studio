@@ -15,7 +15,7 @@ _Зафиксировано: 2026-10-24 (roadmap G-1). Только докуме
 
 | Элемент | Состояние | Где |
 |---|---|---|
-| Провайдер | UniSender Go, `goapi.unisender.ru` | `supabase/functions/_shared/email.ts` |
+| Провайдер | Resend (`api.resend.com`, секрет `RESEND_API_KEY`); UniSender Go оставлен только для auth-SMTP Supabase, если он там настроен | `supabase/functions/_shared/email.ts` |
 | Отправитель | `studio@avtorstudio.com` / «Авторская студия» (дефолт, меняется секретом `EMAIL_FROM`) | `_shared/email.ts` |
 | Reply-to | **не задаётся** (письма «отвечайте на это письмо» уходят на `studio@`, ящик не подтверждён) | — |
 | Auth-письма Supabase (подтверждение, сброс пароля, magic link, смена email) | HTML-шаблоны готовы, настройка SMTP через UniSender — по `docs/email-templates/SETUP.md`; применены ли в Dashboard — **проверить** | `docs/email-templates/*.html` |
@@ -56,13 +56,9 @@ _Зафиксировано: 2026-10-24 (roadmap G-1). Только докуме
 
 ## Что блокирует L-2
 
-UniSender Go отвечает 403 (замечено на 1 ₽-оплате 2026-10-23). Не уходят строки **4, 5, 20**; все остальные письма (11–19, 21–22) не реализованы, проверить их нельзя. Версии для проверки (диагностика, не решения):
+UniSender Go отвечал 403 (замечено на 1 ₽-оплате 2026-10-23). Причина найдена в кабинете: аккаунт на тарифе «Бесплатный» — 100 писем в день и только на адреса своего домена; на чужие нужен платный тариф. Не уходили строки **4, 5, 20**; все остальные письма (11–19, 21–22) не реализованы, проверить их нельзя.
 
-- ключ `UNISENDER_GO_API_KEY` в Edge Secrets неверный/не тот проект (в `docs/email-templates/SETUP.md` секрет назван `UNISENDER_API_KEY` — расхождение имён, код читает `UNISENDER_GO_API_KEY`);
-- домен `avtorstudio.com` или адрес `studio@avtorstudio.com` не подтверждены в UniSender Go (SPF/DKIM);
-- хост API: код использует `goapi.unisender.ru`, в `email-onboarding.md` указан `go2.unisender.ru`.
-
-`sendEmail` отдаёт наружу только `unisender status <код>` без тела ответа — причину 403 по логам не видно (замечание для T-/L-2: логировать тело ответа без ключа).
+Транспорт переведён на Resend. Чтобы письма уходили на любые адреса, нужно: добавить в Resend домен `avtorstudio.com`, прописать SPF/DKIM-записи в DNS, создать API-ключ и положить его в Edge Secrets как `RESEND_API_KEY` (`EMAIL_FROM` — по желанию). Тело ошибки Resend попадает в `error` результата `sendEmail` (ключ не логируется).
 
 ## Что нужно создать до маркетинговых писем (G-1 → G-2)
 
