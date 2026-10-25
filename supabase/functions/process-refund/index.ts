@@ -2,7 +2,8 @@
 //
 // Возврат последнего Pro-платежа пользователя (14 дней). Bearer пользователя, verify_jwt: true.
 //   * только подтверждённые платежи (confirmed_at IS NOT NULL) — пред-созданные
-//     pending-строки scheduler'а / create-payment-url не выбираются;
+//     pending-строки scheduler'а / create-payment-url не выбираются; дубли автосписания
+//     (duplicate_reason, L-8) тоже: их возвращает robokassa-webhook без apply_refund;
 //   * claim-first refunded_at до вызова Робокассы (двойной возврат невозможен);
 //   * после одобрения — public.apply_refund: снимается ровно оплаченный этим платежом
 //     период (если оплачен и следующий — Pro остаётся до новой даты), рекуррент
@@ -20,35 +21,9 @@
 // Secrets: ROBOKASSA_PASSWORD3, ROBOKASSA_MERCHANT_LOGIN, ROBOKASSA_PASSWORD2 (fallback OpKey).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { SYSTEM_ADMIN_ID, bearer, corsHeaders, json } from '../_shared/http.ts';
-import { classifyRefundCreate, fetchOpKey } from '../_shared/robokassa.ts';
+import { fetchOpKey } from '../_shared/robokassa.ts';
+import { createRefund, pollRefundState } from '../_shared/refund.ts';
 import { notifyOwner } from '../_shared/telegram.ts';
-
-function base64url(data: Uint8Array): string {
-  return btoa(String.fromCharCode(...data)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-async function buildJwt(payload: Record<string, unknown>, secret: string): Promise<string> {
-  const enc = new TextEncoder();
-  const header = base64url(enc.encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
-  const body   = base64url(enc.encode(JSON.stringify(payload)));
-  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(`${header}.${body}`));
-  return `${header}.${body}.${base64url(new Uint8Array(sig))}`;
-}
-
-async function pollStatus(requestId: string): Promise<'finished' | 'canceled' | 'processing'> {
-  for (let i = 0; i < 10; i++) {
-    await new Promise((r) => setTimeout(r, 2000));
-    try {
-      const res = await fetch(`https://services.robokassa.ru/RefundService/Refund/GetState?id=${encodeURIComponent(requestId)}`);
-      if (res.ok) {
-        const data = await res.json() as { label?: string };
-        if (data.label === 'finished' || data.label === 'canceled') return data.label;
-      }
-    } catch { /* retry */ }
-  }
-  return 'processing';
-}
 
 Deno.serve(async (req) => {
   const cors = corsHeaders(req);
@@ -86,6 +61,7 @@ Deno.serve(async (req) => {
     .in('plan', ['pro', 'pro_annual'])
     .not('confirmed_at', 'is', null)
     .is('refunded_at', null)
+    .is('duplicate_reason', null)
     .gte('confirmed_at', cutoff)
     .order('confirmed_at', { ascending: false })
     .limit(1)
@@ -125,17 +101,7 @@ Deno.serve(async (req) => {
 
   let requestId: string;
   try {
-    const jwt = await buildJwt({ OpKey: opKey }, password3);
-    // Content-Type: application/json, тело — JWT JSON-строкой (проверено 22.06.2026).
-    const res = await fetch('https://services.robokassa.ru/RefundService/Refund/Create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(jwt),
-    });
-    const raw = await res.text();
-    let data: { success?: boolean; message?: string | null; requestId?: string | null } = {};
-    try { data = JSON.parse(raw); } catch { /* не JSON — разбираем по сырому тексту */ }
-    const result = classifyRefundCreate(data, raw);
+    const result = await createRefund(opKey, password3);
     if (result.kind === 'already_created') {
       console.error(`[process-refund] refund already created inv=${payment.inv_id}, needs review`);
       const { error: stopErr } = await db.from('profiles')
@@ -168,7 +134,6 @@ Deno.serve(async (req) => {
       return json(503, { error: 'refund_balance_insufficient' }, cors);
     }
     if (result.kind === 'rejected') {
-      console.error('[process-refund] Robokassa rejected:', result.message, res.status);
       await releaseRefundClaim();
       return json(502, { error: 'robokassa_error' }, cors);
     }
@@ -179,7 +144,7 @@ Deno.serve(async (req) => {
     return json(502, { error: 'robokassa_unreachable' }, cors);
   }
 
-  const label = await pollStatus(requestId);
+  const label = await pollRefundState(requestId);
   if (label === 'canceled') {
     console.error(`[process-refund] refund canceled requestId=${requestId}`);
     await releaseRefundClaim();
