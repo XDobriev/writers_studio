@@ -15,10 +15,10 @@ _Зафиксировано: 2026-10-24 (roadmap G-1). Только докуме
 
 | Элемент | Состояние | Где |
 |---|---|---|
-| Провайдер | Resend (`api.resend.com`, секрет `RESEND_API_KEY`); UniSender Go оставлен только для auth-SMTP Supabase, если он там настроен | `supabase/functions/_shared/email.ts` |
+| Провайдер | Resend (`api.resend.com`, секрет `RESEND_API_KEY`); auth-SMTP Supabase тоже на Resend (`smtp.resend.com`) | `supabase/functions/_shared/email.ts` |
 | Отправитель | `studio@avtorstudio.com` / «Авторская студия» (дефолт, меняется секретом `EMAIL_FROM`) | `_shared/email.ts` |
 | Reply-to | **не задаётся** (письма «отвечайте на это письмо» уходят на `studio@`, ящик не подтверждён) | — |
-| Auth-письма Supabase (подтверждение, сброс пароля, magic link, смена email) | HTML-шаблоны готовы, настройка SMTP через UniSender — по `docs/email-templates/SETUP.md`; применены ли в Dashboard — **проверить** | `docs/email-templates/*.html` |
+| Auth-письма Supabase (подтверждение, сброс пароля, magic link, смена email) | SMTP на Resend (проверено 25.10.2026: письмо сброса пароля доставлено); HTML-шаблоны готовы — `docs/email-templates/SETUP.md`; применены ли в Dashboard — **проверить** (тема письма пришла дефолтная, на английском) | `docs/email-templates/*.html` |
 | Cron | `billing-scheduler` 06:00 UTC, `retention-email` 07:00 UTC (pg_cron) | `20261022000900_cron_billing_retention.sql` |
 | Чек Робокассы (РобоЧеки СМЗ) | отдельное письмо от Робокассы, не наше; приходит только на реальные платежи | `docs/features/payments.md` |
 | Согласие на рассылку | чекбокс `consentMarketing` есть в форме регистрации, **но никуда не сохраняется** (`signUp(email, password)` его не передаёт), колонки `profiles.marketing_consent` нет | `src/components/AuthForm.tsx:33,271`, `src/lib/auth.tsx:142` |
