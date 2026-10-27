@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isDeliverableEmail, sendEmail } from '../../supabase/functions/_shared/email.ts';
+import { contactEmail, isDeliverableEmail, sendEmail } from '../../supabase/functions/_shared/email.ts';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -18,6 +18,23 @@ describe('isDeliverableEmail', () => {
     expect(isDeliverableEmail('no-at')).toBe(false);
     expect(isDeliverableEmail('tg_1@telegram.local')).toBe(false);
     expect(isDeliverableEmail('a@b.ru')).toBe(true);
+  });
+});
+
+describe('contactEmail (B-1)', () => {
+  it('доставляемый адрес аккаунта — в приоритете', () => {
+    expect(contactEmail('a@b.ru', 'pay@c.ru')).toBe('a@b.ru');
+  });
+
+  it('Telegram/VK (*.local) — адрес, введённый при оплате', () => {
+    expect(contactEmail('tg_1@telegram.local', 'pay@c.ru')).toBe('pay@c.ru');
+    expect(contactEmail(null, 'pay@c.ru')).toBe('pay@c.ru');
+  });
+
+  it('оба недоставляемы — null (письма не шлём, в Receipt не передаём)', () => {
+    expect(contactEmail('tg_1@telegram.local', null)).toBeNull();
+    expect(contactEmail('vk_1@vk.local', 'x@y.local')).toBeNull();
+    expect(contactEmail(undefined, undefined)).toBeNull();
   });
 });
 

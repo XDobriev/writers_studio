@@ -43,6 +43,12 @@ describe('buildReceipt', () => {
     expect(JSON.parse(buildReceipt('x', '1', 'a@b.ru').json).email).toBe('a@b.ru');
   });
 
+  // B-1: Робокасса спросит адрес на странице оплаты, чек дочернего уйдёт на адрес материнской.
+  it('синтетический адрес Telegram/VK в Receipt не попадает', () => {
+    expect(JSON.parse(buildReceipt('x', '1', 'tg_1@telegram.local').json)).not.toHaveProperty('email');
+    expect(JSON.parse(buildReceipt('x', '1', 'not-an-email').json)).not.toHaveProperty('email');
+  });
+
   // Две формы одного объекта: raw — в подпись, encoded — в URL (docs/features/payments.md).
   it('encoded = encodeURIComponent(json), json не кодирован', () => {
     const { json, encoded } = buildReceipt('Pro', '10.50', 'a@b.ru');

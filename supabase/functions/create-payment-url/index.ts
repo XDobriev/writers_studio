@@ -17,6 +17,7 @@
 // у пользователя, чья Pro ещё числится (истекла, но в grace). После понижения флаг сброшен.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { md5hex } from '../_shared/crypto.ts';
+import { contactEmail } from '../_shared/email.ts';
 import { bearer, clientIp, corsHeaders, json } from '../_shared/http.ts';
 import { DESCRIPTIONS, RECURRING_CONSENT_VERSION, isPaidPlan, priceFor, recurringConsentText } from '../_shared/pricing.ts';
 import { buildReceipt, newInvId } from '../_shared/robokassa.ts';
@@ -67,7 +68,7 @@ Deno.serve(async (req) => {
 
   const { data: profile, error: profileErr } = await db
     .from('profiles')
-    .select('plan, plan_expires_at, grandfathered, recurring_inv_id, cancel_at_period_end')
+    .select('plan, plan_expires_at, grandfathered, recurring_inv_id, cancel_at_period_end, billing_email')
     .eq('user_id', user.id)
     .single();
   if (profileErr || !profile) {
@@ -136,7 +137,8 @@ Deno.serve(async (req) => {
     return json(500, { error: 'db error' }, cors);
   }
 
-  const receipt = buildReceipt(DESCRIPTIONS[plan], outSum, user.email);
+  // Telegram/VK без сохранённого адреса — без email: Робокасса спросит его на странице оплаты.
+  const receipt = buildReceipt(DESCRIPTIONS[plan], outSum, contactEmail(user.email, profile.billing_email));
   // Подпись: MerchantLogin:OutSum:InvId:ReceiptJSON:Password1:Shp_plan=…:Shp_user_id=…
   // Receipt в подписи — raw JSON, в URL — encodeURIComponent (рабочая формула 17-18.06.2026).
   const sigString = `${merchantLogin}:${outSum}:${invId}:${receipt.json}:${password1}:Shp_plan=${plan}:Shp_user_id=${user.id}`;

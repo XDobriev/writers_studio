@@ -1,8 +1,14 @@
 // Общие куски интеграции с Робокассой (create-payment-url, billing-scheduler,
 // robokassa-webhook, process-refund). Рабочие формулы — docs/features/payments.md.
 import { md5hex } from './crypto.ts';
+import { isDeliverableEmail } from './email.ts';
 
-/** Receipt по ФЗ-54 для РобоЧеков СМЗ: без НДС (самозанятый), email — для чека покупателю. */
+/**
+ * Receipt по ФЗ-54 для РобоЧеков СМЗ: без НДС (самозанятый), email — для чека покупателю.
+ * Недоставляемый адрес (*.local Telegram/VK) не передаётся: страница оплаты сама спросит
+ * email, а чек дочернего списания без email уйдёт на адрес материнской оплаты
+ * (поддержка Робокассы, 25.10.2026).
+ */
 export function buildReceipt(description: string, sum: string, email?: string | null): {
   json: string;
   encoded: string;
@@ -17,7 +23,7 @@ export function buildReceipt(description: string, sum: string, email?: string | 
       tax: 'none',
     }],
   };
-  if (email) receipt['email'] = email;
+  if (isDeliverableEmail(email)) receipt['email'] = email;
   const json = JSON.stringify(receipt);
   return { json, encoded: encodeURIComponent(json) };
 }
