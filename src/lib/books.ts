@@ -178,6 +178,28 @@ export function removeMapBackgroundFile(userId: string, bookId: string): void {
     .then(({ error }) => { if (error) Sentry.captureException(error, { tags: { op: 'remove-map-bg' } }); });
 }
 
+const CHAPTER_IMAGES_BUCKET = 'chapter-images';
+const LIST_PAGE = 100;
+
+// Картинки глав лежат в <user_id>/<book_id>/*, списка путей в БД нет — перечисляем папку.
+// Фоново, как и фон карты: сирота в Storage — мусор, а не ошибка для пользователя.
+function removeChapterImageFiles(userId: string, bookId: string): void {
+  const folder = `${userId}/${bookId}`;
+  const bucket = supabase.storage.from(CHAPTER_IMAGES_BUCKET);
+  void (async () => {
+    // remove() сдвигает листинг, поэтому каждый раз читаем с начала, пока папка не опустеет.
+    for (;;) {
+      const { data, error } = await bucket.list(folder, { limit: LIST_PAGE });
+      if (error) throw error;
+      const files = (data ?? []).filter((f) => f.id);
+      if (files.length === 0) return;
+      const { data: removed, error: removeError } = await bucket.remove(files.map((f) => `${folder}/${f.name}`));
+      if (removeError) throw removeError;
+      if (!removed?.length) return;
+    }
+  })().catch((e) => Sentry.captureException(e, { tags: { op: 'remove-chapter-images' } }));
+}
+
 // RPC копирует ссылку на фон карты, а не файл. Путь фона привязан к книге и
 // перезаписывается (upsert) — без своей копии новый фон источника менял бы карту продолжения.
 // Сбой копирования не валит создание книги: остаётся общая ссылка, как было до фикса.
@@ -214,7 +236,10 @@ export async function deleteBook(id: string): Promise<void> {
   if (error) throw error;
   const { data } = await supabase.auth.getSession();
   const userId = data.session?.user.id;
-  if (userId) removeMapBackgroundFile(userId, id);
+  if (userId) {
+    removeMapBackgroundFile(userId, id);
+    removeChapterImageFiles(userId, id);
+  }
 }
 
 export type WritingSnapshot = Pick<Tables<'writing_snapshots'>, 'date' | 'words'>;
