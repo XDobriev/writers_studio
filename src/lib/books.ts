@@ -183,7 +183,7 @@ const LIST_PAGE = 100;
 
 // Картинки глав лежат в <user_id>/<book_id>/*, списка путей в БД нет — перечисляем папку.
 // Фоново, как и фон карты: сирота в Storage — мусор, а не ошибка для пользователя.
-export function removeChapterImageFiles(userId: string, bookId: string): void {
+function removeChapterImageFiles(userId: string, bookId: string): void {
   const folder = `${userId}/${bookId}`;
   const bucket = supabase.storage.from(CHAPTER_IMAGES_BUCKET);
   void (async () => {
