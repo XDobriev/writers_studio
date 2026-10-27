@@ -64,7 +64,9 @@ export async function parseDocx(buf: ArrayBuffer): Promise<DocxResult> {
         // Картинка — метка в HTML, байты — в images: в Storage они уйдут при создании книги.
         convertImage: mammoth.images.imgElement(async (image) => {
           const id = `img${images.size + 1}`;
-          images.set(id, { bytes: new Uint8Array(await image.read()), mime: image.contentType });
+          // read() без кодировки в браузерной сборке требует Buffer — его там нет, mammoth молча теряет картинку.
+          const bin = atob(await image.read('base64'));
+          images.set(id, { bytes: Uint8Array.from(bin, (c) => c.charCodeAt(0)), mime: image.contentType });
           return { src: '', [IMPORT_IMAGE_ATTR]: id };
         }),
       },
