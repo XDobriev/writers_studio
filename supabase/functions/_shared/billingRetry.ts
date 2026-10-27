@@ -19,3 +19,8 @@ export function retryDecision(state: OpState | null): 'charge' | 'postpone' | 'i
   }
   return 'charge';
 }
+
+/** Банк отклонил прошлое списание (State 10) — повод сказать пользователю (G-6). */
+export function isDeclined(state: OpState | null): boolean {
+  return state !== null && state.resultCode === 0 && state.stateCode === 10;
+}

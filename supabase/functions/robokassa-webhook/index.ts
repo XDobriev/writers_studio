@@ -13,10 +13,14 @@
 // L-8) → 'duplicate_period': подписка не меняется, ответ OK, в фоне — возврат по OpKey
 // и сообщение владельцу (_shared/duplicateRefund.ts).
 //
+// EMail из ResultURL (адрес, введённый на странице оплаты; в подпись не входит) сохраняется
+// в profiles.billing_email — по нему пишем пользователям Telegram/VK (B-1).
+//
 // Secrets: ROBOKASSA_PASSWORD2 (TEST_PASSWORD2 в тест-режиме), ROBOKASSA_MERCHANT_LOGIN,
 // ROBOKASSA_PASSWORD3 (возврат дубля), GRANDFATHERING_ENDS_AT (необязателен). Деплой: --no-verify-jwt.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { md5hex, timingSafeEqual } from '../_shared/crypto.ts';
+import { contactEmail, isDeliverableEmail } from '../_shared/email.ts';
 import { SYSTEM_ADMIN_ID, runInBackground, text } from '../_shared/http.ts';
 import { isPaidPlan, minPrice } from '../_shared/pricing.ts';
 import { fetchOpKey } from '../_shared/robokassa.ts';
@@ -53,6 +57,7 @@ Deno.serve(async (req) => {
   const signatureValue = params.get('SignatureValue') ?? '';
   const shpPlan        = params.get('Shp_plan') ?? '';
   const shpUserId      = params.get('Shp_user_id') ?? '';
+  const payerEmail     = params.get('EMail')?.trim() ?? '';
 
   // IsTest только из env: иначе атакующий подставил бы тестовый пароль.
   const isTest = Deno.env.get('ROBOKASSA_IS_TEST') === 'true';
@@ -112,6 +117,13 @@ Deno.serve(async (req) => {
   if (activation.oversold) console.error(`[robokassa-webhook] lifetime oversold invId=${invId}`);
   if (activation.status === 'lifetime_kept') console.error(`[robokassa-webhook] pro payment on lifetime account invId=${invId} — needs manual refund`);
 
+  // Best-effort: адрес плательщика для наших писем. Только после подписи и захвата счёта
+  // (повторная доставка ушла выше), чтобы чужой запрос не переписал адрес.
+  if (isDeliverableEmail(payerEmail)) {
+    const { error } = await db.from('profiles').update({ billing_email: payerEmail }).eq('user_id', shpUserId);
+    if (error) console.error('[robokassa-webhook] billing_email update failed:', error.message);
+  }
+
   // OpKey (нужен для возврата) — best-effort pull через OpStateExt.
   let opKey: string | null = null;
   if (merchantLogin) {
@@ -166,9 +178,9 @@ Deno.serve(async (req) => {
   // Письмо об успешной оплате — через payment-confirmation, в фоне.
   const { data: userData, error: userErr } = await db.auth.admin.getUserById(shpUserId);
   if (userErr) console.warn('[robokassa-webhook] getUserById failed:', userErr.message);
-  const userEmail = userData?.user?.email ?? null;
+  const { data: prof } = await db.from('profiles').select('recurring_inv_id, billing_email').eq('user_id', shpUserId).maybeSingle();
+  const userEmail = contactEmail(userData?.user?.email, prof?.billing_email);
   if (userEmail && activation.status === 'activated') {
-    const { data: prof } = await db.from('profiles').select('recurring_inv_id').eq('user_id', shpUserId).maybeSingle();
     runInBackground(
       fetch(`${supabaseUrl}/functions/v1/payment-confirmation`, {
         method: 'POST',

@@ -12,6 +12,17 @@ export function isDeliverableEmail(email: string | null | undefined): email is s
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) && !e.endsWith('.local');
 }
 
+/**
+ * Куда писать о деньгах (подтверждение, напоминание, неудачное списание) и что класть в Receipt:
+ * адрес аккаунта, а если он синтетический (Telegram/VK) — адрес, введённый на странице
+ * оплаты Робокассы (profiles.billing_email из ResultURL EMail). Иначе null.
+ */
+export function contactEmail(authEmail: string | null | undefined, billingEmail: string | null | undefined): string | null {
+  if (isDeliverableEmail(authEmail)) return authEmail;
+  if (isDeliverableEmail(billingEmail)) return billingEmail;
+  return null;
+}
+
 export async function sendEmail(msg: {
   to: string;
   subject: string;

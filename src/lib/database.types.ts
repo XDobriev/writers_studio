@@ -825,6 +825,8 @@ export type Database = {
       profiles: {
         Row: {
           billing_attempts: number
+          billing_email: string | null
+          billing_failure_notified_for: string | null
           cancel_at_period_end: boolean
           checklist_dismissed_at: string | null
           created_at: string
@@ -847,6 +849,8 @@ export type Database = {
         }
         Insert: {
           billing_attempts?: number
+          billing_email?: string | null
+          billing_failure_notified_for?: string | null
           cancel_at_period_end?: boolean
           checklist_dismissed_at?: string | null
           created_at?: string
@@ -869,6 +873,8 @@ export type Database = {
         }
         Update: {
           billing_attempts?: number
+          billing_email?: string | null
+          billing_failure_notified_for?: string | null
           cancel_at_period_end?: boolean
           checklist_dismissed_at?: string | null
           created_at?: string
@@ -1085,6 +1091,10 @@ export type Database = {
         Args: { p_expiry: string; p_max_attempts?: number; p_user_id: string }
         Returns: number
       }
+      claim_billing_failure_notice: {
+        Args: { p_expiry: string; p_user_id: string }
+        Returns: boolean
+      }
       claim_renewal_reminder: {
         Args: { p_expiry: string; p_user_id: string }
         Returns: boolean
@@ -1166,6 +1176,7 @@ export type Database = {
         Args: { p_max_attempts?: number }
         Returns: {
           billing_attempts: number
+          billing_email: string
           email: string
           grandfathered: boolean
           is_retry: boolean
@@ -1196,6 +1207,7 @@ export type Database = {
       get_renewal_reminders_due: {
         Args: never
         Returns: {
+          billing_email: string
           email: string
           grandfathered: boolean
           plan_expires_at: string
@@ -1210,6 +1222,10 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_paid: { Args: { p_user_id: string }; Returns: boolean }
+      release_billing_failure_notice: {
+        Args: { p_expiry: string; p_user_id: string }
+        Returns: undefined
+      }
       release_renewal_reminder: {
         Args: { p_expiry: string; p_user_id: string }
         Returns: undefined

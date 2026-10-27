@@ -18,6 +18,11 @@
 //      банк позже дошлёт успех по уже отклонённой попытке, activate_payment распознает
 //      дубль периода (L-8). OpStateExt здесь видит только последний счёт — поздний успех
 //      более ранней попытки ловит webhook, а не scheduler.
+//   Отказ банка (State 10 по прошлому счёту) — письмо «не удалось продлить, оплатите новой
+//      картой» один раз на период (G-6, claim_billing_failure_notice). Не-OK от Recurring —
+//      не отказ банка: банк отвечает уже после создания операции (OK = создана, до часа
+//      ожидания, затем State 10 — docs recurring-payments, поддержка 23 и 25.10.2026).
+//      Это ошибка запроса на нашей стороне — только audit recurring_charge_failed.
 //
 // Ответ содержит только счётчики (без user_id и ответов Робокассы).
 //
@@ -26,10 +31,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { escapeHtml, md5hex, timingSafeEqual } from '../_shared/crypto.ts';
 import { SYSTEM_ADMIN_ID, bearer, json } from '../_shared/http.ts';
-import { isDeliverableEmail, sendEmail } from '../_shared/email.ts';
+import { contactEmail, sendEmail } from '../_shared/email.ts';
 import { DESCRIPTIONS, planForInterval, priceFor, type BillingInterval } from '../_shared/pricing.ts';
 import { buildReceipt, fetchOpState, newInvId } from '../_shared/robokassa.ts';
-import { retryDecision } from '../_shared/billingRetry.ts';
+import { isDeclined, retryDecision } from '../_shared/billingRetry.ts';
+import { billingFailureEmail } from '../_shared/billingFailureEmail.ts';
 
 const RECURRING_URL = 'https://auth.robokassa.ru/Merchant/Recurring';
 const MAX_ATTEMPTS = 4;
@@ -37,6 +43,7 @@ const MAX_ATTEMPTS = 4;
 type DueRow = {
   user_id: string;
   email: string | null;
+  billing_email: string | null;
   plan_expires_at: string;
   recurring_inv_id: string;
   grandfathered: boolean;
@@ -48,7 +55,8 @@ type DueRow = {
 
 type ReminderRow = {
   user_id: string;
-  email: string;
+  email: string | null;
+  billing_email: string | null;
   plan_expires_at: string;
   plan_interval: BillingInterval;
   grandfathered: boolean;
@@ -105,7 +113,29 @@ Deno.serve(async (req) => {
     if (error) console.error(`[billing-scheduler] audit ${action} failed:`, error.message);
   };
 
-  const counts = { downgraded: 0, reminders_sent: 0, reminders_failed: 0, due: 0, charged: 0, failed: 0, skipped: 0 };
+  const counts = {
+    downgraded: 0, reminders_sent: 0, reminders_failed: 0, due: 0, charged: 0, failed: 0, skipped: 0, failure_notices: 0,
+  };
+
+  // G-6: «не удалось продлить» — один раз на период, только при отказе банка (State 10).
+  const notifyFailure = async (p: DueRow) => {
+    const to = contactEmail(p.email, p.billing_email);
+    if (!to) return;
+    const { data: claimed, error: claimErr } = await db.rpc('claim_billing_failure_notice', {
+      p_user_id: p.user_id, p_expiry: p.plan_expires_at,
+    });
+    if (claimErr) console.error('[billing-scheduler] failure notice claim failed:', claimErr.message);
+    if (claimErr || !claimed) return;
+    const sent = await sendEmail({ to, ...billingFailureEmail(p.plan_expires_at) });
+    if (sent.ok) {
+      counts.failure_notices++;
+      await audit('billing_failure_notified', p.user_id, { plan_expires_at: p.plan_expires_at });
+      return;
+    }
+    console.error('[billing-scheduler] failure notice send failed:', sent.error);
+    const { error } = await db.rpc('release_billing_failure_notice', { p_user_id: p.user_id, p_expiry: p.plan_expires_at });
+    if (error) console.error('[billing-scheduler] failure notice release failed:', error.message);
+  };
 
   // 1. Понижение — до проверки флага.
   const { data: downgraded, error: downErr } = await db.rpc('downgrade_expired_subscriptions');
@@ -128,10 +158,11 @@ Deno.serve(async (req) => {
   const { data: reminders, error: remErr } = await db.rpc('get_renewal_reminders_due');
   if (remErr) console.error('[billing-scheduler] reminders query failed:', remErr.message);
   for (const r of (reminders ?? []) as ReminderRow[]) {
-    if (!isDeliverableEmail(r.email)) continue;
+    const to = contactEmail(r.email, r.billing_email);
+    if (!to) continue;
     const { data: claimed, error: claimErr } = await db.rpc('claim_renewal_reminder', { p_user_id: r.user_id, p_expiry: r.plan_expires_at });
     if (claimErr || !claimed) continue;
-    const sent = await sendEmail({ to: r.email, ...reminderEmail(r) });
+    const sent = await sendEmail({ to, ...reminderEmail(r) });
     if (sent.ok) {
       counts.reminders_sent++;
     } else {
@@ -156,6 +187,7 @@ Deno.serve(async (req) => {
     // Без password2 статус не узнать — повтор откладывается, а не идёт вслепую.
     if (p.is_retry && p.pending_inv_id) {
       const state = password2 ? await fetchOpState(merchantLogin, p.pending_inv_id, password2) : null;
+      if (isDeclined(state)) await notifyFailure(p);
       const verdict = retryDecision(state);
       if (verdict !== 'charge') {
         counts.skipped++;
@@ -188,7 +220,7 @@ Deno.serve(async (req) => {
     const outSum = (isTestMode ? Deno.env.get('BILLING_TEST_AMOUNT') : null) ?? priceFor(shpPlan, p.grandfathered);
     const description = DESCRIPTIONS[shpPlan];
     const invId = newInvId(i);
-    const receipt = buildReceipt(description, outSum, p.email);
+    const receipt = buildReceipt(description, outSum, contactEmail(p.email, p.billing_email));
 
     const { error: payErr } = await db.from('payments').insert({
       inv_id: invId, user_id: p.user_id, amount: parseFloat(outSum), plan: shpPlan, source: 'recurring',
