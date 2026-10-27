@@ -775,6 +775,8 @@ export type Database = {
         Row: {
           amount: number
           confirmed_at: string | null
+          duplicate_reason: string | null
+          for_expiry: string | null
           id: string
           inv_id: string
           op_key: string | null
@@ -789,6 +791,8 @@ export type Database = {
         Insert: {
           amount?: number
           confirmed_at?: string | null
+          duplicate_reason?: string | null
+          for_expiry?: string | null
           id?: string
           inv_id: string
           op_key?: string | null
@@ -803,6 +807,8 @@ export type Database = {
         Update: {
           amount?: number
           confirmed_at?: string | null
+          duplicate_reason?: string | null
+          for_expiry?: string | null
           id?: string
           inv_id?: string
           op_key?: string | null
