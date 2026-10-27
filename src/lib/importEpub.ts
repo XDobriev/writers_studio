@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import type { ImportUnit } from './importSplit';
+import { IMPORT_IMAGE_ATTR, mimeFromFileName, type ImportImages } from './importImages';
 
 // EPUB → куски по spine: каждый XHTML-файл — кандидат в главу, название — из оглавления
 // (nav.xhtml / toc.ncx), если в самом файле нет заголовка. Обложка, оглавление-страница
@@ -9,6 +10,7 @@ export interface EpubResult {
   title: string | null;
   author: string | null;
   units: ImportUnit[];
+  images: ImportImages;
 }
 
 function parseXml(text: string, type: DOMParserSupportedType = 'application/xml'): Document | null {
@@ -105,6 +107,26 @@ function isTitlePage(body: Element, title: string | null): boolean {
   return words <= 25 && !!t && norm(text).includes(t) && norm(text).length <= t.length + 80;
 }
 
+/** `<img src>` XHTML-файла → метка + байты из архива; картинка вне архива или не растровая — убирается. */
+async function extractImages(zip: JSZip, body: Element, filePath: string, images: ImportImages, byPath: Map<string, string>) {
+  for (const img of byLocalName(body, 'img')) {
+    const src = img.getAttribute('src') ?? '';
+    const path = /^(https?:|data:)/i.test(src) ? null : resolvePath(dirOf(filePath), stripFragment(src));
+    const mime = path ? mimeFromFileName(path) : null;
+    if (!path || !mime) { img.remove(); continue; }
+    let id = byPath.get(path);
+    if (!id) {
+      const f = zip.file(path) ?? Object.values(zip.files).find((x) => x.name.toLowerCase() === path.toLowerCase());
+      if (!f) { img.remove(); continue; }
+      id = `img${images.size + 1}`;
+      images.set(id, { bytes: await f.async('uint8array'), mime });
+      byPath.set(path, id);
+    }
+    for (const a of Array.from(img.attributes)) img.removeAttribute(a.name);
+    img.setAttribute(IMPORT_IMAGE_ATTR, id);
+  }
+}
+
 const yieldToMain =() => new Promise<void>((r) => setTimeout(r, 0));
 
 export async function parseEpub(buf: ArrayBuffer): Promise<EpubResult> {
@@ -135,6 +157,8 @@ export async function parseEpub(buf: ArrayBuffer): Promise<EpubResult> {
   const toc = await readToc(zip, opfDir, manifest, spine?.getAttribute('toc') ?? null);
 
   const units: ImportUnit[] = [];
+  const images: ImportImages = new Map();
+  const imageIdByPath = new Map<string, string>();
   const htmlDoc = document.implementation.createHTMLDocument('');
   for (const ref of spine ? byLocalName(spine, 'itemref') : []) {
     const item = manifest.get(ref.getAttribute('idref') ?? '');
@@ -145,7 +169,8 @@ export async function parseEpub(buf: ArrayBuffer): Promise<EpubResult> {
     if (!xml) continue;
     const doc = parseXml(xml, 'application/xhtml+xml') ?? parseXml(xml, 'text/html');
     const body = doc ? byLocalName(doc, 'body')[0] : null;
-    if (!body || !(body.textContent ?? '').trim() || isTocPage(body) || (units.length === 0 && isTitlePage(body, title))) continue;
+    if (!body || !((body.textContent ?? '').trim() || byLocalName(body, 'img').length) || isTocPage(body) || (units.length === 0 && isTitlePage(body, title))) continue;
+    await extractImages(zip, body, path, images, imageIdByPath);
     // Импорт XHTML-узлов в HTML-документ: innerHTML даёт обычный HTML без xmlns.
     const imported = htmlDoc.importNode(body, true);
     const holder = htmlDoc.createElement('div');
@@ -153,5 +178,5 @@ export async function parseEpub(buf: ArrayBuffer): Promise<EpubResult> {
     units.push({ html: holder.innerHTML, title: toc.get(path) });
     await yieldToMain();
   }
-  return { title, author, units };
+  return { title, author, units, images };
 }

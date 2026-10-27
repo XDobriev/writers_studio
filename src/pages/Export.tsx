@@ -34,6 +34,7 @@ import {
   type Format,
   type ParagraphStyle,
   type BuildOpts,
+  loadChapterImages,
   type CoverData,
   LANGUAGES,
   FORMAT_MAIN,
@@ -199,9 +200,13 @@ export default function Export() {
           mapImageData = await generateMapPngBuffer(book, mapLocations, mapConnections, mapStamps);
         } catch { /* skip map on error */ }
       }
+      // Картинки глав нужны всем форматам с иллюстрациями; PDF печатает по URL, TXT текстовый.
+      const chapterImages = format === 'pdf' || format === 'txt' || format === 'md'
+        ? undefined
+        : await loadChapterImages(chaptersWithContent, format === 'docx' || format === 'epub' || format === 'fb2');
       const opts: BuildOpts = {
         includeChapterTitles, includeTitlePage, language, includeNotes, notes, paragraphStyle,
-        cover: coverData, mapImage: mapImageData, appendices, series,
+        cover: coverData, mapImage: mapImageData, chapterImages, appendices, series,
       };
 
       if (format === 'docx') {

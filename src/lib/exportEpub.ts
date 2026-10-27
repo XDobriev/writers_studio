@@ -4,6 +4,7 @@ import type { Book } from './supabase';
 import type { Chapter } from './chapters';
 import {
   type BuildOpts,
+  type ChapterImage,
   type ParagraphStyle,
   escapeHtml,
   escapeXml,
@@ -22,7 +23,7 @@ import { todayLocalISODate } from './dates';
  * и `&nbsp;`, `<br>`, `<hr>` без закрытия делают её невалидной. Чекбоксы списка задач
  * в книге не нужны. Заголовки в тексте опускаем ниже заголовка главы (h2).
  */
-function chapterHtmlToXhtml(html: string, demoteHeadings: boolean): string {
+function chapterHtmlToXhtml(html: string, demoteHeadings: boolean, imageHref: (src: string) => string | null): string {
   const frag = DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
     FORBID_TAGS: ['input', 'label', 'button', 'form'],
@@ -35,6 +36,13 @@ function chapterHtmlToXhtml(html: string, demoteHeadings: boolean): string {
       while (h.firstChild) h3.appendChild(h.firstChild);
       h.replaceWith(h3);
     }
+  }
+  for (const img of Array.from(frag.querySelectorAll('img'))) {
+    const href = imageHref(img.getAttribute('src') ?? '');
+    if (!href) { img.remove(); continue; }
+    for (const a of Array.from(img.attributes)) img.removeAttribute(a.name);
+    img.setAttribute('src', href);
+    img.setAttribute('alt', '');
   }
   return serializeXhtml(Array.from(frag.childNodes));
 }
@@ -50,6 +58,7 @@ h1,h2,h3{font-weight:600;margin:1.5em 0 0.5em;line-height:1.3}
 h1.title{font-size:2em;text-align:center;margin-top:4em}
 .meta{text-align:center;color:#666;margin-bottom:4em}
 ${pRule}
+img{display:block;max-width:100%;height:auto;margin:1em auto}
 blockquote{margin:1em 2em;font-style:italic;border-left:3px solid #bbb;padding-left:1em}
 .appendix-entry{margin:0 0 1.2em}
 .appendix-entry h3{margin:0 0 0.2em;font-size:1.05em}
@@ -121,6 +130,21 @@ export function buildEpubZip(book: Book, chapters: Chapter[], opts: BuildOpts): 
 
   const hasBookNotes = opts.includeNotes && bookNotes(opts.notes).length > 0;
   const hasMap = !!opts.mapImage;
+  // Картинки глав: src → файл в OEBPS/images; одна и та же картинка кладётся один раз.
+  const chapterImages = new Map<string, { href: string; img: ChapterImage }>();
+  const imageHref = (src: string): string | null => {
+    const known = chapterImages.get(src);
+    if (known) return known.href;
+    const img = opts.chapterImages?.get(src);
+    if (!img) return null;
+    const href = `images/ch-${chapterImages.size + 1}.${img.ext}`;
+    chapterImages.set(src, { href, img });
+    return href;
+  };
+  const chapterBodies = chs.map((c) => {
+    const raw = opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(c.content) : c.content;
+    return chapterHtmlToXhtml(raw, opts.includeChapterTitles, imageHref);
+  });
   const apps = (opts.appendices ?? []).map((a) => ({ id: `appendix-${a.id}`, href: `appendix-${a.id}.xhtml`, a }));
 
   const manifestParts = [
@@ -136,6 +160,7 @@ export function buildEpubZip(book: Book, chapters: Chapter[], opts: BuildOpts): 
       `<item id="map-image" href="images/map.png" media-type="image/png"/>`,
       `<item id="map-xhtml" href="map.xhtml" media-type="application/xhtml+xml"/>`,
     ] : []),
+    ...[...chapterImages.values()].map((c, i) => `<item id="chimg${i + 1}" href="${c.href}" media-type="${c.img.mime}"/>`),
     ...chs.map((c) => `<item id="${c.id}" href="${c.href}" media-type="application/xhtml+xml"/>`),
     ...apps.map((p) => `<item id="${p.id}" href="${p.href}" media-type="application/xhtml+xml"/>`),
     ...(hasBookNotes ? [`<item id="booknotes" href="notes.xhtml" media-type="application/xhtml+xml"/>`] : []),
@@ -247,10 +272,10 @@ export function buildEpubZip(book: Book, chapters: Chapter[], opts: BuildOpts): 
 <body><section><h2>Карта мира</h2><img src="images/map.png" alt="Карта мира"/></section></body>
 </html>`);
   }
-  for (const c of chs) {
+  for (const { href, img } of chapterImages.values()) zip.file(`OEBPS/${href}`, img.data);
+  for (const [i, c] of chs.entries()) {
     const nHtml = opts.includeNotes ? notesBlockHtml(chapterNotes(opts.notes, c.chapterId)) : '';
-    const rawContent = opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(c.content) : c.content;
-    const content = chapterHtmlToXhtml(rawContent, opts.includeChapterTitles);
+    const content = chapterBodies[i];
     zip.file(`OEBPS/${c.href}`, chapterXhtml(c.title, content, lang, opts.includeChapterTitles, nHtml));
   }
   for (const p of apps) {

@@ -5,6 +5,7 @@ import { useErrorState } from './useErrorState';
 import { createBook, deleteBook, updateBook } from './books';
 import { toUserMessage } from './errors';
 import { createChaptersBulk } from './chapters';
+import { uploadImportedImages } from './chapterImages';
 import { QUERY_KEYS } from './queries';
 import type { Book } from './supabase';
 import {
@@ -113,10 +114,11 @@ export function useManuscriptImport({ userId, isPro, cover, onNeedUpgrade }: {
         cover,
         author: state.parsed.author,
       });
+      const { htmls } = await uploadImportedImages(userId, book.id, chapters.map((c) => c.html), state.parsed.images);
       const created = await createChaptersBulk(
         book.id,
         userId,
-        chapters.map((c) => ({ title: c.title, content: c.html, words: c.words })),
+        chapters.map((c, i) => ({ title: c.title, content: htmls[i], words: c.words })),
       );
       const words = chapters.reduce((s, c) => s + c.words, 0);
       // Импортированный текст — точка отсчёта статистики, а не «написано сегодня».

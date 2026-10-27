@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import { IMPORT_IMAGE_ATTR, type ImportImages } from './importImages';
 
 // DOCX → HTML через mammoth (грузится динамически — отдельный чанк, как docx в экспорте).
 // Стили Word «Заголовок 1/2/3» → h1–h3 (по ним режем на главы), «Название» → h1
@@ -8,6 +9,7 @@ export interface DocxResult {
   title: string | null;
   author: string | null;
   html: string;
+  images: ImportImages;
 }
 
 const STYLE_MAP = [
@@ -48,6 +50,7 @@ function nodeBufferInput(buf: ArrayBuffer): { buffer?: never } {
 }
 
 export async function parseDocx(buf: ArrayBuffer): Promise<DocxResult> {
+  const images: ImportImages = new Map();
   const { default: mammoth } = await import('mammoth');
   const [props, result] = await Promise.all([
     readCoreProps(buf),
@@ -58,10 +61,14 @@ export async function parseDocx(buf: ArrayBuffer): Promise<DocxResult> {
         styleMap: STYLE_MAP,
         // Пустые абзацы нужны нам: подряд идущие — разрыв сцены (normalizeImportHtml решает сам).
         ignoreEmptyParagraphs: false,
-        // Картинки в MVP не переносим: base64 в HTML главы раздул бы запрос и БД.
-        convertImage: mammoth.images.imgElement(() => Promise.resolve({ src: '' })),
+        // Картинка — метка в HTML, байты — в images: в Storage они уйдут при создании книги.
+        convertImage: mammoth.images.imgElement(async (image) => {
+          const id = `img${images.size + 1}`;
+          images.set(id, { bytes: new Uint8Array(await image.read()), mime: image.contentType });
+          return { src: '', [IMPORT_IMAGE_ATTR]: id };
+        }),
       },
     ),
   ]);
-  return { title: props.title, author: props.author, html: result.value };
+  return { title: props.title, author: props.author, html: result.value, images };
 }

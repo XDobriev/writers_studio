@@ -15,6 +15,7 @@ import type { Note } from './notes';
 import {
   type Appendix,
   type BuildOpts,
+  type ChapterImage,
   type ParagraphStyle,
   scaleToFit,
   chapterNotes,
@@ -101,15 +102,24 @@ function paragraphOpts(runs: Run[], ctx: BlockCtx, align?: Align, prefix?: strin
   };
 }
 
-function renderBlocks(b: DocBuilder, blocks: Block[], ctx: BlockCtx) {
+function renderBlocks(b: DocBuilder, blocks: Block[], ctx: BlockCtx, images?: Map<string, ChapterImage>) {
   for (const bl of blocks) {
-    if (bl.kind === 'p') {
+    if (bl.kind === 'image') {
+      const img = images?.get(bl.src);
+      if (!img) continue;
+      const { width, height } = scaleToFit(img.width, img.height, 450, 600);
+      b.push({
+        alignment: AlignmentType.CENTER,
+        children: [new ImageRun({ data: img.data, transformation: { width, height }, type: img.ext === 'png' ? 'png' : 'jpg' })],
+        spacing: { before: 120, after: 200 },
+      });
+    } else if (bl.kind === 'p') {
       b.push(paragraphOpts(bl.runs, ctx, bl.align));
     } else if (bl.kind === 'heading') {
       const level = Math.min(6, bl.level + ctx.headingShift);
       b.push({ heading: H_LEVELS[level - 1], children: runsToDocx(bl.runs) });
     } else if (bl.kind === 'quote') {
-      renderBlocks(b, bl.blocks, { ...ctx, indentLeft: ctx.indentLeft + 720, italics: true });
+      renderBlocks(b, bl.blocks, { ...ctx, indentLeft: ctx.indentLeft + 720, italics: true }, images);
     } else if (bl.kind === 'list') {
       const left = ctx.indentLeft + 360;
       bl.items.forEach((item, i) => {
@@ -120,7 +130,7 @@ function renderBlocks(b: DocBuilder, blocks: Block[], ctx: BlockCtx) {
             const o = paragraphOpts(sub.runs, { ...ctx, indentLeft: left }, sub.align, first ? marker : undefined);
             b.push({ ...o, indent: { left: left + 360, hanging: first ? 360 : 0 } });
           } else {
-            renderBlocks(b, [sub], { ...ctx, indentLeft: left });
+            renderBlocks(b, [sub], { ...ctx, indentLeft: left }, images);
           }
           first = false;
         }
@@ -266,7 +276,7 @@ export async function buildDocxDocument(book: Book, chapters: Chapter[], opts: B
     }
     const ctx: BlockCtx = { paragraphStyle: opts.paragraphStyle, headingShift, indentLeft: 0, firstParagraph: { done: false } };
     const blocks = parseHtmlBlocks(ch.content ?? '');
-    if (blocks.length) renderBlocks(b, blocks, ctx);
+    if (blocks.length) renderBlocks(b, blocks, ctx, opts.chapterImages);
     else b.push({ children: [new TextRun('')] });
     if (opts.includeNotes) renderNotes(b, chapterNotes(opts.notes, ch.id));
   }

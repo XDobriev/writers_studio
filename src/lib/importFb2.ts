@@ -1,5 +1,6 @@
 import { escapeText } from './importText';
 import type { ImportUnit } from './importSplit';
+import { IMPORT_IMAGE_ATTR, referencedImageIds, type ImportImages } from './importImages';
 
 // FB2 → HTML. Каждая секция верхнего уровня основного <body> — отдельный кусок (глава),
 // её <title> — <h1>, вложенные секции — <h2>/<h3>. Сноски (<body name="notes">) —
@@ -9,6 +10,7 @@ export interface Fb2Result {
   title: string | null;
   author: string | null;
   units: ImportUnit[];
+  images: ImportImages;
 }
 
 /** Кодировка из XML-декларации; windows-1251 у старых FB2 встречается постоянно. */
@@ -123,7 +125,11 @@ function blocks(el: Element, depth: number): string {
         break;
       }
       case 'section': out += sectionHtml(c, depth + 1); break;
-      case 'image': break;
+      case 'image': {
+        const href = (c.getAttribute('l:href') ?? c.getAttribute('xlink:href') ?? c.getAttribute('href') ?? '').replace(/^#/, '');
+        if (href) out += `<img ${IMPORT_IMAGE_ATTR}="${escapeText(href)}">`;
+        break;
+      }
       default: if (c.textContent?.trim()) out += `<p>${inline(c)}</p>`;
     }
   }
@@ -180,5 +186,22 @@ export async function parseFb2(buf: ArrayBuffer): Promise<Fb2Result> {
     }).join('');
     if (html) units.push({ html: `<h1>${escapeText(t)}</h1>${html}` });
   }
-  return { title, author, units };
+  return { title, author, units, images: readBinaries(root, units) };
+}
+
+/** <binary id content-type> (base64) — только те, на которые есть ссылки из текста. */
+function readBinaries(root: Element, units: ImportUnit[]): ImportImages {
+  const used = new Set(units.flatMap((u) => referencedImageIds(u.html)));
+  const images: ImportImages = new Map();
+  if (!used.size) return images;
+  for (const b of kids(root, 'binary')) {
+    const id = b.getAttribute('id') ?? '';
+    const mime = (b.getAttribute('content-type') ?? '').toLowerCase();
+    if (!used.has(id) || !/^image\/(jpeg|jpg|png|gif|webp)$/.test(mime)) continue;
+    try {
+      const raw = atob((b.textContent ?? '').replace(/\s+/g, ''));
+      images.set(id, { bytes: Uint8Array.from(raw, (ch) => ch.charCodeAt(0)), mime });
+    } catch { /* битый base64 — картинка пропускается */ }
+  }
+  return images;
 }

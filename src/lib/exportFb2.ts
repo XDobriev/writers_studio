@@ -4,6 +4,7 @@ import type { Note } from './notes';
 import {
   type Appendix,
   type BuildOpts,
+  type ChapterImage,
   escapeXml,
   escapeXmlAttr,
   arrayBufferToBase64,
@@ -79,15 +80,31 @@ function paragraphToFb2(runs: Run[], prefix = ''): string[] {
 // ─── Blocks ───────────────────────────────────────────────────────────────────
 
 /** inCite: внутри <cite> нельзя вложенный <cite> — цитату в цитате разворачиваем в абзацы. */
-function blocksToFb2(blocks: Block[], inCite = false, listPrefix = ''): string[] {
+/** Картинки глав, попавшие в файл: src → id бинарника. */
+class Fb2Images {
+  readonly used = new Map<string, string>();
+  constructor(readonly source: Map<string, ChapterImage> | undefined) {}
+  idFor(src: string): string | null {
+    if (!this.source?.has(src)) return null;
+    let id = this.used.get(src);
+    if (!id) { id = `chimg-${this.used.size + 1}`; this.used.set(src, id); }
+    return id;
+  }
+}
+
+function blocksToFb2(blocks: Block[], images: Fb2Images, inCite = false, listPrefix = ''): string[] {
   const out: string[] = [];
   for (const b of blocks) {
-    if (b.kind === 'p') out.push(...paragraphToFb2(b.runs, listPrefix));
+    if (b.kind === 'image') {
+      // <image> не допускается внутри <cite>.
+      const id = inCite ? null : images.idFor(b.src);
+      if (id) out.push(`<image l:href="#${id}"/>`);
+    } else if (b.kind === 'p') out.push(...paragraphToFb2(b.runs, listPrefix));
     else if (b.kind === 'heading') {
       const t = runsToFb2(b.runs.filter((r) => r.kind === 'text'));
       if (t.trim()) out.push(`<subtitle>${t}</subtitle>`);
     } else if (b.kind === 'quote') {
-      const inner = blocksToFb2(b.blocks, true);
+      const inner = blocksToFb2(b.blocks, images, true);
       if (!inner.length) continue;
       out.push(...(inCite ? inner : ['<cite>', ...inner, '</cite>']));
     } else if (b.kind === 'list') {
@@ -97,7 +114,7 @@ function blocksToFb2(blocks: Block[], inCite = false, listPrefix = ''): string[]
         let first = true;
         for (const sub of item) {
           if (sub.kind === 'p') { out.push(...paragraphToFb2(sub.runs, first ? marker : '')); first = false; continue; }
-          out.push(...blocksToFb2([sub], inCite, sub.kind === 'list' ? marker : ''));
+          out.push(...blocksToFb2([sub], images, inCite, sub.kind === 'list' ? marker : ''));
           first = false;
         }
         if (first) out.push(`<p>${escapeXml(marker.trim())}</p>`);
@@ -111,8 +128,8 @@ function blocksToFb2(blocks: Block[], inCite = false, listPrefix = ''): string[]
   return out;
 }
 
-function htmlToFb2Content(html: string): string {
-  const lines = blocksToFb2(parseHtmlBlocks(html));
+function htmlToFb2Content(html: string, images: Fb2Images): string {
+  const lines = blocksToFb2(parseHtmlBlocks(html), images);
   return lines.length ? lines.join('\n') : '<empty-line/>';
 }
 
@@ -159,11 +176,12 @@ export function buildFb2Doc(book: Book, chapters: Chapter[], opts: BuildOpts): s
     ? `\n<binary id="map-img" content-type="image/png">\n${arrayBufferToBase64(opts.mapImage)}\n</binary>`
     : '';
   const today = todayLocalISODate();
+  const images = new Fb2Images(opts.chapterImages);
   const sections = chapters.map((ch) => {
     const title = opts.includeChapterTitles ? `<title><p>${escapeXml(ch.title)}</p></title>\n` : '';
     // Примечания — <cite> в конце главы: секция не может смешивать абзацы и вложенные <section>.
     const notesBlock = opts.includeNotes ? notesBlockFb2(chapterNotes(opts.notes, ch.id)) : '';
-    return `<section>\n${title}${htmlToFb2Content(ch.content ?? '')}${notesBlock ? '\n' + notesBlock : ''}\n</section>`;
+    return `<section>\n${title}${htmlToFb2Content(ch.content ?? '', images)}${notesBlock ? '\n' + notesBlock : ''}\n</section>`;
   }).join('\n');
   const appendices = (opts.appendices ?? []).map((a) => '\n' + appendixFb2(a)).join('');
   const bn = opts.includeNotes ? bookNotes(opts.notes) : [];
@@ -172,6 +190,10 @@ export function buildFb2Doc(book: Book, chapters: Chapter[], opts: BuildOpts): s
     : '';
   // Обложка — только JPEG/PNG (Export.tsx перекодирует WebP); иначе не ссылаемся на неё.
   const cover = opts.cover && (opts.cover.mime === 'image/jpeg' || opts.cover.mime === 'image/png') ? opts.cover : undefined;
+  const chapterBinaries = [...images.used].map(([src, id]) => {
+    const img = opts.chapterImages!.get(src)!;
+    return `\n<binary id="${id}" content-type="${img.mime}">\n${arrayBufferToBase64(img.data)}\n</binary>`;
+  }).join('');
   const author = authorToFb2(book.author);
   const sequence = opts.series
     ? `\n    <sequence name="${escapeXmlAttr(opts.series.name)}"${opts.series.number != null ? ` number="${opts.series.number}"` : ''}/>`
@@ -206,6 +228,6 @@ ${opts.includeTitlePage ? `<title><p>${escapeXml(book.title)}</p>${book.author ?
 </body>
 ${cover ? `<binary id="cover-img" content-type="${cover.mime}">
 ${arrayBufferToBase64(cover.data)}
-</binary>` : ''}${mapBinary}
+</binary>` : ''}${mapBinary}${chapterBinaries}
 </FictionBook>`;
 }
