@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 type Char = { id: string; avatar_url: string | null };
 const { calls, state } = vi.hoisted(() => ({
-  calls: { rpc: [] as [string, unknown][], copy: [] as [string, string, string][], update: [] as unknown[], remove: [] as [string, string[]][] },
-  state: { mapBgUrl: null as string | null, chars: [] as Char[], failCopy: new Set<string>() },
+  calls: { rpc: [] as [string, unknown][], copy: [] as [string, string, string][], update: [] as unknown[], remove: [] as [string, string[]][], list: [] as [string, string][] },
+  state: { mapBgUrl: null as string | null, chars: [] as Char[], failCopy: new Set<string>(), chapterFiles: [] as string[] },
 }));
 
 vi.mock('./monitoring', () => ({ captureException: vi.fn() }));
@@ -34,7 +34,12 @@ vi.mock('./supabase', async (importOriginal) => {
           calls.copy.push([bucket, src, dest]);
           return { error: state.failCopy.has(src) ? new Error('boom') : null };
         },
-        remove: async (paths: string[]) => { calls.remove.push([bucket, paths]); return { error: null }; },
+        remove: async (paths: string[]) => { calls.remove.push([bucket, paths]); return { data: paths.map((name) => ({ name })), error: null }; },
+        list: async (folder: string) => {
+          const files = bucket === 'chapter-images' ? state.chapterFiles.splice(0) : [];
+          calls.list.push([bucket, folder]);
+          return { data: files.map((name) => ({ id: name, name })), error: null };
+        },
         getPublicUrl: (p: string) => ({ data: { publicUrl: `${PUBLIC}/${bucket}/${p}` } }),
       }),
     },
@@ -49,8 +54,8 @@ const OPTS = { characters: true, locationsMap: true, notes: false, timeline: fal
 const AV = 'https://x/storage/v1/object/public/character-avatars';
 
 beforeEach(() => {
-  calls.rpc = []; calls.copy = []; calls.update = []; calls.remove = [];
-  state.mapBgUrl = null; state.chars = []; state.failCopy = new Set();
+  calls.rpc = []; calls.copy = []; calls.update = []; calls.remove = []; calls.list = [];
+  state.mapBgUrl = null; state.chars = []; state.failCopy = new Set(); state.chapterFiles = [];
 });
 
 describe('storagePathFromPublicUrl', () => {
@@ -122,6 +127,15 @@ describe('duplicateBookContent: аватары персонажей', () => {
     state.chars = [];
     await duplicateBookContent('b1', 'b2', 'u1', { ...OPTS, locationsMap: false });
     expect(calls.rpc.map(([n]) => n)).toEqual(['duplicate_book_content', 'duplicate_book_content']);
+  });
+});
+
+describe('deleteBook: картинки глав', () => {
+  it('удаляет все файлы папки книги в chapter-images', async () => {
+    state.chapterFiles = ['a.webp', 'b.png'];
+    await deleteBook('b9');
+    await vi.waitFor(() => expect(calls.remove).toContainEqual(['chapter-images', ['u1/b9/a.webp', 'u1/b9/b.png']]));
+    expect(calls.list[0]).toEqual(['chapter-images', 'u1/b9']);
   });
 });
 
