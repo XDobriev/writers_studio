@@ -65,7 +65,7 @@ export async function fetchOpState(
   return null;
 }
 
-/** OpKey операции (нужен для возврата). Есть только у оплаты банковской картой. */
+/** OpKey операции (нужен для возврата). Есть у любого способа оплаты, включая СБП, SberPay, T-Pay и дочерние списания (поддержка Робокассы, 25.10.2026). */
 export async function fetchOpKey(login: string, invId: string, password2: string, attempts = 3): Promise<string | null> {
   const state = await fetchOpState(login, invId, password2, attempts);
   return state?.opKey ?? null;
