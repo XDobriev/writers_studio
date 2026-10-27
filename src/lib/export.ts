@@ -339,6 +339,54 @@ interface SeriesInfo {
   number: number | null;
 }
 
+/** Картинка главы, скачанная для экспорта. Ключ в `BuildOpts.chapterImages` — её src. */
+export interface ChapterImage extends CoverData {
+  width: number;
+  height: number;
+}
+
+function chapterImageUrls(chapters: Pick<Chapter, 'content'>[]): string[] {
+  const urls = new Set<string>();
+  for (const ch of chapters) {
+    for (const m of (ch.content ?? '').matchAll(/<img\b[^>]*?\ssrc="(https?:[^"]+)"/g)) urls.add(m[1].replace(/&amp;/g, '&'));
+  }
+  return [...urls];
+}
+
+/**
+ * Скачивает картинки глав. `forEbook` — перекодирует всё, кроме JPEG/PNG, в JPEG
+ * (DOCX/EPUB/FB2). Не скачалась — не попадёт в файл, экспорт из-за неё не падает.
+ */
+export async function loadChapterImages(chapters: Pick<Chapter, 'content'>[], forEbook: boolean): Promise<Map<string, ChapterImage>> {
+  const out = new Map<string, ChapterImage>();
+  const queue = chapterImageUrls(chapters);
+  const worker = async () => {
+    for (let url = queue.shift(); url; url = queue.shift()) {
+      const raw = await fetchCoverData(url);
+      const data = forEbook ? await toEbookCover(raw) : raw;
+      if (!data) continue;
+      let size = { width: 600, height: 400 };
+      try {
+        const bmp = await createImageBitmap(new Blob([data.data], { type: data.mime }));
+        size = { width: bmp.width, height: bmp.height };
+        bmp.close();
+      } catch { /* размер по умолчанию */ }
+      out.set(url, { ...data, ...size });
+    }
+  };
+  await Promise.all(Array.from({ length: 4 }, worker));
+  return out;
+}
+
+/** HTML-экспорт — один самодостаточный файл: картинки глав встраиваются как data: URI. */
+function inlineChapterImages(html: string, images: Map<string, ChapterImage> | undefined): string {
+  if (!images?.size) return html;
+  return html.replace(/(<img\b[^>]*?\ssrc=")(https?:[^"]+)(")/g, (m, a: string, url: string, c: string) => {
+    const img = images.get(url.replace(/&amp;/g, '&'));
+    return img ? `${a}data:${img.mime};base64,${arrayBufferToBase64(img.data)}${c}` : m;
+  });
+}
+
 export interface BuildOpts {
   includeChapterTitles: boolean;
   includeTitlePage: boolean;
@@ -348,6 +396,8 @@ export interface BuildOpts {
   paragraphStyle: ParagraphStyle;
   cover?: CoverData;
   mapImage?: ArrayBuffer;
+  /** Картинки глав по src (см. loadChapterImages); без них DOCX/EPUB/FB2 выходят без иллюстраций. */
+  chapterImages?: Map<string, ChapterImage>;
   /** Приложения в конце книги («Действующие лица», «Локации») — в порядке вывода. */
   appendices?: Appendix[];
   series?: SeriesInfo;
@@ -365,7 +415,7 @@ export function buildHtmlDoc(book: Book, chapters: Chapter[], opts: BuildOpts): 
     const title = opts.includeChapterTitles ? `<h2 class="chapter-title">${escapeHtml(ch.title)}</h2>` : '';
     const notesHtml = opts.includeNotes ? notesBlockHtml(chapterNotes(opts.notes, ch.id)) : '';
     const sanitized = DOMPurify.sanitize(ch.content || '', { FORBID_TAGS: ['input', 'label'] });
-    const content = opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(sanitized) : sanitized;
+    const content = inlineChapterImages(opts.paragraphStyle !== 'spacing' ? addNoIndentToFirst(sanitized) : sanitized, opts.chapterImages);
     return title + content + notesHtml;
   }).join('\n');
   const bookNotesHtml = opts.includeNotes ? notesBlockHtml(bookNotes(opts.notes), BOOK_NOTES_TITLE) : '';
@@ -403,6 +453,8 @@ function blocksToText(blocks: Block[], indent = ''): string {
       });
     } else if (b.kind === 'code') {
       out.push(b.lines.map((l) => indent + l).join('\n'));
+    } else if (b.kind === 'image') {
+      continue;
     } else {
       out.push(indent + '* * *');
     }
@@ -457,6 +509,8 @@ function blocksToMarkdown(blocks: Block[], headingShift: number): string {
       out.push(items.join('\n'));
     } else if (b.kind === 'code') {
       out.push('```\n' + b.lines.join('\n') + '\n```');
+    } else if (b.kind === 'image') {
+      out.push(`![${mdEscape(b.alt)}](${b.src})`);
     } else {
       out.push('* * *');
     }

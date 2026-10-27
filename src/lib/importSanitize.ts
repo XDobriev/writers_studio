@@ -1,9 +1,11 @@
 import DOMPurify from 'dompurify';
+import { IMPORT_IMAGE_ATTR } from './importImages';
 
 // Очистка импортированного HTML до подмножества, которое понимает наш TipTap
 // (StarterKit + Underline/Sub/Sup/Link): абзацы, заголовки, цитаты, списки,
 // разделитель, перенос строки, жирный/курсив/подчёркнутый/зачёркнутый, sub/sup, ссылки.
-// Стили, классы, шрифты Word, картинки, таблицы — выбрасываются, текст остаётся.
+// Стили, классы, шрифты Word, таблицы — выбрасываются, текст остаётся. Картинки остаются только
+// с меткой `data-import-id` (их кладут парсеры, байты хранятся отдельно) — одним блоком, вне абзаца.
 
 const INLINE_TAGS = ['strong', 'b', 'em', 'i', 'u', 's', 'strike', 'del', 'sub', 'sup', 'a', 'br', 'span', 'code', 'small', 'big', 'font', 'mark', 'cite', 'q', 'abbr'];
 const BLOCK_TAGS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'ul', 'ol', 'li', 'hr', 'pre'];
@@ -49,6 +51,20 @@ function cleanInline(doc: Document, nodes: Iterable<Node>, into: Node) {
   }
 }
 
+function imageBlock(doc: Document, el: Element): HTMLElement | null {
+  const id = el.getAttribute(IMPORT_IMAGE_ATTR);
+  if (!id) return null;
+  const img = doc.createElement('img');
+  img.setAttribute(IMPORT_IMAGE_ATTR, id);
+  return img;
+}
+
+function imageBlocks(doc: Document, el: Element): HTMLElement[] {
+  return Array.from(el.querySelectorAll('img'))
+    .map((i) => imageBlock(doc, i))
+    .filter((b): b is HTMLElement => !!b);
+}
+
 function makeParagraph(doc: Document, inline: Node[]): HTMLElement {
   const p = doc.createElement('p');
   cleanInline(doc, inline, p);
@@ -76,19 +92,29 @@ function flatten(doc: Document, parent: Node, out: HTMLElement[], inList = false
   };
   for (const n of Array.from(parent.childNodes)) {
     const tag = tagOf(n);
+    if (tag === 'img') {
+      flush();
+      const b = imageBlock(doc, n as Element);
+      if (b) out.push(b);
+      continue;
+    }
     if (!BLOCKISH.has(tag)) { inline.push(n); continue; }
     flush();
     const el = n as Element;
     if (tag === 'p' || /^h[1-6]$/.test(tag)) {
       if (hasBlockChild(el)) { flatten(doc, el, out, inList); continue; }
+      const imgs = imageBlocks(doc, el);
       const p = makeParagraph(doc, Array.from(el.childNodes));
+      const hasText = !!p.textContent?.trim();
       if (tag !== 'p') {
         const h = doc.createElement(tag);
         while (p.firstChild) h.appendChild(p.firstChild);
         if (h.textContent?.trim()) out.push(h);
-        continue;
+      } else if (hasText || !imgs.length) {
+        out.push(p);
       }
-      out.push(p);
+      out.push(...imgs);
+      continue;
     } else if (tag === 'hr') {
       out.push(doc.createElement('hr'));
     } else if (tag === 'pre') {
@@ -136,8 +162,10 @@ function flatten(doc: Document, parent: Node, out: HTMLElement[], inList = false
       // div/section/td…: с блочными детьми — разворачиваем, иначе это абзац.
       if (hasBlockChild(el)) flatten(doc, el, out, inList);
       else {
+        const imgs = imageBlocks(doc, el);
         const p = makeParagraph(doc, Array.from(el.childNodes));
-        if (p.textContent?.trim() || !inList) out.push(p);
+        if (p.textContent?.trim() || (!inList && !imgs.length)) out.push(p);
+        out.push(...imgs);
       }
     }
   }
@@ -195,8 +223,8 @@ function collapseEmpty(blocks: HTMLElement[]): HTMLElement[] {
  */
 export function normalizeImportHtml(html: string): string {
   const frag = DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [...INLINE_TAGS, ...BLOCK_TAGS, ...CONTAINER_TAGS],
-    ALLOWED_ATTR: ['href', 'start'],
+    ALLOWED_TAGS: [...INLINE_TAGS, ...BLOCK_TAGS, ...CONTAINER_TAGS, 'img'],
+    ALLOWED_ATTR: ['href', 'start', IMPORT_IMAGE_ATTR],
     KEEP_CONTENT: true,
     RETURN_DOM_FRAGMENT: true,
   });

@@ -49,13 +49,22 @@ export function isPlanLimitError(e: unknown): boolean {
 // Частичная выборка из БД (Tables<'profiles'>); user_dictionary — non-null (контракт приложения).
 export type Profile = Pick<
   Tables<'profiles'>,
-  'user_id' | 'plan' | 'plan_expires_at' | 'onboarded_at' | 'grandfathered' | 'recurring_inv_id' | 'cancel_at_period_end' | 'display_name' | 'checklist_dismissed_at' | 'first_export_at'
+  'user_id' | 'plan' | 'plan_expires_at' | 'onboarded_at' | 'grandfathered' | 'recurring_inv_id' | 'cancel_at_period_end' | 'billing_attempts' | 'display_name' | 'checklist_dismissed_at' | 'first_export_at'
 > & { user_dictionary: string[] };
+
+/** Pro истёк, а автосписание не прошло: счёт есть, попытки были. Подписку не продлили. */
+export function isRenewalFailed(
+  profile: (PlanFields & { recurring_inv_id: string | null; billing_attempts: number }) | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!profile || profile.plan !== 'pro' || !profile.plan_expires_at) return false;
+  return new Date(profile.plan_expires_at) <= now && !!profile.recurring_inv_id && profile.billing_attempts > 0;
+}
 
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('user_id, plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered, recurring_inv_id, cancel_at_period_end, display_name, checklist_dismissed_at, first_export_at')
+    .select('user_id, plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered, recurring_inv_id, cancel_at_period_end, billing_attempts, display_name, checklist_dismissed_at, first_export_at')
     .eq('user_id', userId)
     .single();
   // PGRST116 — строки нет: это ответ, а не сбой. Остальное бросаем, чтобы React Query

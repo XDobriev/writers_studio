@@ -17,6 +17,7 @@ import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
 import { Subscript } from '@tiptap/extension-subscript';
 import { Superscript } from '@tiptap/extension-superscript';
+import { Image } from '@tiptap/extension-image';
 import { LanguageTool, LT_KEY } from '../extensions/LanguageTool';
 import { Hyphenation } from '../extensions/Hyphenation';
 import Focus from '@tiptap/extension-focus';
@@ -118,6 +119,7 @@ export function RichEditor({
       TaskItem.configure({ nested: true }),
       Subscript,
       Superscript,
+      Image.configure({ allowBase64: false }),
       Placeholder.configure({ placeholder: placeholder ?? 'Начните писать…' }),
       Focus.configure({ className: 'has-focus', mode: 'shallowest' }),
       Hyphenation,

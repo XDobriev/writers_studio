@@ -1,0 +1,33 @@
+-- Картинки глав (B-5): бакет chapter-images. Путь файла: <user_id>/<book_id>/<имя>.
+-- Public — как у character-avatars: картинки видны на публичной странице /share/:token
+-- и в экспорте без подписанных ссылок. Имена случайные, перечислить чужие нельзя.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'chapter-images',
+  'chapter-images',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do nothing;
+
+drop policy if exists "chapter_images_select" on storage.objects;
+create policy "chapter_images_select"
+  on storage.objects for select
+  using (bucket_id = 'chapter-images');
+
+drop policy if exists "chapter_images_insert" on storage.objects;
+create policy "chapter_images_insert"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'chapter-images'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+drop policy if exists "chapter_images_delete" on storage.objects;
+create policy "chapter_images_delete"
+  on storage.objects for delete to authenticated
+  using (
+    bucket_id = 'chapter-images'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );

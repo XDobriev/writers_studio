@@ -532,7 +532,7 @@ export function EditorHybrid({
             exit="exit"
             style={{
               position: 'fixed',
-              bottom: 52,
+              bottom: 'calc(52px + env(safe-area-inset-bottom, 0px))',
               right: 20,
               zIndex: 'var(--z-drawer)',
               display: 'flex',
@@ -567,7 +567,7 @@ export function EditorHybrid({
             exit="exit"
             style={{
               position: 'fixed',
-              bottom: goalToast ? 100 : 52,
+              bottom: goalToast ? 'calc(100px + env(safe-area-inset-bottom, 0px))' : 'calc(52px + env(safe-area-inset-bottom, 0px))',
               right: 20,
               zIndex: 'var(--z-drawer)',
               display: 'flex',

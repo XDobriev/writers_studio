@@ -16,14 +16,15 @@ export type Block =
   | { kind: 'quote'; blocks: Block[] }
   | { kind: 'list'; ordered: boolean; start: number; items: Block[][] }
   | { kind: 'code'; lines: string[] }
+  | { kind: 'image'; src: string; alt: string }
   | { kind: 'hr' };
 
 const BLOCK_TAGS = new Set([
   'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'ul', 'ol', 'li', 'pre', 'hr',
   'div', 'section', 'article', 'header', 'footer', 'aside', 'table', 'thead', 'tbody', 'tr', 'td', 'th',
-  'figure', 'dl', 'dt', 'dd',
+  'figure', 'dl', 'dt', 'dd', 'img',
 ]);
-const SKIP_TAGS = new Set(['script', 'style', 'img', 'svg', 'input', 'label', 'button', 'video', 'audio', 'iframe', 'template']);
+const SKIP_TAGS = new Set(['script', 'style', 'svg', 'input', 'label', 'button', 'video', 'audio', 'iframe', 'template']);
 
 function isBlockEl(n: Node): boolean {
   return n.nodeType === Node.ELEMENT_NODE && BLOCK_TAGS.has((n as Element).tagName.toLowerCase());
@@ -119,6 +120,10 @@ function parseBlock(el: Element): Block[] {
     return [{ kind: 'code', lines }];
   }
   if (tag === 'hr') return [{ kind: 'hr' }];
+  if (tag === 'img') {
+    const src = el.getAttribute('src') ?? '';
+    return /^https?:/i.test(src) ? [{ kind: 'image', src, alt: el.getAttribute('alt') ?? '' }] : [];
+  }
   return parseChildren(el);
 }
 

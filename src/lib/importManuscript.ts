@@ -1,6 +1,7 @@
 import { decodeText, markdownToHtml, txtToHtml } from './importText';
 import { normalizeImportHtml } from './importSanitize';
 import type { ImportUnit } from './importSplit';
+import type { ImportImages } from './importImages';
 
 // Импорт рукописи: определение формата, разбор файла, нормализация HTML.
 // Разбивка на главы — importSplit.ts, создание книги — useManuscriptImport.
@@ -19,6 +20,8 @@ export interface ParsedManuscript {
   title: string;
   author: string | null;
   units: ImportUnit[];
+  /** Картинки по метке `data-import-id`; у TXT/MD пусто. */
+  images: ImportImages;
 }
 
 export function detectImportFormat(fileName: string): ImportFormat | null {
@@ -57,6 +60,7 @@ export async function parseManuscript(data: ArrayBuffer, fileName: string): Prom
   let title: string | null = null;
   let author: string | null = null;
   let units: ImportUnit[];
+  let images: ImportImages = new Map();
 
   if (format === 'docx') {
     const { parseDocx } = await import('./importDocx');
@@ -68,14 +72,15 @@ export async function parseManuscript(data: ArrayBuffer, fileName: string): Prom
     }
     ({ title, author } = r);
     units = [{ html: r.html }];
+    images = r.images;
   } else if (format === 'fb2') {
     const { parseFb2 } = await import('./importFb2');
     const r = await parseFb2(data);
-    ({ title, author, units } = r);
+    ({ title, author, units, images } = r);
   } else if (format === 'epub') {
     const { parseEpub } = await import('./importEpub');
     const r = await parseEpub(data);
-    ({ title, author, units } = r);
+    ({ title, author, units, images } = r);
   } else {
     const text = decodeText(data);
     units = [{ html: format === 'md' ? markdownToHtml(text) : txtToHtml(text) }];
@@ -89,5 +94,6 @@ export async function parseManuscript(data: ArrayBuffer, fileName: string): Prom
     title: (title ?? '').trim().slice(0, 120) || titleFromFileName(fileName).slice(0, 120),
     author: author?.trim().slice(0, 120) || null,
     units: normalized,
+    images,
   };
 }

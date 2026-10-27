@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('./supabase', () => ({ supabase: {} }));
 
-import { effectivePlan, getPlanLimits, isPaidPlan, isPlanLimitError } from './profiles';
+import { effectivePlan, getPlanLimits, isPaidPlan, isPlanLimitError, isRenewalFailed } from './profiles';
 
 const NOW = new Date('2026-10-22T12:00:00Z');
 const p = (plan: string, plan_expires_at: string | null) => ({ plan, plan_expires_at });
@@ -54,5 +54,29 @@ describe('isPlanLimitError', () => {
     expect(isPlanLimitError({ code: '42501', message: 'plan_limit' })).toBe(false);
     expect(isPlanLimitError(new Error('plan_limit'))).toBe(false);
     expect(isPlanLimitError(null)).toBe(false);
+  });
+});
+
+describe('isRenewalFailed', () => {
+  const f = (plan: string, exp: string | null, inv: string | null, attempts: number) =>
+    ({ plan, plan_expires_at: exp, recurring_inv_id: inv, billing_attempts: attempts });
+  const PAST = '2026-10-20T00:00:00Z';
+  const FUTURE = '2026-11-20T00:00:00Z';
+
+  it('pro истёк, счёт есть, попытки были — да', () => {
+    expect(isRenewalFailed(f('pro', PAST, '1', 1), NOW)).toBe(true);
+  });
+  it('срок ещё не истёк — нет', () => {
+    expect(isRenewalFailed(f('pro', FUTURE, '1', 2), NOW)).toBe(false);
+  });
+  it('попыток не было, нет рекуррента или бессрочный pro — нет', () => {
+    expect(isRenewalFailed(f('pro', PAST, '1', 0), NOW)).toBe(false);
+    expect(isRenewalFailed(f('pro', PAST, null, 1), NOW)).toBe(false);
+    expect(isRenewalFailed(f('pro', null, '1', 1), NOW)).toBe(false);
+  });
+  it('не pro и отсутствие профиля — нет', () => {
+    expect(isRenewalFailed(f('free', PAST, '1', 1), NOW)).toBe(false);
+    expect(isRenewalFailed(f('lifetime', PAST, '1', 1), NOW)).toBe(false);
+    expect(isRenewalFailed(null, NOW)).toBe(false);
   });
 });

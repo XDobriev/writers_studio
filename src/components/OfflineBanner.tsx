@@ -15,7 +15,7 @@ export function OfflineBanner() {
         color: 'var(--bg-deep)',
         font: '500 12px var(--font-ui)',
         textAlign: 'center',
-        padding: '7px 16px',
+        padding: 'calc(7px + env(safe-area-inset-top, 0px)) 16px 7px',
         letterSpacing: '-0.01em',
         animation: 'slide-down 0.2s ease',
       }}

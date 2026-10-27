@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
-import { effectivePlan, getProfile } from './profiles';
+import { effectivePlan, getProfile, isRenewalFailed } from './profiles';
 import { QUERY_KEYS } from './queries';
 import type { CancelReason } from './cancellations';
 
@@ -14,6 +14,7 @@ export interface UseSubscriptionResult {
   planExpiresAt: string | null;
   grandfathered: boolean;
   hasRecurring: boolean;
+  renewalFailed: boolean;
   cancelAtPeriodEnd: boolean;
   planLoaded: boolean;
   lastProPayment: LastPayment | null;
@@ -38,6 +39,7 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
   const [grandfathered, setGrandfathered] = useState(false);
   const [hasRecurring, setHasRecurring] = useState(false);
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
+  const [renewalFailed, setRenewalFailed] = useState(false);
   const [planLoaded, setPlanLoaded] = useState(false);
   const [lastProPayment, setLastProPayment] = useState<LastPayment | null>(null);
 
@@ -60,6 +62,7 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
       if (profile?.plan_expires_at) setPlanExpiresAt(profile.plan_expires_at);
       if (profile?.grandfathered) setGrandfathered(true);
       if (profile?.recurring_inv_id) setHasRecurring(true);
+      setRenewalFailed(isRenewalFailed(profile));
       setCancelAtPeriodEnd(profile?.cancel_at_period_end ?? false);
       setPlanLoaded(true);
     }).catch((e) => {
@@ -146,7 +149,7 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
   const handleResume = () => invokeCancelToggle(true);
 
   return {
-    plan, planExpiresAt, grandfathered, hasRecurring, cancelAtPeriodEnd, planLoaded,
+    plan, planExpiresAt, grandfathered, hasRecurring, cancelAtPeriodEnd, renewalFailed, planLoaded,
     lastProPayment, refundLoading, refundError, refundDone,
     refundConfirmOpen, setRefundConfirmOpen, handleRefund,
     cancelLoading, cancelError, cancelConfirmOpen, setCancelConfirmOpen,

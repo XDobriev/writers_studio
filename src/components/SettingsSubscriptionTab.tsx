@@ -19,7 +19,7 @@ interface Props {
 export function SettingsSubscriptionTab({ userId, isActive }: Props) {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const {
-    plan, planExpiresAt, grandfathered, hasRecurring, cancelAtPeriodEnd, planLoaded,
+    plan, planExpiresAt, grandfathered, hasRecurring, cancelAtPeriodEnd, renewalFailed, planLoaded,
     lastProPayment, refundLoading, refundError, refundDone,
     refundConfirmOpen, setRefundConfirmOpen, handleRefund,
     cancelLoading, cancelError, cancelConfirmOpen, setCancelConfirmOpen,
@@ -33,6 +33,17 @@ export function SettingsSubscriptionTab({ userId, isActive }: Props) {
   return (
     <>
       <div id="sm-panel-subscription" role="tabpanel" aria-labelledby="sm-tab-subscription" tabIndex={0} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {planLoaded && renewalFailed && (
+          <div className="sub-alert" role="alert">
+            <p className="sub-alert__text">
+              Не удалось продлить подписку: автосписание не прошло{expiresFormatted ? ` (срок истёк ${expiresFormatted})` : ''}.
+              Оплатите Pro новой картой — доступ вернётся сразу.
+            </p>
+            <button className="btn btn--primary" style={{ fontSize: 13, height: 38 }} onClick={() => setUpgradeOpen(true)}>
+              Оплатить Pro
+            </button>
+          </div>
+        )}
         <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '14px 16px' }}>
           {!planLoaded
             ? <div style={{ height: 52, borderRadius: 6, background: 'var(--surface-2)' }} />
