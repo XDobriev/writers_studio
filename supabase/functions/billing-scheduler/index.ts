@@ -18,6 +18,8 @@
 //      банк позже дошлёт успех по уже отклонённой попытке, activate_payment распознает
 //      дубль периода (L-8). OpStateExt здесь видит только последний счёт — поздний успех
 //      более ранней попытки ловит webhook, а не scheduler.
+//   Отказ (State 10 по прошлому счёту или Recurring не вернул OK) — письмо «не удалось
+//      продлить, оплатите новой картой» один раз на период (G-6, claim_billing_failure_notice).
 //
 // Ответ содержит только счётчики (без user_id и ответов Робокассы).
 //
@@ -29,7 +31,8 @@ import { SYSTEM_ADMIN_ID, bearer, json } from '../_shared/http.ts';
 import { contactEmail, sendEmail } from '../_shared/email.ts';
 import { DESCRIPTIONS, planForInterval, priceFor, type BillingInterval } from '../_shared/pricing.ts';
 import { buildReceipt, fetchOpState, newInvId } from '../_shared/robokassa.ts';
-import { retryDecision } from '../_shared/billingRetry.ts';
+import { isDeclined, retryDecision } from '../_shared/billingRetry.ts';
+import { billingFailureEmail } from '../_shared/billingFailureEmail.ts';
 
 const RECURRING_URL = 'https://auth.robokassa.ru/Merchant/Recurring';
 const MAX_ATTEMPTS = 4;
@@ -107,7 +110,30 @@ Deno.serve(async (req) => {
     if (error) console.error(`[billing-scheduler] audit ${action} failed:`, error.message);
   };
 
-  const counts = { downgraded: 0, reminders_sent: 0, reminders_failed: 0, due: 0, charged: 0, failed: 0, skipped: 0 };
+  const counts = {
+    downgraded: 0, reminders_sent: 0, reminders_failed: 0, due: 0, charged: 0, failed: 0, skipped: 0, failure_notices: 0,
+  };
+
+  // G-6: «не удалось продлить» — один раз на период, только при явном отказе
+  // (State 10 по прошлому счёту или Recurring не принял запрос). Сбой сети отказом не считаем.
+  const notifyFailure = async (p: DueRow, reason: 'declined' | 'recurring_rejected') => {
+    const to = contactEmail(p.email, p.billing_email);
+    if (!to) return;
+    const { data: claimed, error: claimErr } = await db.rpc('claim_billing_failure_notice', {
+      p_user_id: p.user_id, p_expiry: p.plan_expires_at,
+    });
+    if (claimErr) console.error('[billing-scheduler] failure notice claim failed:', claimErr.message);
+    if (claimErr || !claimed) return;
+    const sent = await sendEmail({ to, ...billingFailureEmail(p.plan_expires_at) });
+    if (sent.ok) {
+      counts.failure_notices++;
+      await audit('billing_failure_notified', p.user_id, { plan_expires_at: p.plan_expires_at, reason });
+      return;
+    }
+    console.error('[billing-scheduler] failure notice send failed:', sent.error);
+    const { error } = await db.rpc('release_billing_failure_notice', { p_user_id: p.user_id, p_expiry: p.plan_expires_at });
+    if (error) console.error('[billing-scheduler] failure notice release failed:', error.message);
+  };
 
   // 1. Понижение — до проверки флага.
   const { data: downgraded, error: downErr } = await db.rpc('downgrade_expired_subscriptions');
@@ -159,6 +185,7 @@ Deno.serve(async (req) => {
     // Без password2 статус не узнать — повтор откладывается, а не идёт вслепую.
     if (p.is_retry && p.pending_inv_id) {
       const state = password2 ? await fetchOpState(merchantLogin, p.pending_inv_id, password2) : null;
+      if (isDeclined(state)) await notifyFailure(p, 'declined');
       const verdict = retryDecision(state);
       if (verdict !== 'charge') {
         counts.skipped++;
@@ -227,6 +254,7 @@ Deno.serve(async (req) => {
       if (!resp.ok || !respText.startsWith('OK')) {
         counts.failed++;
         await audit('recurring_charge_failed', p.user_id, { inv_id: invId, attempt, response: respText });
+        await notifyFailure(p, 'recurring_rejected');
         continue;
       }
       counts.charged++;

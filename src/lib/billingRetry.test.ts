@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { retryDecision } from '../../supabase/functions/_shared/billingRetry.ts';
+import { isDeclined, retryDecision } from '../../supabase/functions/_shared/billingRetry.ts';
 
 // Повтор рекуррентного списания (billing-scheduler): двойное списание хуже пропущенного дня.
 describe('retryDecision', () => {
@@ -21,5 +21,21 @@ describe('retryDecision', () => {
 
   it('операции нет у Робокассы (Result ≠ 0) — можно списывать', () => {
     expect(retryDecision({ resultCode: 3, stateCode: null })).toBe('charge');
+  });
+});
+
+// G-6: письмо «не удалось продлить» — только при явном отказе банка.
+describe('isDeclined', () => {
+  it('State 10 — отказ', () => {
+    expect(isDeclined({ resultCode: 0, stateCode: 10 })).toBe(true);
+  });
+
+  it.each([
+    ['статус неизвестен', null],
+    ['в обработке', { resultCode: 0, stateCode: 5 }],
+    ['оплачен', { resultCode: 0, stateCode: 100 }],
+    ['операции нет', { resultCode: 3, stateCode: null }],
+  ])('%s — не отказ', (_label, state) => {
+    expect(isDeclined(state)).toBe(false);
   });
 });
