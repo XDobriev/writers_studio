@@ -2,7 +2,7 @@
 // а байты — в ImportImages; при создании книги файлы уходят в Storage (chapterImages.ts),
 // и метка заменяется на public URL. Так в главу не попадает base64.
 
-export interface ImportImage {
+interface ImportImage {
   bytes: Uint8Array;
   mime: string;
 }

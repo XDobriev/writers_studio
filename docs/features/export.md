@@ -91,6 +91,7 @@ OEBPS/ch001.xhtml   ← каждая глава отдельным файлом
 - **FB2:** порядок `title-info` по XSD, полный `document-info` (author/date/id/version), жанры книги → коды FB2 (запасной `prose_contemporary`), `<sequence>` для серии, стихи построчно, `sup/sub`.
 - **DOCX:** без пустой страницы после оглавления (`pageBreakBefore`), метаданные документа, заголовки в тексте ниже заголовка главы.
 - **PDF:** окно печати закрывается при ошибке, `lang` из выбранного языка. Имя файла — локальная дата.
+- **Картинки глав в экспорте:** `loadChapterImages` (Export.tsx) скачивает их до сборки; DOCX/EPUB/FB2 — перекодирование не-JPEG/PNG в JPEG, файл в `OEBPS/images/ch-N` / `<binary id="chimg-N">` / `word/media`; HTML — data URI; Markdown — `![](url)`; PDF — по URL; TXT — без картинок. Блок `image` в `exportModel`.
 - Тесты: `src/lib/export.test.ts` (каждая глава EPUB парсится как XHTML, порядок FB2, нет двух PageBreak подряд, pre/code не теряет текст).
 
 ## Импорт рукописи
@@ -101,4 +102,5 @@ OEBPS/ch001.xhtml   ← каждая глава отдельным файлом
 - **Склейка в предпросмотре:** «↑ Склеить» приклеивает главу к предыдущей (её название остаётся подзаголовком `h2`), «Разъединить» отменяет. `joinChapters` в `importSplit.ts`, индексы склеек — в состоянии `useManuscriptImport`; смена способа разбивки их сбрасывает.
 - **Очистка:** только то, что понимает редактор (DOMPurify; h1→h2, h4–6→h3), Word-мусор убирается.
 - **Создание:** `createBook` + `createChaptersBulk` (один insert, пачками ≤ 3 МБ под лимит прокси `/sb/`); сбой вставки глав удаляет созданную книгу. Объём импорта пишется в `books.imported_words` — точка отсчёта тепловой карты и «написано сегодня».
-- Не переносится: картинки (в редакторе нет Image-расширения). Разрезать главу в предпросмотре нельзя.
+- **Картинки:** парсеры (DOCX — mammoth `convertImage`, EPUB — файлы архива по `<img src>`, FB2 — `<binary>`) кладут в HTML метку `<img data-import-id>`, байты — в `ImportImages` (`importImages.ts`); `importSanitize` оставляет только помеченные картинки отдельным блоком. При создании книги `uploadImportedImages` (`chapterImages.ts`) заливает их в бакет `chapter-images` (`<user>/<book>/<uuid>`, WebP ≤ 1600 px, 4 параллельно, ≤ 150 шт.) и заменяет метки на public URL; не залилась — картинка убирается, импорт не падает. В TipTap — `@tiptap/extension-image` (блочный, без base64). TXT/MD картинок не содержат.
+- Разрезать главу в предпросмотре нельзя.

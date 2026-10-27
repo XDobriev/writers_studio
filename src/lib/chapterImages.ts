@@ -2,15 +2,15 @@ import { ensureAuthReady, supabase } from './supabase';
 import { optimizeImage, type OptimizeOpts } from './imageOptimize';
 import { imageExtension, referencedImageIds, rewriteImportImages, type ImportImages } from './importImages';
 
-export const CHAPTER_IMAGES_BUCKET = 'chapter-images';
+const CHAPTER_IMAGES_BUCKET = 'chapter-images';
 
 const CHAPTER_IMAGE_OPTS: OptimizeOpts = { maxSize: 1600, quality: 0.85 };
 const UPLOAD_CONCURRENCY = 4;
 /** Предохранитель от FB2/EPUB на сотни иллюстраций: остальные просто не переносятся. */
-export const MAX_IMPORT_IMAGES = 150;
+const MAX_IMPORT_IMAGES = 150;
 
 /** Загружает картинку главы (после ресайза в WebP) и возвращает её public URL. */
-export async function uploadChapterImage(userId: string, bookId: string, file: File): Promise<string> {
+async function uploadChapterImage(userId: string, bookId: string, file: File): Promise<string> {
   await ensureAuthReady();
   const optimized = await optimizeImage(file, CHAPTER_IMAGE_OPTS);
   const ext = imageExtension(optimized.type) ?? 'webp';

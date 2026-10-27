@@ -345,7 +345,7 @@ export interface ChapterImage extends CoverData {
   height: number;
 }
 
-export function chapterImageUrls(chapters: Pick<Chapter, 'content'>[]): string[] {
+function chapterImageUrls(chapters: Pick<Chapter, 'content'>[]): string[] {
   const urls = new Set<string>();
   for (const ch of chapters) {
     for (const m of (ch.content ?? '').matchAll(/<img\b[^>]*?\ssrc="(https?:[^"]+)"/g)) urls.add(m[1].replace(/&amp;/g, '&'));
