@@ -18,8 +18,11 @@
 //      банк позже дошлёт успех по уже отклонённой попытке, activate_payment распознает
 //      дубль периода (L-8). OpStateExt здесь видит только последний счёт — поздний успех
 //      более ранней попытки ловит webhook, а не scheduler.
-//   Отказ (State 10 по прошлому счёту или Recurring не вернул OK) — письмо «не удалось
-//      продлить, оплатите новой картой» один раз на период (G-6, claim_billing_failure_notice).
+//   Отказ банка (State 10 по прошлому счёту) — письмо «не удалось продлить, оплатите новой
+//      картой» один раз на период (G-6, claim_billing_failure_notice). Не-OK от Recurring —
+//      не отказ банка: банк отвечает уже после создания операции (OK = создана, до часа
+//      ожидания, затем State 10 — docs recurring-payments, поддержка 23 и 25.10.2026).
+//      Это ошибка запроса на нашей стороне — только audit recurring_charge_failed.
 //
 // Ответ содержит только счётчики (без user_id и ответов Робокассы).
 //
@@ -114,9 +117,8 @@ Deno.serve(async (req) => {
     downgraded: 0, reminders_sent: 0, reminders_failed: 0, due: 0, charged: 0, failed: 0, skipped: 0, failure_notices: 0,
   };
 
-  // G-6: «не удалось продлить» — один раз на период, только при явном отказе
-  // (State 10 по прошлому счёту или Recurring не принял запрос). Сбой сети отказом не считаем.
-  const notifyFailure = async (p: DueRow, reason: 'declined' | 'recurring_rejected') => {
+  // G-6: «не удалось продлить» — один раз на период, только при отказе банка (State 10).
+  const notifyFailure = async (p: DueRow) => {
     const to = contactEmail(p.email, p.billing_email);
     if (!to) return;
     const { data: claimed, error: claimErr } = await db.rpc('claim_billing_failure_notice', {
@@ -127,7 +129,7 @@ Deno.serve(async (req) => {
     const sent = await sendEmail({ to, ...billingFailureEmail(p.plan_expires_at) });
     if (sent.ok) {
       counts.failure_notices++;
-      await audit('billing_failure_notified', p.user_id, { plan_expires_at: p.plan_expires_at, reason });
+      await audit('billing_failure_notified', p.user_id, { plan_expires_at: p.plan_expires_at });
       return;
     }
     console.error('[billing-scheduler] failure notice send failed:', sent.error);
@@ -185,7 +187,7 @@ Deno.serve(async (req) => {
     // Без password2 статус не узнать — повтор откладывается, а не идёт вслепую.
     if (p.is_retry && p.pending_inv_id) {
       const state = password2 ? await fetchOpState(merchantLogin, p.pending_inv_id, password2) : null;
-      if (isDeclined(state)) await notifyFailure(p, 'declined');
+      if (isDeclined(state)) await notifyFailure(p);
       const verdict = retryDecision(state);
       if (verdict !== 'charge') {
         counts.skipped++;
@@ -254,7 +256,6 @@ Deno.serve(async (req) => {
       if (!resp.ok || !respText.startsWith('OK')) {
         counts.failed++;
         await audit('recurring_charge_failed', p.user_id, { inv_id: invId, attempt, response: respText });
-        await notifyFailure(p, 'recurring_rejected');
         continue;
       }
       counts.charged++;
