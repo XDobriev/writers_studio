@@ -39,6 +39,9 @@ jobs:
       - name: Unit tests
         run: npm run test
 
+      - name: Git hook behavior
+        run: npm run test:harness
+
       # Мёртвый код: неиспользуемые файлы, экспорты, зависимости (конфиг — knip.json).
       # knip читает playwright.config.ts, а тот в CI без E2E-кредов падает — заглушки
       # нужны только чтобы загрузить конфиг, тесты здесь не запускаются.
