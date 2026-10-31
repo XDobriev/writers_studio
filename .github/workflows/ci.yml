@@ -39,6 +39,14 @@ jobs:
       - name: Unit tests
         run: npm run test
 
+      - name: Backup failure and integrity tests
+        env:
+          RESTIC_TEST_BINARY: restic
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq restic
+          python3 -m unittest discover -s deploy/backup -p 'test_*.py'
+
       # Мёртвый код: неиспользуемые файлы, экспорты, зависимости (конфиг — knip.json).
       # knip читает playwright.config.ts, а тот в CI без E2E-кредов падает — заглушки
       # нужны только чтобы загрузить конфиг, тесты здесь не запускаются.

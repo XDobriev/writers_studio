@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Avtorstudio backup daily at 03:00 Moscow time
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 Europe/Moscow
+Persistent=true
+RandomizedDelaySec=5m
+Unit=avtorstudio-backup.service
+
+[Install]
+WantedBy=timers.target
