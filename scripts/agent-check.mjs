@@ -41,10 +41,11 @@ function main(mode) {
     const diff = git(['diff', '--cached', '--diff-filter=A', '--name-only', '-z'])
     if (diff.status !== 0) throw new Error('Cannot inspect staged files')
     const added = diff.stdout.split('\0').filter(p => /^src\/(components|pages|lib)\//.test(p))
-    if (added.length && existsSync('CLAUDE.md')) {
-      const registry = readFileSync('CLAUDE.md', 'utf8')
+    const registryPath = ['.agents/PROJECT.md', 'CLAUDE.md'].find(p => existsSync(p))
+    if (added.length && registryPath) {
+      const registry = readFileSync(registryPath, 'utf8')
       const missing = added.filter(p => !/\.(test|spec)\./.test(p) && !registry.includes(p))
-      if (missing.length) throw new Error(`Add new source files to CLAUDE.md architecture: ${missing.join(', ')}`)
+      if (missing.length) throw new Error(`Add new source files to the project architecture registry: ${missing.join(', ')}`)
     }
   } else {
     checkPush(readFileSync(0, 'utf8'), (oldSha, newSha) => {

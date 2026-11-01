@@ -47,7 +47,7 @@ export function main() {
     }
     messages.push('Typecheck and lint passed.')
   }
-  if (checks.registry) messages.push('If a source file was added, add its purpose to CLAUDE.md architecture.')
+  if (checks.registry) messages.push('If a source file was added, add its purpose to the architecture registry in .agents/PROJECT.md (legacy: CLAUDE.md).')
   if (messages.length) console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: messages.join(' ') } }))
 }
 

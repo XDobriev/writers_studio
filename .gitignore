@@ -107,3 +107,13 @@ _veo-screens/
 
 # Визуальная регрессия и QA-прогоны (scripts/visual-check.mjs)
 .qa/
+
+# Local assistant adapters and shared private context
+GEMINI.md
+.agents/PROJECT.md
+.agents/HARNESS.md
+.agents/clients/
+.agents/runtime/
+.agents/mcp_config.json
+.agents/hooks.json
+.agent/
