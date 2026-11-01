@@ -1,7 +1,7 @@
 # Codex: project harness
 
 The local `AGENTS.md` is the Codex entry point. It references the project's local
-`CLAUDE.md` for architecture and acceptance checks. Neither file, business docs,
+`.agents/HARNESS.md` and `.agents/PROJECT.md` for shared workflow, architecture and acceptance checks. See [cross-client handoff](agent-handoff.md). Neither file, business docs,
 credentials nor the local skill catalog should be force-added to this public repo.
 
 ## Shared checks
@@ -11,7 +11,7 @@ to activate `.githooks`. Git Bash executes the shell hooks; Node launches npm.cm
 on Windows without changing PowerShell execution policy.
 
 - `pre-commit`: require a task branch, check the local architecture registry for
-  added source files, validate the local roadmap when its validator is installed,
+  added source files (neutral registry first, legacy CLAUDE.md fallback), validate the local roadmap when its validator is installed,
   then run typecheck and lint.
 - `pre-push`: inspect every destination ref; reject main (including deletion)
   and non-fast-forward updates, then run the same local checks.
@@ -32,7 +32,7 @@ skills because Git does not copy ignored files. Keep dependencies available ther
 Codex native `PostToolUse` hooks can run `scripts/codex-post-tool.mjs` for
 `apply_patch|Edit|Write`. The handler reads the event from stdin: TypeScript edits
 run typecheck/lint, roadmap edits run the local validator with an explicit path,
-and source edits remind the agent about the architecture registry. Failed checks
+and source edits remind the agent about the neutral architecture registry. Failed checks
 return structured feedback. Shell-based edits still require the instructed manual
 checks and Git gates; the patch hook does not parse arbitrary shell programs.
 Use an absolute launcher path in local TOML and set `timeout = 180`. Configure
