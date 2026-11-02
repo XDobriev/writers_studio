@@ -143,20 +143,27 @@ export function ImportManuscriptModal({ isOpen, onClose, userId, isPro, cover, o
             </div>
 
             <div>
-              <div className="import-summary" style={{ marginBottom: 8 }}>
-                {imp.chapters.length} {plural(imp.chapters.length, 'глава', 'главы', 'глав')} · {totalWords.toLocaleString('ru-RU')} {plural(totalWords, 'слово', 'слова', 'слов')}
+              <div className="import-summary" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                <span>
+                  {imp.chapters.length} {plural(imp.chapters.length, 'глава', 'главы', 'глав')} · {totalWords.toLocaleString('ru-RU')} {plural(totalWords, 'слово', 'слова', 'слов')}
+                </span>
+                {imp.isCustomized && (
+                  <button
+                    type="button"
+                    className="import-chapter-row__act"
+                    disabled={state.kind === 'creating'}
+                    onClick={() => {
+                      setExpandedSplitIndex(null);
+                      imp.resetSplits();
+                    }}
+                    title="Вернуть исходную разбивку файла"
+                  >
+                    Сбросить правки
+                  </button>
+                )}
               </div>
               <ol className="import-chapters" aria-label="Найденные главы">
                 {imp.chapters.map((c, i) => {
-                  const isJoined =
-                    'last' in c &&
-                    'first' in c &&
-                    (c as { last: number; first: number }).last >
-                      (c as { last: number; first: number }).first;
-                  const joinedCount = isJoined
-                    ? (c as { last: number; first: number }).last -
-                      (c as { last: number; first: number }).first
-                    : 0;
                   const isExpanded = expandedSplitIndex === i;
                   const previews = isExpanded ? getChapterParagraphPreviews(c.html) : [];
 
@@ -166,24 +173,9 @@ export function ImportManuscriptModal({ isOpen, onClose, userId, isPro, cover, o
                         <span className="import-chapter-row__num">{i + 1}</span>
                         <span className="import-chapter-row__title" title={c.title}>
                           {c.title}
-                          {isJoined && <span className="import-chapter-row__joined"> + {joinedCount}</span>}
                         </span>
                         <span className="import-chapter-row__words">{c.words.toLocaleString('ru-RU')}</span>
                         <span className="import-chapter-row__acts">
-                          {isJoined && (
-                            <button
-                              type="button"
-                              className="import-chapter-row__act"
-                              disabled={state.kind === 'creating'}
-                              aria-label={`Разъединить главу «${c.title}»`}
-                              onClick={() => {
-                                setExpandedSplitIndex(null);
-                                imp.unjoin((c as { first: number }).first, (c as { last: number }).last);
-                              }}
-                            >
-                              Разъединить
-                            </button>
-                          )}
                           {i > 0 && (
                             <button
                               type="button"
@@ -204,6 +196,7 @@ export function ImportManuscriptModal({ isOpen, onClose, userId, isPro, cover, o
                             className="import-chapter-row__act"
                             disabled={state.kind === 'creating'}
                             aria-expanded={isExpanded}
+                            aria-controls={`import-split-panel-${i}`}
                             aria-label={`Разрезать главу «${c.title}»`}
                             title="Разрезать главу"
                             onClick={() => setExpandedSplitIndex(isExpanded ? null : i)}
@@ -215,6 +208,7 @@ export function ImportManuscriptModal({ isOpen, onClose, userId, isPro, cover, o
 
                       {isExpanded && (
                         <div
+                          id={`import-split-panel-${i}`}
                           className="import-split-panel"
                           role="region"
                           aria-label={`Разрезка главы «${c.title}»`}
@@ -236,7 +230,7 @@ export function ImportManuscriptModal({ isOpen, onClose, userId, isPro, cover, o
                                         type="button"
                                         className="import-split-cut-btn"
                                         disabled={state.kind === 'creating'}
-                                        aria-label={`Разрезать здесь перед абзацем ${pIdx + 2}`}
+                                        aria-label={`Разрезать главу «${c.title}» перед абзацем ${pIdx + 2}`}
                                         onClick={() => {
                                           imp.splitChapterAtParagraph(i, pIdx + 1);
                                           setExpandedSplitIndex(null);
@@ -263,7 +257,7 @@ export function ImportManuscriptModal({ isOpen, onClose, userId, isPro, cover, o
                                   type="button"
                                   className="import-split-cut-btn"
                                   disabled={state.kind === 'creating'}
-                                  aria-label={`Разрезать здесь главу «${c.title}»`}
+                                  aria-label={`Разрезать главу «${c.title}» пополам`}
                                   onClick={() => {
                                     const textLen = (previews[0]?.text ?? '').length;
                                     const half = Math.max(1, Math.floor(textLen / 2));

@@ -175,6 +175,15 @@ export function useManuscriptImport({ userId, isPro, cover, onNeedUpgrade }: {
     });
   }, []);
 
+  const isCustomized = Boolean(
+    (state.kind === 'preview' || state.kind === 'creating') &&
+      (state.customChapters !== undefined || state.joins.length > 0),
+  );
+
+  const resetSplits = useCallback(() => {
+    setState((s) => (s.kind === 'preview' ? { ...s, joins: [], customChapters: undefined } : s));
+  }, []);
+
   const reset = useCallback(() => {
     runId.current++;
     setState({ kind: 'idle' });
@@ -234,6 +243,8 @@ export function useManuscriptImport({ userId, isPro, cover, onNeedUpgrade }: {
     mergeWithPrevious,
     splitChapterAtParagraph,
     splitChapterAtOffset,
+    isCustomized,
+    resetSplits,
     create,
     reset,
   };

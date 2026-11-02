@@ -120,6 +120,7 @@ describe('ImportManuscriptModal', () => {
     const splitBtns = el.querySelectorAll<HTMLButtonElement>('button[title="Разрезать главу"]');
     expect(splitBtns).toHaveLength(2);
     expect(splitBtns[0].getAttribute('aria-expanded')).toBe('false');
+    expect(splitBtns[0].getAttribute('aria-controls')).toBe('import-split-panel-0');
 
     // Вторая глава: есть кнопка «↑ Объединить с предыдущей»
     const mergeBtn = el.querySelector<HTMLButtonElement>(
@@ -133,16 +134,19 @@ describe('ImportManuscriptModal', () => {
     });
     expect(mergeWithPrevious).toHaveBeenCalledWith(1);
 
-    // Клик по «Разрезать…» первой главы раскрывает панель разрезки
+    // Клик по «Разрезать…» первой главы раскрывает панель разрезки с привязанным id
     act(() => {
       splitBtns[0].click();
     });
     expect(splitBtns[0].getAttribute('aria-expanded')).toBe('true');
     expect(splitBtns[0].textContent).toBe('Свернуть');
 
-    // Панель разрезки отображает кнопку «✂ Разрезать здесь»
+    const panel = el.querySelector('#import-split-panel-0');
+    expect(panel).toBeTruthy();
+
+    // Панель разрезки отображает кнопку «✂ Разрезать здесь» с целевой главой в label
     const cutBtn = el.querySelector<HTMLButtonElement>(
-      'button[aria-label="Разрезать здесь перед абзацем 2"]',
+      'button[aria-label="Разрезать главу «Глава 1» перед абзацем 2"]',
     );
     expect(cutBtn).toBeTruthy();
 
@@ -151,6 +155,42 @@ describe('ImportManuscriptModal', () => {
       cutBtn!.click();
     });
     expect(splitChapterAtParagraph).toHaveBeenCalledWith(0, 1);
+  });
+
+  it('отображает кнопку «Сбросить правки», когда применены ручные модификации, и вызывает resetSplits', () => {
+    const resetSplits = vi.fn();
+    mockImpState = {
+      ...mockImpState,
+      state: {
+        kind: 'preview',
+        parsed: {
+          format: 'docx',
+          title: 'Книга',
+          author: '',
+          units: [],
+          images: new Map(),
+        },
+        options: [{ mode: 'headings', count: 2 }],
+        mode: 'headings',
+        joins: [],
+      },
+      title: 'Книга',
+      chapters: [
+        { title: 'Глава 1', html: '<p>Текст</p>', words: 1 },
+      ],
+      isCustomized: true,
+      resetSplits,
+    };
+
+    const el = mount({ isOpen: true });
+    const resetBtn = el.querySelector<HTMLButtonElement>('button[title="Вернуть исходную разбивку файла"]');
+    expect(resetBtn).toBeTruthy();
+    expect(resetBtn?.textContent).toBe('Сбросить правки');
+
+    act(() => {
+      resetBtn!.click();
+    });
+    expect(resetSplits).toHaveBeenCalledTimes(1);
   });
 
   it('поддерживает разрезку главы из одного абзаца пополам', () => {
@@ -190,7 +230,7 @@ describe('ImportManuscriptModal', () => {
     });
 
     const halfCutBtn = el.querySelector<HTMLButtonElement>(
-      'button[aria-label="Разрезать здесь главу «Длинная глава»"]',
+      'button[aria-label="Разрезать главу «Длинная глава» пополам"]',
     );
     expect(halfCutBtn).toBeTruthy();
 
