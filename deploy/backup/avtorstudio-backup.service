@@ -1,0 +1,27 @@
+[Unit]
+Description=Avtorstudio daily encrypted PostgreSQL and Storage backup
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=avtorstudio-backup
+Group=avtorstudio-backup
+EnvironmentFile=/etc/avtorstudio-backup/backup.env
+ExecStart=/usr/bin/python3 /opt/avtorstudio-backup/backup.py backup
+StateDirectory=avtorstudio-backup
+StateDirectoryMode=0700
+CacheDirectory=avtorstudio-backup
+CacheDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+TimeoutStartSec=6h
+
+[Install]
+WantedBy=multi-user.target
