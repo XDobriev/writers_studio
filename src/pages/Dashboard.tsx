@@ -498,7 +498,7 @@ export default function Dashboard() {
           <div
             role="presentation"
             onClick={() => setShowMobileSb(false)}
-            style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 40 }}
+            style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.45)', zIndex: 'calc(var(--z-drawer) - 1)' }}
           />
           <div
             ref={mobileSbPanelRef}
@@ -508,7 +508,7 @@ export default function Dashboard() {
             tabIndex={-1}
             onKeyDown={trapMobileSbTab}
             className="as"
-            style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 41, boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)', outline: 'none' }}
+            style={{ position: 'fixed', top: 0, left: 0, width: 280, height: '100%', zIndex: 'var(--z-drawer)', boxShadow: '4px 0 32px oklch(0.05 0.01 50 / 0.35)', outline: 'none' }}
           >
             <Sidebar
               book={book}

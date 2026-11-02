@@ -57,7 +57,7 @@ export function ImportManuscriptModal({ isOpen, onClose, userId, isPro, cover, o
   const totalWords = imp.chapters.reduce((s, c) => s + c.words, 0);
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 50 }} onClick={close}>
+    <div className="modal-overlay" onClick={close}>
       <div
         ref={panelRef}
         role="dialog"

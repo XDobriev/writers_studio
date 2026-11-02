@@ -34,7 +34,7 @@ export function MapStyleModal({
           initial="initial"
           animate="animate"
           exit="exit"
-          style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.55)', zIndex: 'var(--z-modal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={onClose}
         >
           <motion.div
