@@ -21,7 +21,7 @@ export function BookGroupHeading({ children, count }: BookGroupHeadingProps) {
         gap: 8,
       }}
     >
-      {children}
+      <span>{children}</span>
       <span style={{ font: '400 12px var(--font-mono)', color: 'var(--ink-4)' }}>
         {count} {plural(count, 'книга', 'книги', 'книг')}
       </span>
