@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   analyzeSplits,
+  getChapterParagraphPreviews,
   isChapterLine,
   joinChapters,
   mergeChapterWithPrevious,
@@ -233,5 +234,51 @@ describe('splitChapterByCharOffset', () => {
     expect(part2.html).toContain('<p>четыре пять.</p>');
     expect(part2.html).toContain('<p>Шесть семь.</p>');
     expect(part1.words + part2.words).toBe(7);
+  });
+});
+
+describe('getChapterParagraphPreviews', () => {
+  it('извлекает абзацы из HTML-разметки', () => {
+    const html = '<p>Первый абзац.</p><p>Второй абзац.</p><p>Третий абзац.</p>';
+    const previews = getChapterParagraphPreviews(html);
+    expect(previews).toHaveLength(3);
+    expect(previews[0]).toEqual({ index: 0, text: 'Первый абзац.' });
+    expect(previews[1]).toEqual({ index: 1, text: 'Второй абзац.' });
+    expect(previews[2]).toEqual({ index: 2, text: 'Третий абзац.' });
+  });
+
+  it('работает с текстом без HTML-тегов через разбивку по переводам строк', () => {
+    const plain = 'Строка один\n\nСтрока два';
+    const previews = getChapterParagraphPreviews(plain);
+    expect(previews).toHaveLength(2);
+    expect(previews[0]).toEqual({ index: 0, text: 'Строка один' });
+    expect(previews[1]).toEqual({ index: 1, text: 'Строка два' });
+  });
+
+  it('возвращает понятные заглушки для нетекстовых блоков (hr, img, пустые)', () => {
+    const html = '<p>Текст</p><hr><p><img src="test.jpg" /></p><p></p>';
+    const previews = getChapterParagraphPreviews(html);
+    expect(previews).toHaveLength(4);
+    expect(previews[0].text).toBe('Текст');
+    expect(previews[1].text).toBe('— Разделитель сцен —');
+    expect(previews[2].text).toBe('— Изображение —');
+    expect(previews[3].text).toBe('— Пустой абзац —');
+  });
+
+  it('возвращает пустой массив для пустого содержимого', () => {
+    expect(getChapterParagraphPreviews('')).toEqual([]);
+    expect(getChapterParagraphPreviews('   ')).toEqual([]);
+  });
+
+  it('splitChapterByParagraph корректно разрезает главу с простым текстом без HTML-обёрток', () => {
+    const rawChapter: ImportedChapter = {
+      title: 'Сырой текст',
+      html: 'Строка первая\nСтрока вторая\nСтрока третья',
+      words: 6,
+    };
+    const [p1, p2] = splitChapterByParagraph(rawChapter, 1);
+    expect(p1.html).toContain('Строка первая');
+    expect(p2.html).toContain('Строка вторая');
+    expect(p2.html).toContain('Строка третья');
   });
 });

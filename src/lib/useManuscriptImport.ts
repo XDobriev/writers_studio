@@ -14,14 +14,38 @@ import {
   PRO_IMPORT_FORMATS,
   type ParsedManuscript,
 } from './importManuscript';
-import { analyzeSplits, joinChapters, splitManuscript, type SplitMode, type SplitOption } from './importSplit';
+import {
+  analyzeSplits,
+  joinChapters,
+  mergeChapterWithPrevious,
+  splitChapterByCharOffset,
+  splitChapterByParagraph,
+  splitManuscript,
+  type ImportedChapter,
+  type SplitMode,
+  type SplitOption,
+} from './importSplit';
 
 /** joins — индексы глав, приклеенных к предыдущей (см. joinChapters). */
 type ImportState =
   | { kind: 'idle' }
   | { kind: 'parsing'; fileName: string }
-  | { kind: 'preview'; parsed: ParsedManuscript; options: SplitOption[]; mode: SplitMode; joins: number[] }
-  | { kind: 'creating'; parsed: ParsedManuscript; options: SplitOption[]; mode: SplitMode; joins: number[] };
+  | {
+      kind: 'preview';
+      parsed: ParsedManuscript;
+      options: SplitOption[];
+      mode: SplitMode;
+      joins: number[];
+      customChapters?: ImportedChapter[];
+    }
+  | {
+      kind: 'creating';
+      parsed: ParsedManuscript;
+      options: SplitOption[];
+      mode: SplitMode;
+      joins: number[];
+      customChapters?: ImportedChapter[];
+    };
 
 const yieldToMain = () => new Promise<void>((r) => setTimeout(r, 0));
 
@@ -67,7 +91,7 @@ export function useManuscriptImport({ userId, isPro, cover, onNeedUpgrade }: {
   }, [clearError, isPro, onNeedUpgrade, setError]);
 
   const setMode = useCallback((mode: SplitMode) => {
-    setState((s) => (s.kind === 'preview' ? { ...s, mode, joins: [] } : s));
+    setState((s) => (s.kind === 'preview' ? { ...s, mode, joins: [], customChapters: undefined } : s));
   }, []);
 
   const joinWithPrevious = useCallback((index: number) => {
@@ -83,12 +107,82 @@ export function useManuscriptImport({ userId, isPro, cover, onNeedUpgrade }: {
   const parsed = loaded?.parsed;
   const mode = loaded?.mode;
   const joins = loaded?.joins;
+  const custom = loaded?.customChapters;
+
   // Разбивка не пересчитывается на каждую склейку: на больших рукописях это сотни мс.
   const split = useMemo(
     () => (parsed && mode ? splitManuscript(parsed.units, mode, parsed.title) : []),
     [parsed, mode],
   );
-  const chapters = useMemo(() => joinChapters(split, new Set(joins)), [split, joins]);
+  const baseChapters = useMemo(() => joinChapters(split, new Set(joins)), [split, joins]);
+  const chapters: ImportedChapter[] = custom ?? baseChapters;
+
+  const mergeWithPrevious = useCallback((index: number) => {
+    setState((s) => {
+      if (s.kind !== 'preview') return s;
+      const currentList: ImportedChapter[] = s.customChapters ?? joinChapters(
+        s.parsed && s.mode ? splitManuscript(s.parsed.units, s.mode, s.parsed.title) : [],
+        new Set(s.joins),
+      );
+      const next = mergeChapterWithPrevious(currentList, index);
+      return { ...s, customChapters: next };
+    });
+  }, []);
+
+  const splitChapterAtParagraph = useCallback((chapterIndex: number, paragraphIndex: number, newTitle?: string) => {
+    setState((s) => {
+      if (s.kind !== 'preview') return s;
+      const currentList: ImportedChapter[] = s.customChapters ?? joinChapters(
+        s.parsed && s.mode ? splitManuscript(s.parsed.units, s.mode, s.parsed.title) : [],
+        new Set(s.joins),
+      );
+      if (chapterIndex < 0 || chapterIndex >= currentList.length) return s;
+      try {
+        const [p1, p2] = splitChapterByParagraph(currentList[chapterIndex], paragraphIndex, newTitle);
+        const next = [
+          ...currentList.slice(0, chapterIndex),
+          p1,
+          p2,
+          ...currentList.slice(chapterIndex + 1),
+        ];
+        return { ...s, customChapters: next };
+      } catch {
+        return s;
+      }
+    });
+  }, []);
+
+  const splitChapterAtOffset = useCallback((chapterIndex: number, charOffset: number, newTitle?: string) => {
+    setState((s) => {
+      if (s.kind !== 'preview') return s;
+      const currentList: ImportedChapter[] = s.customChapters ?? joinChapters(
+        s.parsed && s.mode ? splitManuscript(s.parsed.units, s.mode, s.parsed.title) : [],
+        new Set(s.joins),
+      );
+      if (chapterIndex < 0 || chapterIndex >= currentList.length) return s;
+      try {
+        const [p1, p2] = splitChapterByCharOffset(currentList[chapterIndex], charOffset, newTitle);
+        const next = [
+          ...currentList.slice(0, chapterIndex),
+          p1,
+          p2,
+          ...currentList.slice(chapterIndex + 1),
+        ];
+        return { ...s, customChapters: next };
+      } catch {
+        return s;
+      }
+    });
+  }, []);
+
+  const isCustomized = Boolean(
+    (state.kind === 'preview' || state.kind === 'creating') &&
+      (state.customChapters !== undefined || state.joins.length > 0),
+  );
+
+  const resetSplits = useCallback(() => {
+    setState((s) => (s.kind === 'preview' ? { ...s, joins: [], customChapters: undefined } : s));
+  }, []);
 
   const reset = useCallback(() => {
     runId.current++;
@@ -135,5 +229,23 @@ export function useManuscriptImport({ userId, isPro, cover, onNeedUpgrade }: {
     }
   }, [state, userId, chapters, title, cover, clearError, setError, queryClient, navigate]);
 
-  return { state, title, setTitle, chapters, error, clearError, loadFile, setMode, joinWithPrevious, unjoin, create, reset };
+  return {
+    state,
+    title,
+    setTitle,
+    chapters,
+    error,
+    clearError,
+    loadFile,
+    setMode,
+    joinWithPrevious,
+    unjoin,
+    mergeWithPrevious,
+    splitChapterAtParagraph,
+    splitChapterAtOffset,
+    isCustomized,
+    resetSplits,
+    create,
+    reset,
+  };
 }

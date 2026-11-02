@@ -299,7 +299,16 @@ export function splitChapterByParagraph(
   paragraphIndex: number,
   newTitle?: string,
 ): [ImportedChapter, ImportedChapter] {
-  const els = unitElements(chapter.html);
+  let els = unitElements(chapter.html);
+  if (els.length === 0 && chapter.html.trim()) {
+    const lines = chapter.html.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+    const doc = document.implementation.createHTMLDocument('');
+    els = lines.map((l) => {
+      const p = doc.createElement('p');
+      p.textContent = l;
+      return p;
+    });
+  }
   if (paragraphIndex <= 0 || paragraphIndex >= els.length) {
     throw new RangeError(
       `Cannot split chapter: paragraphIndex ${paragraphIndex} out of bounds (1..${els.length - 1})`,
@@ -408,4 +417,40 @@ export function splitChapterByCharOffset(
       words: countWords(html2),
     },
   ];
+}
+
+export interface ChapterParagraphPreview {
+  index: number;
+  text: string;
+}
+
+/**
+ * Извлекает краткие превью абзацев главы для предпросмотра и выбора места разрезки.
+ */
+export function getChapterParagraphPreviews(html: string): ChapterParagraphPreview[] {
+  const doc = document.implementation.createHTMLDocument('');
+  doc.body.innerHTML = html;
+  const els = Array.from(doc.body.children) as HTMLElement[];
+  if (els.length > 0) {
+    return els.map((el, i) => {
+      const text = (el.textContent ?? '').trim();
+      const fallback =
+        el.tagName.toLowerCase() === 'hr'
+          ? '— Разделитель сцен —'
+          : el.tagName.toLowerCase() === 'img' || el.querySelector('img')
+          ? '— Изображение —'
+          : '— Пустой абзац —';
+      return {
+        index: i,
+        text: text || fallback,
+      };
+    });
+  }
+  const plain = (doc.body.textContent ?? '').trim();
+  if (!plain) return [];
+  const parts = plain.split(/\n+/).map((p) => p.trim()).filter(Boolean);
+  return parts.map((text, i) => ({
+    index: i,
+    text,
+  }));
 }
