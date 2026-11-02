@@ -100,6 +100,7 @@ export function VersionModal({
   const queryClient = useQueryClient();
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
@@ -125,11 +126,26 @@ export function VersionModal({
 
   useEffect(() => {
     if (!version) return;
+    let active = true;
     setLoading(true);
     setContent(null);
+    setLoadError(null);
     getVersionContent(version.id)
-      .then(setContent)
-      .finally(() => setLoading(false));
+      .then((res) => {
+        if (active) setContent(res);
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setContent(null);
+          setLoadError(err instanceof Error ? err.message : 'Не удалось загрузить содержимое версии');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version?.id]);
 
@@ -243,7 +259,12 @@ export function VersionModal({
                 Загрузка…
               </span>
             )}
-            {!loading && content !== null && !showDiff && (
+            {!loading && loadError && (
+              <div style={{ color: 'var(--danger)', fontFamily: 'var(--font-ui)', fontSize: 13, padding: '16px 0' }}>
+                {loadError}
+              </div>
+            )}
+            {!loading && !loadError && content !== null && !showDiff && (
               <div dangerouslySetInnerHTML={{ __html: safeContent }} />
             )}
             {!loading && showDiff && diff && (() => {
@@ -321,7 +342,7 @@ export function VersionModal({
               <button
                 className="btn btn--primary"
                 onClick={() => setConfirm(true)}
-                disabled={loading || restoring}
+                disabled={loading || restoring || content === null}
               >
                 Восстановить
               </button>

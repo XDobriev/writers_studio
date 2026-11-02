@@ -12,8 +12,8 @@ APP_DIR="/var/www/avtorstudio"
 # --- Обновление системы ---
 apt-get update -y && apt-get upgrade -y
 
-# --- Nginx + Certbot ---
-apt-get install -y nginx certbot python3-certbot-nginx
+# --- Nginx + Brotli + Certbot ---
+apt-get install -y nginx libnginx-mod-http-brotli certbot python3-certbot-nginx
 
 # --- Создать deploy-пользователя (для GitHub Actions) ---
 if ! id "$DEPLOY_USER" &>/dev/null; then
@@ -51,7 +51,7 @@ nginx -t && systemctl reload nginx
 echo ""
 echo "==> Настройка завершена."
 echo "==> После того, как DNS avtorstudio.com укажет на этот сервер, запусти:"
-echo "    certbot --nginx -d avtorstudio.com -d www.avtorstudio.com"
+echo "    certbot --nginx -d avtorstudio.com -d www.avtorstudio.com -d api.avtorstudio.com"
 echo "    Затем замени /etc/nginx/sites-available/avtorstudio.com на deploy/nginx.conf"
 echo "==> Добавь SSH-публичный ключ для GitHub Actions в:"
 echo "    /home/$DEPLOY_USER/.ssh/authorized_keys"

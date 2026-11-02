@@ -3,5 +3,9 @@ declare module 'https://esm.sh/ts-md5@1.3.1' {
   export { Md5 } from 'ts-md5';
 }
 
+declare module 'https://esm.sh/@supabase/supabase-js@2.45.0' {
+  export * from '@supabase/supabase-js';
+}
+
 // Edge-код читает секреты через Deno.env; в тестах глобал подменяется vi.stubGlobal.
 declare const Deno: { env: { get(key: string): string | undefined } };

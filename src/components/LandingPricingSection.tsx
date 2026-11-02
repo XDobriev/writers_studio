@@ -30,10 +30,19 @@ export function LandingPricing() {
   const early = isGrandfatheringActive();
 
   useEffect(() => {
-    getLifetimeSlotsRemaining().then((slots) => {
-      if (slots !== null) setLifetimeSlots(slots);
-      setSlotsLoaded(true);
-    });
+    let mounted = true;
+    getLifetimeSlotsRemaining()
+      .then((slots) => {
+        if (!mounted) return;
+        if (slots !== null) setLifetimeSlots(slots);
+        setSlotsLoaded(true);
+      })
+      .catch(() => {
+        if (mounted) setSlotsLoaded(true);
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleCtaClick = async (planKey: 'pro' | 'pro_annual' | 'lifetime' | null) => {
