@@ -20,6 +20,7 @@ class BackupTests(unittest.TestCase):
         self.recovery.mkdir()
         for filename in ('inventory.json', 'auth.json', 'edge.env', 'operations.md'):
             (self.recovery / filename).write_text('private recovery data')
+        self.calls = []
 
     def fake_run(self, args, *, cwd=None, output=None):
         self.calls.append(args)
@@ -107,6 +108,44 @@ class BackupTests(unittest.TestCase):
         with self.assertRaises(backup.BackupError):
             self.exercise_backup(failure=['pg_dump'])
         self.assertFalse(any(args[0] == 'restic' for args in self.calls))
+
+    def test_dump_failure_cleans_up_partial_file_and_stale_partials(self):
+        root = self.state / 'snapshot'
+        root.mkdir(parents=True, exist_ok=True)
+        stale = root / 'stale.partial'
+        stale.write_bytes(b'leftover from interrupted run')
+
+        def failing_pg_dump(args, **kwargs):
+            if args[0] == 'pg_dump':
+                Path(args[-1]).write_bytes(b'partial dump written before failure')
+                raise backup.BackupError('simulated pg_dump failure')
+            return self.fake_run(args, **kwargs)
+
+        with patch.object(backup, 'run', side_effect=failing_pg_dump), \
+             patch.object(backup, 'storage_inventory', return_value=[]), \
+             patch.object(backup, 'database_storage_inventory', return_value=[]), \
+             contextlib.redirect_stdout(io.StringIO()), \
+             self.assertRaises(backup.BackupError):
+            backup.backup(self.state, self.recovery)
+
+        self.assertFalse(stale.exists(), 'Stale partial files must be cleaned up at start of backup')
+        self.assertFalse((root / 'database.dump.partial').exists(), 'Failed pg_dump partial file must be unlinked')
+
+    def test_write_command_failure_cleans_up_partial_file(self):
+        target = self.state / 'roles.sql'
+        partial = target.with_suffix('.sql.partial')
+
+        def failing_run(args, *, output=None, cwd=None):
+            if output is not None:
+                output.write(b'partial content')
+            raise backup.BackupError('simulated command failure')
+
+        with patch.object(backup, 'run', side_effect=failing_run), self.assertRaises(backup.BackupError):
+            backup.write_command(target, ['pg_dumpall'])
+
+        self.assertFalse(target.exists())
+        self.assertFalse(partial.exists(), 'Partial file must be unlinked on write_command failure')
+
 
     def test_verify_rejects_corruption_and_extra_files(self):
         self.exercise_backup()

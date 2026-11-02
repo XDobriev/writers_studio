@@ -45,7 +45,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq restic
-          python3 -m unittest discover -s deploy/backup -p 'test_*.py'
+          python3 -m unittest discover -s deploy/backup -t deploy/backup -p 'test_*.py'
 
       - name: Git hook behavior
         run: npm run test:harness

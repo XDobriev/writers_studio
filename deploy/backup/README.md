@@ -4,7 +4,7 @@
 
 ## Статус внедрения на 02.11.2026
 
-Ветка `agent/daily-backups` синхронизирована с `main` (влиты PR #46, #47, #48 — тесты импорта, фиксы гонок, Nginx brotli, proxy и CSP). Все тесты зелёные: 455 тестов приложения, 10 тестов харнесса, 15 тестов резервного копирования (включая сценарий восстановления на синтетических данных), typecheck, lint и knip.
+Ветка `agent/daily-backups` синхронизирована с `main` (влиты PR #46, #47, #48 — тесты импорта, фиксы гонок, Nginx brotli, proxy и CSP). Все тесты зелёные: 455 тестов приложения, 10 тестов харнесса, 17 тестов резервного копирования (включая сценарий восстановления на синтетических данных и очистку partial-артефактов), typecheck, lint и knip.
 
 Yandex S3 подготовлен и проверен на реальных операциях PUT/GET/LIST/DELETE: приватный STANDARD-бакет `avtorstudio-backups-joaxeoavjvlqmtlepkrr`, сервисный аккаунт с `storage.editor` только на этот бакет. Ключ хранится в закрытом локальном файле, исключённом из Git. Ресурсы повторно не создавать. Детали и идентификаторы — в [документации инфраструктуры](../../docs/infrastructure.md).
 
@@ -61,12 +61,14 @@ S3 Object Lock и lifecycle-delete **не включать на рабочем r
 ```ini
 # pg_service.conf (без пароля)
 # Создание постоянного пользователя в Supabase SQL Editor (без смены пароля postgres):
-# CREATE ROLE backup_user WITH LOGIN PASSWORD 'STRONG_RANDOMLY_GENERATED_PASSWORD' NOINHERIT;
+# CREATE ROLE backup_user WITH LOGIN PASSWORD 'STRONG_RANDOMLY_GENERATED_PASSWORD' INHERIT;
 # GRANT pg_read_all_data TO backup_user;
+# GRANT postgres TO backup_user;
 # GRANT USAGE ON SCHEMA vault TO backup_user;
 # GRANT SELECT ON ALL TABLES IN SCHEMA vault TO backup_user;
 # GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA vault TO backup_user;
-# (при необходимости полного логического дампа схемы: GRANT postgres TO backup_user;)
+# Примечание: INHERIT обязателен для наследования прав pg_read_all_data и postgres без ручного SET ROLE;
+# GRANT postgres необходим для полного pg_dump схем/функций/триггеров и чтения vault.decrypted_secrets.
 [avtorstudio-backup]
 host=aws-1-eu-central-1.pooler.supabase.com
 port=5432
@@ -74,6 +76,10 @@ dbname=postgres
 user=backup_user.joaxeoavjvlqmtlepkrr
 sslmode=verify-full
 sslrootcert=/etc/avtorstudio-backup/supabase-ca.crt
+
+# /etc/avtorstudio-backup/pgpass (права 0600, avtorstudio-backup:avtorstudio-backup):
+# aws-1-eu-central-1.pooler.supabase.com:5432:postgres:backup_user.joaxeoavjvlqmtlepkrr:STRONG_RANDOMLY_GENERATED_PASSWORD
+
 
 # rclone.conf
 [supabase]
@@ -136,9 +142,9 @@ region=CHANGE_ME
 ## Локальные проверки
 
 ```bash
-python3 -m unittest discover -s deploy/backup -p 'test_*.py'
+python3 -m unittest discover -s deploy/backup -t deploy/backup -p 'test_*.py'
 ```
 
-14 unit-тестов используют временные файлы и заглушки команд, не обращаются к Supabase/S3. Проверяют неполный источник, изменение Storage во время дампа, сбои загрузки/проверки, запрет очистки до успеха, целостность и отсутствие секретов в ошибках. При `RESTIC_TEST_BINARY=restic` дополнительный интеграционный тест создаёт настоящий локальный зашифрованный репозиторий на синтетических данных: три снимка, дедупликация, восстановление удалённого файла, очистка и повторное восстановление. CI устанавливает restic и запускает оба вида тестов. Они **не заменяют** настоящий дамп, загрузку в Yandex и восстановление Supabase.
+16 unit-тестов используют временные файлы и заглушки команд, не обращаются к Supabase/S3. Проверяют неполный источник, изменение Storage во время дампа, сбои загрузки/проверки, запрет очистки до успеха, очистку partial-артефактов при сбоях, целостность и отсутствие секретов в ошибках. При `RESTIC_TEST_BINARY=restic` дополнительный интеграционный тест создаёт настоящий локальный зашифрованный репозиторий на синтетических данных: три снимка, дедупликация, восстановление удалённого файла, очистка и повторное восстановление. CI устанавливает restic и запускает оба вида тестов. Они **не заменяют** настоящий дамп, загрузку в Yandex и восстановление Supabase.
 
 Источники: [PostgreSQL pg_dump](https://www.postgresql.org/docs/current/app-pgdump.html), [Supabase backup/restore](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore), [Storage не входит в дамп](https://supabase.com/docs/guides/platform/backups), [restic retention](https://restic.readthedocs.io/en/stable/060_forget.html).

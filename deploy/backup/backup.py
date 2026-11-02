@@ -130,9 +130,15 @@ def compare_objects(database, storage):
 
 def write_command(path, args):
     temporary = path.with_suffix(path.suffix + '.partial')
-    with temporary.open('wb') as stream:
-        run(args, output=stream)
-    temporary.replace(path)
+    try:
+        with temporary.open('wb') as stream:
+            run(args, output=stream)
+        temporary.replace(path)
+    except Exception:
+        if temporary.exists():
+            temporary.unlink()
+        raise
+
 
 
 def checksum(path):
@@ -192,6 +198,9 @@ def backup(state, recovery):
     if root.is_symlink() or (root / 'storage').is_symlink():
         raise BackupError('Unsafe staging path')
     root.mkdir(mode=0o700, exist_ok=True)
+    for partial in root.glob('*.partial'):
+        if partial.is_file():
+            partial.unlink()
     mirror = root / 'storage'
     mirror.mkdir(mode=0o700, exist_ok=True)
     before = storage_inventory()
@@ -202,9 +211,15 @@ def backup(state, recovery):
     run(['rclone', 'sync', 'supabase:', str(mirror), '--checksum', '--create-empty-src-dirs'])
     run(['rclone', 'check', 'supabase:', str(mirror), '--download'])
     # Restic compresses/deduplicates the uncompressed logical archive. Keep ACLs for restore.
-    run(['pg_dump', '--format=custom', '--compress=0', '--no-owner',
-         '--file', str(root / 'database.dump.partial')])
-    (root / 'database.dump.partial').replace(root / 'database.dump')
+    dump_partial = root / 'database.dump.partial'
+    try:
+        run(['pg_dump', '--format=custom', '--compress=0', '--no-owner',
+             '--file', str(dump_partial)])
+        dump_partial.replace(root / 'database.dump')
+    except Exception:
+        if dump_partial.exists():
+            dump_partial.unlink()
+        raise
     run(['pg_restore', '--list', str(root / 'database.dump')])
     write_command(root / 'roles.sql', ['pg_dumpall', '--roles-only', '--no-role-passwords'])
     # A new project has a different Vault root key. Preserve decrypted values INSIDE the encrypted backup.
