@@ -138,26 +138,46 @@ export default function AdminAnalytics({ topUsers }: Props) {
   const { error: err, setError: setErr } = useErrorState();
 
   useEffect(() => {
+    let mounted = true;
     Promise.all([
       supabase.rpc('get_admin_dau_trend'),
       supabase.rpc('get_admin_retention'),
       supabase.rpc('get_admin_anomalies'),
     ]).then(([dauRes, retRes, anRes]) => {
+      if (!mounted) return;
       const firstErr = dauRes.error?.message ?? retRes.error?.message ?? anRes.error?.message ?? null;
       if (firstErr) setErr(firstErr);
       if (!dauRes.error) setDau((dauRes.data as DauPoint[]) ?? []);
       if (!retRes.error) setRetention(retRes.data as unknown as RetentionData);
       if (!anRes.error) setAnomalies(anRes.data as unknown as AnomaliesData);
+    }).catch((e: unknown) => {
+      if (!mounted) return;
+      setErr(e instanceof Error ? e.message : 'Не удалось загрузить аналитику');
     });
+    return () => {
+      mounted = false;
+    };
   }, [setErr]);
 
   useEffect(() => {
+    let mounted = true;
     fetchActivationFunnel()
-      .then(setFunnel)
-      .catch((e: unknown) => setErr(e instanceof Error ? e.message : 'Не удалось загрузить воронку'));
+      .then((data) => {
+        if (mounted) setFunnel(data);
+      })
+      .catch((e: unknown) => {
+        if (mounted) setErr(e instanceof Error ? e.message : 'Не удалось загрузить воронку');
+      });
     fetchCancellations()
-      .then(setCancellations)
-      .catch((e: unknown) => setErr(e instanceof Error ? e.message : 'Не удалось загрузить причины отмен'));
+      .then((data) => {
+        if (mounted) setCancellations(data);
+      })
+      .catch((e: unknown) => {
+        if (mounted) setErr(e instanceof Error ? e.message : 'Не удалось загрузить причины отмен');
+      });
+    return () => {
+      mounted = false;
+    };
   }, [setErr]);
 
   const maxWords = topUsers[0]?.words_total || 1;

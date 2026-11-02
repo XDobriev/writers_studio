@@ -52,9 +52,17 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
   useModalFocus(true, dialogRef);
 
   useEffect(() => {
-    getLifetimeSlotsRemaining().then((slots) => {
-      if (slots !== null) setLifetimeSlots(slots);
-    });
+    let mounted = true;
+    getLifetimeSlotsRemaining()
+      .then((slots) => {
+        if (mounted && slots !== null) setLifetimeSlots(slots);
+      })
+      .catch(() => {
+        // silent fail - lifetime option won't show
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const showLifetime = lifetimeSlots !== null && lifetimeSlots > 0;

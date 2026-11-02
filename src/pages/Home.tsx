@@ -524,7 +524,7 @@ export default function Home() {
 
       {/* ─── Create book modal ─── */}
       {showCreate && (
-        <div className="modal-overlay" style={{ zIndex: 50 }} onClick={() => { if (!creating) setShowCreate(false); }}>
+        <div className="modal-overlay" onClick={() => { if (!creating) setShowCreate(false); }}>
           <form
             ref={createPanelRef}
             onSubmit={onCreate}

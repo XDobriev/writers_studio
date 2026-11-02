@@ -92,7 +92,7 @@ export default function ShareBook() {
   return (
     <div className="as" style={{ minHeight: '100dvh', background: 'var(--bg-deep)', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <header style={{ borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 50 }}>
+      <header style={{ borderBottom: '1px solid var(--border-soft)', background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 'var(--z-dropdown)' }}>
         <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 12, height: 48 }}>
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, padding: '12px 0', margin: '-12px 0' }}>
             <LogoMark size={16} />

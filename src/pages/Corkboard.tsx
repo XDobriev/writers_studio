@@ -69,8 +69,8 @@ function SortableCorkCard({
   const menuRef = useRef<HTMLButtonElement>(null);
   const dropdownStyle = useDropdownPosition(menuRef, menuOpen ? 'open' : null);
 
-  const startSynopsisEdit = (e: React.MouseEvent) => {
-    e.preventDefault();
+  const startSynopsisEdit = (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
     setSynopsisValue(c.synopsis ?? '');
     setEditingSynopsis(true);
   };
@@ -187,7 +187,7 @@ function SortableCorkCard({
             role="button"
             tabIndex={0}
             onClick={startSynopsisEdit}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') startSynopsisEdit(e as unknown as React.MouseEvent); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') startSynopsisEdit(e); }}
             title="Нажмите, чтобы редактировать синопсис"
             style={{
               fontSize: 12.5,
