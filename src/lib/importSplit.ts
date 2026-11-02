@@ -248,3 +248,164 @@ export function joinChapters(chapters: ImportedChapter[], joins: ReadonlySet<num
   });
   return out;
 }
+
+/**
+ * Ручное объединение конкретной главы с предыдущей:
+ * - Текст приклеиваемой главы добавляется к предыдущей
+ * - Название приклеиваемой главы становится подзаголовком <h2>
+ * - Слова пересчитываются через countWords
+ * - При недопустимом индексе (<= 0 или >= chapters.length) возвращает немодифицированную копию
+ */
+export function mergeChapterWithPrevious(
+  chapters: ImportedChapter[],
+  chapterIndex: number,
+): ImportedChapter[] {
+  if (chapterIndex <= 0 || chapterIndex >= chapters.length) {
+    return [...chapters];
+  }
+
+  const out: ImportedChapter[] = [];
+  const doc = document.implementation.createHTMLDocument('');
+
+  for (let i = 0; i < chapters.length; i++) {
+    if (i === chapterIndex) {
+      const prev = out[out.length - 1];
+      const cur = chapters[i];
+      const h = doc.createElement('h2');
+      h.textContent = cur.title;
+      const combinedHtml = finalizeChapterHtml(prev.html + h.outerHTML + cur.html);
+      out[out.length - 1] = {
+        title: prev.title,
+        html: combinedHtml,
+        words: countWords(combinedHtml),
+      };
+    } else {
+      out.push({ ...chapters[i] });
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Разделение главы на две по выбранному абзацу:
+ * - Часть 1: абзацы от 0 до paragraphIndex - 1 (название сохраняется)
+ * - Часть 2: абзацы от paragraphIndex до конца (название newTitle или суффикс)
+ * - Количество слов пересчитывается для обеих частей
+ * - Выбрасывает RangeError, если paragraphIndex выходит за границы [1, elements.length - 1]
+ */
+export function splitChapterByParagraph(
+  chapter: ImportedChapter,
+  paragraphIndex: number,
+  newTitle?: string,
+): [ImportedChapter, ImportedChapter] {
+  const els = unitElements(chapter.html);
+  if (paragraphIndex <= 0 || paragraphIndex >= els.length) {
+    throw new RangeError(
+      `Cannot split chapter: paragraphIndex ${paragraphIndex} out of bounds (1..${els.length - 1})`,
+    );
+  }
+
+  const part1Els = els.slice(0, paragraphIndex);
+  const part2Els = els.slice(paragraphIndex);
+
+  const html1 = finalizeChapterHtml(part1Els.map((e) => e.outerHTML).join(''));
+  const html2 = finalizeChapterHtml(part2Els.map((e) => e.outerHTML).join(''));
+
+  const title2 = newTitle?.trim() || `${chapter.title} (продолжение)`;
+
+  return [
+    {
+      title: chapter.title,
+      html: html1,
+      words: countWords(html1),
+    },
+    {
+      title: title2,
+      html: html2,
+      words: countWords(html2),
+    },
+  ];
+}
+
+/**
+ * Разделение главы по символьному смещению (charOffset):
+ * - Находит элемент и позицию в тексте, соответствующую charOffset
+ * - Если смещение попадает на границу абзацев, режет по границе
+ * - Если смещение попадает внутрь абзаца, разделяет абзац на два
+ * - Количество слов пересчитывается для обеих частей
+ * - Выбрасывает RangeError при недопустимом charOffset
+ */
+export function splitChapterByCharOffset(
+  chapter: ImportedChapter,
+  charOffset: number,
+  newTitle?: string,
+): [ImportedChapter, ImportedChapter] {
+  const els = unitElements(chapter.html);
+  if (!els.length) {
+    throw new RangeError('Cannot split empty chapter');
+  }
+
+  const textLengths = els.map((e) => (e.textContent ?? '').length);
+  const totalLength = textLengths.reduce((acc, len) => acc + len, 0);
+
+  if (charOffset <= 0 || charOffset >= totalLength) {
+    throw new RangeError(
+      `Cannot split chapter: charOffset ${charOffset} out of bounds (1..${totalLength - 1})`,
+    );
+  }
+
+  const doc = document.implementation.createHTMLDocument('');
+  let currentOffset = 0;
+  const part1Els: HTMLElement[] = [];
+  const part2Els: HTMLElement[] = [];
+
+  for (let i = 0; i < els.length; i++) {
+    const el = els[i];
+    const text = el.textContent ?? '';
+    const start = currentOffset;
+    const end = currentOffset + text.length;
+
+    if (charOffset <= start) {
+      part2Els.push(el);
+    } else if (charOffset >= end) {
+      part1Els.push(el);
+    } else {
+      // Смещение внутри текущего элемента
+      const splitAt = charOffset - start;
+      const textBefore = text.slice(0, splitAt).trimEnd();
+      const textAfter = text.slice(splitAt).trimStart();
+
+      const tag = el.tagName.toLowerCase();
+      if (textBefore) {
+        const el1 = doc.createElement(tag);
+        el1.textContent = textBefore;
+        part1Els.push(el1);
+      }
+      if (textAfter) {
+        const el2 = doc.createElement(tag);
+        el2.textContent = textAfter;
+        part2Els.push(el2);
+      }
+    }
+    currentOffset = end;
+  }
+
+  const html1 = finalizeChapterHtml(part1Els.map((e) => e.outerHTML).join(''));
+  const html2 = finalizeChapterHtml(part2Els.map((e) => e.outerHTML).join(''));
+
+  const title2 = newTitle?.trim() || `${chapter.title} (продолжение)`;
+
+  return [
+    {
+      title: chapter.title,
+      html: html1,
+      words: countWords(html1),
+    },
+    {
+      title: title2,
+      html: html2,
+      words: countWords(html2),
+    },
+  ];
+}

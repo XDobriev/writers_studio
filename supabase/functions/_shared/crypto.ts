@@ -4,6 +4,14 @@ export function md5hex(input: string): string {
   return Md5.hashStr(input) as string;
 }
 
+/** Вычисление SHA-256 в hex (через Web Crypto API, доступный в Deno и Node 18+). */
+export async function sha256hex(input: string): Promise<string> {
+  const bytes = new TextEncoder().encode(input);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** Сравнение строк за постоянное время (по байтам UTF-8). */
 export function timingSafeEqual(a: string, b: string): boolean {
   const aBytes = new TextEncoder().encode(a);
