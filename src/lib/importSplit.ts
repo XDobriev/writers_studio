@@ -409,3 +409,30 @@ export function splitChapterByCharOffset(
     },
   ];
 }
+
+export interface ChapterParagraphPreview {
+  index: number;
+  text: string;
+}
+
+/**
+ * Извлекает краткие превью абзацев главы для предпросмотра и выбора места разрезки.
+ */
+export function getChapterParagraphPreviews(html: string): ChapterParagraphPreview[] {
+  const doc = document.implementation.createHTMLDocument('');
+  doc.body.innerHTML = html;
+  const els = Array.from(doc.body.children) as HTMLElement[];
+  if (els.length > 0) {
+    return els.map((el, i) => ({
+      index: i,
+      text: (el.textContent ?? '').trim(),
+    }));
+  }
+  const plain = (doc.body.textContent ?? '').trim();
+  if (!plain) return [];
+  const parts = plain.split(/\n+/).map((p) => p.trim()).filter(Boolean);
+  return parts.map((text, i) => ({
+    index: i,
+    text,
+  }));
+}

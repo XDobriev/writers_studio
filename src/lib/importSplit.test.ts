@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   analyzeSplits,
+  getChapterParagraphPreviews,
   isChapterLine,
   joinChapters,
   mergeChapterWithPrevious,
@@ -233,5 +234,29 @@ describe('splitChapterByCharOffset', () => {
     expect(part2.html).toContain('<p>четыре пять.</p>');
     expect(part2.html).toContain('<p>Шесть семь.</p>');
     expect(part1.words + part2.words).toBe(7);
+  });
+});
+
+describe('getChapterParagraphPreviews', () => {
+  it('извлекает абзацы из HTML-разметки', () => {
+    const html = '<p>Первый абзац.</p><p>Второй абзац.</p><p>Третий абзац.</p>';
+    const previews = getChapterParagraphPreviews(html);
+    expect(previews).toHaveLength(3);
+    expect(previews[0]).toEqual({ index: 0, text: 'Первый абзац.' });
+    expect(previews[1]).toEqual({ index: 1, text: 'Второй абзац.' });
+    expect(previews[2]).toEqual({ index: 2, text: 'Третий абзац.' });
+  });
+
+  it('работает с текстом без HTML-тегов через разбивку по переводам строк', () => {
+    const plain = 'Строка один\n\nСтрока два';
+    const previews = getChapterParagraphPreviews(plain);
+    expect(previews).toHaveLength(2);
+    expect(previews[0]).toEqual({ index: 0, text: 'Строка один' });
+    expect(previews[1]).toEqual({ index: 1, text: 'Строка два' });
+  });
+
+  it('возвращает пустой массив для пустого содержимого', () => {
+    expect(getChapterParagraphPreviews('')).toEqual([]);
+    expect(getChapterParagraphPreviews('   ')).toEqual([]);
   });
 });
