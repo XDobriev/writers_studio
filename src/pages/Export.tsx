@@ -8,6 +8,7 @@ import {
   useBook,
   useBookContentCounts,
   useChapters,
+  useCharacters,
   useConnections,
   useLocations,
   useNotes,
@@ -20,6 +21,7 @@ import { UpgradePrompt } from '../components/UpgradePrompt';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { ToggleRow } from '../components/ToggleRow';
 import { Icon } from '../components/Icon';
+import { BookExportPreview } from '../components/BookExportPreview';
 import { isImageUrl } from '../components/CoverPicker';
 import { updateBook } from '../lib/books';
 import { listChapters } from '../lib/chapters';
@@ -66,9 +68,11 @@ export default function Export() {
   const { data: profile } = useProfile(user?.id);
   const limits = getPlanLimits(profile);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [viewTab, setViewTab] = useState<'settings' | 'preview'>('settings');
 
   const { data: book, error: bookError } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
+  const { data: characters = [] } = useCharacters(bookId);
   const { data: notes = [] } = useNotes(bookId);
   const { data: mapLocations = [] } = useLocations(bookId);
   const { data: mapConnections = [] } = useConnections(bookId);
@@ -84,7 +88,6 @@ export default function Export() {
   const authorInitial = useRef<string | null>(null);
 
   const [format, setFormat] = useState<Format>('epub');
-  const formatDefaulted = useRef(false);
   const [doneOnly, setDoneOnly] = useState(false);
   const [includeChapterTitles, setIncludeChapterTitles] = useState(true);
   const [includeTitlePage, setIncludeTitlePage] = useState(true);
@@ -104,12 +107,6 @@ export default function Export() {
 
   const closeLang = useCallback(() => setLangOpen(false), []);
   useEscapeToClose(langOpen, closeLang);
-
-  useEffect(() => {
-    if (formatDefaulted.current || profile === undefined) return;
-    formatDefaulted.current = true;
-    if (!limits.canExportRich) setFormat('html');
-  }, [profile, limits.canExportRich]);
 
   useEffect(() => {
     if (!book || authorInitial.current !== null) return;
@@ -144,14 +141,17 @@ export default function Export() {
   }, [book, seriesList]);
 
   const hasMapContent = !!(book?.map_bg_url || mapLocations.some((l) => l.x != null));
-  const characterCount = counts?.characters ?? 0;
+  const characterCount = counts?.characters ?? characters.length;
   const locationCount = mapLocations.length;
   const chapterNotesCount = notes.filter((n) => n.chapter_id).length;
   const bookNotesCount = notes.length - chapterNotesCount;
 
+  const isProFormat = PRO_FORMATS.includes(format);
+  const isProLocked = !limits.canExportRich && isProFormat;
+
   const onDownload = useCallback(async () => {
     if (!book || !bookId) return;
-    if (!limits.canExportRich && PRO_FORMATS.includes(format)) {
+    if (isProLocked) {
       setShowUpgrade(true);
       return;
     }
@@ -171,7 +171,7 @@ export default function Export() {
     const bookWithAuthor: Book = { ...book, author: trimmedAuthor || book.author };
     const selectedIds = new Set(selectedChapters.map((c) => c.id));
     try {
-      const [full, characters] = await Promise.all([
+      const [full, charactersList] = await Promise.all([
         listChapters(bookId),
         includeCharacters && characterCount > 0 ? listAllCharacters(bookId) : Promise.resolve([]),
       ]);
@@ -181,7 +181,7 @@ export default function Export() {
 
       const appendices: Appendix[] = [];
       if (includeCharacters) {
-        const a = buildCharactersAppendix(characters);
+        const a = buildCharactersAppendix(charactersList);
         if (a) appendices.push(a);
       }
       if (includeLocations) {
@@ -261,7 +261,7 @@ export default function Export() {
       } catch { /* silent */ }
     }
     setBusy(false);
-  }, [book, bookId, authorName, selectedChapters, format, limits, includeChapterTitles, includeTitlePage,
+  }, [book, bookId, authorName, selectedChapters, format, isProLocked, includeChapterTitles, includeTitlePage,
       includeNotes, notes, language, paragraphStyle, filename, includeMap, hasMapContent, mapLocations, mapConnections,
       mapStamps, includeCharacters, includeLocations, characterCount, series,
       pdfPageSize, setError, clearError, user, profile?.first_export_at, queryClient]);
@@ -286,277 +286,337 @@ export default function Export() {
   }
 
   const doneCnt = chapters.filter((c) => c.status === 'done').length;
-  const downloadLabel = busy ? 'Генерация…'
-    : format === 'pdf' ? 'Открыть PDF'
+  const downloadLabel = busy
+    ? 'Генерация…'
+    : isProLocked
+    ? 'Скачать (Pro)'
+    : format === 'pdf'
+    ? 'Открыть PDF'
     : `Скачать ${FORMAT_MAIN.find((f) => f.value === format)?.label ?? format.toUpperCase()}`;
 
   return (
-    <div className="as" style={{ minHeight: '100vh', background: 'var(--bg-void)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ width: 680, maxWidth: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
+    <div className="as" style={{ minHeight: '100vh', background: 'var(--bg-void)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+      <div className="export-dialog" style={{ maxWidth: 'min(1100px, calc(100vw - 32px))' }}>
 
         {/* Header */}
-        <div style={{ padding: '22px 28px 18px', borderBottom: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ minWidth: 0 }}>
+        <div style={{ padding: '18px 24px 16px', borderBottom: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 4 }}>Экспорт книги</div>
-            <h2 style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em', color: 'var(--ink)', overflowWrap: 'anywhere' }}>
+            <h2 style={{ font: '600 20px var(--font-serif)', letterSpacing: '-0.01em', color: 'var(--ink)', overflowWrap: 'anywhere' }}>
               {book.title} · {totalWords.toLocaleString('ru-RU')} {plural(totalWords, 'слово', 'слова', 'слов')}
             </h2>
           </div>
+
+          {/* View switcher tabs for narrow screens */}
+          <div className="export-view-tabs" role="tablist" aria-label="Вид экспорта">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewTab === 'settings'}
+              onClick={() => setViewTab('settings')}
+              className={`export-view-tab ${viewTab === 'settings' ? 'export-view-tab--active' : ''}`}
+            >
+              Параметры
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewTab === 'preview'}
+              onClick={() => setViewTab('preview')}
+              className={`export-view-tab ${viewTab === 'preview' ? 'export-view-tab--active' : ''}`}
+            >
+              Предпросмотр
+            </button>
+          </div>
+
           <button type="button" onClick={close} aria-label="Закрыть" title="Закрыть" className="icon-close-btn icon-close-btn--round">×</button>
         </div>
 
-        <div style={{ padding: '20px 28px 8px' }}>
+        {/* Responsive Layout: Settings Col + Preview Col */}
+        <div className="export-layout" data-view={viewTab}>
 
-          {/* Main format cards */}
-          <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Формат</div>
-          <div className="export-fmt-grid">
-            {FORMAT_MAIN.map((o) => {
-              const active = o.value === format;
-              const locked = !limits.canExportRich;
-              return (
-                <button
-                  key={o.value}
-                  type="button"
-                  onClick={() => locked ? setShowUpgrade(true) : setFormat(o.value)}
-                  aria-pressed={active}
-                  className="export-fmt-card"
-                  style={{
-                    padding: '14px 16px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
-                    border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
-                    position: 'relative', overflow: 'hidden',
-                  }}
-                >
-                  {locked && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'oklch(0 0 0 / 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 10 }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.95 0 0 / 0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                      </svg>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <span style={{ width: 14, height: 14, borderRadius: 999, border: '1.5px solid ' + (active ? 'var(--accent)' : 'var(--border-strong)'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      {active && <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />}
-                    </span>
-                    <span style={{ font: '500 14px var(--font-serif)', color: 'var(--ink)' }}>{o.label}</span>
-                  </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.4 }}>{o.desc}</div>
-                </button>
-              );
-            })}
-          </div>
+          {/* Left Column: Settings */}
+          <div className="export-settings-col">
 
-          {/* Text formats strip */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--border-soft)' }}>
-            {FORMAT_TEXT.map((o) => {
-              const active = o.value === format;
-              return (
-                <button
-                  key={o.value}
-                  type="button"
-                  onClick={() => setFormat(o.value)}
-                  aria-pressed={active}
-                  className="export-fmt-btn"
-                  style={{
-                    padding: '4px 12px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
-                    border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
-                    color: active ? 'var(--ink)' : 'var(--ink-3)',
-                    font: '500 12px var(--font-mono)',
-                  }}
-                >
-                  {o.label}
-                </button>
-              );
-            })}
-            <span style={{ fontSize: 11, color: 'var(--ink-4)', alignSelf: 'center', marginLeft: 4, whiteSpace: 'nowrap' }}>
-              {FORMAT_TEXT.find(f => f.value === format)?.desc ?? 'текстовые форматы'}
-            </span>
-          </div>
-
-          {/* Metadata */}
-          <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Метаданные</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-            <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
-              <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Название</div>
-              <div style={{ fontSize: 13.5, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{book.title}</div>
-            </div>
-            <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
-              <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Автор</div>
-              <input
-                aria-label="Автор"
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                placeholder="Имя автора…"
-                style={{ background: 'none', border: 'none', padding: 0, margin: 0, fontSize: 13.5, color: 'var(--ink)', width: '100%', outline: 'none', fontFamily: 'inherit' }}
-              />
-            </div>
-            <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
-              <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Жанр</div>
-              <div style={{ fontSize: 13.5, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{(book.genres?.length ? book.genres.join(', ') : book.genre) || '—'}</div>
-            </div>
-            <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
-              <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Язык</div>
-              <button
-                ref={langBtnRef}
-                type="button"
-                aria-haspopup="listbox"
-                aria-expanded={langOpen}
-                aria-label="Язык документа"
-                onClick={() => {
-                  if (langOpen) { setLangOpen(false); return; }
-                  const r = langBtnRef.current!.getBoundingClientRect();
-                  setLangPos({ top: r.bottom + 4, left: r.left, width: r.width });
-                  setLangOpen(true);
-                }}
-                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', width: '100%', textAlign: 'left', fontSize: 13.5, color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'inherit', outline: 'none' }}
-              >
-                <span>{LANGUAGES.find(l => l.value === language)?.label}</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--ink-3)', flexShrink: 0 }}>
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Toggles */}
-          <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Включить</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 12 }}>
-            <ToggleRow
-              label={`Все ${chapters.length} ${plural(chapters.length, 'глава', 'главы', 'глав')} (готовых: ${doneCnt} из ${chapters.length})`}
-              hint={doneOnly ? `— только готовые (${doneCnt})` : undefined}
-              isOn={!doneOnly}
-              onChange={(v) => setDoneOnly(!v)}
-            />
-            <ToggleRow
-              label="Титульная страница и оглавление"
-              isOn={includeTitlePage}
-              onChange={setIncludeTitlePage}
-            />
-            <ToggleRow
-              label="Заголовки глав внутри документа"
-              isOn={includeChapterTitles}
-              onChange={setIncludeChapterTitles}
-            />
-            <ToggleRow
-              label="Примечания автора в конце глав"
-              hint={notes.length
-                ? `— ${chapterNotesCount} к главам${bookNotesCount ? `, ${bookNotesCount} общих — отдельным разделом` : ''}`
-                : '— нет заметок'}
-              isOn={includeNotes && notes.length > 0}
-              onChange={(v) => notes.length > 0 && setIncludeNotes(v)}
-              isDisabled={notes.length === 0}
-            />
-            <ToggleRow
-              label="Действующие лица в конце книги"
-              hint={characterCount ? `— ${characterCount} ${plural(characterCount, 'персонаж', 'персонажа', 'персонажей')}` : '— нет персонажей'}
-              isOn={includeCharacters && characterCount > 0}
-              onChange={(v) => characterCount > 0 && setIncludeCharacters(v)}
-              isDisabled={characterCount === 0}
-            />
-            <ToggleRow
-              label="Локации в конце книги"
-              hint={locationCount ? `— ${locationCount} ${plural(locationCount, 'локация', 'локации', 'локаций')}` : '— нет локаций'}
-              isOn={includeLocations && locationCount > 0}
-              onChange={(v) => locationCount > 0 && setIncludeLocations(v)}
-              isDisabled={locationCount === 0}
-              isLast={format === 'pdf'}
-            />
-            {format !== 'pdf' && (
-              <ToggleRow
-                label="Карта мира отдельной страницей"
-                hint={!LAYOUT_FORMATS.includes(format) ? '— недоступно для текстовых форматов' : !hasMapContent ? '— карта не заполнена' : undefined}
-                isOn={includeMap && hasMapContent && LAYOUT_FORMATS.includes(format)}
-                onChange={(v) => hasMapContent && LAYOUT_FORMATS.includes(format) && setIncludeMap(v)}
-                isDisabled={!hasMapContent || !LAYOUT_FORMATS.includes(format)}
-                isLast
-              />
-            )}
-          </div>
-
-          {/* PDF page settings */}
-          {format === 'pdf' && (
-            <div style={{ paddingTop: 16, marginBottom: 4 }}>
-              <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Страница</div>
-
-              <div style={{ display: 'flex', gap: 7, marginBottom: 12 }}>
-                {(['a5', 'a4'] as PdfPageSize[]).map((size) => {
-                  const active = pdfPageSize === size;
-                  const labels: Record<PdfPageSize, { name: string; sub: string }> = {
-                    a5: { name: 'A5 — Книга', sub: '148 × 210 мм · самиздат' },
-                    a4: { name: 'A4 — Рукопись', sub: '210 × 297 мм · редактор' },
-                  };
-                  return (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => setPdfPageSize(size)}
-                      aria-pressed={active}
-                      style={{
-                        flex: 1, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                        border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
-                        background: 'var(--surface)',
-                      }}
-                    >
-                      <div style={{ fontSize: 12.5, fontWeight: 500, color: active ? 'var(--ink)' : 'var(--ink-2)', marginBottom: 2 }}>
-                        {labels[size].name}
+            {/* Main format cards */}
+            <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Формат</div>
+            <div className="export-fmt-grid">
+              {FORMAT_MAIN.map((o) => {
+                const active = o.value === format;
+                const isPro = PRO_FORMATS.includes(o.value);
+                const showProBadge = !limits.canExportRich && isPro;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => setFormat(o.value)}
+                    aria-pressed={active}
+                    className="export-fmt-card"
+                    style={{
+                      padding: '12px 14px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
+                      border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
+                      position: 'relative', overflow: 'hidden',
+                      background: active ? 'var(--accent-soft)' : undefined,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ width: 14, height: 14, borderRadius: 999, border: '1.5px solid ' + (active ? 'var(--accent)' : 'var(--border-strong)'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {active && <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />}
+                        </span>
+                        <span style={{ font: '500 14px var(--font-serif)', color: 'var(--ink)' }}>{o.label}</span>
                       </div>
-                      <div style={{ fontSize: 10.5, color: 'var(--ink-4)' }}>{labels[size].sub}</div>
-                    </button>
-                  );
-                })}
-              </div>
+                      {showProBadge && (
+                        <span
+                          className="chip chip--accent chip--sm"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 500 }}
+                          title="Формат доступен на тарифе Pro"
+                        >
+                          <Icon name="lock" size={10} />
+                          <span>Pro</span>
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.4 }}>{o.desc}</div>
+                  </button>
+                );
+              })}
+            </div>
 
-              <div style={{
-                display: 'flex', gap: 8, alignItems: 'flex-start',
-                background: 'var(--surface)', border: '1px solid var(--border-soft)',
-                borderRadius: 8, padding: '10px 14px',
-              }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 5 }} />
-                <span style={{ fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.6 }}>
-                  PDF откроется в диалоге браузера. Выбери «Сохранить как PDF». Для наилучшего результата используй Chrome или Edge.
-                </span>
+            {/* Text formats strip */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border-soft)' }}>
+              {FORMAT_TEXT.map((o) => {
+                const active = o.value === format;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => setFormat(o.value)}
+                    aria-pressed={active}
+                    className="export-fmt-btn"
+                    style={{
+                      padding: '4px 12px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
+                      border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
+                      color: active ? 'var(--ink)' : 'var(--ink-3)',
+                      font: '500 12px var(--font-mono)',
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+              <span style={{ fontSize: 11, color: 'var(--ink-4)', alignSelf: 'center', marginLeft: 4, whiteSpace: 'nowrap' }}>
+                {FORMAT_TEXT.find(f => f.value === format)?.desc ?? 'текстовые форматы'}
+              </span>
+            </div>
+
+            {/* Metadata */}
+            <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Метаданные</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+              <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
+                <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Название</div>
+                <div style={{ fontSize: 13.5, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{book.title}</div>
+              </div>
+              <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
+                <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Автор</div>
+                <input
+                  aria-label="Автор"
+                  value={authorName}
+                  onChange={(e) => setAuthorName(e.target.value)}
+                  placeholder="Имя автора…"
+                  style={{ background: 'none', border: 'none', padding: 0, margin: 0, fontSize: 13.5, color: 'var(--ink)', width: '100%', outline: 'none', fontFamily: 'inherit' }}
+                />
+              </div>
+              <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
+                <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Жанр</div>
+                <div style={{ fontSize: 13.5, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{(book.genres?.length ? book.genres.join(', ') : book.genre) || '—'}</div>
+              </div>
+              <div style={{ padding: '10px 12px', background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8 }}>
+                <div style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Язык</div>
+                <button
+                  ref={langBtnRef}
+                  type="button"
+                  aria-haspopup="listbox"
+                  aria-expanded={langOpen}
+                  aria-label="Язык документа"
+                  onClick={() => {
+                    if (langOpen) { setLangOpen(false); return; }
+                    const r = langBtnRef.current!.getBoundingClientRect();
+                    setLangPos({ top: r.bottom + 4, left: r.left, width: r.width });
+                    setLangOpen(true);
+                  }}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', width: '100%', textAlign: 'left', fontSize: 13.5, color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'inherit', outline: 'none' }}
+                >
+                  <span>{LANGUAGES.find(l => l.value === language)?.label}</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--ink-3)', flexShrink: 0 }}>
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
               </div>
             </div>
-          )}
 
-          {/* Paragraph style — rich formats only */}
-          {LAYOUT_FORMATS.includes(format) && (
-            <div style={{ paddingTop: 16, marginBottom: 4 }}>
-              <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Абзацы</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {([
-                  { value: 'indent' as ParagraphStyle, label: 'Книжный', hint: 'красная строка, без интервала' },
-                  { value: 'spacing' as ParagraphStyle, label: 'Цифровой', hint: 'интервал между абзацами' },
-                  { value: 'both' as ParagraphStyle, label: 'Смешанный', hint: 'красная строка + интервал' },
-                ]).map((s) => {
-                  const active = paragraphStyle === s.value;
-                  return (
-                    <button
-                      key={s.value}
-                      type="button"
-                      onClick={() => { setParagraphStyle(s.value); localStorage.setItem('export-paragraph-style', s.value); }}
-                      aria-pressed={active}
-                      className="export-fmt-card"
-                      style={{
-                        padding: '6px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                        border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
-                      }}
-                    >
-                      <div style={{ font: '500 12.5px var(--font-ui)', color: active ? 'var(--ink)' : 'var(--ink-2)' }}>{s.label}</div>
-                      <div style={{ fontSize: 10.5, color: 'var(--ink-4)', marginTop: 1 }}>{s.hint}</div>
-                    </button>
-                  );
-                })}
-              </div>
-              {format === 'fb2' && (
-                <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 8 }}>
-                  Для FB2 стиль абзацев задаётся настройками читалки, не документом
-                </div>
+            {/* Toggles */}
+            <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Включить</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 12 }}>
+              <ToggleRow
+                label={`Все ${chapters.length} ${plural(chapters.length, 'глава', 'главы', 'глав')} (готовых: ${doneCnt} из ${chapters.length})`}
+                hint={doneOnly ? `— только готовые (${doneCnt})` : undefined}
+                isOn={!doneOnly}
+                onChange={(v) => setDoneOnly(!v)}
+              />
+              <ToggleRow
+                label="Титульная страница и оглавление"
+                isOn={includeTitlePage}
+                onChange={setIncludeTitlePage}
+              />
+              <ToggleRow
+                label="Заголовки глав внутри документа"
+                isOn={includeChapterTitles}
+                onChange={setIncludeChapterTitles}
+              />
+              <ToggleRow
+                label="Примечания автора в конце глав"
+                hint={notes.length
+                  ? `— ${chapterNotesCount} к главам${bookNotesCount ? `, ${bookNotesCount} общих — отдельным разделом` : ''}`
+                  : '— нет заметок'}
+                isOn={includeNotes && notes.length > 0}
+                onChange={(v) => notes.length > 0 && setIncludeNotes(v)}
+                isDisabled={notes.length === 0}
+              />
+              <ToggleRow
+                label="Действующие лица в конце книги"
+                hint={characterCount ? `— ${characterCount} ${plural(characterCount, 'персонаж', 'персонажа', 'персонажей')}` : '— нет персонажей'}
+                isOn={includeCharacters && characterCount > 0}
+                onChange={(v) => characterCount > 0 && setIncludeCharacters(v)}
+                isDisabled={characterCount === 0}
+              />
+              <ToggleRow
+                label="Локации в конце книги"
+                hint={locationCount ? `— ${locationCount} ${plural(locationCount, 'локация', 'локации', 'локаций')}` : '— нет локаций'}
+                isOn={includeLocations && locationCount > 0}
+                onChange={(v) => locationCount > 0 && setIncludeLocations(v)}
+                isDisabled={locationCount === 0}
+                isLast={format === 'pdf'}
+              />
+              {format !== 'pdf' && (
+                <ToggleRow
+                  label="Карта мира отдельной страницей"
+                  hint={!LAYOUT_FORMATS.includes(format) ? '— недоступно для текстовых форматов' : !hasMapContent ? '— карта не заполнена' : undefined}
+                  isOn={includeMap && hasMapContent && LAYOUT_FORMATS.includes(format)}
+                  onChange={(v) => hasMapContent && LAYOUT_FORMATS.includes(format) && setIncludeMap(v)}
+                  isDisabled={!hasMapContent || !LAYOUT_FORMATS.includes(format)}
+                  isLast
+                />
               )}
             </div>
-          )}
 
-          {error && <ErrorBanner message={error} onDismiss={clearError} size="sm" style={{ marginBottom: 8 }} />}
+            {/* PDF page settings */}
+            {format === 'pdf' && (
+              <div style={{ paddingTop: 16, marginBottom: 4 }}>
+                <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Страница</div>
+
+                <div style={{ display: 'flex', gap: 7, marginBottom: 12 }}>
+                  {(['a5', 'a4'] as PdfPageSize[]).map((size) => {
+                    const active = pdfPageSize === size;
+                    const labels: Record<PdfPageSize, { name: string; sub: string }> = {
+                      a5: { name: 'A5 — Книга', sub: '148 × 210 мм · самиздат' },
+                      a4: { name: 'A4 — Рукопись', sub: '210 × 297 мм · редактор' },
+                    };
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setPdfPageSize(size)}
+                        aria-pressed={active}
+                        style={{
+                          flex: 1, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                          border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
+                          background: 'var(--surface)',
+                        }}
+                      >
+                        <div style={{ fontSize: 12.5, fontWeight: 500, color: active ? 'var(--ink)' : 'var(--ink-2)', marginBottom: 2 }}>
+                          {labels[size].name}
+                        </div>
+                        <div style={{ fontSize: 10.5, color: 'var(--ink-4)' }}>{labels[size].sub}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{
+                  display: 'flex', gap: 8, alignItems: 'flex-start',
+                  background: 'var(--surface)', border: '1px solid var(--border-soft)',
+                  borderRadius: 8, padding: '10px 14px',
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 5 }} />
+                  <span style={{ fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.6 }}>
+                    PDF откроется в диалоге браузера. Выбери «Сохранить как PDF». Для наилучшего результата используй Chrome или Edge.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Paragraph style — rich formats only */}
+            {LAYOUT_FORMATS.includes(format) && (
+              <div style={{ paddingTop: 16, marginBottom: 4 }}>
+                <div style={{ font: '500 10.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Абзацы</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {([
+                    { value: 'indent' as ParagraphStyle, label: 'Книжный', hint: 'красная строка, без интервала' },
+                    { value: 'spacing' as ParagraphStyle, label: 'Цифровой', hint: 'интервал между абзацами' },
+                    { value: 'both' as ParagraphStyle, label: 'Смешанный', hint: 'красная строка + интервал' },
+                  ]).map((s) => {
+                    const active = paragraphStyle === s.value;
+                    return (
+                      <button
+                        key={s.value}
+                        type="button"
+                        onClick={() => { setParagraphStyle(s.value); localStorage.setItem('export-paragraph-style', s.value); }}
+                        aria-pressed={active}
+                        className="export-fmt-card"
+                        style={{
+                          padding: '6px 14px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                          border: active ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
+                        }}
+                      >
+                        <div style={{ font: '500 12.5px var(--font-ui)', color: active ? 'var(--ink)' : 'var(--ink-2)' }}>{s.label}</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--ink-4)', marginTop: 1 }}>{s.hint}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {format === 'fb2' && (
+                  <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 8 }}>
+                    Для FB2 стиль абзацев задаётся настройками читалки, не документом
+                  </div>
+                )}
+              </div>
+            )}
+
+            {error && <ErrorBanner message={error} onDismiss={clearError} size="sm" style={{ marginBottom: 8 }} />}
+          </div>
+
+          {/* Right Column: Interactive Book Preview */}
+          <div className="export-preview-col">
+            <BookExportPreview
+              book={book}
+              authorName={authorName}
+              format={format}
+              paragraphStyle={paragraphStyle}
+              pdfPageSize={pdfPageSize}
+              selectedChapters={selectedChapters}
+              includeTitlePage={includeTitlePage}
+              includeChapterTitles={includeChapterTitles}
+              includeCharacters={includeCharacters}
+              includeLocations={includeLocations}
+              includeMap={includeMap}
+              characters={characters}
+              locations={mapLocations}
+              hasMapContent={hasMapContent}
+              series={series}
+            />
+          </div>
+
         </div>
 
         {/* Footer */}
@@ -579,7 +639,8 @@ export default function Export() {
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
               {busy && <span className="btn-spinner" />}
-              {!busy && <Icon name="download" size={14} />}
+              {!busy && isProLocked && <Icon name="lock" size={14} />}
+              {!busy && !isProLocked && <Icon name="download" size={14} />}
               {downloadLabel}
             </button>
           </div>
