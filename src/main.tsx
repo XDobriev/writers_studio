@@ -24,7 +24,9 @@ import { MotionConfig } from 'framer-motion';
 import { startMonitoring } from './lib/monitoring';
 import { reloadOnceForChunkError } from './lib/chunkReload';
 import { initAnalyticsIfConsented } from './lib/analytics';
+import { captureTelegramCallback } from './lib/telegramCallback';
 
+captureTelegramCallback();
 startMonitoring();
 
 // Vite не смог подгрузить чанк/CSS динамического import() (обычно — вкладка открыта

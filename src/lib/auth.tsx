@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { stopAmbientSound } from './ambientSound';
+import type { TelegramAuthData } from '../../supabase/functions/_shared/telegramAuth';
 
 const SUPABASE_ERRORS: Record<string, string> = {
   'Invalid login credentials': 'Неверная почта или пароль. Проверьте раскладку и регистр.',
@@ -18,16 +19,6 @@ const SUPABASE_ERRORS: Record<string, string> = {
 
 export function translateAuthError(msg: string): string {
   return SUPABASE_ERRORS[msg] ?? msg;
-}
-
-export interface TelegramAuthData {
-  id: number;
-  first_name?: string;
-  last_name?: string;
-  username?: string;
-  photo_url?: string;
-  auth_date: number;
-  hash: string;
 }
 
 interface AuthContextValue {

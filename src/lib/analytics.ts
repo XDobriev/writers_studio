@@ -23,9 +23,11 @@ declare global {
 let started = false;
 let lastUrl: string | null = null;
 
-// Токен /share/<token> — ключ доступа к книге: в Метрику (и в отчёты о реферерах) не уходит.
+// Ключ книги и одноразовый state входа не уходят в Метрику и referer.
 function pageUrl(): string {
-  return location.href.replace(/\/share\/[^/?#]+/, '/share/[token]');
+  const url = new URL(location.href.replace(/\/share\/[^/?#]+/, '/share/[token]'));
+  url.searchParams.delete('tg_state');
+  return url.href;
 }
 
 // init считает только первую страницу; переходы внутри SPA Метрика сама не видит.

@@ -13,13 +13,12 @@ import { onTablistKeyDown } from '../lib/tablistKeys';
 type Tab = 'signin' | 'signup';
 type Flow = 'auth' | 'reset-request' | 'reset-sent';
 
-export function AuthForm() {
+export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<typeof useTelegramAuth> }) {
   const location = useLocation();
   const { signIn, signUp, resetPasswordForEmail } = useAuth();
   const { data: registrationOpen = true } = useRegistrationOpen();
   const { error: formErr, setError: setFormErr, clearError: clearFormErr } = useErrorState();
 
-  const tgAuth = useTelegramAuth();
   const vkAuth = useVkAuth();
 
   const [tab, setTab] = useState<Tab>(() =>

@@ -36,4 +36,14 @@ describe('Метрика: просмотры страниц в SPA', async () =>
     expect(last[2]).toBe('https://avtorstudio.com/share/[token]');
     expect(JSON.stringify(calls)).not.toContain('abc123secret');
   });
+
+  it('временный Telegram state не попадает в hit и referer', () => {
+    history.pushState({}, '', '/login?plan=pro&tg_state=secret-login-state');
+    trackPageView();
+    expect(calls[calls.length - 1][2]).toBe('https://avtorstudio.com/login?plan=pro');
+    history.pushState({}, '', '/books');
+    trackPageView();
+    expect(calls[calls.length - 1][3]).toEqual({ referer: 'https://avtorstudio.com/login?plan=pro' });
+    expect(JSON.stringify(calls)).not.toContain('secret-login-state');
+  });
 });
