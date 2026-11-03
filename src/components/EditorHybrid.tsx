@@ -437,6 +437,8 @@ export function EditorHybrid({
             todayWords={writingStats.todayWords}
             goalWords={book?.daily_goal ?? 1000}
             streak={writingStats.streak}
+            bookTitle={book?.title}
+            totalWords={chapters?.reduce((sum, c) => sum + (c.words ?? 0), 0)}
             onGoalChange={onGoalChange}
             focusMode={focusMode}
             onToggleFocusMode={() => setFocusMode(f => !f)}
