@@ -4,6 +4,7 @@ import { useResponsive } from '../lib/useResponsive';
 import { useDropdownPosition } from '../lib/useDropdownPosition';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
 import { AmbientSoundControl } from './AmbientSoundControl';
+import { ShareProgressModal } from './ShareProgressModal';
 import { EDITOR_FONTS, getStoredEditorFont, applyEditorFont, EDITOR_FONT_EVENT, type EditorFontId } from '../lib/editorFont';
 
 interface StatusBarProps {
@@ -15,12 +16,15 @@ interface StatusBarProps {
   todayWords?: number;
   goalWords?: number;
   streak?: number;
+  bookTitle?: string;
+  totalWords?: number;
   onGoalChange?: (goal: number) => void;
   focusMode?: boolean;
   onToggleFocusMode?: () => void;
 }
 
-export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, saveState, todayWords, goalWords = 1000, streak, onGoalChange, focusMode, onToggleFocusMode }: StatusBarProps) {
+export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, saveState, todayWords, goalWords = 1000, streak, bookTitle, totalWords, onGoalChange, focusMode, onToggleFocusMode }: StatusBarProps) {
+  const [shareOpen, setShareOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
   const { isNarrow } = useResponsive();
@@ -144,6 +148,24 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
           )}
         </>
       )}
+      {todayWords !== undefined && (
+        <button
+          type="button"
+          onClick={() => setShareOpen(true)}
+          title="Поделиться прогрессом (карточка для соцсетей)"
+          aria-label="Поделиться прогрессом"
+          className="status-icon-btn"
+          style={{ color: 'var(--ink-3)' }}
+        >
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', flexShrink: 0 }}>
+            <circle cx="18" cy="5" r="3"/>
+            <circle cx="6" cy="12" r="3"/>
+            <circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+        </button>
+      )}
       {!isNarrow && onToggleFocusMode && (
         <button
           onClick={onToggleFocusMode}
@@ -223,6 +245,17 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
         background: 'linear-gradient(to right, transparent, var(--bg-deep))',
       }} />
     )}
+      <ShareProgressModal
+        isOpen={shareOpen}
+        onClose={() => setShareOpen(false)}
+        data={{
+          bookTitle,
+          todayWords: todayWords ?? 0,
+          streak,
+          totalWords: totalWords ?? words,
+          goalWords,
+        }}
+      />
     </div>
   );
 }
