@@ -385,7 +385,13 @@ export function useRecoveredChapterContent(
       void createVersion(chapterId, userId, html, countWords(html), 'manual',
         `Несохранённый черновик · ${timeLabel(new Date(decision.draft.savedAt))}`)
         .then(() => {
-          clearDraft(chapterId);
+          const currentDraft = readDraft(chapterId);
+          if (currentDraft
+            && currentDraft.content === decision.draft.content
+            && currentDraft.base === decision.draft.base
+            && currentDraft.savedAt === decision.draft.savedAt) {
+            clearDraft(chapterId);
+          }
           void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterVersions(chapterId) });
           setNotice('Найден несохранённый текст, но глава с тех пор менялась. Он сохранён в «Версиях» главы.');
         })

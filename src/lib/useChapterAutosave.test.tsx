@@ -30,7 +30,7 @@ vi.mock('./crossrefs', () => ({
   syncBacklinks: () => Promise.resolve(),
 }));
 
-import { useChapterAutosave, type ChapterAutosave } from './useChapterAutosave';
+import { useChapterAutosave, useRecoveredChapterContent, type ChapterAutosave } from './useChapterAutosave';
 import { decideDraft, readDraft, writeDraft } from './chapterDrafts';
 import { QUERY_KEYS } from './queries';
 
@@ -76,6 +76,48 @@ describe('decideDraft', () => {
     expect(decideDraft({ content: 'b', base: 'v1', savedAt: 1 }, 'a', 'v1').kind).toBe('restore');
     expect(decideDraft({ content: 'b', base: 'v1', savedAt: 1 }, 'a', 'v2').kind).toBe('conflict');
     expect(decideDraft({ content: 'b', base: null, savedAt: 1 }, 'a', 'v1').kind).toBe('conflict');
+  });
+});
+
+describe('useRecoveredChapterContent', () => {
+  function RecoveryHarness() {
+    useRecoveredChapterContent(
+      'c1', { id: 'c1', content: '<p>серверный текст</p>' }, 'v2', api,
+      { userId: 'u1', isPro: true },
+    );
+    return null;
+  }
+
+  it('позднее архивирование конфликтующего черновика сохраняет новый локальный черновик', async () => {
+    let release!: () => void;
+    createVersion.mockImplementationOnce(() => new Promise<void>((resolve) => { release = resolve; }));
+    writeDraft('c1', '<p>старый черновик</p>', 'v1');
+    act(() => {
+      root.render(createElement(QueryClientProvider, { client: qc }, createElement(RecoveryHarness)));
+    });
+    expect(createVersion).toHaveBeenCalledExactlyOnceWith(
+      'c1', 'u1', '<p>старый черновик</p>', 2, 'manual', expect.stringContaining('Несохранённый черновик'),
+    );
+    writeDraft('c1', '<p>новый черновик</p>', 'v2');
+    const newDraft = readDraft('c1');
+
+    await act(async () => { release(); });
+
+    expect(readDraft('c1')).toEqual(newDraft);
+    expect(readDraft('c1')?.content).toBe('<p>новый черновик</p>');
+  });
+
+  it('архивирует и удаляет прежний конфликтующий черновик, если он не изменился', async () => {
+    writeDraft('c1', '<p>старый черновик</p>', 'v1');
+
+    await act(async () => {
+      root.render(createElement(QueryClientProvider, { client: qc }, createElement(RecoveryHarness)));
+    });
+
+    expect(createVersion).toHaveBeenCalledExactlyOnceWith(
+      'c1', 'u1', '<p>старый черновик</p>', 2, 'manual', expect.stringContaining('Несохранённый черновик'),
+    );
+    expect(readDraft('c1')).toBeNull();
   });
 });
 
