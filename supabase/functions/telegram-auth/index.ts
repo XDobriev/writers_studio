@@ -8,40 +8,9 @@
 // поиск существующего пользователя — RPC find_auth_user_by_email (без лимита 1000).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { timingSafeEqual } from '../_shared/crypto.ts';
+import { isTelegramAuthData, isTelegramAuthDateValid, verifyTelegramSignature } from '../_shared/telegramAuth.ts';
 import { corsHeaders, json } from '../_shared/http.ts';
 import { findUserByEmail, isEmailSquatter, isRegistrationOpen, releaseSquattedEmail } from '../_shared/authUsers.ts';
-
-interface TelegramAuthData {
-  id: number;
-  first_name?: string;
-  last_name?: string;
-  username?: string;
-  photo_url?: string;
-  auth_date: number;
-  hash: string;
-}
-
-const MAX_AGE_SEC = 15 * 60;
-const MAX_FUTURE_SKEW_SEC = 60;
-
-function toHex(buf: ArrayBuffer): string {
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function verifyTelegramSignature(data: TelegramAuthData, botToken: string): Promise<boolean> {
-  const { hash, ...rest } = data;
-  const dataCheckString = Object.keys(rest)
-    .sort()
-    .map((k) => `${k}=${(rest as Record<string, unknown>)[k]}`)
-    .join('\n');
-
-  const enc = new TextEncoder();
-  const secretKey = await crypto.subtle.digest('SHA-256', enc.encode(botToken));
-  const key = await crypto.subtle.importKey('raw', secretKey, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(dataCheckString));
-  return timingSafeEqual(toHex(sig), String(hash).toLowerCase());
-}
 
 Deno.serve(async (req) => {
   const cors = corsHeaders(req);
@@ -56,19 +25,18 @@ Deno.serve(async (req) => {
     return json(500, { error: 'server misconfigured' }, cors);
   }
 
-  let data: TelegramAuthData;
+  let data: unknown;
   try {
     data = await req.json();
   } catch {
     return json(400, { error: 'invalid json' }, cors);
   }
 
-  if (!data?.id || !data.hash || !data.auth_date || !Number.isInteger(Number(data.id))) {
+  if (!isTelegramAuthData(data)) {
     return json(400, { error: 'missing required fields' }, cors);
   }
 
-  const ageSec = Math.floor(Date.now() / 1000) - Number(data.auth_date);
-  if (!Number.isFinite(ageSec) || ageSec > MAX_AGE_SEC || ageSec < -MAX_FUTURE_SKEW_SEC) {
+  if (!isTelegramAuthDateValid(data)) {
     return json(401, { error: 'auth_date expired' }, cors);
   }
 

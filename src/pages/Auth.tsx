@@ -1,13 +1,15 @@
 import { Link } from 'react-router-dom';
 import { useResponsive } from '../lib/useResponsive';
 import { usePostAuthRedirect } from '../lib/usePostAuthRedirect';
+import { useTelegramAuth } from '../lib/useTelegramAuth';
 import { usePageMeta } from '../lib/usePageMeta';
 import { LogoMark } from '../components/LogoMark';
 import { AuthForm } from '../components/AuthForm';
 import { PendingCheckoutPanel } from '../components/PendingCheckoutPanel';
 
 export default function Auth() {
-  const { redirectingToPay, pendingCheckout, confirmCheckout, cancelCheckout } = usePostAuthRedirect();
+  const tgAuth = useTelegramAuth();
+  const { redirectingToPay, pendingCheckout, confirmCheckout, cancelCheckout } = usePostAuthRedirect(tgAuth.busy);
   const { isMobile } = useResponsive();
   usePageMeta({
     title: 'Вход — Авторская студия',
@@ -56,7 +58,7 @@ export default function Auth() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '32px 24px' : 48 }}>
         {pendingCheckout
           ? <PendingCheckoutPanel plan={pendingCheckout.plan} error={pendingCheckout.error} onConfirm={confirmCheckout} onCancel={cancelCheckout} />
-          : <AuthForm />}
+          : <AuthForm telegramAuth={tgAuth} />}
       </div>
     </div>
   );

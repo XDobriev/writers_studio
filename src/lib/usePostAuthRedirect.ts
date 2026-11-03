@@ -13,7 +13,7 @@ interface PendingCheckout {
   error: string | null;
 }
 
-export function usePostAuthRedirect() {
+export function usePostAuthRedirect(waitingForTelegram = false) {
   const { session, initializing } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,7 +46,7 @@ export function usePostAuthRedirect() {
   useEffect(() => {
     // Ждём подтверждения сессии сервером (getSession()) — иначе локально
     // восстановленная, но невалидная сессия может дойти до редиректа на оплату.
-    if (initializing || !session) return;
+    if (initializing || !session || waitingForTelegram) return;
     const params = new URLSearchParams(location.search);
     const urlPlan = params.get('plan');
     const storedPlan = sessionStorage.getItem('pending_plan');
@@ -77,7 +77,7 @@ export function usePostAuthRedirect() {
     const from = rawFrom.startsWith('/books/') ? '/books' : rawFrom;
     navigate(from, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, initializing]);
+  }, [session, initializing, waitingForTelegram]);
 
   return {
     redirectingToPay,
