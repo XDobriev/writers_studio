@@ -7,6 +7,7 @@ import { Skeleton } from './Skeleton';
 import StarterKit from '@tiptap/starter-kit';
 import { Extension, textInputRule } from '@tiptap/core';
 import { BulletList } from '@tiptap/extension-bullet-list';
+import { HardBreak } from '@tiptap/extension-hard-break';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { Underline } from '@tiptap/extension-underline';
 import { TextStyle, Color } from '@tiptap/extension-text-style';
@@ -35,6 +36,16 @@ export type { Editor };
 // Явное создание через тулбар и горячие клавиши остаётся рабочим.
 const BulletListNoAutoFormat = BulletList.extend({
   addInputRules() { return []; },
+});
+
+// HardBreak без перехвата Mod-Enter: Shift-Enter вставляет <br>,
+// а Mod-Enter свободно всплывает наверх для создания новой главы.
+const HardBreakNoModEnter = HardBreak.extend({
+  addKeyboardShortcuts() {
+    return {
+      'Shift-Enter': () => this.editor.commands.setHardBreak(),
+    };
+  },
 });
 
 // `- ` (дефис + пробел) → `— ` везде в тексте.
@@ -137,8 +148,9 @@ export function RichEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false, bulletList: false }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false, bulletList: false, hardBreak: false }),
       BulletListNoAutoFormat,
+      HardBreakNoModEnter,
       EmDashRules,
       Underline,
       TextStyle,

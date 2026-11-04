@@ -100,7 +100,7 @@ function ChapterSheet({
         rows={1}
         value={chapter.title}
         onChange={(e) => onTitleChange(e.target.value.replace(/[\r\n]+/g, ' '))}
-        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) e.preventDefault(); }}
         placeholder="Без названия"
         aria-label="Название главы"
         maxLength={200}
