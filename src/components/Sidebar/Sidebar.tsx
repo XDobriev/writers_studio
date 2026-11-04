@@ -5,7 +5,10 @@ import { useDropdownPosition } from '../../lib/useDropdownPosition';
 import { Icon } from '../Icon';
 import { LogoMark } from '../LogoMark';
 import { NOVEL } from '../../data/sample';
-import type { ChapterMeta, ChapterStatus, ChapterActions } from '../../lib/chapters';
+import { type ChapterMeta, type ChapterStatus, type ChapterActions, renumberChapters } from '../../lib/chapters';
+import { computeChapterRanks, recalculateBookChapterTitles, type ChapterType } from '../../lib/chapterNumbering';
+import { invalidateChaptersCache } from '../../lib/chapterMutations';
+import { useMemo, useCallback } from 'react';
 import type { Book } from '../../lib/supabase';
 import { updateBook } from '../../lib/books';
 import { Skeleton } from '../Skeleton';
@@ -49,12 +52,30 @@ export function Sidebar({
   children,
   demo = false,
 }: SidebarProps) {
-  const { onSelectChapter, onCreateChapter, onStatusChange, onDeleteChapter, onChapterHover } = chapterActions ?? {};
+  const { onSelectChapter, onCreateChapter, onStatusChange, onTypeChange, onDeleteChapter, onChapterHover } = chapterActions ?? {};
   const isReal = Boolean(chapters);
   const queryClient = useQueryClient();
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
-  const statusMenuRef = useRef<HTMLButtonElement>(null);
+  const statusMenuRef = useRef<HTMLButtonElement>(null);
+  const chapterRanks = useMemo(() => computeChapterRanks(chapters ?? []), [chapters]);
+
+  const handleTypeChange = useCallback(async (chapterId: string, type: ChapterType) => {
+    if (onTypeChange) {
+      onTypeChange(chapterId, type);
+      return;
+    }
+    if (!book?.id || !chapters) return;
+    const { updates, nextChapters } = recalculateBookChapterTitles(chapters, chapterId, type);
+    if (updates.length === 0) return;
+
+    queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(book.id), nextChapters);
+    try {
+      await renumberChapters(updates);
+    } catch {
+      invalidateChaptersCache(queryClient, book.id);
+    }
+  }, [onTypeChange, book?.id, chapters, queryClient]);
   const dropdownStyle = useDropdownPosition(statusMenuRef, statusMenuFor);
   const [shareToken, setShareToken] = useState<string | null>(book?.share_token ?? null);
   // Синхронизация со свежими данными книги — без неё устаревший persisted-кэш
@@ -235,7 +256,7 @@ export function Sidebar({
                   className={'sb-item' + (activeChapterId === c.id ? ' sb-item--on' : '')}
                   style={{ flex: 1, width: '100%', textAlign: 'left', cursor: 'pointer' }}
                 >
-                  <span className="sb-item-num">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="sb-item-num">{chapterRanks.get(c.id)?.displayNumber ?? String(i + 1).padStart(2, '0')}</span>
                   <span className="sb-item-title" title={c.title || 'Без названия'}>{c.title || 'Без названия'}</span>
                 </button>
                 <div style={{ position: 'relative', flexShrink: 0, marginRight: 10 }}>
@@ -270,6 +291,31 @@ export function Sidebar({
                           {c.status === s && <span style={{ marginLeft: 'auto', font: '400 10px var(--font-mono)', color: 'var(--ink-4)' }}>✓</span>}
                         </button>
                       ))}
+                      <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
+                      <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px 6px' }}>Тип главы</div>
+                      {(
+                        [
+                          { type: 'regular', label: 'Обычная глава' },
+                          { type: 'prologue', label: 'Пролог' },
+                          { type: 'epilogue', label: 'Эпилог' },
+                          { type: 'interlude', label: 'Интерлюдия' },
+                          { type: 'special', label: 'Без номера' },
+                        ] as const
+                      ).map((t) => {
+                        const isCurrent = (chapterRanks.get(c.id)?.type ?? 'regular') === t.type;
+                        return (
+                          <button
+                            key={t.type}
+                            type="button"
+                            onClick={() => { void handleTypeChange(c.id, t.type); setStatusMenuFor(null); }}
+                            className="ctx-item"
+                            style={isCurrent ? { background: 'var(--bg-deep)' } : undefined}
+                          >
+                            {t.label}
+                            {isCurrent && <span style={{ marginLeft: 'auto', font: '400 10px var(--font-mono)', color: 'var(--ink-4)' }}>✓</span>}
+                          </button>
+                        );
+                      })}
                       <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
                       {deleteConfirmFor === c.id ? (
                         <div style={{ padding: '6px 8px' }}>

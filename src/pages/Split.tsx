@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon';
 import { RichEditor } from '../components/RichEditor';
 import { SaveNotice, UnsavedBanner } from '../components/SaveStatusBanners';
 import { type ChapterMeta } from '../lib/chapters';
+import { computeChapterRanks } from '../lib/chapterNumbering';
 import { useBook, useChapters, useChapterContent } from '../lib/queries';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
@@ -78,6 +79,8 @@ export default function Split() {
     return () => window.removeEventListener('keydown', onKey);
   }, [flush]);
 
+  const chapterRanks = useMemo(() => computeChapterRanks(chapters ?? []), [chapters]);
+
   const leftChapter = useMemo(
     () => (chapters && leftId ? chapters.find((c) => c.id === leftId) ?? null : null),
     [chapters, leftId],
@@ -149,6 +152,7 @@ export default function Split() {
               chapter={side === 'left' ? leftChapter : rightChapter}
               otherId={side === 'left' ? rightId : leftId}
               chapters={chapters}
+              chapterRanks={chapterRanks}
               autosave={autosave}
               userId={user?.id}
               isPro={isPro}
@@ -169,7 +173,8 @@ export default function Split() {
   );
 }
 
-function Pane({ side, chapter, otherId, chapters, autosave, userId, isPro, onSelect }: {
+function Pane({ side, chapter, otherId, chapters, chapterRanks, autosave, userId, isPro, onSelect }: {
+  chapterRanks?: ReturnType<typeof computeChapterRanks>;
   side: Side;
   chapter: ChapterMeta | null;
   otherId: string | null;
@@ -214,7 +219,7 @@ function Pane({ side, chapter, otherId, chapters, autosave, userId, isPro, onSel
         >
           {chapters.map((c, i) => (
             <option key={c.id} value={c.id} disabled={c.id === otherId}>
-              {String(i + 1).padStart(2, '0')} · {c.title}{c.id === otherId ? ' (открыта в другой панели)' : ''}
+              {chapterRanks?.get(c.id)?.type && chapterRanks.get(c.id)!.type !== 'regular' ? c.title : `${chapterRanks?.get(c.id)?.displayNumber ?? String(i + 1).padStart(2, '0')} · ${c.title}`}{c.id === otherId ? ' (открыта в другой панели)' : ''}
             </option>
           ))}
         </select>

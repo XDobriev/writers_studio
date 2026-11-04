@@ -24,6 +24,7 @@ import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
 import { useResponsive } from '../lib/useResponsive';
 import { useAuth } from '../lib/auth';
 import { type ChapterMeta, type ChapterStatus } from '../lib/chapters';
+import { computeChapterRanks } from '../lib/chapterNumbering';
 import { useBook, useChapters } from '../lib/queries';
 import { useOutlineMutations } from '../lib/useOutlineMutations';
 import { plural } from '../lib/i18n';
@@ -53,6 +54,7 @@ function SortableCorkCard({
   onDeleteChapter,
   onSynopsisChange,
   dragEnabled,
+  badgeLabel,
 }: {
   c: ChapterMeta;
   index: number;
@@ -61,6 +63,7 @@ function SortableCorkCard({
   onDeleteChapter: (id: string) => void;
   onSynopsisChange: (id: string, synopsis: string) => void;
   dragEnabled: boolean;
+  badgeLabel?: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -151,7 +154,7 @@ function SortableCorkCard({
       >
         <div style={{ position: 'absolute', top: -6, left: 14, width: 10, height: 10, borderRadius: 999, background: 'var(--accent-2)', border: '2px solid var(--bg-deep)' }} />
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-          <span style={{ font: '500 10px var(--font-mono)', color: 'var(--accent)', letterSpacing: '0.1em' }}>ГЛ. {String(index + 1).padStart(2, '0')}</span>
+          <span style={{ font: '500 10px var(--font-mono)', color: 'var(--accent)', letterSpacing: '0.1em' }}>{badgeLabel ?? `ГЛ. ${String(index + 1).padStart(2, '0')}`}</span>
           <span style={{ flex: 1 }} />
           <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', marginRight: dragEnabled ? 22 : 0 }}>{c.words.toLocaleString('ru')} сл</span>
         </div>
@@ -294,7 +297,8 @@ export default function Corkboard() {
   const error = chaptersError?.message ?? mutationError;
   const { isMobile } = useResponsive();
   const [sbOpen, setSbOpen] = useState(false);
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useState<Filter>('all');
+  const chapterRanks = useMemo(() => computeChapterRanks(chapters ?? []), [chapters]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -443,6 +447,7 @@ export default function Corkboard() {
                           onDeleteChapter={onDeleteChapter}
                           onSynopsisChange={onSynopsisChange}
                           dragEnabled={dragEnabled}
+                          badgeLabel={chapterRanks.get(c.id)?.badgeLabel}
                         />
                       );
                     })}
