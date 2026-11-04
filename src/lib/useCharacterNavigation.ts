@@ -20,7 +20,7 @@ export function useCharacterNavigation({
   fetchNextPage?: () => unknown;
 }) {
   const [search, setSearch] = useSearchParams();
-  const activeId = search.get('character');
+  const activeId = search.get('character') || search.get('char');
   const [viewMode, setViewMode] = useState<CharacterViewMode>(() => activeId ? 'detail' : 'grid');
   const viewModeRef = useRef(viewMode);
   viewModeRef.current = viewMode;
