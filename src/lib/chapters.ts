@@ -95,7 +95,7 @@ const BULK_BATCH_BYTES = 3 * 1024 * 1024;
 export async function createChaptersBulk(
   bookId: string,
   userId: string,
-  items: { title: string; content: string; words: number }[],
+  items: { title: string; content: string; words: number; synopsis?: string }[],
 ): Promise<ChapterMeta[]> {
   const rows = items.map((it, i) => ({
     book_id: bookId,
@@ -103,6 +103,7 @@ export async function createChaptersBulk(
     title: it.title,
     content: it.content,
     words: it.words,
+    synopsis: it.synopsis ?? '',
     position: i,
   }));
   const batches: (typeof rows)[] = [];

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Skeleton } from '../components/Skeleton';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { trapTab, useModalFocus } from '../lib/useModalFocus';
@@ -30,6 +30,8 @@ import { createChapter } from '../lib/chapters';
 import { getPlanLimits, isPlanLimitError } from '../lib/profiles';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { ImportManuscriptModal } from '../components/ImportManuscriptModal';
+import { OnboardingForkModal } from '../components/OnboardingForkModal';
+import { isSampleBook } from '../lib/onboardingTemplates';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useHasAnyCharacter, useProfile, useSeries, QUERY_KEYS } from '../lib/queries';
@@ -59,10 +61,26 @@ export default function Home() {
   const checklistVisible = onboardingEnabled
     && !!profile && !profile.onboarded_at && !profile.checklist_dismissed_at;
   const { data: hasCharacter } = useHasAnyCharacter(user?.id, checklistVisible);
+  // Автоматическое открытие развилки при первом входе в пустой аккаунт (G-7)
+  useEffect(() => {
+    if (books && books.length === 0 && user) {
+      const key = `fork_seen_${user.id}`;
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, '1');
+        setShowFork(true)
+      }
+    }
+  }, [books, user]);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('fork') === 'true') {
+      setShowFork(true);
+    }
+  }, []);
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<'books' | 'import'>('books');
   const [showImport, setShowImport] = useState(false);
+  const [showFork, setShowFork] = useState(false);
 
   const [editBook, setEditBook] = useState<Book | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -171,12 +189,20 @@ export default function Home() {
   };
 
   const handleNewBookClick = () => {
-    if ((books?.length ?? 0) >= limits.maxBooks) {
+    const nonSampleBooks = (books ?? []).filter((b) => !isSampleBook(b));
+    if (nonSampleBooks.length >= limits.maxBooks) {
       setUpgradeFeature('books');
       setShowUpgrade(true);
+    } else if ((books?.length ?? 0) === 0) {
+      setShowFork(true);
     } else {
       openCreateModal();
     }
+  };
+
+  const handleForkSuccess = (newBook: Book) => {
+    queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => [newBook, ...(prev ?? [])]);
+    navigate(`/books/${newBook.id}/editor`);
   };
 
   // Импорт создаёт новую книгу — тот же лимит Free, что и «Новая книга».
@@ -503,6 +529,15 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* ─── Onboarding Fork Modal (G-7) ─── */}
+      <OnboardingForkModal
+        isOpen={showFork}
+        onClose={() => setShowFork(false)}
+        userId={user?.id}
+        onSelectImport={() => setShowImport(true)}
+        onSuccess={handleForkSuccess}
+      />
 
       <UpgradePrompt open={showUpgrade} feature={upgradeFeature} onClose={() => setShowUpgrade(false)} />
 

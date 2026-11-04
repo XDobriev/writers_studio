@@ -889,6 +889,21 @@ button.chip:not(.chip--accent):hover { background: var(--surface-2); }
   backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center;
 }
+
+/* Onboarding Fork Cards (G-7) */
+.fork-card:hover {
+  border-color: var(--border) !important;
+  background: var(--surface-2) !important;
+  transform: translateY(-2px);
+}
+.fork-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.fork-card--highlighted:hover {
+  border-color: var(--accent) !important;
+  background: color-mix(in oklch, var(--accent) 8%, var(--surface)) !important;
+}
 .modal-panel {
   background: var(--bg-deep);
   border: 1px solid var(--border);

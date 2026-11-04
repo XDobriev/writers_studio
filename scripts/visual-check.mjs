@@ -183,7 +183,7 @@ const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const OUT = path.join('.qa', 'visual', stamp);
 for (const d of ['before', 'after', 'diff', 'compare', 'crop']) fs.mkdirSync(path.join(OUT, d), { recursive: true });
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}).catch(() => chromium.launch({ channel: 'chrome' }));
 const mkContext = async () => {
   const ctx = await browser.newContext({ reducedMotion: 'reduce' });
   await ctx.addInitScript(() => { try { localStorage.setItem('cookie_consent_v1', 'accepted'); } catch { /* приватный режим */ } });

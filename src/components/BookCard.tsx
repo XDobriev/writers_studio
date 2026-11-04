@@ -6,6 +6,7 @@ import { cardHoverTransition, dropdownVariants } from '../lib/motion';
 import { useMenuDismiss } from '../lib/useMenuDismiss';
 import { pluralDays } from '../lib/i18n';
 import type { Book } from '../lib/supabase';
+import { isSampleBook } from '../lib/onboardingTemplates';
 
 const isImageUrl = (v: string) => v.startsWith('http') || v.startsWith('blob:');
 
@@ -29,6 +30,7 @@ export function BookCard({ book, onEdit, onCreateSequel }: BookCardProps) {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const isSample = isSampleBook(b);
 
   useMenuDismiss(menuOpen, () => setMenuOpen(false), menuRef);
 
@@ -50,6 +52,25 @@ export function BookCard({ book, onEdit, onCreateSequel }: BookCardProps) {
           padding: '18px 20px', borderBottom: '1px solid var(--border-soft)',
           position: 'relative', overflow: 'hidden',
         }}>
+          {isSample && (
+            <div style={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              zIndex: 2,
+              font: '500 10px var(--font-mono)',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--accent)',
+              background: 'color-mix(in oklch, var(--accent) 18%, var(--bg-deep))',
+              border: '1px solid color-mix(in oklch, var(--accent) 40%, transparent)',
+              borderRadius: 999,
+              padding: '3px 8px',
+              backdropFilter: 'blur(4px)',
+            }}>
+              Пример романа
+            </div>
+          )}
           {hasImage && (
             <img
               src={b.cover!}
