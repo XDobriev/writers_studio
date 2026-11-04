@@ -133,7 +133,7 @@ export function CharacterHoverCard({ state, bookId, onMouseEnter, onMouseLeave }
 
       <button
         type="button"
-        onClick={() => navigate(`/books/${bookId}/characters`)}
+        onClick={() => navigate(`/books/${bookId}/characters?char=${character.id}`)}
         style={{
           background: 'none',
           border: 'none',

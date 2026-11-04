@@ -21,6 +21,13 @@ import { Image } from '@tiptap/extension-image';
 import { LanguageTool, LT_KEY } from '../extensions/LanguageTool';
 import { Hyphenation } from '../extensions/Hyphenation';
 import Focus from '@tiptap/extension-focus';
+import {
+  CharacterHighlight,
+  CHARACTER_HIGHLIGHT_KEY,
+  findCharacterDecorations,
+} from '../extensions/CharacterHighlight';
+import type { Character } from '../lib/characters';
+import { DecorationSet } from '@tiptap/pm/view';
 
 export type { Editor };
 
@@ -75,6 +82,12 @@ interface RichEditorProps {
   contentReady?: boolean;
   /** Тон заглушки, пока `contentReady === false`: `paper` — на светлом листе главы. */
   loadingTone?: 'surface' | 'paper';
+  /** Персонажи книги для умной подсветки */
+  characters?: Character[];
+  /** Включена ли подсветка персонажей (выключается в фокус-режиме) */
+  highlightCharacters?: boolean;
+  /** Клик по индикатору или Alt+клик по упоминанию персонажа */
+  onMentionClick?: (characterId: string) => void;
 }
 
 export function RichEditor({
@@ -90,12 +103,34 @@ export function RichEditor({
   onAddWord,
   contentReady = true,
   loadingTone = 'surface',
+  characters,
+  highlightCharacters = true,
+  onMentionClick,
 }: RichEditorProps) {
   const dictRef = useRef<string[]>(userDictionary ?? []);
   useEffect(() => { dictRef.current = userDictionary ?? []; }, [userDictionary]);
 
+  const charsRef = useRef<Character[]>(characters ?? []);
+  useEffect(() => { charsRef.current = characters ?? []; }, [characters]);
+
+  const highlightEnabledRef = useRef<boolean>(highlightCharacters !== false);
+  useEffect(() => { highlightEnabledRef.current = highlightCharacters !== false; }, [highlightCharacters]);
+
+  const onMentionClickRef = useRef(onMentionClick);
+  useEffect(() => { onMentionClickRef.current = onMentionClick; }, [onMentionClick]);
+
   const langToolExt = useMemo(
     () => LanguageTool.configure({ getDict: () => dictRef.current }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [contentKey],
+  );
+
+  const charHighlightExt = useMemo(
+    () => CharacterHighlight.configure({
+      getCharacters: () => charsRef.current,
+      getEnabled: () => highlightEnabledRef.current,
+      onMentionClick: (id) => onMentionClickRef.current?.(id),
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [contentKey],
   );
@@ -124,6 +159,7 @@ export function RichEditor({
       Focus.configure({ className: 'has-focus', mode: 'shallowest' }),
       Hyphenation,
       langToolExt,
+      charHighlightExt,
     ],
     content: value || '',
     editorProps: {
@@ -137,6 +173,15 @@ export function RichEditor({
       onChange(editor.getHTML());
     },
   }, [contentKey]);
+
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    const isEnabled = highlightCharacters !== false;
+    const decos = isEnabled
+      ? findCharacterDecorations(editor.state.doc, charsRef.current)
+      : DecorationSet.empty;
+    editor.view.dispatch(editor.state.tr.setMeta(CHARACTER_HIGHLIGHT_KEY, decos));
+  }, [characters, highlightCharacters, editor]);
 
   useEffect(() => {
     onEditor?.(editor);
@@ -161,7 +206,11 @@ export function RichEditor({
     if ((value || '') !== editor.getHTML()) {
       editor.commands.setContent(value || '', { emitUpdate: false });
     }
-  }, [editor, value, contentReady]);
+    if (highlightCharacters !== false) {
+      const decos = findCharacterDecorations(editor.state.doc, charsRef.current);
+      editor.view.dispatch(editor.state.tr.setMeta(CHARACTER_HIGHLIGHT_KEY, decos));
+    }
+  }, [editor, value, contentReady, highlightCharacters]);
 
   const bubbleStateRef = useRef<'hidden' | 'visible' | 'leaving'>('hidden');
   const bubbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

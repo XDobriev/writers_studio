@@ -8,6 +8,15 @@ function findCharacterAtPoint(
   characters: Character[],
   editorEl: HTMLElement,
 ): Character | null {
+  // Быстрый путь: курсор над декорацией с data-char-id
+  const el = document.elementFromPoint(x, y);
+  const mention = el?.closest<HTMLElement>('[data-char-id]');
+  if (mention && editorEl.contains(mention)) {
+    const charId = mention.getAttribute('data-char-id');
+    const found = characters.find((c) => c.id === charId);
+    if (found) return found;
+  }
+
   const range = document.caretRangeFromPoint(x, y);
   if (!range) return null;
 

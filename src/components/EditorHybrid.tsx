@@ -27,6 +27,8 @@ import { trapTab } from '../lib/useModalFocus';
 const CharacterHoverCard = lazy(() => import('./CharacterHoverCard').then(m => ({ default: m.CharacterHoverCard })));
 import { addWordToDictionary, type Profile } from '../lib/profiles';
 
+import type { Character } from '../lib/characters';
+
 type Mode = 'studio' | 'left' | 'right' | 'page';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -43,14 +45,54 @@ interface ChapterSheetProps {
   onAddWord?: (word: string) => void;
   nextChapter?: ChapterMeta | null;
   onNextChapter?: () => void;
+  characters?: Character[];
+  highlightCharacters?: boolean;
+  onMentionClick?: (characterId: string) => void;
 }
 
 import { plural } from '../lib/i18n';
 
-function ChapterSheet({ chapter, content, contentReady, onContentChange, onTitleChange, onEditor, width, padding, userDictionary, onAddWord, nextChapter, onNextChapter }: ChapterSheetProps) {
+function ChapterSheet({
+  chapter,
+  content,
+  contentReady,
+  onContentChange,
+  onTitleChange,
+  onEditor,
+  width,
+  padding,
+  userDictionary,
+  onAddWord,
+  nextChapter,
+  onNextChapter,
+  characters,
+  highlightCharacters,
+  onMentionClick,
+}: ChapterSheetProps) {
   const titleRef = useAutoResize(chapter.title);
+
+  const handleSheetClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement | null;
+    const mention = target?.closest<HTMLElement>('.char-mention-first, .char-mention-subsequent');
+    if (!mention) return;
+
+    const charId = mention.getAttribute('data-char-id');
+    if (!charId) return;
+
+    const isFirst = mention.classList.contains('char-mention-first');
+    const isModifier = e.altKey || e.ctrlKey || e.metaKey;
+    const rect = mention.getBoundingClientRect();
+    const clickedIndicator = isFirst && (e.clientX - rect.left <= 18);
+
+    if (isModifier || clickedIndicator) {
+      e.preventDefault();
+      e.stopPropagation();
+      onMentionClick?.(charId);
+    }
+  };
+
   return (
-    <div className="sheet" style={{ width, padding }}>
+    <div className="sheet" style={{ width, padding }} onClick={handleSheetClick}>
       {/* textarea, а не input: длинное название на узком листе переносится, а не режется. Переносы строк в название не пускаем. */}
       <textarea
         ref={titleRef}
@@ -75,6 +117,9 @@ function ChapterSheet({ chapter, content, contentReady, onContentChange, onTitle
         onEditor={onEditor}
         userDictionary={userDictionary}
         onAddWord={onAddWord}
+        characters={characters}
+        highlightCharacters={highlightCharacters}
+        onMentionClick={onMentionClick}
       />
       {contentReady !== false && nextChapter && onNextChapter && (
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 28 }}>
@@ -191,6 +236,17 @@ export function EditorHybrid({
   const isPro = plan === 'pro' || plan === 'lifetime';
 
   const { data: characters = [] } = useCharacters(book?.id);
+  const [focusedChar, setFocusedChar] = useState<{ id: string; ts: number } | null>(null);
+
+  const handleFocusCharacter = useCallback((charId: string) => {
+    if (isMobile) {
+      right.open();
+    } else if (!showRight) {
+      setMode('right');
+    }
+    setFocusedChar({ id: charId, ts: Date.now() });
+  }, [isMobile, right, showRight, setMode]);
+
   const editorDom = editor ? (editor.view.dom as HTMLElement) : null;
   const { shown: hoveredChar, onCardEnter, onCardLeave } = useCharacterHover(
     focusMode || isPage ? null : editorDom,
@@ -390,6 +446,9 @@ export function EditorHybrid({
                 onAddWord={handleAddWord}
                 nextChapter={nextChapter}
                 onNextChapter={nextChapter ? () => chapterActions?.onSelectChapter?.(nextChapter.id) : undefined}
+                characters={characters}
+                highlightCharacters={!focusMode}
+                onMentionClick={handleFocusCharacter}
               />
             ) : (
               <div className="sheet" style={{ width: sheetWidth, padding: sheetPad, color: 'var(--ink-3)', textAlign: 'center' }}>
@@ -422,6 +481,8 @@ export function EditorHybrid({
             showNoteForm={showNoteForm}
             onNoteFormClose={resetShowNoteForm}
             demo={demo}
+            focusedCharacterId={focusedChar?.id}
+            focusedCharacterTs={focusedChar?.ts}
           />
         </div>
       )}
@@ -507,8 +568,10 @@ export function EditorHybrid({
               onBeforeRestore={onBeforeRestore}
               onRebase={onRebase}
               showNoteForm={showNoteForm}
-            onNoteFormClose={resetShowNoteForm}
-            demo={demo}
+              onNoteFormClose={resetShowNoteForm}
+              demo={demo}
+              focusedCharacterId={focusedChar?.id}
+              focusedCharacterTs={focusedChar?.ts}
             />
           </div>
         </>

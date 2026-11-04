@@ -1,12 +1,13 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from './Icon';
 import { ConfirmDialog } from './ConfirmDialog';
 import type { Note, NoteKind } from '../lib/notes';
 import { useNoteMutations } from '../lib/useNoteMutations';
-import { useNotes, useChapterMembers } from '../lib/queries';
+import { useNotes, useChapterMembers, useCharacters } from '../lib/queries';
 import { getCharacterColor } from '../lib/pov';
 import { onTablistKeyDown } from '../lib/tablistKeys';
+import { ROLE_LABELS, type Character } from '../lib/characters';
 
 const VersionsPanel = lazy(() => import('./VersionsPanel').then(m => ({ default: m.VersionsPanel })));
 import { useErrorState } from '../lib/useErrorState';
@@ -29,9 +30,28 @@ interface RightPanelProps {
   /** В демо нет реального аккаунта — createNote() бросает 'not authenticated'
    *  прямо в ErrorBanner. Вместо формы, обречённой на ошибку, уводим на регистрацию. */
   demo?: boolean;
+  /** Внешний фокус персонажа из редактора по клику/Alt+клику на упоминание */
+  focusedCharacterId?: string | null;
+  /** Временная метка фокуса, чтобы повторный клик по тому же персонажу переоткрывал досье */
+  focusedCharacterTs?: number;
 }
 
-export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentContent, isPro, onRestoreContent, onBeforeRestore, onRebase, showNoteForm, onNoteFormClose, demo }: RightPanelProps) {
+export function RightPanel({
+  bookId,
+  chapterId,
+  chapterTitle,
+  userId,
+  currentContent,
+  isPro,
+  onRestoreContent,
+  onBeforeRestore,
+  onRebase,
+  showNoteForm,
+  onNoteFormClose,
+  demo,
+  focusedCharacterId,
+  focusedCharacterTs,
+}: RightPanelProps) {
   const navigate = useNavigate();
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно', custom: 'Прочее' };
   const KIND_COLORS: Record<string, string> = {
@@ -46,6 +66,63 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
   const { data: allNotes = [] } = useNotes(bookId);
   const { onAdd, onUpdate, onDelete: handleDelete, isSaving: saving } = useNoteMutations({ bookId, setError: setNoteError });
   const { data: chapterMembers = [] } = useChapterMembers(chapterId);
+  const { data: bookCharacters = [] } = useCharacters(bookId);
+  const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedCharId(null);
+  }, [chapterId]);
+
+  useEffect(() => {
+    if (!focusedCharacterId) return;
+    setActiveTab('notes');
+    setSelectedCharId(focusedCharacterId);
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLButtonElement>(`[data-member-id="${focusedCharacterId}"]`);
+      el?.focus();
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }, [focusedCharacterId, focusedCharacterTs]);
+
+  const charById = useMemo(() => {
+    const map = new Map<string, Character>();
+    for (const c of bookCharacters) map.set(c.id, c);
+    return map;
+  }, [bookCharacters]);
+
+  const selectedChar = useMemo(() => {
+    if (!selectedCharId) return null;
+    const fromBook = charById.get(selectedCharId);
+    if (fromBook) return fromBook;
+    const mem = chapterMembers.find((m) => m.character_id === selectedCharId);
+    if (!mem) return null;
+    return {
+      id: mem.character_id,
+      book_id: bookId ?? '',
+      user_id: userId ?? '',
+      name: mem.characters?.name || 'Без имени',
+      role: 'protagonist' as const,
+      position: mem.characters?.position ?? 0,
+      avatar_url: mem.characters?.avatar_url ?? null,
+      quote: '',
+      personality: '',
+      appearance: '',
+      interior_life: '',
+      exterior_life: '',
+      gap: '',
+      backstory: '',
+      notes: '',
+      age: null,
+      aliases: [],
+      created_at: '',
+      updated_at: '',
+    } as Character;
+  }, [selectedCharId, charById, chapterMembers, bookId, userId]);
+
+  const selectedSnippet = selectedChar
+    ? selectedChar.quote || selectedChar.personality?.slice(0, 140) || selectedChar.appearance?.slice(0, 140) || ''
+    : '';
+
   const notes = chapterId ? allNotes.filter(n => n.chapter_id === chapterId) : allNotes;
   const [activeTab, setActiveTab] = useState<'notes' | 'versions'>('notes');
   const [showForm, setShowForm] = useState(false);
@@ -158,25 +235,79 @@ export function RightPanel({ bookId, chapterId, chapterTitle, userId, currentCon
         )}
         {activeTab === 'notes' && (
           <div id="rp-panel-notes" className="rp-notes-panel" role="tabpanel" aria-labelledby="rp-tab-notes" tabIndex={0}>
-          {chapterId && chapterMembers.length > 0 && (
+          {chapterId && (chapterMembers.length > 0 || (selectedCharId && selectedChar)) && (
             <div className="rp-members">
               <div className="rp-members-head">Персонажи главы</div>
-              {chapterMembers.map((m) => {
-                const name = m.characters?.name || '?';
-                const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-                const color = getCharacterColor(m.characters?.position ?? 0);
-                return (
-                  <div key={m.character_id} className="rp-member">
-                    <div className="rp-member-av" style={{ background: color }}>
-                      {m.characters?.avatar_url
-                        ? <img src={m.characters.avatar_url} alt={name} loading="lazy" decoding="async" className="rp-member-img" />
-                        : initials}
+              <div role="list" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {chapterMembers.map((m) => {
+                  const name = m.characters?.name || '?';
+                  const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                  const color = getCharacterColor(m.characters?.position ?? 0);
+                  const isSelected = selectedCharId === m.character_id;
+                  return (
+                    <button
+                      key={m.character_id}
+                      type="button"
+                      data-member-id={m.character_id}
+                      aria-pressed={isSelected}
+                      aria-expanded={isSelected}
+                      aria-label={`${name}${m.is_pov ? ' (POV)' : ''}`}
+                      className={'rp-member-btn' + (isSelected ? ' rp-member-btn--selected' : '')}
+                      onClick={() => setSelectedCharId((prev) => (prev === m.character_id ? null : m.character_id))}
+                    >
+                      <div className="rp-member-av" style={{ background: color }}>
+                        {m.characters?.avatar_url
+                          ? <img src={m.characters.avatar_url} alt="" loading="lazy" decoding="async" className="rp-member-img" />
+                          : initials}
+                      </div>
+                      <span className="rp-member-name">{name}</span>
+                      {m.is_pov && <span className="rp-member-pov">POV</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedChar && (
+                <div
+                  className="rp-char-dossier"
+                  role="region"
+                  aria-label={`Досье персонажа: ${selectedChar.name}`}
+                >
+                  <div className="rp-char-dossier-head">
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="rp-char-dossier-name">{selectedChar.name}</div>
+                      <div className="rp-char-dossier-role">
+                        {ROLE_LABELS[selectedChar.role] ?? selectedChar.role}
+                      </div>
                     </div>
-                    <span className="rp-member-name">{name}</span>
-                    {m.is_pov && <span className="rp-member-pov">POV</span>}
+                    <button
+                      type="button"
+                      className="rp-char-dossier-close"
+                      onClick={() => setSelectedCharId(null)}
+                      aria-label="Закрыть досье"
+                      title="Закрыть"
+                    >
+                      ✕
+                    </button>
                   </div>
-                );
-              })}
+
+                  {selectedSnippet && (
+                    <div className="rp-char-dossier-snippet">
+                      {selectedChar.quote ? `«${selectedSnippet}»` : selectedSnippet}
+                    </div>
+                  )}
+
+                  {bookId && (
+                    <button
+                      type="button"
+                      className="rp-char-dossier-link"
+                      onClick={() => navigate(`/books/${bookId}/characters?char=${selectedChar.id}`)}
+                    >
+                      В картотеку →
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
           <>

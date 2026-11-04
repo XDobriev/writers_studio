@@ -151,6 +151,7 @@ export default function Focus() {
           placeholder="Только текст и вы. Печатайте…"
           attributesStyle={focusEditorStyle}
           style={{ width: 720, maxWidth: '100%', minHeight: 'calc(100dvh - 200px)' }}
+          highlightCharacters={false}
         />
       </div>
 

@@ -644,6 +644,66 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .ins { background: oklch(0.72 0.14 145 / 0.20); color: var(--diff-ins-ink); }
 .del { background: oklch(0.65 0.18 25 / 0.18); color: var(--diff-del-ink); text-decoration: line-through; }
 
+/* Character Highlight in editor */
+.char-mention-first {
+  display: inline;
+  padding: 1px 6px 1px 18px;
+  border-radius: var(--r-1);
+  background: color-mix(in oklch, var(--char-color, var(--accent)) 12%, var(--paper, transparent));
+  color: inherit;
+  cursor: pointer;
+  position: relative;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
+}
+.char-mention-first::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--char-color, var(--accent));
+  pointer-events: none;
+}
+.char-mention-first:hover {
+  background: color-mix(in oklch, var(--char-color, var(--accent)) 20%, var(--paper, transparent));
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--char-color, var(--accent)) 30%, transparent);
+}
+
+.char-mention-subsequent {
+  display: inline;
+  color: inherit;
+  background: transparent;
+  cursor: text;
+  text-decoration: none;
+  transition: text-decoration-color 0.12s ease;
+}
+.char-mention-subsequent:hover {
+  text-decoration: underline dotted var(--char-color, var(--accent));
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+/* Hide character mention highlights in focus mode */
+.focus-mode .char-mention-first,
+.focus-mode .char-mention-subsequent,
+.focus-page .char-mention-first,
+.focus-page .char-mention-subsequent {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  cursor: text !important;
+  text-decoration: none !important;
+}
+.focus-mode .char-mention-first::before,
+.focus-page .char-mention-first::before {
+  display: none !important;
+}
+
 /* status bar */
 .status {
   height: calc(30px + env(safe-area-inset-bottom, 0px)); flex-shrink: 0;
@@ -2606,6 +2666,103 @@ select.input {
   border-radius: var(--r-1);
   padding: 1px 4px;
   flex-shrink: 0;
+}
+
+.rp-member-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  margin: 1px 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-2);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+}
+.rp-member-btn:hover {
+  background: var(--surface);
+}
+.rp-member-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.rp-member-btn--selected {
+  background: var(--surface);
+  border-color: var(--border);
+}
+.rp-member-btn--selected .rp-member-av {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+
+/* Dossier card right below the avatar list */
+.rp-char-dossier {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  animation: fade-in 0.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.rp-char-dossier-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rp-char-dossier-name {
+  font: 600 13px/1.3 var(--font-serif);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-char-dossier-role {
+  font: 500 10px/1.2 var(--font-mono);
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.rp-char-dossier-close {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  color: var(--ink-4);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: var(--r-1);
+  transition: color 0.12s;
+}
+.rp-char-dossier-close:hover {
+  color: var(--ink);
+}
+.rp-char-dossier-snippet {
+  font: italic 12px/1.45 var(--font-serif);
+  color: var(--ink-3);
+  margin-top: 8px;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.rp-char-dossier-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: 500 11px var(--font-mono);
+  color: var(--accent);
+  letter-spacing: 0.04em;
+  transition: opacity 0.12s;
+}
+.rp-char-dossier-link:hover {
+  opacity: 0.85;
+  text-decoration: underline;
 }
 
 /* --- custom radio --- */
