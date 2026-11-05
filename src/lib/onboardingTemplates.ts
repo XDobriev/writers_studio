@@ -1,170 +1,104 @@
 import { supabase, type Book } from './supabase';
-import { createBook } from './books';
+import { createBook, createBookWithSeriesTransfer } from './books';
 import { createChaptersBulk } from './chapters';
+import type { SeriesTransferState } from '../components/SeriesTransferPicker';
 import { COVERS } from '../components/CoverPicker';
 import { NOVEL, SAMPLE_PROSE } from '../data/sample';
 
-export interface StoryTemplateChapter {
-  title: string;
-  synopsis: string;
-  content?: string;
-  words?: number;
-}
+export type LiteraryFormId = 'novel' | 'novella' | 'short_story' | 'free';
 
-export interface StoryTemplate {
-  id: 'blank' | 'three-act' | 'hero-journey';
+export interface LiteraryForm {
+  id: LiteraryFormId;
   title: string;
   subtitle: string;
   description: string;
-  badge: string;
-  chapters: StoryTemplateChapter[];
+  targetWords: number | null;
 }
 
-export interface GentleGoal {
-  id: '300w' | '500w' | '10kch' | 'free';
-  label: string;
-  sub: string;
-  words: number;
-}
-
-export const STORY_TEMPLATES: StoryTemplate[] = [
+export const LITERARY_FORMS: readonly LiteraryForm[] = [
   {
-    id: 'blank',
-    title: 'Чистый лист',
-    subtitle: '1 глава для свободного старта',
-    description: 'Никаких рамок и подсказок: вы сами определяете ритм, структуру и форму повествования.',
-    badge: 'Свободное письмо',
-    chapters: [
-      {
-        title: 'Глава 1',
-        synopsis: '',
-        content: '',
-        words: 0,
-      },
-    ],
+    id: 'novel',
+    title: 'Роман',
+    subtitle: 'Стандарт большой прозы',
+    description: 'Стартует с первой главы. Главы нумеруются по ходу повествования.',
+    targetWords: 70000,
   },
   {
-    id: 'three-act',
-    title: 'Трёхактная структура',
-    subtitle: '7 глав · 3 классических акта',
-    description: 'Золотой стандарт мировой драматургии: завязка, нарастающий кризис и развязка.',
-    badge: 'Классика',
-    chapters: [
-      {
-        title: 'Глава 1: Обычный мир и завязка',
-        synopsis: 'Экспозиция героя в привычной обстановке и инцидент, разрушающий привычный порядок.',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 2: Первый поворотный пункт',
-        synopsis: 'Герой принимает вызов и делает необратимый шаг в неизведанное (финал Акта I).',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 3: Испытания и союзники',
-        synopsis: 'Погружение в новые обстоятельства, появление соратников и первые преграды.',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 4: Центральный кризис (Медиана)',
-        synopsis: 'Переломная точка: мнимая победа или тяжёлое поражение, повышающее ставки до предела.',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 5: Тёмная ночь души',
-        synopsis: 'Крах прежних планов, потеря надежды и обретение истинного мотива (финал Акта II).',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 6: Кульминация',
-        synopsis: 'Главная битва, столкновение с антагонистом и проверка выученного урока (Акт III).',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 7: Развязка и новый порядок',
-        synopsis: 'Возвращение в преображённый мир, последствия победы и новое равновесие.',
-        content: '',
-        words: 0,
-      },
-    ],
+    id: 'novella',
+    title: 'Повесть',
+    subtitle: 'Компактная история',
+    description: 'Компактная история с единым сюжетным фокусом без лишних делений.',
+    targetWords: 30000,
   },
   {
-    id: 'hero-journey',
-    title: 'Путь героя',
-    subtitle: '9 глав · Мономиф Кэмпбелла',
-    description: 'Архетипическое путешествие преображения: от первого зова до возвращения с эликсиром.',
-    badge: 'Мономиф',
-    chapters: [
-      {
-        title: 'Глава 1: Обычный мир',
-        synopsis: 'Жизнь протагониста до приключения и ощущение скрытого неблагополучия.',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 2: Зов к странствиям',
-        synopsis: 'Событие или вестник, призывающий героя покинуть зону безопасности.',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 3: Встреча с наставником и порог',
-        synopsis: 'Появление учителя, получение артефакта или знания; пересечение черты невозврата.',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 4: Испытания, друзья и враги',
-        synopsis: 'Освоение законов нового мира, проверка на прочность и проверка верности союзников.',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 5: Приближение к пещере',
-        synopsis: 'Подготовка к столкновению в самом опасном логове и преодоление внутренних сомнений.',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 6: Главное испытание (Смерть и возрождение)',
-        synopsis: 'Момент смертельной опасности, символическая смерть старой личности и перерождение.',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 7: Награда (Захват меча)',
-        synopsis: 'Обретение заветной цели: знания, лекарства или источника внутренней силы.',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 8: Дорога назад',
-        synopsis: 'Погоня, цена победы и необходимость доставить награду в покинутый мир.',
-        content: '',
-        words: 0,
-      },
-      {
-        title: 'Глава 9: Возвращение с эликсиром',
-        synopsis: 'Герой исцеляет свой мир и обретает гармонию в новом статусе.',
-        content: '',
-        words: 0,
-      },
-    ],
+    id: 'short_story',
+    title: 'Рассказ',
+    subtitle: 'Малая форма',
+    description: 'Единая сцена или короткий сюжет на один вечер чтения.',
+    targetWords: 5000,
+  },
+  {
+    id: 'free',
+    title: 'Свободный объём',
+    subtitle: 'Чистый лист',
+    description: 'Никаких рамок, подсказок и предписаний — пишите полностью свободно.',
+    targetWords: null,
   },
 ];
 
-export const GENTLE_GOALS: GentleGoal[] = [
-  { id: '300w', label: '300 слов', sub: 'быстрый старт каждый день', words: 300 },
-  { id: '500w', label: '500 слов', sub: 'комфортный темп автора', words: 500 },
-  { id: '10kch', label: '10 000 знаков', sub: 'первая сцена (~1 600 слов)', words: 1600 },
-  { id: 'free', label: 'Без цели', sub: 'писать свободно и без давления', words: 0 },
-];
+export interface CreateBookFromFormOptions {
+  title: string;
+  formId: string;
+  targetWords?: number | null;
+  genres?: string[];
+  cover?: string;
+  seriesTransfer?: SeriesTransferState;
+}
+
+export async function createBookFromLiteraryForm(
+  userId: string,
+  options: CreateBookFromFormOptions,
+): Promise<Book> {
+  const title = options.title.trim();
+  const targetWords = options.targetWords ?? null;
+  const genres = options.genres;
+  const cover = options.cover;
+
+  let book: Book;
+
+  if (options.seriesTransfer?.enabled) {
+    book = await createBookWithSeriesTransfer(
+      {
+        title,
+        user_id: userId,
+        genres,
+        target_words: targetWords,
+        cover,
+      },
+      options.seriesTransfer,
+    );
+  } else {
+    book = await createBook({
+      title,
+      user_id: userId,
+      genres,
+      target_words: targetWords,
+      cover,
+    });
+  }
+
+  await createChaptersBulk([
+    {
+      book_id: book.id,
+      title: 'Глава 1',
+      order_index: 0,
+      content_json: '',
+      word_count: 0,
+    },
+  ]);
+
+  return book;
+}
 
 export const SAMPLE_BOOK_TITLE = 'Город, которого нет';
 export const SAMPLE_BOOK_AUTHOR = 'Анна Корвин';
@@ -183,45 +117,6 @@ export function isSampleBook(book: Book | null | undefined): boolean {
   } catch {
     return false;
   }
-}
-
-/**
- * Создаёт новую книгу из шаблона сюжета с заданной щадящей целью.
- */
-export async function createBookFromTemplate(
-  userId: string,
-  input: {
-    title?: string;
-    templateId: StoryTemplate['id'];
-    goalWords: number;
-    cover?: string;
-  },
-): Promise<Book> {
-  const template = STORY_TEMPLATES.find((t) => t.id === input.templateId) ?? STORY_TEMPLATES[0];
-  const title = (input.title?.trim() || template.title);
-  const cover = input.cover || COVERS[0];
-
-  const book = await createBook({
-    user_id: userId,
-    title,
-    genre: null,
-    genres: [],
-    goal: Math.max(0, input.goalWords),
-    words: 0,
-    cover,
-  });
-
-  const chaptersToCreate = template.chapters.map((ch, i) => ({
-    title: ch.title,
-    content: ch.content ?? '',
-    words: ch.words ?? 0,
-    synopsis: ch.synopsis ?? '',
-    position: i,
-  }));
-
-  await createChaptersBulk(book.id, userId, chaptersToCreate);
-
-  return book;
 }
 
 /**
@@ -323,6 +218,80 @@ export async function cloneSampleBook(userId: string): Promise<Book> {
   } catch {
     // игнорируем ошибку при ограничениях браузера
   }
+
+  return book;
+}
+
+// ==========================================
+// Обратная совместимость для OnboardingForkModal до завершения Task 2
+// ==========================================
+
+export interface StoryTemplateChapter {
+  title: string;
+  synopsis: string;
+  content?: string;
+  words?: number;
+}
+
+export interface StoryTemplate {
+  id: 'blank' | 'three-act' | 'hero-journey';
+  title: string;
+  subtitle: string;
+  description: string;
+  badge: string;
+  chapters: StoryTemplateChapter[];
+}
+
+export interface GentleGoal {
+  id: '300w' | '500w' | '10kch' | 'free';
+  label: string;
+  sub: string;
+  words: number;
+}
+
+export const STORY_TEMPLATES: StoryTemplate[] = [
+  {
+    id: 'blank',
+    title: 'Чистый лист',
+    subtitle: '1 глава для свободного старта',
+    description: 'Никаких рамок и подсказок: вы сами определяете ритм, структуру и форму повествования.',
+    badge: 'Свободное письмо',
+    chapters: [{ title: 'Глава 1', synopsis: '', content: '', words: 0 }],
+  },
+];
+
+export const GENTLE_GOALS: GentleGoal[] = [
+  { id: '300w', label: '300 слов', sub: 'быстрый старт каждый день', words: 300 },
+  { id: '500w', label: '500 слов', sub: 'комфортный темп автора', words: 500 },
+  { id: '10kch', label: '10 000 знаков', sub: 'первая сцена (~1 600 слов)', words: 1600 },
+  { id: 'free', label: 'Без цели', sub: 'писать свободно и без давления', words: 0 },
+];
+
+export async function createBookFromTemplate(
+  userId: string,
+  input: {
+    title?: string;
+    templateId: StoryTemplate['id'];
+    goalWords: number;
+    cover?: string;
+  },
+): Promise<Book> {
+  const title = input.title?.trim() || 'Чистый лист';
+  const cover = input.cover || COVERS[0];
+
+  const book = await createBook({
+    user_id: userId,
+    title,
+    genre: null,
+    genres: [],
+    goal: Math.max(0, input.goalWords),
+    words: 0,
+    cover,
+  });
+
+  await createChaptersBulk(book.id, userId, [
+    { title: 'Глава 1', content: '', words: 0, synopsis: '', position: 0 },
+  ]);
 
   return book;
 }

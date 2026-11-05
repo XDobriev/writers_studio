@@ -9,12 +9,13 @@ export type BookPatch = Partial<
 export interface BookCreateInput {
   user_id: string;
   title: string;
-  genre: string | null;
-  genres: string[];
-  goal: number;
-  words: number;
-  cover: string;
+  genre?: string | null;
+  genres?: string[];
+  goal?: number;
+  words?: number;
+  cover?: string;
   author?: string | null;
+  target_words?: number | null;
 }
 
 export async function getBook(id: string): Promise<Book> {
@@ -37,7 +38,17 @@ export async function listBooks(): Promise<Book[]> {
 }
 
 export async function createBook(input: BookCreateInput): Promise<Book> {
-  const { data, error } = await supabase.from('books').insert(input).select().single();
+  const payload = {
+    user_id: input.user_id,
+    title: input.title,
+    genre: input.genre ?? null,
+    genres: input.genres ?? [],
+    goal: input.goal ?? (input.target_words ? Math.max(0, input.target_words) : 0),
+    words: input.words ?? 0,
+    cover: input.cover ?? '',
+    author: input.author ?? null,
+  };
+  const { data, error } = await supabase.from('books').insert(payload).select().single();
   if (error) throw error;
   return data as Book;
 }
@@ -124,6 +135,34 @@ export async function duplicateBookContent(
   if (error) throw error;
   if (opts.locationsMap) await copyMapBackground(targetBookId, userId);
   if (opts.characters) await copyCharacterAvatars(targetBookId, userId);
+}
+
+export async function createBookWithSeriesTransfer(
+  input: BookCreateInput,
+  seriesTransfer: {
+    enabled?: boolean;
+    sourceBookId?: string;
+    characters?: boolean;
+    locationsMap?: boolean;
+    notes?: boolean;
+    timeline?: boolean;
+  },
+): Promise<Book> {
+  const book = await createBook(input);
+  if (seriesTransfer.enabled && seriesTransfer.sourceBookId) {
+    await duplicateBookContent(
+      seriesTransfer.sourceBookId,
+      book.id,
+      input.user_id,
+      {
+        characters: !!seriesTransfer.characters,
+        locationsMap: !!seriesTransfer.locationsMap,
+        notes: !!seriesTransfer.notes,
+        timeline: !!seriesTransfer.timeline,
+      },
+    );
+  }
+  return book;
 }
 
 const AVATAR_BUCKET = 'character-avatars';
