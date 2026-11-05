@@ -173,4 +173,54 @@ describe('useDropdownPosition', () => {
 
     expect(lastResult?.bottom).toBe(800 - 650 + 4);
   });
+
+  describe('инвариант: меню никогда не выходит за пределы экрана', () => {
+    it('для любой позиции кнопки на экране меню гарантированно укладывается в границы viewport', () => {
+      const windowHeights = [500, 600, 768, 900, 1080];
+      const gap = 4;
+      const screenPadding = 8;
+      const buttonHeight = 24;
+
+      for (const h of windowHeights) {
+        Object.defineProperty(window, 'innerHeight', { value: h });
+
+        for (let top = 0; top <= h - buttonHeight; top += 25) {
+          const bottom = top + buttonHeight;
+          vi.spyOn(mockElement, 'getBoundingClientRect').mockReturnValue({
+            top,
+            bottom,
+            left: 176,
+            right: 200,
+            width: 24,
+            height: buttonHeight,
+            x: 176,
+            y: top,
+            toJSON: () => {},
+          });
+
+          const ref = { current: mockElement };
+          renderDropdownHook(ref, 'chapter-1', { estimatedHeight: 360, gap, screenPadding });
+
+          expect(lastResult).not.toBeNull();
+          expect(lastResult?.overflowY).toBe('auto');
+
+          if (lastResult?.top !== undefined) {
+            // Меню открыто вниз: top >= 0, и (top + maxHeight) не превышает h
+            const topVal = Number(lastResult.top);
+            const maxH = Number(lastResult.maxHeight);
+            expect(topVal).toBeGreaterThanOrEqual(0);
+            expect(topVal + maxH).toBeLessThanOrEqual(h);
+          } else if (lastResult?.bottom !== undefined) {
+            // Меню открыто вверх: bottom >= 0, и (bottom + maxHeight) не превышает h
+            const bottomVal = Number(lastResult.bottom);
+            const maxH = Number(lastResult.maxHeight);
+            expect(bottomVal).toBeGreaterThanOrEqual(0);
+            expect(bottomVal + maxH).toBeLessThanOrEqual(h);
+          } else {
+            throw new Error('Ни top, ни bottom не определены');
+          }
+        }
+      }
+    });
+  });
 });
