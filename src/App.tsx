@@ -10,6 +10,7 @@ import { PageMotion } from './components/PageMotion';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineBanner } from './components/OfflineBanner';
 import { CookieBanner } from './components/CookieBanner';
+import { GlobalSaveHandler } from './components/GlobalSaveHandler';
 import { useFeatureFlag } from './lib/useFeatureFlag';
 import { trackPageView } from './lib/analytics';
 
@@ -189,6 +190,7 @@ export default function App() {
         <AuthQuerySync />
         <OfflineBanner />
         <CookieBanner />
+        <GlobalSaveHandler />
         <AppContent />
       </BrowserRouter>
     </AuthProvider>

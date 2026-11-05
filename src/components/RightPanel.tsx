@@ -24,7 +24,7 @@ interface RightPanelProps {
   onRestoreContent?: (content: string) => void;
   onBeforeRestore?: () => void | Promise<void>;
   onRebase?: (chapterId: string, updatedAt: string) => void;
-  /** Ctrl+Shift+M из EditorHybrid — переключает панель на заметки и открывает форму */
+  /** Alt+N из EditorHybrid — переключает панель на заметки и открывает форму */
   showNoteForm?: boolean;
   onNoteFormClose?: () => void;
   /** В демо нет реального аккаунта — createNote() бросает 'not authenticated'

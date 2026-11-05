@@ -143,21 +143,38 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
               </button>
               {helpOpen && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 14 }}>
-                  {EDITOR_SHORTCUTS.map((s) => (
-                    <div
-                      key={s.label}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}
-                    >
-                      <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{s.label}</span>
-                      <kbd style={{
-                        font: '500 11px var(--font-mono)', color: 'var(--ink-2)',
-                        background: 'var(--surface)', border: '1px solid var(--border)',
-                        borderRadius: 5, padding: '2px 8px', whiteSpace: 'nowrap', letterSpacing: '0.02em',
-                      }}>
-                        {shortcutLabel(s)}
-                      </kbd>
-                    </div>
-                  ))}
+                  {EDITOR_SHORTCUTS.map((s, idx) => {
+                    const prevGroup = idx > 0 ? EDITOR_SHORTCUTS[idx - 1].group : null;
+                    const showGroupHeading = s.group && s.group !== prevGroup;
+                    return (
+                      <div key={s.label}>
+                        {showGroupHeading && (
+                          <div style={{
+                            font: '600 10px var(--font-mono)',
+                            color: 'var(--ink-4)',
+                            letterSpacing: '0.08em',
+                            textTransform: 'uppercase',
+                            paddingTop: idx > 0 ? 10 : 4,
+                            paddingBottom: 4,
+                          }}>
+                            {s.group === 'general' ? 'Управление' : 'Форматирование'}
+                          </div>
+                        )}
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}
+                        >
+                          <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>{s.label}</span>
+                          <kbd style={{
+                            font: '500 11px var(--font-mono)', color: 'var(--ink-2)',
+                            background: 'var(--surface)', border: '1px solid var(--border)',
+                            borderRadius: 5, padding: '2px 8px', whiteSpace: 'nowrap', letterSpacing: '0.02em',
+                          }}>
+                            {shortcutLabel(s)}
+                          </kbd>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
