@@ -2,46 +2,62 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Icon } from './Icon';
 import { ErrorBanner } from './ErrorBanner';
+import { GenrePicker } from './GenrePicker';
+import { CoverPicker, COVERS } from './CoverPicker';
+import {
+  SeriesTransferPicker,
+  INITIAL_SERIES_TRANSFER,
+  type SeriesTransferState,
+} from './SeriesTransferPicker';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
 import { trapTab, useModalFocus } from '../lib/useModalFocus';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import {
-  STORY_TEMPLATES,
-  GENTLE_GOALS,
+  LITERARY_FORMS,
   cloneSampleBook,
-  createBookFromTemplate,
-  type StoryTemplate,
-  type GentleGoal,
+  createBookFromLiteraryForm,
+  type LiteraryFormId,
 } from '../lib/onboardingTemplates';
 import type { Book } from '../lib/supabase';
 
-interface OnboardingForkModalProps {
+export interface OnboardingForkModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userId: string | undefined;
+  userId?: string;
+  books?: Book[];
   onSelectImport: () => void;
-  onSuccess: (book: Book) => void;
+  onSuccess: ((bookId: string) => void) | ((book: Book) => void);
+  initialCover?: string;
+  onUploadCover?: (file: File) => Promise<string | null>;
 }
 
 export function OnboardingForkModal({
   isOpen,
   onClose,
   userId,
+  books,
   onSelectImport,
   onSuccess,
+  initialCover,
+  onUploadCover,
 }: OnboardingForkModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<'cards' | 'configure'>('cards');
-  const [selectedTemplate, setSelectedTemplate] = useState<StoryTemplate['id']>('three-act');
-  const [selectedGoal, setSelectedGoal] = useState<GentleGoal['id']>('500w');
   const [bookTitle, setBookTitle] = useState('');
+  const [selectedForm, setSelectedForm] = useState<LiteraryFormId>('novel');
+  const [targetWords, setTargetWords] = useState<number | null>(70000);
+  const [genres, setGenres] = useState<string[]>([]);
+  const [cover, setCover] = useState<string>(initialCover || COVERS[0]);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [seriesTransfer, setSeriesTransfer] = useState<SeriesTransferState>(INITIAL_SERIES_TRANSFER);
+
   const [loading, setLoading] = useState(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Сброс шага и ошибок при открытии/закрытии
+  // Сброс шага и формы при открытии/закрытии
   useEffect(() => {
     if (isOpen) {
       setStep('cards');
@@ -49,10 +65,14 @@ export function OnboardingForkModal({
       setLoading(false);
       setLoadingAction(null);
       setBookTitle('');
-      setSelectedTemplate('three-act');
-      setSelectedGoal('500w');
+      setSelectedForm('novel');
+      setTargetWords(70000);
+      setGenres([]);
+      setCover(initialCover || COVERS[0]);
+      setUploadingCover(false);
+      setSeriesTransfer(INITIAL_SERIES_TRANSFER);
     }
-  }, [isOpen]);
+  }, [isOpen, initialCover]);
 
   useEscapeToClose(isOpen, () => {
     if (!loading) onClose();
@@ -60,7 +80,7 @@ export function OnboardingForkModal({
 
   useModalFocus(isOpen, panelRef);
 
-  // Фокус на инпут заголовка при переходе к шагу конфигурации
+  // Автофокус на поле названия при переходе к шагу паспорта книги
   useEffect(() => {
     if (step === 'configure') {
       setTimeout(() => titleInputRef.current?.focus(), 50);
@@ -83,28 +103,54 @@ export function OnboardingForkModal({
     onSelectImport();
   };
 
-  // Сценарий 2: Переход к настройке новой книги
+  // Сценарий 2: Переход к паспорту новой книги
   const handleGoToConfigure = () => {
     if (loading) return;
     setError(null);
     setStep('configure');
   };
 
-  // Сценарий 2 (финал): Создание книги по выбранному шаблону и цели
-  const handleCreateFromTemplate = async () => {
+  // Загрузка пользовательской обложки
+  const handleCoverFileSelect = async (file: File) => {
+    if (!onUploadCover) return;
+    setUploadingCover(true);
+    setError(null);
+    try {
+      const url = await onUploadCover(file);
+      if (url) {
+        setCover(url);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось загрузить обложку');
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  // Сценарий 2 (финал): Создание книги по паспорту
+  const handleCreateFromForm = async () => {
+    const trimmedTitle = bookTitle.trim();
+    if (!trimmedTitle) {
+      setError('Пожалуйста, укажите название книги');
+      titleInputRef.current?.focus();
+      return;
+    }
     if (!userId || loading) return;
+
     setLoading(true);
     setLoadingAction('Создаём книгу…');
     setError(null);
 
     try {
-      const goalObj = GENTLE_GOALS.find((g) => g.id === selectedGoal);
-      const book = await createBookFromTemplate(userId, {
-        title: bookTitle,
-        templateId: selectedTemplate,
-        goalWords: goalObj?.words ?? 0,
+      const book = await createBookFromLiteraryForm(userId, {
+        title: trimmedTitle,
+        formId: selectedForm,
+        targetWords: targetWords && targetWords > 0 ? targetWords : null,
+        genres,
+        cover,
+        seriesTransfer: seriesTransfer.enabled ? seriesTransfer : undefined,
       });
-      onSuccess(book);
+      (onSuccess as (id: string) => void)(book.id);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось создать книгу');
@@ -123,7 +169,7 @@ export function OnboardingForkModal({
 
     try {
       const book = await cloneSampleBook(userId);
-      onSuccess(book);
+      (onSuccess as (id: string) => void)(book.id);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось клонировать демо-книгу');
@@ -155,7 +201,7 @@ export function OnboardingForkModal({
           variants={modalPanelVariants}
           className="modal-panel"
           style={{
-            width: step === 'cards' ? 880 : 640,
+            width: step === 'cards' ? 880 : 700,
             maxWidth: 'calc(100vw - 28px)',
             padding: 0,
             overflow: 'hidden',
@@ -207,7 +253,7 @@ export function OnboardingForkModal({
                   lineHeight: 1.25,
                 }}
               >
-                {step === 'cards' ? 'Как вы хотите начать?' : 'Настройка новой книги'}
+                {step === 'cards' ? 'Как вы хотите начать?' : 'Паспорт новой книги'}
               </h2>
               <p
                 style={{
@@ -218,7 +264,7 @@ export function OnboardingForkModal({
               >
                 {step === 'cards'
                   ? 'Выберите удобный формат старта — структуру и цели всегда можно изменить в любой момент.'
-                  : 'Задайте название, выберите сюжетный каркас и щадящую планку для быстрого старта.'}
+                  : 'Задайте название, литературную форму, жанры и обложку для старта работы.'}
               </p>
             </div>
 
@@ -235,7 +281,13 @@ export function OnboardingForkModal({
           </div>
 
           {/* Body */}
-          <div style={{ padding: '24px 28px', maxHeight: 'calc(80vh - 120px)', overflowY: 'auto' }}>
+          <div
+            style={{
+              padding: '24px 28px',
+              maxHeight: 'calc(90vh - 120px)',
+              overflowY: 'auto',
+            }}
+          >
             {error && <ErrorBanner message={error} style={{ marginBottom: 20 }} />}
 
             {step === 'cards' ? (
@@ -403,7 +455,7 @@ export function OnboardingForkModal({
                       flex: 1,
                     }}
                   >
-                    Пишите с чистого листа или используйте проверенный каркас сюжета («Трёхактная структура», «Путь героя») со щадящей целью.
+                    Выберите литературную форму (роман, повесть, рассказ) и задайте жанры, обложку и ориентир по объёму.
                   </p>
 
                   <div
@@ -415,7 +467,7 @@ export function OnboardingForkModal({
                       gap: 4,
                     }}
                   >
-                    Выбрать структуру <Icon name="chev" size={12} />
+                    Настроить паспорт книги <Icon name="chev" size={12} />
                   </div>
                 </div>
 
@@ -507,8 +559,8 @@ export function OnboardingForkModal({
                 </div>
               </div>
             ) : (
-              /* ШАГ 2: КОНФИГУРАЦИЯ СТРУКТУРЫ И ЦЕЛИ */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              /* ШАГ 2: ПАСПОРТ НОВОЙ КНИГИ */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
                 {/* 1. Поле названия */}
                 <div>
                   <label
@@ -516,7 +568,7 @@ export function OnboardingForkModal({
                     className="label"
                     style={{ display: 'block', marginBottom: 8 }}
                   >
-                    Название произведения
+                    Название произведения <span style={{ color: 'var(--accent)' }}>*</span>
                   </label>
                   <input
                     id="fork-book-title"
@@ -525,33 +577,45 @@ export function OnboardingForkModal({
                     value={bookTitle}
                     onChange={(e) => setBookTitle(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') void handleCreateFromTemplate();
+                      if (e.key === 'Enter' && bookTitle.trim()) void handleCreateFromForm();
                     }}
-                    placeholder="Например: Хроники северного архива (можно изменить позже)"
+                    placeholder="Например: Хроники северного архива"
                     maxLength={120}
                     disabled={loading}
+                    autoFocus
+                    required
                   />
                 </div>
 
-                {/* 2. Выбор шаблона структуры */}
+                {/* 2. Литературная форма */}
                 <div>
                   <span className="label" style={{ display: 'block', marginBottom: 8 }}>
-                    Сюжетная структура
+                    Литературная форма
                   </span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {STORY_TEMPLATES.map((tmpl) => {
-                      const isSelected = selectedTemplate === tmpl.id;
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                      gap: 10,
+                    }}
+                  >
+                    {LITERARY_FORMS.map((form) => {
+                      const isSelected = selectedForm === form.id;
                       return (
                         <div
-                          key={tmpl.id}
+                          key={form.id}
                           role="radio"
                           aria-checked={isSelected}
                           tabIndex={0}
-                          onClick={() => setSelectedTemplate(tmpl.id)}
+                          onClick={() => {
+                            setSelectedForm(form.id);
+                            setTargetWords(form.targetWords);
+                          }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
-                              setSelectedTemplate(tmpl.id);
+                              setSelectedForm(form.id);
+                              setTargetWords(form.targetWords);
                             }
                           }}
                           style={{
@@ -565,114 +629,131 @@ export function OnboardingForkModal({
                               : '1px solid var(--border-soft)',
                             cursor: 'pointer',
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: 12,
+                            flexDirection: 'column',
+                            gap: 6,
                             transition: 'all 0.12s ease',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div
-                              style={{
-                                width: 18,
-                                height: 18,
-                                borderRadius: '50%',
-                                border: isSelected
-                                  ? '5px solid var(--accent)'
-                                  : '1.5px solid var(--border)',
-                                background: 'transparent',
-                                flexShrink: 0,
-                                transition: 'border 0.12s ease',
-                              }}
-                            />
-                            <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <div
+                                style={{
+                                  width: 16,
+                                  height: 16,
+                                  borderRadius: '50%',
+                                  border: isSelected
+                                    ? '5px solid var(--accent)'
+                                    : '1.5px solid var(--border)',
+                                  background: 'transparent',
+                                  flexShrink: 0,
+                                  transition: 'border 0.12s ease',
+                                }}
+                              />
+                              <span
                                 style={{
                                   font: '600 14px var(--font-ui)',
                                   color: 'var(--ink)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 8,
                                 }}
                               >
-                                {tmpl.title}
-                                <span
-                                  style={{
-                                    font: '400 12px var(--font-ui)',
-                                    color: 'var(--ink-3)',
-                                  }}
-                                >
-                                  ({tmpl.subtitle})
-                                </span>
-                              </div>
-                              <div
-                                style={{
-                                  font: '400 12px var(--font-ui)',
-                                  color: 'var(--ink-2)',
-                                  marginTop: 2,
-                                }}
-                              >
-                                {tmpl.description}
-                              </div>
+                                {form.title}
+                              </span>
                             </div>
+                            <span
+                              style={{
+                                font: '500 11px var(--font-mono)',
+                                color: isSelected ? 'var(--accent)' : 'var(--ink-3)',
+                                background: isSelected
+                                  ? 'color-mix(in oklch, var(--accent) 12%, transparent)'
+                                  : 'var(--surface-2)',
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                              }}
+                            >
+                              {form.targetWords ? `${form.targetWords.toLocaleString('ru-RU')} слов` : 'без рамок'}
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              font: '400 11.5px/1.4 var(--font-ui)',
+                              color: 'var(--ink-2)',
+                              paddingLeft: 24,
+                            }}
+                          >
+                            {form.description}
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                </div>
 
-                {/* 3. Щадящая писательская цель */}
-                <div>
-                  <span className="label" style={{ display: 'block', marginBottom: 8 }}>
-                    Щадящая цель старта
-                  </span>
+                  {/* Числовое поле «Цель по объёму книги (слов)» */}
+                  <div style={{ marginTop: 12 }}>
+                    <label
+                      htmlFor="fork-target-words"
+                      className="label"
+                      style={{ display: 'block', marginBottom: 6 }}
+                    >
+                      Цель по объёму книги (слов)
+                    </label>
+                    <input
+                      id="fork-target-words"
+                      type="number"
+                      min={0}
+                      step={1000}
+                      className="input"
+                      value={targetWords ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        setTargetWords(val === '' ? null : Math.max(0, parseInt(val, 10) || 0));
+                      }}
+                      placeholder="например 70000 (необязательно)"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  {/* Подсказка про драматургические схемы */}
                   <div
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                      gap: 8,
+                      marginTop: 10,
+                      padding: '10px 14px',
+                      borderRadius: 8,
+                      background: 'color-mix(in oklch, var(--accent) 6%, var(--surface))',
+                      border: '1px solid color-mix(in oklch, var(--accent) 20%, transparent)',
+                      fontSize: '12px',
+                      lineHeight: 1.5,
+                      color: 'var(--ink-2)',
                     }}
                   >
-                    {GENTLE_GOALS.map((g) => {
-                      const isSelected = selectedGoal === g.id;
-                      return (
-                        <button
-                          key={g.id}
-                          type="button"
-                          role="radio"
-                          aria-checked={isSelected}
-                          onClick={() => setSelectedGoal(g.id)}
-                          style={{
-                            padding: '10px 12px',
-                            borderRadius: 8,
-                            background: isSelected
-                              ? 'color-mix(in oklch, var(--accent) 12%, var(--surface))'
-                              : 'var(--surface)',
-                            border: isSelected
-                              ? '1.5px solid var(--accent)'
-                              : '1px solid var(--border-soft)',
-                            color: isSelected ? 'var(--accent)' : 'var(--ink)',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            transition: 'all 0.12s ease',
-                          }}
-                        >
-                          <div style={{ font: '600 13px var(--font-mono)' }}>{g.label}</div>
-                          <div
-                            style={{
-                              font: '400 11px var(--font-ui)',
-                              color: 'var(--ink-3)',
-                              marginTop: 2,
-                            }}
-                          >
-                            {g.sub}
-                          </div>
-                        </button>
-                      );
-                    })}
+                    💡 Драматургические схемы (Save the Cat, Трёхактная арка, 7 точек) доступны внутри книги в разделе «Структура» — их можно подключить в любой момент как ориентиры для сцен.
                   </div>
                 </div>
+
+                {/* 3. Жанры */}
+                <div>
+                  <GenrePicker value={genres} onChange={setGenres} />
+                </div>
+
+                {/* 4. Обложка */}
+                <div>
+                  <CoverPicker
+                    value={cover}
+                    onChange={setCover}
+                    uploading={uploadingCover}
+                    onFileSelect={onUploadCover ? handleCoverFileSelect : undefined}
+                  />
+                </div>
+
+                {/* 5. Продолжение серии */}
+                {books && books.length > 0 && (
+                  <div>
+                    <SeriesTransferPicker
+                      books={books}
+                      value={seriesTransfer}
+                      onChange={setSeriesTransfer}
+                      disabled={loading}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -703,7 +784,7 @@ export function OnboardingForkModal({
                   {loadingAction}
                 </span>
               ) : step === 'configure' ? (
-                'Главы будут созданы автоматически с подсказками'
+                'Книга будет создана с первой главой'
               ) : (
                 'Не требует ввода карты'
               )}
@@ -723,8 +804,8 @@ export function OnboardingForkModal({
                 <button
                   type="button"
                   className="btn btn--primary"
-                  onClick={handleCreateFromTemplate}
-                  disabled={loading}
+                  onClick={handleCreateFromForm}
+                  disabled={loading || !bookTitle.trim()}
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                   {loading ? 'Создание…' : 'Создать книгу и начать →'}

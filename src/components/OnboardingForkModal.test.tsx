@@ -3,14 +3,17 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { OnboardingForkModal } from './OnboardingForkModal';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { OnboardingForkModal, type OnboardingForkModalProps } from './OnboardingForkModal';
 import * as onboardingLib from '../lib/onboardingTemplates';
 import type { Book } from '../lib/supabase';
 
 let root: Root | null = null;
+let queryClient: QueryClient;
 const mockOnClose = vi.fn();
 const mockOnSelectImport = vi.fn();
 const mockOnSuccess = vi.fn();
+const mockUploadCover = vi.fn();
 
 const MOCK_BOOK: Book = {
   id: 'b-created-1',
@@ -19,7 +22,7 @@ const MOCK_BOOK: Book = {
   author: null,
   genre: null,
   genres: [],
-  goal: 500,
+  goal: 70000,
   words: 0,
   cover: null,
   daily_goal: 0,
@@ -33,19 +36,28 @@ const MOCK_BOOK: Book = {
   updated_at: new Date().toISOString(),
 };
 
-function mount(isOpen = true): HTMLElement {
+function mount(props: Partial<OnboardingForkModalProps> = {}, isOpen = true): HTMLElement {
   const el = document.createElement('div');
   document.body.appendChild(el);
   root = createRoot(el);
+  queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   act(() => {
     root!.render(
-      createElement(OnboardingForkModal, {
-        isOpen,
-        onClose: mockOnClose,
-        userId: 'user-123',
-        onSelectImport: mockOnSelectImport,
-        onSuccess: mockOnSuccess,
-      }),
+      createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(OnboardingForkModal, {
+          isOpen,
+          onClose: mockOnClose,
+          userId: 'user-123',
+          onSelectImport: mockOnSelectImport,
+          onSuccess: mockOnSuccess,
+          onUploadCover: mockUploadCover,
+          ...props,
+        }),
+      ),
     );
   });
   return el;
@@ -59,7 +71,7 @@ afterEach(() => {
 
 describe('OnboardingForkModal', () => {
   beforeEach(() => {
-    vi.spyOn(onboardingLib, 'createBookFromTemplate').mockResolvedValue(MOCK_BOOK);
+    vi.spyOn(onboardingLib, 'createBookFromLiteraryForm').mockResolvedValue(MOCK_BOOK);
     vi.spyOn(onboardingLib, 'cloneSampleBook').mockResolvedValue({
       ...MOCK_BOOK,
       id: 'b-sample-1',
@@ -68,12 +80,12 @@ describe('OnboardingForkModal', () => {
   });
 
   it('не рендерится при isOpen=false', () => {
-    mount(false);
+    mount({}, false);
     expect(document.querySelector('[role="dialog"]')).toBeNull();
   });
 
-  it('рендерит 3 стартовых сценария при открытии', () => {
-    mount(true);
+  it('рендерит 3 стартовых сценария при открытии (Шаг 1)', () => {
+    mount();
     const dialog = document.querySelector('[role="dialog"]');
     expect(dialog).not.toBeNull();
     expect(dialog?.textContent).toContain('Как вы хотите начать?');
@@ -83,7 +95,7 @@ describe('OnboardingForkModal', () => {
   });
 
   it('клик по карточке импорта вызывает onSelectImport и onClose', () => {
-    mount(true);
+    mount();
     const cards = document.querySelectorAll('.fork-card');
     expect(cards.length).toBe(3);
 
@@ -95,8 +107,21 @@ describe('OnboardingForkModal', () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  it('клик по карточке «Начать новую книгу» открывает шаг настройки', () => {
-    mount(true);
+  it('клик по карточке «Изучить студию» клонирует демо-роман и вызывает onSuccess с id', async () => {
+    mount();
+    const cards = document.querySelectorAll('.fork-card');
+
+    await act(async () => {
+      (cards[2] as HTMLElement).click();
+    });
+
+    expect(onboardingLib.cloneSampleBook).toHaveBeenCalledWith('user-123');
+    expect(mockOnSuccess).toHaveBeenCalledWith('b-sample-1');
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('клик по карточке «Начать новую книгу» открывает Шаг 2 с паспортом книги', () => {
+    mount();
     const cards = document.querySelectorAll('.fork-card');
 
     act(() => {
@@ -104,9 +129,16 @@ describe('OnboardingForkModal', () => {
     });
 
     const dialog = document.querySelector('[role="dialog"]');
-    expect(dialog?.textContent).toContain('Настройка новой книги');
-    expect(dialog?.textContent).toContain('Сюжетная структура');
-    expect(dialog?.textContent).toContain('Щадящая цель старта');
+    expect(dialog?.textContent).toContain('Паспорт новой книги');
+    expect(document.querySelector('#fork-book-title')).not.toBeNull();
+    expect(dialog?.textContent).toContain('Литературная форма');
+    expect(dialog?.textContent).toContain('Роман');
+    expect(dialog?.textContent).toContain('Повесть');
+    expect(dialog?.textContent).toContain('Рассказ');
+    expect(dialog?.textContent).toContain('Свободный объём');
+    expect(dialog?.textContent).toContain('Жанры');
+    expect(dialog?.textContent).toContain('Обложка');
+    expect(dialog?.textContent).toContain('Драматургические схемы');
 
     // Кнопка «Назад к вариантам» возвращает на шаг 1
     const backBtn = dialog?.querySelector('button');
@@ -117,8 +149,48 @@ describe('OnboardingForkModal', () => {
     expect(dialog?.textContent).toContain('Как вы хотите начать?');
   });
 
-  it('создает книгу из шаблона на шаге 2 и вызывает onSuccess', async () => {
-    mount(true);
+  it('при клике на форму «Повесть» цель по словам обновляется на 30 000', () => {
+    mount();
+    const cards = document.querySelectorAll('.fork-card');
+
+    act(() => {
+      (cards[1] as HTMLElement).click();
+    });
+
+    // Находим карточку «Повесть»
+    const formCards = Array.from(document.querySelectorAll('[role="radio"]'));
+    const novellaCard = formCards.find((c) => c.textContent?.includes('Повесть'));
+    expect(novellaCard).toBeDefined();
+
+    act(() => {
+      (novellaCard as HTMLElement).click();
+    });
+
+    const wordsInput = document.querySelector('#fork-target-words') as HTMLInputElement;
+    expect(wordsInput).not.toBeNull();
+    expect(wordsInput.value).toBe('30000');
+  });
+
+  it('отображает секцию переноса серии только при наличии books', () => {
+    // 1. Без books секция отсутствует
+    mount({ books: [] });
+    act(() => {
+      (document.querySelectorAll('.fork-card')[1] as HTMLElement).click();
+    });
+    expect(document.body.textContent).not.toContain('Это продолжение серии');
+
+    // 2. С books секция присутствует
+    act(() => root?.unmount());
+    document.body.innerHTML = '';
+    mount({ books: [MOCK_BOOK] });
+    act(() => {
+      (document.querySelectorAll('.fork-card')[1] as HTMLElement).click();
+    });
+    expect(document.body.textContent).toContain('Это продолжение серии');
+  });
+
+  it('создает книгу через createBookFromLiteraryForm со всеми параметрами и вызывает onSuccess с id', async () => {
+    mount({ books: [MOCK_BOOK] });
     const cards = document.querySelectorAll('.fork-card');
 
     // Переходим на шаг 2
@@ -126,12 +198,30 @@ describe('OnboardingForkModal', () => {
       (cards[1] as HTMLElement).click();
     });
 
+    // Заполняем название
     const titleInput = document.querySelector('#fork-book-title') as HTMLInputElement;
     act(() => {
       const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-      setter?.call(titleInput, 'Мой детектив');
+      setter?.call(titleInput, 'Северный ветер');
       titleInput.dispatchEvent(new Event('input', { bubbles: true }));
     });
+
+    // Выбираем форму «Повесть»
+    const formCards = Array.from(document.querySelectorAll('[role="radio"]'));
+    const novellaCard = formCards.find((c) => c.textContent?.includes('Повесть'));
+    act(() => {
+      (novellaCard as HTMLElement).click();
+    });
+
+    // Выбираем жанр (например, Фэнтези)
+    const genreButtons = Array.from(document.querySelectorAll('button')).filter((b) =>
+      b.textContent?.includes('Фэнтези') && !b.textContent.includes('('),
+    );
+    if (genreButtons[0]) {
+      act(() => {
+        genreButtons[0].click();
+      });
+    }
 
     const submitBtn = Array.from(document.querySelectorAll('button')).find((b) =>
       b.textContent?.includes('Создать книгу и начать'),
@@ -142,35 +232,22 @@ describe('OnboardingForkModal', () => {
       submitBtn?.click();
     });
 
-    expect(onboardingLib.createBookFromTemplate).toHaveBeenCalledWith(
+    expect(onboardingLib.createBookFromLiteraryForm).toHaveBeenCalledWith(
       'user-123',
       expect.objectContaining({
-        title: 'Мой детектив',
-        templateId: 'three-act',
-        goalWords: 500,
+        title: 'Северный ветер',
+        formId: 'novella',
+        targetWords: 30000,
+        genres: expect.arrayContaining(['Фэнтези']),
+        cover: expect.any(String),
       }),
     );
-    expect(mockOnSuccess).toHaveBeenCalledWith(MOCK_BOOK);
-    expect(mockOnClose).toHaveBeenCalled();
-  });
-
-  it('клик по карточке «Изучить студию» клонирует демо-роман и вызывает onSuccess', async () => {
-    mount(true);
-    const cards = document.querySelectorAll('.fork-card');
-
-    await act(async () => {
-      (cards[2] as HTMLElement).click();
-    });
-
-    expect(onboardingLib.cloneSampleBook).toHaveBeenCalledWith('user-123');
-    expect(mockOnSuccess).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Город, которого нет' }),
-    );
+    expect(mockOnSuccess).toHaveBeenCalledWith('b-created-1');
     expect(mockOnClose).toHaveBeenCalled();
   });
 
   it('нажатие клавиши Escape закрывает модальное окно', () => {
-    mount(true);
+    mount();
     act(() => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     });
