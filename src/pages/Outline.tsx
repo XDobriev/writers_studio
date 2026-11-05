@@ -533,6 +533,7 @@ function SortableChapterRow({
             background: 'var(--bg-deep)', border: '1px solid var(--border-strong)',
             borderRadius: 6, padding: 4, minWidth: 160,
             boxShadow: '0 8px 24px oklch(0.05 0.01 50 / 0.35)',
+            overscrollBehavior: 'contain',
           }}>
             {deleteConfirmFor === c.id ? (
               <div style={{ padding: '6px 8px' }}>
@@ -629,7 +630,7 @@ export default function Outline() {
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const [renameFor, setRenameFor] = useState<string | null>(null);
   const menuRef = useRef<HTMLButtonElement>(null);
-  const menuDropdownStyle = useDropdownPosition(menuRef, menuFor);
+  const menuDropdownStyle = useDropdownPosition(menuRef, menuFor, { estimatedHeight: 360 });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),

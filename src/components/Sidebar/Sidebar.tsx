@@ -76,7 +76,7 @@ export function Sidebar({
       invalidateChaptersCache(queryClient, book.id);
     }
   }, [onTypeChange, book?.id, chapters, queryClient]);
-  const dropdownStyle = useDropdownPosition(statusMenuRef, statusMenuFor);
+  const dropdownStyle = useDropdownPosition(statusMenuRef, statusMenuFor, { estimatedHeight: 360 });
   const [shareToken, setShareToken] = useState<string | null>(book?.share_token ?? null);
   // Синхронизация со свежими данными книги — без неё устаревший persisted-кэш
   // (react-query показывает старое значение, потом тихо ревалидирует в фоне)
@@ -276,7 +276,7 @@ export function Sidebar({
                         style={{ position: 'fixed', inset: 0, zIndex: 'calc(var(--z-dropdown) - 1)' }}
                         onMouseDown={() => { setStatusMenuFor(null); setDeleteConfirmFor(null); }}
                       />
-                      {dropdownStyle && <div style={{ ...dropdownStyle, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 148, boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)', animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both' }}>
+                      {dropdownStyle && <div style={{ ...dropdownStyle, background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 6, padding: 4, minWidth: 154, boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)', animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both', overscrollBehavior: 'contain' }}>
                       <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px 6px' }}>Статус</div>
                       {(['draft', 'progress', 'done'] as ChapterStatus[]).map((s) => (
                         <button
