@@ -28,6 +28,7 @@ export interface OnboardingForkModalProps {
   onSelectImport: () => void;
   onSuccess: ((bookId: string) => void) | ((book: Book) => void);
   initialCover?: string;
+  initialSeriesTransfer?: SeriesTransferState;
   onUploadCover?: (file: File) => Promise<string | null>;
 }
 
@@ -39,6 +40,7 @@ export function OnboardingForkModal({
   onSelectImport,
   onSuccess,
   initialCover,
+  initialSeriesTransfer,
   onUploadCover,
 }: OnboardingForkModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -60,7 +62,7 @@ export function OnboardingForkModal({
   // Сброс шага и формы при открытии/закрытии
   useEffect(() => {
     if (isOpen) {
-      setStep('cards');
+      setStep(initialSeriesTransfer?.enabled ? 'configure' : 'cards');
       setError(null);
       setLoading(false);
       setLoadingAction(null);
@@ -70,9 +72,9 @@ export function OnboardingForkModal({
       setGenres([]);
       setCover(initialCover || COVERS[0]);
       setUploadingCover(false);
-      setSeriesTransfer(INITIAL_SERIES_TRANSFER);
+      setSeriesTransfer(initialSeriesTransfer || INITIAL_SERIES_TRANSFER);
     }
-  }, [isOpen, initialCover]);
+  }, [isOpen, initialCover, initialSeriesTransfer]);
 
   useEscapeToClose(isOpen, () => {
     if (!loading) onClose();
