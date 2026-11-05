@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Skeleton } from '../components/Skeleton';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { trapTab, useModalFocus } from '../lib/useModalFocus';
@@ -19,17 +19,16 @@ import { CoverPicker, COVERS } from '../components/CoverPicker';
 import { GenrePicker } from '../components/GenrePicker';
 import { OnboardingChecklist } from '../components/OnboardingChecklist';
 import { supabase, ensureAuthReady, type Book } from '../lib/supabase';
-import { createBook, updateBook, deleteBook as deleteBookApi, duplicateBookContent, updateSeries, type Series } from '../lib/books';
+import { updateBook, deleteBook as deleteBookApi, updateSeries, type Series } from '../lib/books';
 import {
-  SeriesTransferPicker,
   INITIAL_SERIES_TRANSFER,
-  toTransferOptions,
   type SeriesTransferState,
 } from '../components/SeriesTransferPicker';
-import { createChapter } from '../lib/chapters';
-import { getPlanLimits, isPlanLimitError } from '../lib/profiles';
+import { getPlanLimits } from '../lib/profiles';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { ImportManuscriptModal } from '../components/ImportManuscriptModal';
+import { OnboardingForkModal } from '../components/OnboardingForkModal';
+import { isSampleBook } from '../lib/onboardingTemplates';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useHasAnyCharacter, useProfile, useSeries, QUERY_KEYS } from '../lib/queries';
@@ -59,10 +58,26 @@ export default function Home() {
   const checklistVisible = onboardingEnabled
     && !!profile && !profile.onboarded_at && !profile.checklist_dismissed_at;
   const { data: hasCharacter } = useHasAnyCharacter(user?.id, checklistVisible);
-  const [showCreate, setShowCreate] = useState(false);
+  // Автоматическое открытие развилки при первом входе в пустой аккаунт (G-7)
+  useEffect(() => {
+    if (books && books.length === 0 && user) {
+      const key = `fork_seen_${user.id}`;
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, '1');
+        setShowFork(true)
+      }
+    }
+  }, [books, user]);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('fork') === 'true') {
+      setShowFork(true);
+    }
+  }, []);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<'books' | 'import'>('books');
   const [showImport, setShowImport] = useState(false);
+  const [showFork, setShowFork] = useState(false);
+  const [forkSeriesTransfer, setForkSeriesTransfer] = useState<SeriesTransferState>(INITIAL_SERIES_TRANSFER);
 
   const [editBook, setEditBook] = useState<Book | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -72,32 +87,14 @@ export default function Home() {
   const [editAuthor, setEditAuthor] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const { error: editError, setError: setEditError, clearError: clearEditError } = useErrorState();
-  const { error: createError, setError: setCreateError, clearError: clearCreateError } = useErrorState();
 
-  const [createGenres, setCreateGenres] = useState<string[]>([]);
-  const [createCover, setCreateCover] = useState(COVERS[0]);
-  const [createUploading, setCreateUploading] = useState(false);
-  const [seriesTransfer, setSeriesTransfer] = useState<SeriesTransferState>(INITIAL_SERIES_TRANSFER);
-
-  const openCreateModal = (transfer: SeriesTransferState = INITIAL_SERIES_TRANSFER) => {
-    setCreateCover(COVERS[(books?.length ?? 0) % COVERS.length]);
-    setCreateGenres([]);
-    setSeriesTransfer(transfer);
-    setShowCreate(true);
-  };
   const [editUploading, setEditUploading] = useState(false);
   const [confirmDeleteBook, setConfirmDeleteBook] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [creating, setCreating] = useState(false);
   const editPanelRef = useRef<HTMLDivElement>(null);
   const editTitleRef = useRef<HTMLInputElement>(null);
-  const createPanelRef = useRef<HTMLFormElement>(null);
-  const createTitleRef = useRef<HTMLInputElement>(null);
   useModalFocus(editBook !== null, editPanelRef, editTitleRef);
-  useModalFocus(showCreate, createPanelRef, createTitleRef);
   useEscapeToClose(editBook !== null, () => { if (!editSaving) setEditBook(null); });
-  useEscapeToClose(showCreate, () => { if (!creating) setShowCreate(false); });
-  const creatingRef = useRef(false);
   const editSavingRef = useRef(false);
 
   const uploadCover = async (
@@ -171,12 +168,42 @@ export default function Home() {
   };
 
   const handleNewBookClick = () => {
-    if ((books?.length ?? 0) >= limits.maxBooks) {
+    const nonSampleBooks = (books ?? []).filter((b) => !isSampleBook(b));
+    if (nonSampleBooks.length >= limits.maxBooks) {
       setUpgradeFeature('books');
       setShowUpgrade(true);
-    } else {
-      openCreateModal();
+      return;
     }
+    setForkSeriesTransfer(INITIAL_SERIES_TRANSFER);
+    setShowFork(true);
+  };
+
+  const handleUploadCoverForFork = async (file: File): Promise<string | null> => {
+    return new Promise((resolve) => {
+      uploadCover(
+        file,
+        (url) => resolve(url),
+        () => {},
+        (err) => {
+          console.error('Cover upload error:', err);
+          resolve(null);
+        }
+      );
+    });
+  };
+
+  const handleForkSuccess = (bookOrId: Book | string) => {
+    const bookId = typeof bookOrId === 'string' ? bookOrId : bookOrId.id;
+    if (typeof bookOrId !== 'string') {
+      queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => [bookOrId, ...(prev ?? [])]);
+    } else {
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.books(user!.id) });
+    }
+    if (forkSeriesTransfer.enabled) {
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.seriesList(user!.id) });
+    }
+    setShowFork(false);
+    navigate(`/books/${bookId}/editor`);
   };
 
   // Импорт создаёт новую книгу — тот же лимит Free, что и «Новая книга».
@@ -195,67 +222,16 @@ export default function Home() {
     setShowUpgrade(true);
   }, []);
 
-  // Второй вход в перенос: тот же модал, что «Новая книга», но источник уже выбран.
-  // Галка в модале невидима, пока не нажмёшь «Новая книга», — а продолжение затевают,
-  // глядя на книгу-источник.
+  // Создать продолжение серии: открывает развилку с предзаполненной серией
   const handleCreateSequel = (source: Book) => {
-    if ((books?.length ?? 0) >= limits.maxBooks) {
+    const nonSampleBooks = (books ?? []).filter((b) => !isSampleBook(b));
+    if (nonSampleBooks.length >= limits.maxBooks) {
       setUpgradeFeature('books');
       setShowUpgrade(true);
       return;
     }
-    openCreateModal({ ...INITIAL_SERIES_TRANSFER, enabled: true, sourceBookId: source.id });
-  };
-
-  const onCreate = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!user || creatingRef.current) return;
-    const fd = new FormData(e.currentTarget);
-    const title = String(fd.get('title') ?? '').trim();
-    const goalRaw = String(fd.get('goal') ?? '').trim();
-    const goal = goalRaw ? Math.max(0, Number(goalRaw)) : 0;
-    if (!title) return;
-    creatingRef.current = true;
-    setCreating(true);
-    clearCreateError();
-    let data: Book | null = null;
-    try {
-      data = await createBook({ user_id: user.id, title, genre: null, genres: createGenres, goal, words: 0, cover: createCover });
-      const isFirstBook = (books?.length ?? 0) === 0;
-      if (isFirstBook) {
-        await createChapter(data.id, user.id, { title: 'Глава 1', position: 0 });
-        queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => [data!, ...(prev ?? [])]);
-        navigate(`/books/${data.id}/editor`);
-        return;
-      }
-      if (seriesTransfer.enabled && seriesTransfer.sourceBookId) {
-        await duplicateBookContent(seriesTransfer.sourceBookId, data.id, user.id, toTransferOptions(seriesTransfer));
-        // Книга-источник тоже изменилась (получила series_id/series_order) —
-        // точечный setQueryData не покрывает, перезапрашиваем список.
-        await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.books(user.id) });
-        await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.seriesList(user.id) });
-      } else {
-        queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user.id), (prev) => [data!, ...(prev ?? [])]);
-      }
-      setShowCreate(false);
-      setCreateCover(COVERS[0]);
-      setCreateGenres([]);
-      setSeriesTransfer(INITIAL_SERIES_TRANSFER);
-    } catch (e) {
-      // Серверный лимит Free (книги) — показываем пейволл, а не текст ошибки БД.
-      if (isPlanLimitError(e)) {
-        setShowCreate(false);
-        setShowUpgrade(true);
-        return;
-      }
-      // Книга создана, а следующий шаг упал — удаляем её: иначе повторное «Создать»
-      // заведёт вторую книгу, а первая останется пустым «призраком».
-      if (data) await deleteBookApi(data.id).catch(() => undefined);
-      setCreateError(e);
-    } finally {
-      creatingRef.current = false;
-      setCreating(false);
-    }
+    setForkSeriesTransfer({ ...INITIAL_SERIES_TRANSFER, enabled: true, sourceBookId: source.id });
+    setShowFork(true);
   };
 
   const renameSeries = async (id: string, title: string) => {
@@ -504,6 +480,19 @@ export default function Home() {
         </div>
       )}
 
+      {/* ─── Onboarding Fork Modal (G-7) ─── */}
+      <OnboardingForkModal
+        isOpen={showFork}
+        onClose={() => setShowFork(false)}
+        userId={user?.id}
+        books={books ?? []}
+        onSelectImport={() => setShowImport(true)}
+        onSuccess={handleForkSuccess}
+        initialCover={COVERS[(books?.length ?? 0) % COVERS.length]}
+        initialSeriesTransfer={forkSeriesTransfer}
+        onUploadCover={handleUploadCoverForFork}
+      />
+
       <UpgradePrompt open={showUpgrade} feature={upgradeFeature} onClose={() => setShowUpgrade(false)} />
 
       <ImportManuscriptModal
@@ -521,60 +510,6 @@ export default function Home() {
         onConfirm={deleteBook}
         onCancel={() => { if (!deleting) setConfirmDeleteBook(false); }}
       />
-
-      {/* ─── Create book modal ─── */}
-      {showCreate && (
-        <div className="modal-overlay" onClick={() => { if (!creating) setShowCreate(false); }}>
-          <form
-            ref={createPanelRef}
-            onSubmit={onCreate}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Новая книга"
-            tabIndex={-1}
-            className="modal-panel"
-            style={{ width: 460, maxWidth: 'calc(100vw - 32px)' }}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => trapTab(e)}
-          >
-            <h2 style={{ font: '600 22px var(--font-serif)', marginBottom: 16 }}>Новая книга</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label htmlFor="create-book-title" className="label">Название</label>
-                <input id="create-book-title" ref={createTitleRef} className="input" name="title" required maxLength={120} />
-              </div>
-              <GenrePicker value={createGenres} onChange={setCreateGenres} />
-              <div>
-                <label htmlFor="create-book-goal" className="label">Цель по словам</label>
-                <input id="create-book-goal" className="input" name="goal" type="number" min={0} step={1000} placeholder="необязательно" />
-                <div className="input-hint">
-                  Рассказ 1–10 тыс. · Новелла 10–20 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпос / сага 120–300 тыс. слов
-                </div>
-              </div>
-              <CoverPicker
-                value={createCover}
-                onChange={setCreateCover}
-                uploading={createUploading}
-                onFileSelect={(f) => uploadCover(f, setCreateCover, setCreateUploading, setCreateError)}
-              />
-              <SeriesTransferPicker
-                books={books ?? []}
-                value={seriesTransfer}
-                onChange={setSeriesTransfer}
-                disabled={creating}
-              />
-            </div>
-            {createError && <ErrorBanner message={createError} onDismiss={clearCreateError} size="sm" style={{ marginTop: 16 }} />}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 22 }}>
-              <button type="button" className="btn btn--ghost" onClick={() => setShowCreate(false)} disabled={creating}>Отмена</button>
-              <button type="submit" className="btn btn--primary" disabled={creating} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {creating && <span className="btn-spinner" />}
-                {creating ? 'Создаём…' : 'Создать'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
     </div>
   );
 }

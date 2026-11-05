@@ -90,23 +90,62 @@ export async function createChapter(
 // Прокси Supabase на VPS принимает тело запроса до 5 МБ (client_max_body_size в nginx).
 const BULK_BATCH_BYTES = 3 * 1024 * 1024;
 
+export interface ChapterBulkItem {
+  title: string;
+  content?: string;
+  content_json?: string;
+  words?: number;
+  word_count?: number;
+  synopsis?: string;
+  position?: number;
+  order_index?: number;
+  book_id?: string;
+  user_id?: string;
+}
+
 /**
- * Массовая вставка глав (импорт рукописи): один insert массивом, а для очень больших
- * книг — несколько последовательных пачек по ~3 МБ. Возвращает главы в порядке position.
+ * Массовая вставка глав (импорт рукописи или инициализация структуры):
+ * поддерживает как вызов createChaptersBulk(bookId, userId, items),
+ * так и createChaptersBulk(items).
  */
 export async function createChaptersBulk(
-  bookId: string,
-  userId: string,
-  items: { title: string; content: string; words: number }[],
+  bookIdOrItems: string | ChapterBulkItem[],
+  userId?: string,
+  items?: ChapterBulkItem[],
 ): Promise<ChapterMeta[]> {
-  const rows = items.map((it, i) => ({
-    book_id: bookId,
-    user_id: userId,
-    title: it.title,
-    content: it.content,
-    words: it.words,
-    position: i,
-  }));
+  let rows: Array<{
+    book_id: string;
+    user_id: string;
+    title: string;
+    content: string;
+    words: number;
+    synopsis: string;
+    position: number;
+  }>;
+
+  if (Array.isArray(bookIdOrItems)) {
+    rows = bookIdOrItems.map((it, i) => ({
+      book_id: it.book_id || '',
+      user_id: it.user_id || userId || '',
+      title: it.title,
+      content: it.content ?? it.content_json ?? '',
+      words: it.words ?? it.word_count ?? 0,
+      synopsis: it.synopsis ?? '',
+      position: it.position ?? it.order_index ?? i,
+    }));
+  } else {
+    const bookId = bookIdOrItems;
+    rows = (items ?? []).map((it, i) => ({
+      book_id: bookId,
+      user_id: userId ?? it.user_id ?? '',
+      title: it.title,
+      content: it.content ?? it.content_json ?? '',
+      words: it.words ?? it.word_count ?? 0,
+      synopsis: it.synopsis ?? '',
+      position: it.position ?? it.order_index ?? i,
+    }));
+  }
+
   const batches: (typeof rows)[] = [];
   let cur: typeof rows = [];
   let size = 0;
