@@ -1,6 +1,5 @@
 import { useBookContentCounts } from '../lib/queries';
 import type { Book } from '../lib/supabase';
-import type { SeriesTransferOptions } from '../lib/books';
 
 export interface SeriesTransferState {
   enabled: boolean;
@@ -19,15 +18,6 @@ export const INITIAL_SERIES_TRANSFER: SeriesTransferState = {
   notes: true,
   timeline: false,
 };
-
-export function toTransferOptions(s: SeriesTransferState): SeriesTransferOptions {
-  return {
-    characters: s.characters,
-    locationsMap: s.locationsMap,
-    notes: s.notes,
-    timeline: s.timeline,
-  };
-}
 
 type OptionKey = 'characters' | 'locationsMap' | 'notes' | 'timeline';
 
