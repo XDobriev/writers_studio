@@ -1,0 +1,221 @@
+// @vitest-environment jsdom
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, createElement } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ChapterMeta } from './chapters';
+import { QUERY_KEYS } from './queries';
+
+const createChapterMock = vi.fn();
+const renumberChaptersMock = vi.fn();
+
+vi.mock('./supabase', () => ({
+  supabase: {},
+  ensureAuthReady: vi.fn(),
+}));
+
+vi.mock('./chapters', async (orig) => ({
+  ...(await orig<typeof import('./chapters')>()),
+  createChapter: (...args: unknown[]) => createChapterMock(...args),
+  renumberChapters: (...args: unknown[]) => renumberChaptersMock(...args),
+}));
+
+import { useOutlineMutations } from './useOutlineMutations';
+
+describe('useOutlineMutations chapter types & numbering', () => {
+  let root: Root | null = null;
+  let container: HTMLDivElement | null = null;
+  let queryClient: QueryClient;
+  let mutations: ReturnType<typeof useOutlineMutations> | null = null;
+  const navigateMock = vi.fn();
+  const setErrorMock = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(() => {
+    if (root) {
+      act(() => {
+        root?.unmount();
+      });
+    }
+    if (container) {
+      container.remove();
+    }
+  });
+
+  function setup(chapters: ChapterMeta[]) {
+    queryClient.setQueryData(QUERY_KEYS.chapters('book-1'), chapters);
+
+    function TestComponent() {
+      mutations = useOutlineMutations({
+        bookId: 'book-1',
+        userId: 'user-1',
+        chapters,
+        navigate: navigateMock,
+        setError: setErrorMock,
+      });
+      return null;
+    }
+
+    act(() => {
+      root?.render(
+        createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          createElement(TestComponent),
+        ),
+      );
+    });
+  }
+
+  it('onCreate после Пролога создает Главу 1 (а не Главу 2)', async () => {
+    const chapters: ChapterMeta[] = [
+      {
+        id: 'c-prologue',
+        book_id: 'book-1',
+        user_id: 'user-1',
+        title: 'Пролог',
+        position: 0,
+        words: 100,
+        status: 'draft',
+        synopsis: '',
+        created_at: '2026-01-01',
+        updated_at: '2026-01-01',
+      },
+    ];
+
+    createChapterMock.mockResolvedValueOnce({
+      id: 'c-1',
+      book_id: 'book-1',
+      user_id: 'user-1',
+      title: 'Глава 1',
+      position: 1,
+      words: 0,
+      status: 'draft',
+      synopsis: '',
+      created_at: '2026-01-02',
+      updated_at: '2026-01-02',
+    });
+
+    setup(chapters);
+
+    await act(async () => {
+      await mutations?.onCreate();
+    });
+
+    expect(createChapterMock).toHaveBeenCalledWith('book-1', 'user-1', {
+      title: 'Глава 1',
+      position: 1,
+    });
+    expect(navigateMock).toHaveBeenCalledWith('/books/book-1/editor?chapter=c-1');
+  });
+
+  it('onTypeChange при смене первой главы на Пролог сдвигает нумерацию следующей главы на Главу 1', async () => {
+    const chapters: ChapterMeta[] = [
+      {
+        id: 'c-1',
+        book_id: 'book-1',
+        user_id: 'user-1',
+        title: 'Глава 1. Начало',
+        position: 0,
+        words: 500,
+        status: 'draft',
+        synopsis: '',
+        created_at: '2026-01-01',
+        updated_at: '2026-01-01',
+      },
+      {
+        id: 'c-2',
+        book_id: 'book-1',
+        user_id: 'user-1',
+        title: 'Глава 2. Путь героя',
+        position: 1,
+        words: 700,
+        status: 'draft',
+        synopsis: '',
+        created_at: '2026-01-02',
+        updated_at: '2026-01-02',
+      },
+    ];
+
+    renumberChaptersMock.mockResolvedValueOnce(undefined);
+    setup(chapters);
+
+    await act(async () => {
+      await mutations?.onTypeChange('c-1', 'prologue');
+    });
+
+    // Должен вызвать renumberChapters с обновленными заголовками
+    expect(renumberChaptersMock).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'c-1', title: 'Пролог. Начало' }),
+      expect.objectContaining({ id: 'c-2', title: 'Глава 1. Путь героя' }),
+    ]);
+
+    // React Query кэш должен содержать обновленные главы
+    const cached = queryClient.getQueryData<ChapterMeta[]>(QUERY_KEYS.chapters('book-1'));
+    expect(cached?.[0].title).toBe('Пролог. Начало');
+    expect(cached?.[1].title).toBe('Глава 1. Путь героя');
+  });
+
+  it('onTypeChange на интерлюдию не увеличивает номер следующей главы', async () => {
+    const chapters: ChapterMeta[] = [
+      {
+        id: 'c-1',
+        book_id: 'book-1',
+        user_id: 'user-1',
+        title: 'Глава 1',
+        position: 0,
+        words: 500,
+        status: 'draft',
+        synopsis: '',
+        created_at: '2026-01-01',
+        updated_at: '2026-01-01',
+      },
+      {
+        id: 'c-2',
+        book_id: 'book-1',
+        user_id: 'user-1',
+        title: 'Глава 2. Тайны',
+        position: 1,
+        words: 700,
+        status: 'draft',
+        synopsis: '',
+        created_at: '2026-01-02',
+        updated_at: '2026-01-02',
+      },
+      {
+        id: 'c-3',
+        book_id: 'book-1',
+        user_id: 'user-1',
+        title: 'Глава 3. Развязка',
+        position: 2,
+        words: 900,
+        status: 'draft',
+        synopsis: '',
+        created_at: '2026-01-03',
+        updated_at: '2026-01-03',
+      },
+    ];
+
+    renumberChaptersMock.mockResolvedValueOnce(undefined);
+    setup(chapters);
+
+    await act(async () => {
+      await mutations?.onTypeChange('c-2', 'interlude');
+    });
+
+    expect(renumberChaptersMock).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'c-2', title: 'Интерлюдия. Тайны' }),
+      expect.objectContaining({ id: 'c-3', title: 'Глава 2. Развязка' }),
+    ]);
+  });
+});

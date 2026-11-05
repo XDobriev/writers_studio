@@ -40,3 +40,15 @@ export function deleteChapterWithCache(
 export function invalidateChaptersCache(queryClient: QueryClient, bookId: string): void {
   void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
 }
+
+export function updateChaptersTitlesWithCache(
+  queryClient: QueryClient,
+  bookId: string,
+  updates: Array<{ id: string; title: string }>,
+): void {
+  if (updates.length === 0) return;
+  const titleMap = new Map(updates.map((u) => [u.id, u.title]));
+  queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+    prev ? prev.map((c) => (titleMap.has(c.id) ? { ...c, title: titleMap.get(c.id)! } : c)) : prev,
+  );
+}

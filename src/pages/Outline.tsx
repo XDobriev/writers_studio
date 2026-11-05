@@ -28,6 +28,7 @@ import { useAuth } from '../lib/auth';
 import { type ChapterMeta, type ChapterStatus } from '../lib/chapters';
 import { useBook, useChapters, useCharacters, useChapterPovMap } from '../lib/queries';
 import { useOutlineMutations } from '../lib/useOutlineMutations';
+import { computeChapterRanks, getChaptersNeedingRenumber, type ChapterType, type ChapterRankInfo } from '../lib/chapterNumbering';
 import { getCharacterColor, setPovCharacter, removePovCharacter, setPovForAllChapters } from '../lib/pov';
 import { plural } from '../lib/i18n';
 import { CharacterAvatar } from '../components/CharacterAvatar';
@@ -357,12 +358,14 @@ interface RowProps {
   onPovChanged: () => void;
   setError: (msg: string) => void;
   compact: boolean;
+  rankInfo: ChapterRankInfo;
+  onTypeChange: (chapterId: string, type: ChapterType) => void;
 }
 
 
 function SortableChapterRow({
   chapter: c,
-  index: i,
+  index: _i,
   bookId,
   menuFor,
   setMenuFor,
@@ -381,6 +384,8 @@ function SortableChapterRow({
   onPovChanged,
   setError,
   compact,
+  rankInfo,
+  onTypeChange,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id });
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -436,7 +441,7 @@ function SortableChapterRow({
       {isRenaming ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 14, padding: '8px 40px 8px 0' }}>
           <span style={{ font: '500 12px var(--font-mono)', color: 'var(--accent)', letterSpacing: '0.04em', minWidth: 28 }}>
-            {String(i + 1).padStart(2, '0')}
+            {rankInfo.displayNumber}
           </span>
           <input
             ref={renameInputRef}
@@ -464,7 +469,7 @@ function SortableChapterRow({
           }}
         >
           <span style={{ font: '500 12px var(--font-mono)', color: c.status === 'draft' ? 'var(--ink-4)' : 'var(--accent)', letterSpacing: '0.04em', marginTop: 3, minWidth: 28 }}>
-            {String(i + 1).padStart(2, '0')}
+            {rankInfo.displayNumber}
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ font: '500 15px var(--font-serif)', color: c.status === 'draft' ? 'var(--ink-3)' : 'var(--ink)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
@@ -528,6 +533,7 @@ function SortableChapterRow({
             background: 'var(--bg-deep)', border: '1px solid var(--border-strong)',
             borderRadius: 6, padding: 4, minWidth: 160,
             boxShadow: '0 8px 24px oklch(0.05 0.01 50 / 0.35)',
+            overscrollBehavior: 'contain',
           }}>
             {deleteConfirmFor === c.id ? (
               <div style={{ padding: '6px 8px' }}>
@@ -557,6 +563,36 @@ function SortableChapterRow({
                   Переименовать
                 </button>
                 <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
+                <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 8px 6px' }}>
+                  Тип главы
+                </div>
+                {(
+                  [
+                    { type: 'regular', label: 'Обычная глава' },
+                    { type: 'prologue', label: 'Пролог' },
+                    { type: 'epilogue', label: 'Эпилог' },
+                    { type: 'interlude', label: 'Интерлюдия' },
+                    { type: 'special', label: 'Без номера' },
+                  ] as const
+                ).map((t) => {
+                  const isCurrent = rankInfo.type === t.type;
+                  return (
+                    <button
+                      key={t.type}
+                      type="button"
+                      onClick={() => {
+                        onTypeChange(c.id, t.type);
+                        setMenuFor(null);
+                      }}
+                      className="ctx-item"
+                      style={isCurrent ? { background: 'var(--bg-deep)' } : undefined}
+                    >
+                      {t.label}
+                      {isCurrent && <span style={{ marginLeft: 'auto', font: '400 10px var(--font-mono)', color: 'var(--ink-4)' }}>✓</span>}
+                    </button>
+                  );
+                })}
+                <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
                 <button
                   type="button"
                   onClick={() => setDeleteConfirmFor(c.id)}
@@ -583,7 +619,7 @@ export default function Outline() {
   const { data: povEntries = [] } = useChapterPovMap(bookId);
 
   const { error: mutationError, setError } = useErrorState();
-  const { onCreate, onDelete, onRename, onDragEnd, onPovChanged, onRenumber } = useOutlineMutations({
+  const { onCreate, onDelete, onRename, onDragEnd, onPovChanged, onRenumber, onTypeChange } = useOutlineMutations({
     bookId, userId: user?.id, chapters, navigate, setError,
   });
   const error = chaptersError?.message ?? mutationError;
@@ -594,7 +630,7 @@ export default function Outline() {
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const [renameFor, setRenameFor] = useState<string | null>(null);
   const menuRef = useRef<HTMLButtonElement>(null);
-  const menuDropdownStyle = useDropdownPosition(menuRef, menuFor);
+  const menuDropdownStyle = useDropdownPosition(menuRef, menuFor, { estimatedHeight: 360 });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -610,16 +646,11 @@ export default function Outline() {
     [chapters],
   );
 
+  const chapterRanks = useMemo(() => computeChapterRanks(chapters ?? []), [chapters]);
+
   const needsRenumber = useMemo(() => {
     if (!chapters || chapters.length === 0) return false;
-    let rank = 0;
-    return chapters.some((c) => {
-      if (/^Глава \d+$/.test(c.title)) {
-        rank += 1;
-        return c.title !== `Глава ${rank}`;
-      }
-      return false;
-    });
+    return getChaptersNeedingRenumber(chapters).length > 0;
   }, [chapters]);
 
   const totals = useMemo(() => {
@@ -761,6 +792,8 @@ export default function Outline() {
                         onPovChanged={onPovChanged}
                         setError={setError}
                         compact={isMobile}
+                        rankInfo={chapterRanks.get(c.id) ?? { id: c.id, type: 'regular', regularNumber: i + 1, displayNumber: String(i + 1).padStart(2, '0'), badgeLabel: `ГЛ. ${String(i + 1).padStart(2, '0')}`, tocNumber: `${i + 1}.` }}
+                        onTypeChange={onTypeChange}
                       />
                     ))}
                   </SortableContext>
