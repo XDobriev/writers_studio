@@ -334,10 +334,10 @@ export default function Corkboard() {
   };
 
   const filterItems: Array<[Filter, string]> = [
-    ['all', 'все'],
-    ['done', 'готово'],
-    ['progress', 'в работе'],
-    ['draft', 'черновик'],
+    ['all', 'Все'],
+    ['done', 'Готово'],
+    ['progress', 'В работе'],
+    ['draft', 'Черновик'],
   ];
 
   const dragEnabled = filter === 'all';
@@ -366,20 +366,31 @@ export default function Corkboard() {
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', whiteSpace: 'nowrap' }}>Доска глав</span>
               {!isMobile && <span className="tb-sep" />}
               {!isMobile && (
-                <div className="tb-grp" style={{ border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden', flexShrink: 0 }}>
-                  {filterItems.map(([key, label]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setFilter(key)}
-                      className={'tb-btn' + (filter === key ? ' tb-btn--on' : '')}
-                      aria-pressed={filter === key}
-                      style={{ borderRadius: 0, textTransform: 'capitalize' }}
-                    >
-                      {label}
-                      <span style={{ color: 'var(--ink-4)' }}>{counts[key]}</span>
-                    </button>
-                  ))}
+                <div className="seg-track" role="radiogroup" aria-label="Фильтр глав">
+                  {filterItems.map(([key, label]) => {
+                    const isSelected = filter === key;
+                    const dotColor = key !== 'all' ? STATUS_COLOR[key] : null;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        role="radio"
+                        aria-checked={isSelected}
+                        onClick={() => setFilter(key)}
+                        className={'seg-btn' + (isSelected ? ' seg-btn--active' : '')}
+                      >
+                        {dotColor && (
+                          <span
+                            aria-hidden="true"
+                            className="seg-btn-dot"
+                            style={{ background: dotColor }}
+                          />
+                        )}
+                        <span>{label}</span>
+                        <span className="seg-badge">{counts[key]}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
               {!dragEnabled && !isMobile && (
@@ -397,20 +408,34 @@ export default function Corkboard() {
               и не делаем горизонтально скроллящимися (нежелательно) — выносим в
               отдельную полноширинную строку с flex-wrap, места достаточно без обрезки. */}
           {isMobile && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 14px', borderBottom: '1px solid var(--border-soft)' }}>
-              {filterItems.map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setFilter(key)}
-                  className={'tb-btn' + (filter === key ? ' tb-btn--on' : '')}
-                  aria-pressed={filter === key}
-                  style={{ border: '1px solid var(--border)', borderRadius: 7, textTransform: 'capitalize' }}
-                >
-                  {label}
-                  <span style={{ color: 'var(--ink-4)' }}>{counts[key]}</span>
-                </button>
-              ))}
+            <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--border-soft)' }}>
+              <div className="seg-track" role="radiogroup" aria-label="Фильтр глав" style={{ display: 'flex', width: '100%' }}>
+                {filterItems.map(([key, label]) => {
+                  const isSelected = filter === key;
+                  const dotColor = key !== 'all' ? STATUS_COLOR[key] : null;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => setFilter(key)}
+                      className={'seg-btn' + (isSelected ? ' seg-btn--active' : '')}
+                      style={{ flex: '1 1 auto', justifyContent: 'center' }}
+                    >
+                      {dotColor && (
+                        <span
+                          aria-hidden="true"
+                          className="seg-btn-dot"
+                          style={{ background: dotColor }}
+                        />
+                      )}
+                      <span>{label}</span>
+                      <span className="seg-badge">{counts[key]}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -477,20 +502,28 @@ export default function Corkboard() {
         </div>
         <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ font: '500 10px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Фильтр</div>
-          {filterItems.map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => { setFilter(key); setSbOpen(false); }}
-              className={'sb-item' + (filter === key ? ' sb-item--on' : '')}
-              aria-pressed={filter === key}
-              style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
-            >
-              <span />
-              <span className="sb-item-title" style={{ textTransform: 'capitalize' }}>{label}</span>
-              <span className="sb-item-meta">{counts[key]}</span>
-            </button>
-          ))}
+          {filterItems.map(([key, label]) => {
+            const isSelected = filter === key;
+            const dotColor = key !== 'all' ? STATUS_COLOR[key] : null;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => { setFilter(key); setSbOpen(false); }}
+                className={'sb-item' + (isSelected ? ' sb-item--on' : '')}
+                aria-pressed={isSelected}
+                style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
+              >
+                {dotColor ? (
+                  <span style={{ width: 6, height: 6, borderRadius: 999, background: dotColor, flexShrink: 0 }} />
+                ) : (
+                  <span />
+                )}
+                <span className="sb-item-title">{label}</span>
+                <span className="sb-item-meta" style={{ fontFamily: 'var(--font-mono)' }}>{counts[key]}</span>
+              </button>
+            );
+          })}
         </div>
       </MobileSidebarDrawer>
     </WithMode>
