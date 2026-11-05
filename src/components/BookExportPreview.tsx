@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { type Book } from '../lib/supabase';
 import { type ChapterMeta } from '../lib/chapters';
+import { computeChapterRanks } from '../lib/chapterNumbering';
 import { type Character, ROLE_LABELS } from '../lib/characters';
 import { type Location, TYPE_LABELS } from '../lib/locations';
 import { type Format, type ParagraphStyle, LAYOUT_FORMATS } from '../lib/export';
@@ -102,6 +103,7 @@ export function BookExportPreview({
     }
   }, [selectedChapters.length, activeChapterIndex]);
 
+  const chapterRanks = useMemo(() => computeChapterRanks(selectedChapters), [selectedChapters]);
   const activeChapter = selectedChapters[activeChapterIndex] ?? selectedChapters[0];
   const { data: chapterData, isLoading: chapterLoading } = useChapterContent(activeChapter?.id);
 
@@ -227,7 +229,7 @@ export function BookExportPreview({
                       className="book-preview-toc-row"
                       title="Перейти к предпросмотру главы"
                     >
-                      <span className="book-preview-toc-num">{idx + 1}.</span>
+                      <span className="book-preview-toc-num">{chapterRanks.get(ch.id)?.tocNumber ?? `${idx + 1}.`}</span>
                       <span className="book-preview-toc-name">{ch.title}</span>
                       <span className="book-preview-toc-dots" />
                       <span className="book-preview-toc-meta">
@@ -299,7 +301,13 @@ export function BookExportPreview({
                       ‹
                     </button>
                     <span className="book-preview-chapter-counter">
-                      Глава {activeChapterIndex + 1} из {selectedChapters.length}
+                      {(() => {
+                        const activeRank = activeChapter ? chapterRanks.get(activeChapter.id) : null;
+                        if (activeRank && activeRank.type !== 'regular') {
+                          return `${activeRank.badgeLabel} · ${activeChapterIndex + 1} из ${selectedChapters.length}`;
+                        }
+                        return `Глава ${activeRank?.regularNumber ?? activeChapterIndex + 1} из ${selectedChapters.length}`;
+                      })()}
                     </span>
                     <button
                       type="button"

@@ -5,7 +5,8 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import type { NavigateFunction } from 'react-router-dom';
 import { createChapter, deleteChapter, updateChapter, reorderChapters, renumberChapters, type ChapterMeta, type ChapterPatch } from './chapters';
 import { QUERY_KEYS } from './queries';
-import { createChapterWithCache, deleteChapterWithCache, invalidateChaptersCache } from './chapterMutations';
+import { createChapterWithCache, deleteChapterWithCache, invalidateChaptersCache, updateChaptersTitlesWithCache } from './chapterMutations';
+import { getNextChapterTitle, recalculateBookChapterTitles, getChaptersNeedingRenumber, type ChapterType } from './chapterNumbering';
 
 interface UseOutlineMutationsOptions {
   bookId: string | undefined;
@@ -25,13 +26,9 @@ export function useOutlineMutations({
     if (!bookId || !userId || creatingRef.current) return;
     creatingRef.current = true;
     try {
-      const nums = (chapters ?? [])
-        .map((c) => c.title.match(/^Глава (\d+)$/))
-        .filter(Boolean)
-        .map((m) => parseInt(m![1]));
-      const nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+      const title = getNextChapterTitle(chapters ?? []);
       const created = await createChapter(bookId, userId, {
-        title: `Глава ${nextNum}`,
+        title,
         position: chapters?.length ?? 0,
       });
       createChapterWithCache(queryClient, bookId, created);
@@ -93,20 +90,9 @@ export function useOutlineMutations({
 
   const onRenumber = useCallback(async () => {
     if (!bookId || !chapters) return;
-    const toUpdate: Array<{ id: string; title: string; book_id: string; user_id: string }> = [];
-    let rank = 0;
-    chapters.forEach((c) => {
-      if (/^Глава \d+$/.test(c.title)) {
-        rank += 1;
-        const next = `Глава ${rank}`;
-        if (next !== c.title) toUpdate.push({ id: c.id, title: next, book_id: c.book_id, user_id: c.user_id });
-      }
-    });
+    const toUpdate = getChaptersNeedingRenumber(chapters);
     if (toUpdate.length === 0) return;
-    const titleMap = new Map(toUpdate.map((u) => [u.id, u.title]));
-    queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-      prev ? prev.map((c) => titleMap.has(c.id) ? { ...c, title: titleMap.get(c.id)! } : c) : prev,
-    );
+    updateChaptersTitlesWithCache(queryClient, bookId, toUpdate);
     try {
       await renumberChapters(toUpdate);
     } catch (e) {
@@ -115,5 +101,19 @@ export function useOutlineMutations({
     }
   }, [bookId, chapters, queryClient, setError]);
 
-  return { onCreate, onDelete, onRename, onPatch, onDragEnd, onPovChanged, onRenumber };
+  const onTypeChange = useCallback(async (chapterId: string, type: ChapterType) => {
+    if (!bookId || !chapters) return;
+    const { updates, nextChapters } = recalculateBookChapterTitles(chapters, chapterId, type);
+    if (updates.length === 0) return;
+
+    queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), nextChapters);
+    try {
+      await renumberChapters(updates);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
+      invalidateChaptersCache(queryClient, bookId);
+    }
+  }, [bookId, chapters, queryClient, setError]);
+
+  return { onCreate, onDelete, onRename, onPatch, onDragEnd, onPovChanged, onRenumber, onTypeChange };
 }

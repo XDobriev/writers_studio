@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { RichEditor } from '../components/RichEditor';
 import { type SaveState } from '../lib/chapters';
+import { computeChapterRanks } from '../lib/chapterNumbering';
 import { plural } from '../lib/i18n';
 import { useBook, useChapters, useChapterContent } from '../lib/queries';
 import { useAuth } from '../lib/auth';
@@ -44,6 +45,7 @@ export default function Focus() {
     () => (chapters && activeId ? chapters.find((c) => c.id === activeId) ?? null : null),
     [chapters, activeId],
   );
+  const chapterRanks = useMemo(() => computeChapterRanks(chapters ?? []), [chapters]);
 
   const error = (bookError ?? chaptersError)?.message ?? null;
 
@@ -101,6 +103,9 @@ export default function Focus() {
     );
   }
 
+
+  const activeRank = chapterRanks.get(activeChapter.id);
+
   const idx = chapters.findIndex((c) => c.id === activeChapter.id);
   const saveLabel: Record<SaveState, { text: string; color: string }> = {
     idle:   { text: '',               color: 'var(--ink-4)'    },
@@ -115,7 +120,7 @@ export default function Focus() {
   return (
     <div className="as" style={{ height: '100dvh', background: 'oklch(0.10 0.012 50)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
       <div className="focus-pill">
-        <span className="focus-pill__where"><span className="focus-pill__book">{book.title} · </span>{String(idx + 1).padStart(2, '0')} · {activeChapter.title}</span>
+        <span className="focus-pill__where"><span className="focus-pill__book">{book.title} · </span>{activeRank && activeRank.type !== 'regular' ? activeChapter.title : `${activeRank?.displayNumber ?? String(idx + 1).padStart(2, '0')} · ${activeChapter.title}`}</span>
         <span className="focus-pill__sep" />
         <span>{activeChapter.words.toLocaleString('ru-RU')} сл</span>
         {saveLabel[saveState].text && (

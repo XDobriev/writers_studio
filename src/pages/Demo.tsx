@@ -5,6 +5,7 @@ import { DemoBanner } from '../components/DemoBanner';
 import { NOVEL, SAMPLE_PROSE } from '../data/sample';
 import { usePageMeta } from '../lib/usePageMeta';
 import { countWords, type ChapterMeta, type ChapterActions, type ChapterStatus } from '../lib/chapters';
+import { getNextChapterTitle, recalculateBookChapterTitles } from '../lib/chapterNumbering';
 import type { Book } from '../lib/supabase';
 
 const DEMO_TS = '2026-05-08T14:32:00Z';
@@ -83,7 +84,7 @@ export default function Demo() {
           id,
           book_id: DEMO_BOOK_ID,
           user_id: DEMO_USER_ID,
-          title: 'Без названия',
+          title: getNextChapterTitle(prev),
           position: prev.length,
           synopsis: '',
           words: 0,
@@ -96,6 +97,8 @@ export default function Demo() {
     },
     onStatusChange: (id, status: ChapterStatus) =>
       setChapters((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c))),
+    onTypeChange: (id, type) =>
+      setChapters((prev) => recalculateBookChapterTitles(prev, id, type).nextChapters),
     onDeleteChapter: (id) =>
       setChapters((prev) => {
         const next = prev.filter((c) => c.id !== id);

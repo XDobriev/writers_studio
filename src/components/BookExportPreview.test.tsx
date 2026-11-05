@@ -246,6 +246,57 @@ describe('BookExportPreview', () => {
     expect(img.src).toBe('https://example.com/map.jpg');
   });
 
+  it('корректно отображает служебные главы (Пролог) вне сквозной нумерации в оглавлении и навигации', () => {
+    const chaptersWithPrologue: ChapterMeta[] = [
+      { id: 'ch-prologue', book_id: 'b-1', user_id: 'u-1', title: 'Пролог', position: 0, words: 500, status: 'done', synopsis: '', created_at: '2026-01-01', updated_at: '2026-01-01' },
+      { id: 'ch-1', book_id: 'b-1', user_id: 'u-1', title: 'Глава 1. Пробуждение', position: 1, words: 1500, status: 'done', synopsis: '', created_at: '2026-01-02', updated_at: '2026-01-02' },
+      { id: 'ch-epilogue', book_id: 'b-1', user_id: 'u-1', title: 'Эпилог', position: 2, words: 600, status: 'done', synopsis: '', created_at: '2026-01-03', updated_at: '2026-01-03' },
+    ];
+
+    const el = mount({ selectedChapters: chaptersWithPrologue });
+
+    // Переходим в Оглавление
+    const tocTab = Array.from(el.querySelectorAll('.book-preview-tab')).find(
+      (t) => t.textContent?.trim() === 'Оглавление',
+    );
+    expect(tocTab).toBeDefined();
+    act(() => {
+      (tocTab as HTMLButtonElement).click();
+    });
+
+    const rows = el.querySelectorAll('.book-preview-toc-row');
+    expect(rows.length).toBeGreaterThanOrEqual(3);
+
+    // У Пролога номер в оглавлении должен быть тире «—»
+    const num0 = rows[0].querySelector('.book-preview-toc-num')?.textContent?.trim();
+    expect(num0).toBe('—');
+    expect(rows[0].querySelector('.book-preview-toc-name')?.textContent).toBe('Пролог');
+
+    // У Главы 1 номер должен быть «1.»
+    const num1 = rows[1].querySelector('.book-preview-toc-num')?.textContent?.trim();
+    expect(num1).toBe('1.');
+    expect(rows[1].querySelector('.book-preview-toc-name')?.textContent).toBe('Глава 1. Пробуждение');
+
+    // У Эпилога номер в оглавлении также «—»
+    const num2 = rows[2].querySelector('.book-preview-toc-num')?.textContent?.trim();
+    expect(num2).toBe('—');
+    expect(rows[2].querySelector('.book-preview-toc-name')?.textContent).toBe('Эпилог');
+
+    // Кликаем на Пролог -> попадаем в просмотр главы
+    act(() => {
+      (rows[0] as HTMLButtonElement).click();
+    });
+    expect(el.querySelector('.book-preview-chapter-counter')?.textContent).toBe('ПРОЛОГ · 1 из 3');
+
+    // Переходим к следующей главе (Глава 1)
+    const nextBtn = el.querySelector('.book-preview-nav-btn[aria-label="Следующая глава"]') as HTMLButtonElement;
+    act(() => {
+      nextBtn.click();
+    });
+    // Следующая глава должна оставаться полноценной «Главой 1»
+    expect(el.querySelector('.book-preview-chapter-counter')?.textContent).toBe('Глава 1 из 3');
+  });
+
   it('применяет класс стиля абзацев и скрывает заголовки глав при includeChapterTitles: false', () => {
     const el = mount({
       includeTitlePage: false,

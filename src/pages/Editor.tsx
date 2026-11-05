@@ -12,9 +12,11 @@ import {
   deleteChapter,
   updateChapter,
   getChapterContent,
+  renumberChapters,
   type ChapterMeta,
   type ChapterStatus,
 } from '../lib/chapters';
+import { getNextChapterTitle, recalculateBookChapterTitles, type ChapterType } from '../lib/chapterNumbering';
 import { QUERY_KEYS, useBook, useChapters, useChapterContent } from '../lib/queries';
 import {
   createChapterWithCache,
@@ -100,11 +102,10 @@ export default function Editor() {
   const onCreateChapter = useCallback(async () => {
     if (!bookId || !user) return;
     const position = (chapters?.length ?? 0);
-    const nums = (chapters ?? []).map((c) => c.title.match(/^Глава (\d+)$/)).filter(Boolean).map((m) => parseInt(m![1]));
-    const nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+    const title = getNextChapterTitle(chapters ?? []);
     try {
       const created = await createChapter(bookId, user.id, {
-        title: `Глава ${nextNum}`,
+        title,
         position,
       });
       createChapterWithCache(queryClient, bookId!, created);
@@ -177,6 +178,20 @@ export default function Editor() {
       if (bookId) invalidateChaptersCache(queryClient, bookId);
     });
   }, [bookId, queryClient, setError]);
+
+  const onTypeChange = useCallback(async (id: string, type: ChapterType) => {
+    if (!bookId || !chapters) return;
+    const { updates, nextChapters } = recalculateBookChapterTitles(chapters, id, type);
+    if (updates.length === 0) return;
+
+    queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), nextChapters);
+    try {
+      await renumberChapters(updates);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
+      invalidateChaptersCache(queryClient, bookId);
+    }
+  }, [bookId, chapters, queryClient, setError]);
 
   const onGoalChange = useCallback(async (goal: number) => {
     if (!bookId) return;
@@ -260,7 +275,7 @@ export default function Editor() {
         activeChapter={activeChapter}
         activeContent={activeContent}
         activeContentReady={activeContentReady}
-        chapterActions={{ onSelectChapter: selectChapter, onCreateChapter, onStatusChange, onDeleteChapter, onChapterHover }}
+        chapterActions={{ onSelectChapter: selectChapter, onCreateChapter, onStatusChange, onTypeChange, onDeleteChapter, onChapterHover }}
         onContentChange={onContentChange}
         onTitleChange={onTitleChange}
         onGoalChange={onGoalChange}

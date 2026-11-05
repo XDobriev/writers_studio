@@ -216,6 +216,51 @@ describe('TXT / Markdown', () => {
   });
 });
 
+describe('Служебные главы вне сквозной нумерации при экспорте', () => {
+  const namedChapters = [
+    chapter('c0', 'Пролог', '<p>Текст пролога</p>', 0),
+    chapter('c1', 'Глава 1. Пробуждение', '<p>Текст первой главы</p>', 1),
+    chapter('c2', 'Интерлюдия: Вражеский стан', '<p>Текст интерлюдии</p>', 2),
+    chapter('c3', 'Глава 2. Наступление', '<p>Текст второй главы</p>', 3),
+    chapter('c4', 'Эпилог', '<p>Текст эпилога</p>', 4),
+  ];
+
+  it('в FB2 служебные главы сохраняют статус без искажения названий', () => {
+    const doc = buildFb2Doc(book, namedChapters, opts);
+    expect(doc).toContain('<title><p>Пролог</p></title>');
+    expect(doc).toContain('<title><p>Глава 1. Пробуждение</p></title>');
+    expect(doc).toContain('<title><p>Интерлюдия: Вражеский стан</p></title>');
+    expect(doc).toContain('<title><p>Глава 2. Наступление</p></title>');
+    expect(doc).toContain('<title><p>Эпилог</p></title>');
+  });
+
+  it('в EPUB nav.xhtml и файлы глав содержат правильную структуру', async () => {
+    const zip = buildEpubZip(book, namedChapters, opts);
+    const nav = await zip.file('OEBPS/nav.xhtml')!.async('string');
+    expect(nav).toContain('Пролог');
+    expect(nav).toContain('Глава 1. Пробуждение');
+    expect(nav).toContain('Интерлюдия: Вражеский стан');
+    expect(nav).toContain('Глава 2. Наступление');
+    expect(nav).toContain('Эпилог');
+  });
+
+  it('в Markdown и TXT заголовки глав и служебных частей форматируются без сбивки нумерации', () => {
+    const md = buildMarkdownDoc(book, namedChapters, opts);
+    expect(md).toContain('# Пролог');
+    expect(md).toContain('# Глава 1. Пробуждение');
+    expect(md).toContain('# Интерлюдия: Вражеский стан');
+    expect(md).toContain('# Глава 2. Наступление');
+    expect(md).toContain('# Эпилог');
+
+    const txt = buildTextDoc(book, namedChapters, opts);
+    expect(txt).toContain('Пролог');
+    expect(txt).toContain('Глава 1. Пробуждение');
+    expect(txt).toContain('Интерлюдия: Вражеский стан');
+    expect(txt).toContain('Глава 2. Наступление');
+    expect(txt).toContain('Эпилог');
+  });
+});
+
 describe('sniffImageMime', () => {
   it('определяет тип по сигнатуре', () => {
     expect(sniffImageMime(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]).buffer)).toBe('image/jpeg');

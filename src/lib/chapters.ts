@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Tables } from './database.types';
+import type { ChapterType } from './chapterNumbering';
 
 export type ChapterStatus = 'draft' | 'progress' | 'done';
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -14,6 +15,7 @@ export interface ChapterActions {
   onSelectChapter?: (id: string) => void;
   onCreateChapter?: () => void;
   onStatusChange?: (id: string, status: ChapterStatus) => void;
+  onTypeChange?: (id: string, type: ChapterType) => void;
   onDeleteChapter?: (id: string) => void;
   onChapterHover?: (id: string) => void;
 }
@@ -213,8 +215,9 @@ export async function reorderChapters(updates: { id: string; position: number }[
   if (error) throw error;
 }
 
-export async function renumberChapters(updates: Array<{ id: string; title: string; book_id: string; user_id: string }>): Promise<void> {
+export async function renumberChapters(updates: Array<{ id: string; title: string; book_id?: string; user_id?: string }>): Promise<void> {
   if (updates.length === 0) return;
-  const { error } = await supabase.from('chapters').upsert(updates);
-  if (error) throw error;
+  const results = await Promise.all(updates.map((u) => supabase.from('chapters').update({ title: u.title }).eq('id', u.id)));
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
 }

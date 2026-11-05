@@ -440,6 +440,74 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 }
 .tb-btn:hover { background: var(--surface); color: var(--ink); }
 .tb-btn--on { background: var(--surface-2); color: var(--ink); }
+/* Segmented Control / Filter Track */
+.seg-track {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  border-radius: 9px;
+  padding: 3px;
+  gap: 3px;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.seg-btn {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background var(--dur-hover), color var(--dur-hover), box-shadow var(--dur-hover);
+  user-select: none;
+  white-space: nowrap;
+}
+.seg-btn:hover:not(.seg-btn--active) {
+  color: var(--ink);
+  background: var(--surface);
+}
+.seg-btn--active {
+  color: var(--ink);
+  background: var(--surface-2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.seg-btn-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  transition: opacity var(--dur-hover), transform var(--dur-hover);
+}
+.seg-btn:not(.seg-btn--active) .seg-btn-dot {
+  opacity: 0.75;
+}
+.seg-btn--active .seg-btn-dot {
+  opacity: 1;
+  transform: scale(1.1);
+}
+.seg-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-deep);
+  color: var(--ink-3);
+  line-height: 1.25;
+  transition: background var(--dur-hover), color var(--dur-hover);
+}
+.seg-btn--active .seg-badge {
+  background: var(--surface-3);
+  color: var(--ink);
+}
 @media (max-width: 768px) {
   .tb-btn { min-height: 44px; min-width: 44px; }
   .btn    { min-height: 44px; }
