@@ -50,7 +50,7 @@ test('relationship migration: ownership, orphan preservation and continuation ba
       insert into character_relationships(id,book_id,user_id,char_a_id,char_b_id,label_a,label_b) values
         ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002','Brother','Sister');
     `);
-    await db.exec(await readFile(new URL('../supabase/migrations/20261106090935_character_relationship_history.sql', import.meta.url), 'utf8'));
+    await db.exec(await readFile(new URL('../supabase/migrations/20261106160732_character_relationship_history.sql', import.meta.url), 'utf8'));
     assert.equal((await db.query('select is_secret from character_relationships')).rows[0].is_secret, false);
     const insert = `insert into character_relationship_events(book_id,user_id,relationship_id,chapter_id,label_a,label_b,is_secret,note)
       values ('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',$1,'Ally','Trusts',true,'Saved note') returning *`;
