@@ -19,7 +19,7 @@ interface Props {
 export function SettingsSubscriptionTab({ userId, isActive }: Props) {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const {
-    plan, planExpiresAt, grandfathered, hasRecurring, cancelAtPeriodEnd, renewalFailed, planLoaded,
+    plan, planExpiresAt, isTrial, trialEndsAt, grandfathered, hasRecurring, cancelAtPeriodEnd, renewalFailed, planLoaded,
     lastProPayment, refundLoading, refundError, refundDone,
     refundConfirmOpen, setRefundConfirmOpen, handleRefund,
     cancelLoading, cancelError, cancelConfirmOpen, setCancelConfirmOpen,
@@ -28,6 +28,9 @@ export function SettingsSubscriptionTab({ userId, isActive }: Props) {
 
   const expiresFormatted = planExpiresAt
     ? new Date(planExpiresAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+  const trialExpiresFormatted = trialEndsAt
+    ? new Date(trialEndsAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
     : null;
 
   return (
@@ -51,9 +54,16 @@ export function SettingsSubscriptionTab({ userId, isActive }: Props) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                   <div>
-                    <div style={{ font: '600 14px var(--font-ui)', color: 'var(--ink)', marginBottom: 3 }}>{PLAN_META[plan].name}</div>
+                    <div style={{ font: '600 14px var(--font-ui)', color: 'var(--ink)', marginBottom: 3 }}>
+                      {isTrial ? 'Пробный период Pro' : PLAN_META[plan].name}
+                    </div>
                     <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>{PLAN_META[plan].desc}</div>
-                    {plan === 'pro' && expiresFormatted && (
+                    {isTrial && trialExpiresFormatted && (
+                      <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-4)', marginTop: 5 }}>
+                        Бесплатный доступ до {trialExpiresFormatted}
+                      </div>
+                    )}
+                    {plan === 'pro' && !isTrial && expiresFormatted && (
                       <div style={{ font: '400 11px var(--font-ui)', color: cancelAtPeriodEnd ? 'var(--danger)' : 'var(--ink-4)', marginTop: 5 }}>
                         {cancelAtPeriodEnd
                           ? `Отменена · доступ до ${expiresFormatted}`
@@ -61,7 +71,7 @@ export function SettingsSubscriptionTab({ userId, isActive }: Props) {
                         }
                       </div>
                     )}
-                    {plan === 'pro' && grandfathered && !cancelAtPeriodEnd && (
+                    {plan === 'pro' && !isTrial && grandfathered && !cancelAtPeriodEnd && (
                       <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ok)', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span>✦</span>
                         <span>Ранняя цена · 290 ₽/мес навсегда</span>
@@ -76,7 +86,7 @@ export function SettingsSubscriptionTab({ userId, isActive }: Props) {
                       borderRadius: 6, padding: '3px 8px', letterSpacing: '0.06em', textTransform: 'uppercase',
                       whiteSpace: 'nowrap', flexShrink: 0,
                     }}>
-                      {plan === 'lifetime' ? 'Lifetime' : 'Pro'}
+                      {plan === 'lifetime' ? 'Lifetime' : isTrial ? 'Pro · триал' : 'Pro'}
                     </span>
                   )}
                 </div>
@@ -93,14 +103,24 @@ export function SettingsSubscriptionTab({ userId, isActive }: Props) {
 
                 {plan === 'pro' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {!cancelAtPeriodEnd && (
+                    {isTrial ? (
                       <button
-                        className="btn btn--upsell"
+                        className="btn btn--primary"
                         onClick={() => setUpgradeOpen(true)}
                         style={{ fontSize: 13, height: 38 }}
                       >
-                        Перейти на Lifetime
+                        Оформить Pro
                       </button>
+                    ) : (
+                      !cancelAtPeriodEnd && (
+                        <button
+                          className="btn btn--upsell"
+                          onClick={() => setUpgradeOpen(true)}
+                          style={{ fontSize: 13, height: 38 }}
+                        >
+                          Перейти на Lifetime
+                        </button>
+                      )
                     )}
 
                     {/* Отмена / Возобновление — только для рекуррентных подписчиков */}
@@ -175,7 +195,7 @@ export function SettingsSubscriptionTab({ userId, isActive }: Props) {
       {upgradeOpen && (
         <UpgradeModal
           onClose={() => setUpgradeOpen(false)}
-          skipPro={plan === 'pro'}
+          skipPro={plan === 'pro' && !isTrial}
           grandfathered={grandfathered}
         />
       )}

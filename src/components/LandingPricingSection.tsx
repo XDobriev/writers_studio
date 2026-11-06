@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { revealVariants } from '../lib/motion';
 import { AnimatedPricingCard } from './AnimatedPricingCard';
-import { getLifetimeSlotsRemaining, getProfile, isPaidPlan } from '../lib/profiles';
+import { getLifetimeSlotsRemaining, getProfile, hasPaidSubscription } from '../lib/profiles';
 import { SectionLabel } from './LandingSectionLabel';
 import { BillingIntervalToggle } from './BillingIntervalToggle';
 import { RecurringConsent } from './RecurringConsent';
@@ -63,7 +63,7 @@ export function LandingPricing() {
     setLoadingPlan(planKey);
     try {
       const profile = await getProfile(session.user.id);
-      if (isPaidPlan(profile)) {
+      if (hasPaidSubscription(profile)) {
         navigate('/books');
         return;
       }

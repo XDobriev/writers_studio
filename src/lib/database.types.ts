@@ -843,6 +843,9 @@ export type Database = {
           recurring_inv_id: string | null
           renewal_reminder_sent_for: string | null
           retention_email_sent_at: string | null
+          trial_ends_at: string | null
+          trial_started_at: string | null
+          trial_used: boolean
           updated_at: string
           user_dictionary: string[] | null
           user_id: string
@@ -867,6 +870,9 @@ export type Database = {
           recurring_inv_id?: string | null
           renewal_reminder_sent_for?: string | null
           retention_email_sent_at?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
+          trial_used?: boolean
           updated_at?: string
           user_dictionary?: string[] | null
           user_id: string
@@ -891,6 +897,9 @@ export type Database = {
           recurring_inv_id?: string | null
           renewal_reminder_sent_for?: string | null
           retention_email_sent_at?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
+          trial_used?: boolean
           updated_at?: string
           user_dictionary?: string[] | null
           user_id?: string
@@ -1254,6 +1263,7 @@ export type Database = {
         Args: { is_test_value: boolean; target_user_id: string }
         Returns: undefined
       }
+      start_pro_trial: { Args: never; Returns: Json }
       strip_html: { Args: { html: string }; Returns: string }
       suspend_user: {
         Args: { suspend: boolean; target_user_id: string }

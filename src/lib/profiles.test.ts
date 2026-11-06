@@ -2,10 +2,84 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('./supabase', () => ({ supabase: {} }));
 
-import { effectivePlan, getPlanLimits, isPaidPlan, isPlanLimitError, isRenewalFailed } from './profiles';
+import {
+  canStartTrial,
+  effectivePlan,
+  getPlanLimits,
+  hasPaidSubscription,
+  isPaidPlan,
+  isPlanLimitError,
+  isRenewalFailed,
+  isTrialActive,
+} from './profiles';
 
 const NOW = new Date('2026-10-22T12:00:00Z');
-const p = (plan: string, plan_expires_at: string | null) => ({ plan, plan_expires_at });
+const PAST = '2026-10-20T00:00:00Z';
+const FUTURE = '2026-10-29T12:00:00Z';
+const p = (plan: string, plan_expires_at: string | null, extra?: { trial_started_at?: string | null; trial_ends_at?: string | null; trial_used?: boolean }) => ({
+  plan,
+  plan_expires_at,
+  ...extra,
+});
+
+describe('hasPaidSubscription', () => {
+  it('lifetime — всегда истинно', () => {
+    expect(hasPaidSubscription(p('lifetime', null), NOW)).toBe(true);
+    expect(hasPaidSubscription(p('lifetime', PAST), NOW)).toBe(true);
+  });
+
+  it('pro — пока срок в будущем или бессрочно', () => {
+    expect(hasPaidSubscription(p('pro', FUTURE), NOW)).toBe(true);
+    expect(hasPaidSubscription(p('pro', null), NOW)).toBe(true);
+    expect(hasPaidSubscription(p('pro', PAST), NOW)).toBe(false);
+  });
+
+  it('активный триал или free — НЕ считается оплаченной подпиской', () => {
+    expect(hasPaidSubscription(p('free', null, { trial_ends_at: FUTURE }), NOW)).toBe(false);
+    expect(hasPaidSubscription(p('free', null), NOW)).toBe(false);
+    expect(hasPaidSubscription(null, NOW)).toBe(false);
+    expect(hasPaidSubscription(undefined, NOW)).toBe(false);
+  });
+});
+
+describe('isTrialActive', () => {
+  it('активен, если trial_ends_at в будущем и нет платной подписки', () => {
+    expect(isTrialActive(p('free', null, { trial_ends_at: FUTURE }), NOW)).toBe(true);
+  });
+
+  it('не активен, если trial_ends_at в прошлом или отсутствует', () => {
+    expect(isTrialActive(p('free', null, { trial_ends_at: PAST }), NOW)).toBe(false);
+    expect(isTrialActive(p('free', null), NOW)).toBe(false);
+    expect(isTrialActive(null, NOW)).toBe(false);
+  });
+
+  it('не активен, если у пользователя уже есть оплаченный тариф', () => {
+    expect(isTrialActive(p('pro', FUTURE, { trial_ends_at: FUTURE }), NOW)).toBe(false);
+    expect(isTrialActive(p('lifetime', null, { trial_ends_at: FUTURE }), NOW)).toBe(false);
+  });
+});
+
+describe('canStartTrial', () => {
+  it('разрешено для нового Free-аккаунта без истории триала', () => {
+    expect(canStartTrial(p('free', null, { trial_used: false, trial_started_at: null }), NOW)).toBe(true);
+  });
+
+  it('запрещено, если триал уже использован или запущен', () => {
+    expect(canStartTrial(p('free', null, { trial_used: true }), NOW)).toBe(false);
+    expect(canStartTrial(p('free', null, { trial_started_at: PAST }), NOW)).toBe(false);
+  });
+
+  it('запрещено, если активен платный тариф или триал', () => {
+    expect(canStartTrial(p('pro', FUTURE), NOW)).toBe(false);
+    expect(canStartTrial(p('lifetime', null), NOW)).toBe(false);
+    expect(canStartTrial(p('free', null, { trial_ends_at: FUTURE }), NOW)).toBe(false);
+  });
+
+  it('запрещено при отсутствии профиля', () => {
+    expect(canStartTrial(null, NOW)).toBe(false);
+    expect(canStartTrial(undefined, NOW)).toBe(false);
+  });
+});
 
 describe('isPaidPlan', () => {
   it('lifetime — всегда', () => {
@@ -22,6 +96,11 @@ describe('isPaidPlan', () => {
     expect(isPaidPlan(p('pro', null), NOW)).toBe(true);
   });
 
+  it('активный 7-дневный триал — считается оплаченным до окончания', () => {
+    expect(isPaidPlan(p('free', null, { trial_ends_at: FUTURE }), NOW)).toBe(true);
+    expect(isPaidPlan(p('free', null, { trial_ends_at: PAST, trial_used: true }), NOW)).toBe(false);
+  });
+
   it('free, пустой и неизвестный план — не оплачен', () => {
     expect(isPaidPlan(p('free', null), NOW)).toBe(false);
     expect(isPaidPlan(null, NOW)).toBe(false);
@@ -35,6 +114,26 @@ describe('effectivePlan / getPlanLimits', () => {
     expect(effectivePlan(p('pro', '2026-10-01T00:00:00Z'), NOW)).toBe('free');
     expect(effectivePlan(p('pro', '2026-11-01T00:00:00Z'), NOW)).toBe('pro');
     expect(effectivePlan(p('lifetime', null), NOW)).toBe('lifetime');
+  });
+
+  it('активный триал даёт effectivePlan = pro и лимиты Pro', () => {
+    const trialProfile = p('free', null, { trial_ends_at: FUTURE });
+    expect(effectivePlan(trialProfile, NOW)).toBe('pro');
+    const limits = getPlanLimits(trialProfile, NOW);
+    expect(limits.maxBooks).toBe(Infinity);
+    expect(limits.maxCharacters).toBe(Infinity);
+    expect(limits.maxTimelineEvents).toBe(Infinity);
+    expect(limits.canExportRich).toBe(true);
+  });
+
+  it('истёкший триал возвращает на лимиты Free', () => {
+    const expiredProfile = p('free', null, { trial_ends_at: PAST, trial_used: true });
+    expect(effectivePlan(expiredProfile, NOW)).toBe('free');
+    const limits = getPlanLimits(expiredProfile, NOW);
+    expect(limits.maxBooks).toBe(1);
+    expect(limits.maxCharacters).toBe(3);
+    expect(limits.maxTimelineEvents).toBe(10);
+    expect(limits.canExportRich).toBe(false);
   });
 
   it('лимиты Free совпадают с серверными триггерами', () => {

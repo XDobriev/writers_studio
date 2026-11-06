@@ -505,7 +505,12 @@ export default function Characters() {
         onConfirm={() => { void onDeleteConfirmed(charToDelete!.id); }}
         onCancel={() => setCharToDelete(null)}
       />
-      <UpgradePrompt open={showUpgrade} feature="characters" onClose={() => setShowUpgrade(false)} />
+      <UpgradePrompt
+        open={showUpgrade}
+        feature="characters"
+        onClose={() => setShowUpgrade(false)}
+        onTrialActivated={() => { void onCreateRef.current(); }}
+      />
 
       <MobileSidebarDrawer
         open={sbOpen}

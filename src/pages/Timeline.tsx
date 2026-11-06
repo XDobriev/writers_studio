@@ -449,7 +449,12 @@ export default function Timeline() {
         onConfirm={handleDeleteConfirmed}
         onCancel={() => setConfirmDeleteId(null)}
       />
-      <UpgradePrompt open={showUpgrade} feature="timeline" onClose={() => setShowUpgrade(false)} />
+      <UpgradePrompt
+        open={showUpgrade}
+        feature="timeline"
+        onClose={() => setShowUpgrade(false)}
+        onTrialActivated={() => { void handleCreateCore(); }}
+      />
 
       <MobileSidebarDrawer
         open={sbOpen}
