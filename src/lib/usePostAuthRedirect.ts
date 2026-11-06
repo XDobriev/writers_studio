@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './auth';
-import { getProfile, isPaidPlan } from './profiles';
+import { getProfile, hasPaidSubscription } from './profiles';
 import {
   CheckoutError, PENDING_CONSENT_KEY, isCheckoutPlan, isRecurringPlan, startCheckout,
   type CheckoutPlan,
@@ -27,7 +27,7 @@ export function usePostAuthRedirect(waitingForTelegram = false) {
     try {
       const profile = await getProfile(session.user.id);
       // Нет профиля или тариф уже оплачен — на оплату не идём.
-      if (!profile || isPaidPlan(profile)) {
+      if (!profile || hasPaidSubscription(profile)) {
         setRedirectingToPay(false);
         navigate('/books', { replace: true });
         return;

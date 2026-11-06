@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
-import { effectivePlan, getProfile, isRenewalFailed } from './profiles';
+import { effectivePlan, getProfile, isRenewalFailed, isTrialActive } from './profiles';
 import { QUERY_KEYS } from './queries';
 import type { CancelReason } from './cancellations';
 
@@ -12,6 +12,8 @@ type LastPayment = { id: string; paid_at: string };
 export interface UseSubscriptionResult {
   plan: Plan;
   planExpiresAt: string | null;
+  isTrial: boolean;
+  trialEndsAt: string | null;
   grandfathered: boolean;
   hasRecurring: boolean;
   renewalFailed: boolean;
@@ -36,6 +38,8 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
   const queryClient = useQueryClient();
   const [plan, setPlan] = useState<Plan>('free');
   const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
+  const [isTrial, setIsTrial] = useState(false);
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
   const [grandfathered, setGrandfathered] = useState(false);
   const [hasRecurring, setHasRecurring] = useState(false);
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
@@ -59,6 +63,8 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
       if (!mounted) return;
       // С учётом срока: истёкший pro (ждёт повторного списания или понижения) — free.
       setPlan(effectivePlan(profile));
+      setIsTrial(isTrialActive(profile));
+      setTrialEndsAt(profile?.trial_ends_at ?? null);
       if (profile?.plan_expires_at) setPlanExpiresAt(profile.plan_expires_at);
       if (profile?.grandfathered) setGrandfathered(true);
       if (profile?.recurring_inv_id) setHasRecurring(true);
@@ -149,7 +155,7 @@ export function useSubscription(userId: string | undefined, fetchPayments: boole
   const handleResume = () => invokeCancelToggle(true);
 
   return {
-    plan, planExpiresAt, grandfathered, hasRecurring, cancelAtPeriodEnd, renewalFailed, planLoaded,
+    plan, planExpiresAt, isTrial, trialEndsAt, grandfathered, hasRecurring, cancelAtPeriodEnd, renewalFailed, planLoaded,
     lastProPayment, refundLoading, refundError, refundDone,
     refundConfirmOpen, setRefundConfirmOpen, handleRefund,
     cancelLoading, cancelError, cancelConfirmOpen, setCancelConfirmOpen,
