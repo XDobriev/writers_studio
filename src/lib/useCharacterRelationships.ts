@@ -139,6 +139,7 @@ export function useCharacterRelationships({
     previousCharacter,
     popTrail,
     pushTrail,
+    historyError: (relationHistory.error?.message ?? null) || (relationChapters.error?.message ?? null),
     error: error || (relationHistory.error?.message ?? null) || (relationChapters.error?.message ?? null),
     isLoading: relsQuery.isLoading || relationHistory.isLoading || relationChapters.isLoading,
     refetchHistory: () => {

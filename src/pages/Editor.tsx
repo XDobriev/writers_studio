@@ -9,9 +9,7 @@ import { type Book } from '../lib/supabase';
 import { updateBook } from '../lib/books';
 import {
   countWords,
-  updateChapter,
   getChapterContent,
-  type ChapterMeta,
   type ChapterStatus,
 } from '../lib/chapters';
 import {
@@ -20,8 +18,7 @@ import {
 } from '../lib/draftScenes';
 import { type ChapterType } from '../lib/chapterNumbering';
 import { QUERY_KEYS, useBook, useChapters, useChapterContent, useDraftScenes } from '../lib/queries';
-import { invalidateChaptersCache } from '../lib/chapterMutations';
-import { useBookStructure } from '../lib/useOutlineMutations';
+import { useOutlineMutations } from '../lib/useOutlineMutations';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useChapterVersioning } from '../lib/useChapterVersioning';
 import { useChapterAutosave, useRecoveredChapterContent } from '../lib/useChapterAutosave';
@@ -134,7 +131,7 @@ export default function Editor() {
     setSearch(next, { replace: false });
   }, [search, setSearch, flush, flushDraftSave]);
 
-  const bookStructure = useBookStructure({
+  const bookStructure = useOutlineMutations({
     bookId,
     userId: user?.id,
     chapters,
@@ -272,16 +269,8 @@ export default function Editor() {
   }, [activeId, autosave]);
 
   const onStatusChange = useCallback(async (id: string, status: ChapterStatus) => {
-    if (bookId) {
-      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-        prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev
-      );
-    }
-    await updateChapter(id, { status }).catch((e: unknown) => {
-      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-      if (bookId) invalidateChaptersCache(queryClient, bookId);
-    });
-  }, [bookId, queryClient, setError]);
+    await bookStructure.patchChapter(id, { status });
+  }, [bookStructure]);
 
   const onTypeChange = useCallback(async (id: string, type: ChapterType) => {
     await bookStructure.changeChapterType(id, type);

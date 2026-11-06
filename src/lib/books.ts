@@ -150,17 +150,22 @@ export async function createBookWithSeriesTransfer(
 ): Promise<Book> {
   const book = await createBook(input);
   if (seriesTransfer.enabled && seriesTransfer.sourceBookId) {
-    await duplicateBookContent(
-      seriesTransfer.sourceBookId,
-      book.id,
-      input.user_id,
-      {
-        characters: !!seriesTransfer.characters,
-        locationsMap: !!seriesTransfer.locationsMap,
-        notes: !!seriesTransfer.notes,
-        timeline: !!seriesTransfer.timeline,
-      },
-    );
+    try {
+      await duplicateBookContent(
+        seriesTransfer.sourceBookId,
+        book.id,
+        input.user_id,
+        {
+          characters: !!seriesTransfer.characters,
+          locationsMap: !!seriesTransfer.locationsMap,
+          notes: !!seriesTransfer.notes,
+          timeline: !!seriesTransfer.timeline,
+        },
+      );
+    } catch (err) {
+      await deleteBook(book.id).catch(() => undefined);
+      throw err;
+    }
   }
   return book;
 }

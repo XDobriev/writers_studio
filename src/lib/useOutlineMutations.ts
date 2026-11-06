@@ -36,7 +36,7 @@ import {
   type ChapterType,
 } from './chapterNumbering';
 
-export interface UseBookStructureOptions {
+export interface UseOutlineMutationsOptions {
   bookId: string | undefined;
   userId: string | undefined;
   chapters: ChapterMeta[] | undefined;
@@ -47,9 +47,7 @@ export interface UseBookStructureOptions {
   onRebaseChapter?: (chapterId: string, updatedAt: string) => void;
 }
 
-export type UseOutlineMutationsOptions = UseBookStructureOptions;
-
-export function useBookStructure({
+export function useOutlineMutations({
   bookId,
   userId,
   chapters,
@@ -58,7 +56,7 @@ export function useBookStructure({
   setError = () => {},
   onCancelDraftSave,
   onRebaseChapter,
-}: UseBookStructureOptions) {
+}: UseOutlineMutationsOptions) {
   const queryClient = useQueryClient();
   const creatingRef = useRef(false);
 
@@ -297,6 +295,4 @@ export function useBookStructure({
     onTypeChange,
   };
 }
-
-export const useOutlineMutations = useBookStructure;
 

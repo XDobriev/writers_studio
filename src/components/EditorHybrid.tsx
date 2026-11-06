@@ -76,7 +76,7 @@ interface ManuscriptSheetProps {
   footerSlot?: React.ReactNode;
 }
 
-export function ManuscriptSheet({
+function ManuscriptSheet({
   id,
   title,
   titlePlaceholder = 'Без названия',
@@ -161,7 +161,7 @@ interface DraftSceneBridgeBarProps {
   draftActions?: DraftSceneActions;
 }
 
-export function DraftSceneBridgeBar({
+function DraftSceneBridgeBar({
   scene,
   chapters,
   draftActions,

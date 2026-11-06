@@ -171,7 +171,7 @@ export function CharacterRelationshipsSection({
           ← Вернуться к редактору
         </button>
       )}
-      {rels.error && (
+      {rels.historyError && (
         <div role="alert" className="rel-error">
           Не удалось загрузить историю отношений.
           <button type="button" className="btn btn--ghost btn--sm" onClick={rels.refetchHistory}>

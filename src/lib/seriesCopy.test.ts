@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 type Char = { id: string; avatar_url: string | null };
 const { calls, state } = vi.hoisted(() => ({
-  calls: { rpc: [] as [string, unknown][], copy: [] as [string, string, string][], update: [] as unknown[], remove: [] as [string, string[]][], list: [] as [string, string][] },
-  state: { mapBgUrl: null as string | null, chars: [] as Char[], failCopy: new Set<string>(), chapterFiles: [] as string[] },
+  calls: { rpc: [] as [string, unknown][], copy: [] as [string, string, string][], update: [] as unknown[], remove: [] as [string, string[]][], list: [] as [string, string][], delete: [] as [string, string][] },
+  state: { mapBgUrl: null as string | null, chars: [] as Char[], failCopy: new Set<string>(), failRpc: new Set<string>(), chapterFiles: [] as string[] },
 }));
 
 vi.mock('./monitoring', () => ({ captureException: vi.fn() }));
@@ -14,9 +14,20 @@ vi.mock('./supabase', async (importOriginal) => {
   const from = (table: string) => {
     const b = {
       select: () => b,
-      eq: () => b,
+      eq: (_col: string, val: string) => {
+        calls.delete.push([table, val]);
+        return b;
+      },
       not: () => b,
       delete: () => b,
+      insert: (item: unknown) => ({
+        select: () => ({
+          single: async () => ({
+            data: { id: 'created-book-id', title: 'Новая книга', ...(item as object) },
+            error: null,
+          }),
+        }),
+      }),
       update: (patch: unknown) => { calls.update.push(patch); return b; },
       single: async () => ({ data: { id: 'b2', map_bg_url: state.mapBgUrl }, error: null }),
       then: (resolve: (v: unknown) => void) =>
@@ -25,7 +36,11 @@ vi.mock('./supabase', async (importOriginal) => {
     return b;
   };
   const supabase = {
-    rpc: async (name: string, args: unknown) => { calls.rpc.push([name, args]); return { error: null }; },
+    rpc: async (name: string, args: unknown) => {
+      calls.rpc.push([name, args]);
+      if (state.failRpc.has(name)) return { error: new Error('rpc error') };
+      return { error: null };
+    },
     from,
     auth: { getSession: async () => ({ data: { session: { user: { id: 'u1' } } } }) },
     storage: {
@@ -47,15 +62,15 @@ vi.mock('./supabase', async (importOriginal) => {
   return { supabase, ensureAuthReady: async () => {}, storagePathFromPublicUrl };
 });
 
-import { deleteBook, duplicateBookContent } from './books';
+import { createBookWithSeriesTransfer, deleteBook, duplicateBookContent } from './books';
 import { storagePathFromPublicUrl } from './supabase';
 
 const OPTS = { characters: true, locationsMap: true, notes: false, timeline: false };
 const AV = 'https://x/storage/v1/object/public/character-avatars';
 
 beforeEach(() => {
-  calls.rpc = []; calls.copy = []; calls.update = []; calls.remove = []; calls.list = [];
-  state.mapBgUrl = null; state.chars = []; state.failCopy = new Set(); state.chapterFiles = [];
+  calls.rpc = []; calls.copy = []; calls.update = []; calls.remove = []; calls.list = []; calls.delete = [];
+  state.mapBgUrl = null; state.chars = []; state.failCopy = new Set(); state.failRpc = new Set(); state.chapterFiles = [];
 });
 
 describe('storagePathFromPublicUrl', () => {
@@ -146,3 +161,27 @@ describe('deleteBook: файл фона карты', () => {
     expect(calls.remove).toEqual([['map-backgrounds', ['u1/b9/background']]]);
   });
 });
+
+describe('createBookWithSeriesTransfer', () => {
+  it('создает книгу и копирует контент при активном переносе серии', async () => {
+    const book = await createBookWithSeriesTransfer(
+      { user_id: 'u1', title: 'Том 2' },
+      { enabled: true, sourceBookId: 'b1', characters: true },
+    );
+    expect(book).toMatchObject({ id: 'created-book-id', title: 'Том 2' });
+    expect(calls.rpc.some(([name]) => name === 'duplicate_book_content')).toBe(true);
+  });
+
+  it('откатывает книгу через deleteBook при сбое копирования серии', async () => {
+    state.failRpc.add('duplicate_book_content');
+    await expect(
+      createBookWithSeriesTransfer(
+        { user_id: 'u1', title: 'Том 2' },
+        { enabled: true, sourceBookId: 'b1', characters: true },
+      ),
+    ).rejects.toThrow('rpc error');
+
+    expect(calls.delete).toContainEqual(['books', 'created-book-id']);
+  });
+});
+

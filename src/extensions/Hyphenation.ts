@@ -76,7 +76,7 @@ export function collectExclusions(
   return ranges;
 }
 
-export function mergeExclusions(ranges: ExclusionRange[]): ExclusionRange[] {
+function mergeExclusions(ranges: ExclusionRange[]): ExclusionRange[] {
   if (ranges.length <= 1) return ranges;
   const sorted = [...ranges].sort((a, b) => a.from - b.from || a.to - b.to);
   const merged: ExclusionRange[] = [{ ...sorted[0] }];
@@ -107,7 +107,7 @@ export function isPositionExcluded(pos: number, exclusions: ExclusionRange[]): b
   return false;
 }
 
-export function isPositionExcludedFast(pos: number, sortedExclusions: ExclusionRange[]): boolean {
+function isPositionExcludedFast(pos: number, sortedExclusions: ExclusionRange[]): boolean {
   let low = 0;
   let high = sortedExclusions.length - 1;
   while (low <= high) {

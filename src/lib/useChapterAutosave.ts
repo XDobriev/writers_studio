@@ -477,8 +477,6 @@ export function useChapterAutosave({
 }
 
 export type ChapterAutosave = ReturnType<typeof useChapterAutosave>;
-export const useDocumentAutosave = useChapterAutosave;
-export type DocumentAutosave = ChapterAutosave;
 
 // Текст главы для посева в редактор с учётом локального черновика.
 // Решение принимается один раз на открытие главы (до посева), побочные эффекты — после.
