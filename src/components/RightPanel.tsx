@@ -306,6 +306,10 @@ export function RightPanel({
                       В картотеку →
                     </button>
                   )}
+                  {bookId && <button type="button" className="rp-char-dossier-link" onClick={() => {
+                    const params = new URLSearchParams({ character: selectedChar.id, view: 'relationships', ...(chapterId ? { chapter: chapterId } : {}), from: 'editor' });
+                    navigate(`/books/${bookId}/characters?${params}`);
+                  }}>Связи персонажа →</button>}
                 </div>
               )}
             </div>

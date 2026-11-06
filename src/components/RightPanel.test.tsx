@@ -140,6 +140,13 @@ afterEach(() => {
 });
 
 describe('RightPanel: оживление блока «Персонажи главы» (Сценарий 1)', () => {
+  it('ссылка в связи сохраняет контекст главы редактора', () => {
+    const el = mount({ focusedCharacterId: 'char-anna', focusedCharacterTs: 99 });
+    const link = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('Связи персонажа'))!;
+    expect(link).toBeDefined();
+    act(() => link.click());
+    expect(mockNavigate).toHaveBeenCalledWith('/books/book-1/characters?character=char-anna&view=relationships&chapter=chap-1&from=editor');
+  });
   it('рендерит список персонажей главы с кликабельными кнопками-аватарками', () => {
     const el = mount();
     const membersBlock = el.querySelector('.rp-members');

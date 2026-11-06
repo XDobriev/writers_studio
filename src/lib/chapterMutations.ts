@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from './queries';
 import type { Chapter, ChapterMeta } from './chapters';
+import { relationshipEventsKey } from './useRelationshipHistory';
 
 export function createChapterWithCache(
   queryClient: QueryClient,
@@ -32,6 +33,7 @@ export function deleteChapterWithCache(
     QUERY_KEYS.book(bookId),
     ['books'],
     QUERY_KEYS.chapterCharactersAll(),
+    relationshipEventsKey(bookId),
   ]) {
     void queryClient.invalidateQueries({ queryKey: key });
   }

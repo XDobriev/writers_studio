@@ -54,10 +54,10 @@ import {
   createRelationship,
   deleteRelationship,
   updateRelationshipLabels,
-  makeLabelPatch,
   type CharacterRelationship,
 } from './relationships';
 import { QUERY_KEYS } from './queries';
+import { relationshipEventsKey } from './useRelationshipHistory';
 
 interface UseCharacterMutationsOptions {
   bookId: string | undefined;
@@ -138,59 +138,69 @@ export function useCharacterMutations({
     try {
       await deleteCharacter(characterId);
       const remaining = characters.filter((c) => c.id !== characterId);
-      queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) =>
-        charInfiniteRemove(prev, characterId),
-      );
+      if (hasNextPage) {
+        // Не укорачиваем страницу до 49: это сделало бы ещё не загруженных персонажей недоступными.
+        void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.characters(bookId) });
+      } else {
+        queryClient.setQueryData<InfiniteData<Character[]>>(QUERY_KEYS.characters(bookId), (prev) => charInfiniteRemove(prev, characterId));
+      }
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) =>
         prev ? prev.filter((r) => r.char_a_id !== characterId && r.char_b_id !== characterId) : prev
       );
+      void queryClient.invalidateQueries({ queryKey: relationshipEventsKey(bookId) });
       invalidateCharacterDerived(bookId);
       onDeleted(remaining, characterId);
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     }
-  }, [characters, bookId, queryClient, cancelSave, onDeleted, onError, invalidateCharacterDerived]);
+  }, [characters, bookId, queryClient, cancelSave, onDeleted, onError, invalidateCharacterDerived, hasNextPage]);
 
-  const onCreateRelationship = useCallback(async (toId: string, labelMine: string, labelTheirs: string) => {
-    if (!bookId || !userId || !active || creatingRelRef.current) return;
+  const onCreateRelationship = useCallback(async (toId: string, labelMine: string, labelTheirs: string, isSecret = false, sourceId = active?.id) => {
+    if (!bookId || !userId || !sourceId || creatingRelRef.current) return false;
     creatingRelRef.current = true;
     try {
-      const created = await createRelationship(bookId, userId, active.id, toId, labelMine, labelTheirs);
+      const created = await createRelationship(bookId, userId, sourceId, toId, labelMine, labelTheirs, isSecret);
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) => [...(prev ?? []), created]);
+      return true;
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
+      return false;
     } finally {
       creatingRelRef.current = false;
     }
   }, [bookId, userId, active, queryClient, onError]);
 
   const onDeleteRelationship = useCallback(async (id: string) => {
-    if (!bookId) return;
+    if (!bookId) return false;
     try {
       await deleteRelationship(id);
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) =>
         prev ? prev.filter((r) => r.id !== id) : prev
       );
+      void queryClient.invalidateQueries({ queryKey: relationshipEventsKey(bookId) });
+      return true;
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
+      return false;
     }
   }, [bookId, queryClient, onError]);
 
-  const onRelationshipLabelChange = useCallback(async (id: string, labelMine: string, labelTheirs: string) => {
-    if (!bookId || !active) return;
+  const onRelationshipLabelChange = useCallback(async (id: string, patch: Pick<CharacterRelationship, 'label_a' | 'label_b' | 'is_secret'>) => {
+    if (!bookId) return false;
     const rels = queryClient.getQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId));
     const rel = rels?.find((r) => r.id === id);
-    if (!rel) return;
-    const patch = makeLabelPatch(rel, active.id, labelMine, labelTheirs);
+    if (!rel) return false;
     try {
       const updated = await updateRelationshipLabels(id, patch);
       queryClient.setQueryData<CharacterRelationship[]>(QUERY_KEYS.relationships(bookId), (prev) =>
         prev ? prev.map((r) => (r.id === id ? updated : r)) : prev
       );
+      return true;
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Неизвестная ошибка');
+      return false;
     }
-  }, [bookId, active, queryClient, onError]);
+  }, [bookId, queryClient, onError]);
 
   // Ошибка не откатывает набранное: кэш остаётся оптимистичным, а вызывающий
   // useDebouncedSave вернёт патч в очередь и повторит запись.
