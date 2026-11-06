@@ -22,13 +22,14 @@ vi.mock('./supabase', () => ({
 vi.mock('./books', () => ({
   createBook: vi.fn(),
   createBookWithSeriesTransfer: vi.fn(),
+  deleteBook: vi.fn(),
 }));
 
 vi.mock('./chapters', () => ({
   createChaptersBulk: vi.fn(),
 }));
 
-import { createBook, createBookWithSeriesTransfer } from './books';
+import { createBook, createBookWithSeriesTransfer, deleteBook } from './books';
 import { createChaptersBulk } from './chapters';
 
 describe('onboardingTemplates: LITERARY_FORMS', () => {
@@ -86,10 +87,26 @@ describe('createBookFromLiteraryForm', () => {
       target_words: 70000,
       cover: '#7c1d1d',
     });
-    expect(createChaptersBulk).toHaveBeenCalledWith([
-      expect.objectContaining({ book_id: 'book-novel-1', title: 'Глава 1', order_index: 0 }),
+    expect(createChaptersBulk).toHaveBeenCalledWith('book-novel-1', 'u-1', [
+      { title: 'Глава 1', position: 0, content: '', words: 0 },
     ]);
     expect(result).toBe(mockBook);
+  });
+
+  it('откатывает книгу через deleteBook при ошибке вставки первой главы', async () => {
+    const mockBook = { id: 'book-fail-1', title: 'Сбойная книга', user_id: 'u-1' };
+    vi.mocked(createBook).mockResolvedValueOnce(mockBook as any);
+    vi.mocked(createChaptersBulk).mockRejectedValueOnce(new Error('DB chapter insert error'));
+    vi.mocked(deleteBook).mockResolvedValueOnce(undefined);
+
+    await expect(
+      createBookFromLiteraryForm('u-1', {
+        title: 'Сбойная книга',
+        formId: 'novel',
+      }),
+    ).rejects.toThrow('DB chapter insert error');
+
+    expect(deleteBook).toHaveBeenCalledWith('book-fail-1');
   });
 
   it('использует createBookWithSeriesTransfer, если передана серия', async () => {
@@ -178,5 +195,19 @@ describe('cloneSampleBook', () => {
     expect(supabase.from).toHaveBeenCalledWith('locations');
     expect(supabase.from).toHaveBeenCalledWith('timeline_events');
     expect(localStorage.getItem('sample_book_mock-book-id')).toBe('true');
+  });
+
+  it('откатывает созданную книгу при сбое добавления глав или персонажей', async () => {
+    const mockBook = {
+      id: 'mock-book-id',
+      title: SAMPLE_BOOK_TITLE,
+      author: SAMPLE_BOOK_AUTHOR,
+    };
+    vi.mocked(createBook).mockResolvedValueOnce(mockBook as any);
+    vi.mocked(createChaptersBulk).mockRejectedValueOnce(new Error('Network error on chapters'));
+    vi.mocked(deleteBook).mockResolvedValueOnce(undefined);
+
+    await expect(cloneSampleBook('user-1')).rejects.toThrow('Network error on chapters');
+    expect(deleteBook).toHaveBeenCalledWith('mock-book-id');
   });
 });

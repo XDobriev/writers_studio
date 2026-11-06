@@ -30,7 +30,7 @@ interface CandidateMatch {
   pmTo: number;
 }
 
-interface DocMatch {
+export interface DocMatch {
   character: Character;
   pmFrom: number;
   pmTo: number;
@@ -38,15 +38,11 @@ interface DocMatch {
 }
 
 /**
- * Чистая функция поиска упоминаний персонажей в ProseMirror документе.
- * Создаёт DecorationSet с view-only декорациями:
- * - Первое появление каждого персонажа в главе -> .char-mention-first
- * - Повторные появления -> .char-mention-subsequent
- * Оба класса содержат data-char-id, data-char-color и inline-стиль --char-color.
+ * Чистая функция поиска диапазонов упоминаний персонажей в ProseMirror документе.
  */
-export function findCharacterDecorations(doc: PmNode, characters: Character[]): DecorationSet {
+export function findCharacterMatches(doc: PmNode, characters: Character[]): DocMatch[] {
   if (!characters || characters.length === 0) {
-    return DecorationSet.empty;
+    return [];
   }
 
   // 1. Подготавливаем регулярные выражения для всех псевдонимов всех персонажей
@@ -80,7 +76,7 @@ export function findCharacterDecorations(doc: PmNode, characters: Character[]): 
   }
 
   if (matchers.length === 0) {
-    return DecorationSet.empty;
+    return [];
   }
 
   // 2. Сканируем текстовые блоки документа (параграфы, заголовки и т.д.)
@@ -165,11 +161,26 @@ export function findCharacterDecorations(doc: PmNode, characters: Character[]): 
   });
 
   if (allDocMatches.length === 0) {
-    return DecorationSet.empty;
+    return [];
   }
 
   // 3. Сортируем все найденные вхождения по порядку в документе
   allDocMatches.sort((a, b) => a.pmFrom - b.pmFrom);
+  return allDocMatches;
+}
+
+/**
+ * Чистая функция поиска упоминаний персонажей в ProseMirror документе.
+ * Создаёт DecorationSet с view-only декорациями:
+ * - Первое появление каждого персонажа в главе -> .char-mention-first
+ * - Повторные появления -> .char-mention-subsequent
+ * Оба класса содержат data-char-id, data-char-color и inline-стиль --char-color.
+ */
+export function findCharacterDecorations(doc: PmNode, characters: Character[]): DecorationSet {
+  const allDocMatches = findCharacterMatches(doc, characters);
+  if (allDocMatches.length === 0) {
+    return DecorationSet.empty;
+  }
 
   // 4. Первое появление каждого персонажа в главе -> .char-mention-first,
   //    последующие появления -> .char-mention-subsequent

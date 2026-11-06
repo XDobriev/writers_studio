@@ -7,6 +7,7 @@ import type { ChapterMeta } from './chapters';
 
 // Выведено из БД (Tables<'character_relationships'>) — сужений нет.
 export type CharacterRelationship = Tables<'character_relationships'>;
+export type RelationshipState = Pick<CharacterRelationship, 'label_a' | 'label_b' | 'is_secret'>;
 export type RelationshipEvent = Tables<'character_relationship_events'>;
 export type RelationshipEventInput = Pick<RelationshipEvent, 'chapter_id' | 'label_a' | 'label_b' | 'is_secret' | 'note'>;
 export type RelationshipChapter = Pick<ChapterMeta, 'id' | 'title' | 'position' | 'created_at'>;

@@ -12,7 +12,7 @@ export function useBeforeUnloadSave<P extends object>(
   pendingPatchRef: MutableRefObject<P | null>,
   targetIdRef: MutableRefObject<string | null>,
   onUnload?: () => void,
-  table: 'chapters' | 'book_plans' = 'chapters',
+  table: 'chapters' | 'draft_scenes' = 'chapters',
 ) {
   const tokenRef = useRef<string | null>(null);
   useEffect(() => {

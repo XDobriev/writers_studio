@@ -197,7 +197,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
                 </div>
               )}
 
-              {tab === 'signup' && !consent && (TG_BOT_USERNAME || !vkAuth.sdkFailed) && (
+              {tab === 'signup' && !consent && (
                 <p className="input-hint" style={{ margin: '0 0 8px' }}>
                   Чтобы зарегистрироваться через Telegram или VK, сначала отметьте согласие ниже.
                 </p>
@@ -225,37 +225,32 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
                   <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', textAlign: 'center' }}>Подтверждение Telegram…</div>
                 )}
 
-                {!vkAuth.sdkFailed && (
-                  <div
-                    className="auth-oauth-wrap"
-                    style={{
-                      position: 'relative',
-                      height: 44,
-                      cursor: 'pointer',
-                      opacity: (tab === 'signup' && !consent) ? 0.4 : 1,
-                      pointerEvents: (tab === 'signup' && !consent) ? 'none' : 'auto',
-                    }}
-                    onClick={() => { vkAuth.vkHasClickedRef.current = true; }}
-                  >
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      aria-hidden="true"
-                      className="btn"
-                      style={{ pointerEvents: 'none', width: '100%', height: 44, justifyContent: 'center', gap: 10 }}
-                    >
-                      <VkGlyph />
-                      <span>
-                        {oauthBusy === 'vk'
-                          ? 'Подключение VK…'
-                          : tab === 'signin'
-                          ? 'Войти через VK ID'
-                          : 'Зарегистрироваться через VK ID'}
-                      </span>
-                    </button>
-                    <div ref={vkAuth.vkSlotRef} style={{ position: 'absolute', inset: 0, opacity: 0, overflow: 'hidden' }} />
-                  </div>
-                )}
+                <button
+                  type="button"
+                  disabled={oauthBusy === 'vk' || (tab === 'signup' && !consent)}
+                  className="btn"
+                  style={{
+                    width: '100%',
+                    height: 44,
+                    justifyContent: 'center',
+                    gap: 10,
+                    opacity: (tab === 'signup' && !consent) ? 0.4 : 1,
+                    cursor: (tab === 'signup' && !consent) ? 'not-allowed' : 'pointer',
+                  }}
+                  onClick={() => {
+                    clearErr();
+                    void vkAuth.startLogin();
+                  }}
+                >
+                  <VkGlyph />
+                  <span>
+                    {oauthBusy === 'vk'
+                      ? 'Подключение VK…'
+                      : tab === 'signin'
+                      ? 'Войти через VK ID'
+                      : 'Зарегистрироваться через VK ID'}
+                  </span>
+                </button>
               </div>
 
               {tab === 'signup' && (

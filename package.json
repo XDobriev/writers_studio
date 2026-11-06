@@ -53,6 +53,7 @@
     "@tiptap/extension-underline": "~3.32.0",
     "@tiptap/react": "~3.32.0",
     "@tiptap/starter-kit": "~3.32.0",
+    "@vkid/sdk": "^2.6.10",
     "docx": "^9.6.1",
     "dompurify": "^3.4.5",
     "framer-motion": "^12.40.0",

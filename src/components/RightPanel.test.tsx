@@ -94,6 +94,18 @@ const mockNotes: Note[] = [
     custom_label: null,
     created_at: '',
   },
+  {
+    id: 'note-general',
+    book_id: 'book-1',
+    chapter_id: null,
+    user_id: 'user-1',
+    kind: 'important',
+    text: 'Общая заметка всей книги',
+    position: 1,
+    custom_color: null,
+    custom_label: null,
+    created_at: '',
+  },
 ];
 
 vi.mock('../lib/queries', () => ({
@@ -264,5 +276,25 @@ describe('RightPanel: оживление блока «Персонажи гла�
     const el = mount();
     expect(el.querySelector('.rp-members')).not.toBeNull();
     expect(el.textContent).toContain('Заметка к главе');
+  });
+
+  it('в свободной сцене (черновике) заметки других глав и общие заметки не утекают', () => {
+    const el = mount({ chapterId: undefined, isDraft: true, draftId: 'draft-scene-1' });
+    // Заметка от chap-1 НЕ должна отображаться
+    expect(el.textContent).not.toContain('Заметка к главе');
+    // Общая заметка книги также НЕ должна вываливаться в черновик
+    expect(el.textContent).not.toContain('Общая заметка всей книги');
+    // Показывается изолированное состояние
+    expect(el.textContent).toContain('Заметок для этого черновика нет');
+  });
+
+  it('в свободной сцене (черновике) во вкладке Версии показывает корректный статус вместо Выберите главу', () => {
+    const el = mount({ chapterId: undefined, isDraft: true, draftId: 'draft-scene-1' });
+    const versionsTab = el.querySelector<HTMLButtonElement>('#rp-tab-versions')!;
+    act(() => {
+      versionsTab.click();
+    });
+    expect(el.textContent).toContain('История версий доступна только для глав книги');
+    expect(el.textContent).not.toContain('Выберите главу');
   });
 });

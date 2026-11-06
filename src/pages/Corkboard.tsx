@@ -297,7 +297,8 @@ export default function Corkboard() {
   const error = chaptersError?.message ?? mutationError;
   const { isMobile } = useResponsive();
   const [sbOpen, setSbOpen] = useState(false);
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useState<Filter>('all');
+
   const chapterRanks = useMemo(() => computeChapterRanks(chapters ?? []), [chapters]);
 
   const sensors = useSensors(
@@ -400,7 +401,7 @@ export default function Corkboard() {
               )}
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              <button className="btn" onClick={onCreate} aria-label="Новая глава">{isMobile ? <Icon name="plus" size={14} /> : <><Icon name="plus" size={14} /> Новая глава</>}</button>
+              <button className="btn" onClick={() => void onCreate()} aria-label="Новая глава">{isMobile ? <Icon name="plus" size={14} /> : <><Icon name="plus" size={14} /> Новая глава</>}</button>
             </div>
           </div>
           {/* Фильтры на мобилке были скрыты совсем (!isMobile), без альтернативы.
@@ -450,7 +451,7 @@ export default function Corkboard() {
               <div style={{ padding: '64px 32px', textAlign: 'center', border: '1px dashed var(--border-strong)', borderRadius: 12, color: 'var(--ink-3)', background: 'var(--bg)' }}>
                 <div style={{ font: '500 18px var(--font-serif)', color: 'var(--ink-2)', marginBottom: 8 }}>Доска пуста.</div>
                 <div style={{ marginBottom: 16, fontSize: 13 }}>Создайте первую главу — она появится здесь карточкой.</div>
-                <button className="btn btn--primary" onClick={onCreate}>
+                <button className="btn btn--primary" onClick={() => void onCreate()}>
                   <Icon name="plus" size={14} /> Новая глава
                 </button>
               </div>

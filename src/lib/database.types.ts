@@ -596,6 +596,50 @@ export type Database = {
           },
         ]
       }
+      draft_scenes: {
+        Row: {
+          book_id: string
+          content: string
+          created_at: string
+          id: string
+          position: number
+          title: string
+          updated_at: string
+          user_id: string
+          words: number
+        }
+        Insert: {
+          book_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          position?: number
+          title?: string
+          updated_at?: string
+          user_id: string
+          words?: number
+        }
+        Update: {
+          book_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          position?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+          words?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_scenes_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_flags: {
         Row: {
           description: string | null

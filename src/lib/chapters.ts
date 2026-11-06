@@ -71,7 +71,7 @@ export async function getChapterContent(id: string): Promise<{ id: string; conte
 export async function createChapter(
   bookId: string,
   userId: string,
-  patch: { title?: string; position?: number } = {},
+  patch: { title?: string; position?: number; content?: string; words?: number } = {},
 ): Promise<Chapter> {
   const { data, error } = await supabase
     .from('chapters')
@@ -80,6 +80,8 @@ export async function createChapter(
       user_id: userId,
       title: patch.title ?? 'Без названия',
       position: patch.position ?? 0,
+      ...(patch.content !== undefined && { content: patch.content }),
+      ...(patch.words !== undefined && { words: patch.words }),
     })
     .select('*')
     .single();
@@ -93,58 +95,29 @@ const BULK_BATCH_BYTES = 3 * 1024 * 1024;
 export interface ChapterBulkItem {
   title: string;
   content?: string;
-  content_json?: string;
   words?: number;
-  word_count?: number;
   synopsis?: string;
   position?: number;
-  order_index?: number;
-  book_id?: string;
-  user_id?: string;
 }
 
 /**
  * Массовая вставка глав (импорт рукописи или инициализация структуры):
- * поддерживает как вызов createChaptersBulk(bookId, userId, items),
- * так и createChaptersBulk(items).
+ * строго требует bookId, userId и список элементов единой схемы.
  */
 export async function createChaptersBulk(
-  bookIdOrItems: string | ChapterBulkItem[],
-  userId?: string,
-  items?: ChapterBulkItem[],
+  bookId: string,
+  userId: string,
+  items: ChapterBulkItem[],
 ): Promise<ChapterMeta[]> {
-  let rows: Array<{
-    book_id: string;
-    user_id: string;
-    title: string;
-    content: string;
-    words: number;
-    synopsis: string;
-    position: number;
-  }>;
-
-  if (Array.isArray(bookIdOrItems)) {
-    rows = bookIdOrItems.map((it, i) => ({
-      book_id: it.book_id || '',
-      user_id: it.user_id || userId || '',
-      title: it.title,
-      content: it.content ?? it.content_json ?? '',
-      words: it.words ?? it.word_count ?? 0,
-      synopsis: it.synopsis ?? '',
-      position: it.position ?? it.order_index ?? i,
-    }));
-  } else {
-    const bookId = bookIdOrItems;
-    rows = (items ?? []).map((it, i) => ({
-      book_id: bookId,
-      user_id: userId ?? it.user_id ?? '',
-      title: it.title,
-      content: it.content ?? it.content_json ?? '',
-      words: it.words ?? it.word_count ?? 0,
-      synopsis: it.synopsis ?? '',
-      position: it.position ?? it.order_index ?? i,
-    }));
-  }
+  const rows = items.map((it, i) => ({
+    book_id: bookId,
+    user_id: userId,
+    title: it.title,
+    content: it.content ?? '',
+    words: it.words ?? 0,
+    synopsis: it.synopsis ?? '',
+    position: it.position ?? i,
+  }));
 
   const batches: (typeof rows)[] = [];
   let cur: typeof rows = [];

@@ -16,7 +16,7 @@ import { listVersions, type ChapterVersionMeta } from './versions';
 import { toLocalISODate } from './dates';
 import { listChapterCharacters, listChapterMembers, type ChapterCharacterRow, type ChapterMemberRow } from './crossrefs';
 import { listBookPovEntries, type PovEntry } from './pov';
-import { getBookPlan, type BookPlan } from './bookPlans';
+import { listDraftScenes, type DraftScene } from './draftScenes';
 
 const CHARACTERS_PAGE_SIZE = 50;
 
@@ -44,7 +44,7 @@ export const QUERY_KEYS = {
   registrationOpen: () => ['registration-open'] as const,
   seriesList: (userId: string) => ['series', userId] as const,
   bookContentCounts: (bookId: string) => ['book-content-counts', bookId] as const,
-  bookPlan: (bookId: string) => ['book-plan', bookId] as const,
+  draftScenes: (bookId: string) => ['draft-scenes', bookId] as const,
   characterSearch: (bookId: string, query: string, role: string) =>
     ['character-search', bookId, query, role] as const,
 };
@@ -243,11 +243,11 @@ export function useBookContentCounts(bookId: string | undefined) {
   ));
 }
 
-/** Замысел книги. `null` — автор его ещё не начинал (строки в БД нет). */
-export function useBookPlan(bookId: string | undefined) {
-  return useQuery<BookPlan | null>(makeQuery(
-    bookId ? QUERY_KEYS.bookPlan(bookId) : ['book-plan', null],
-    () => getBookPlan(bookId!),
+/** Свободные сцены / черновики книги (F-13). */
+export function useDraftScenes(bookId: string | undefined) {
+  return useQuery<DraftScene[]>(makeQuery(
+    bookId ? QUERY_KEYS.draftScenes(bookId) : ['draft-scenes', null],
+    () => listDraftScenes(bookId!),
     60_000,
   ));
 }

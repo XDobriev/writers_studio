@@ -29,6 +29,10 @@ vi.mock('./crossrefs', () => ({
   listMatchableCharacters: () => Promise.resolve([]),
   syncBacklinks: () => Promise.resolve(),
 }));
+const updateDraftScene = vi.fn((id: string, patch: unknown) => Promise.resolve({ id, ...(patch as object) }));
+vi.mock('./draftScenes', () => ({
+  updateDraftScene: (id: string, patch: unknown) => updateDraftScene(id, patch),
+}));
 
 import { useChapterAutosave, useRecoveredChapterContent, type ChapterAutosave } from './useChapterAutosave';
 import { decideDraft, readDraft, writeDraft } from './chapterDrafts';
@@ -214,5 +218,21 @@ describe('useChapterAutosave', () => {
     await act(async () => { release(); await p; });
     expect(done).toBe(true);
     expect(readDraft('c1')).toBeNull();
+  });
+
+  it('сохраняет черновик свободной сцены через единый модуль автосохранения', async () => {
+    act(() => api.scheduleDraft('d1', { title: 'Сцена 1', content: '<p>Текст сцены</p>' }));
+    expect(api.draftSaveState).toBe('saving');
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+    expect(updateDraftScene).toHaveBeenCalledWith('d1', { title: 'Сцена 1', content: '<p>Текст сцены</p>' });
+    expect(api.draftSaveState).toBe('saved');
+  });
+
+  it('cancelDraft отменяет несохранённый черновик', async () => {
+    updateDraftScene.mockClear();
+    act(() => api.scheduleDraft('d2', { title: 'Отменённая сцена' }));
+    act(() => api.cancelDraft('d2'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+    expect(updateDraftScene).not.toHaveBeenCalled();
   });
 });

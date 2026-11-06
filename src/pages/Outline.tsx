@@ -690,7 +690,7 @@ export default function Outline() {
               Дерево структуры показывает книгу целиком. Перетащите главы, чтобы изменить порядок.
             </div>
             <div style={{ padding: '4px 14px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <button className="btn" onClick={onCreate}><Icon name="plus" size={13} /> Новая глава</button>
+              <button className="btn" onClick={() => void onCreate()}><Icon name="plus" size={13} /> Новая глава</button>
             </div>
           </Sidebar>
         )}
@@ -733,7 +733,7 @@ export default function Outline() {
                   {!isMobile && (renumbering ? ' Обновляем…' : ' Перенумеровать')}
                 </button>
               )}
-              <button className="btn" onClick={onCreate} aria-label="Новая глава">
+              <button className="btn" onClick={() => void onCreate()} aria-label="Новая глава">
                 <Icon name="plus" size={14} />
                 {!isMobile && ' Новая глава'}
               </button>
@@ -751,7 +751,7 @@ export default function Outline() {
               <div style={{ padding: '64px 32px', textAlign: 'center', border: '1px dashed var(--border-strong)', borderRadius: 12, color: 'var(--ink-3)' }}>
                 <div style={{ font: '500 18px var(--font-serif)', color: 'var(--ink-2)', marginBottom: 8 }}>Глав пока нет.</div>
                 <div style={{ marginBottom: 16, fontSize: 13 }}>Создайте первую главу — структура книги начнёт собираться отсюда.</div>
-                <button className="btn btn--primary" onClick={onCreate}>
+                <button className="btn btn--primary" onClick={() => void onCreate()}>
                   <Icon name="plus" size={14} /> Новая глава
                 </button>
               </div>

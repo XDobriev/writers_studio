@@ -71,6 +71,10 @@ describe('QUERY_KEYS — структура', () => {
     expect(QUERY_KEYS.chapterPovMap('b1')).toEqual(['chapter-pov-map', 'b1']);
   });
 
+  it('draftScenes включает bookId', () => {
+    expect(QUERY_KEYS.draftScenes('b1')).toEqual(['draft-scenes', 'b1']);
+  });
+
   it('registrationOpen — фиксированный ключ', () => {
     expect(QUERY_KEYS.registrationOpen()).toEqual(['registration-open']);
   });
@@ -110,6 +114,7 @@ describe('QUERY_KEYS — отсутствие коллизий', () => {
       QUERY_KEYS.timelineEvents(id),
       QUERY_KEYS.connections(id),
       QUERY_KEYS.chapterPovMap(id),
+      QUERY_KEYS.draftScenes(id),
     ].map((k) => k[0]);
 
     expect(new Set(prefixes).size).toBe(prefixes.length);

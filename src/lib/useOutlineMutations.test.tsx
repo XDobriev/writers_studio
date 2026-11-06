@@ -9,6 +9,10 @@ import { QUERY_KEYS } from './queries';
 
 const createChapterMock = vi.fn();
 const renumberChaptersMock = vi.fn();
+const createDraftSceneMock = vi.fn();
+const deleteDraftSceneMock = vi.fn();
+const convertDraftSceneToChapterMock = vi.fn();
+const insertDraftSceneIntoChapterMock = vi.fn();
 
 vi.mock('./supabase', () => ({
   supabase: {},
@@ -19,6 +23,13 @@ vi.mock('./chapters', async (orig) => ({
   ...(await orig<typeof import('./chapters')>()),
   createChapter: (...args: unknown[]) => createChapterMock(...args),
   renumberChapters: (...args: unknown[]) => renumberChaptersMock(...args),
+}));
+
+vi.mock('./draftScenes', () => ({
+  createDraftScene: (...args: unknown[]) => createDraftSceneMock(...args),
+  deleteDraftScene: (...args: unknown[]) => deleteDraftSceneMock(...args),
+  convertDraftSceneToChapter: (...args: unknown[]) => convertDraftSceneToChapterMock(...args),
+  insertDraftSceneIntoChapter: (...args: unknown[]) => insertDraftSceneIntoChapterMock(...args),
 }));
 
 import { useOutlineMutations } from './useOutlineMutations';
@@ -216,6 +227,53 @@ describe('useOutlineMutations chapter types & numbering', () => {
     expect(renumberChaptersMock).toHaveBeenCalledWith([
       expect.objectContaining({ id: 'c-2', title: 'Интерлюдия. Тайны' }),
       expect.objectContaining({ id: 'c-3', title: 'Глава 2. Развязка' }),
+    ]);
+  });
+
+  it('createDraft создает черновик сцены и обновляет кэш draftScenes', async () => {
+    setup([]);
+    createDraftSceneMock.mockResolvedValueOnce({
+      id: 'd-1',
+      book_id: 'book-1',
+      user_id: 'user-1',
+      title: 'Сцена 1',
+      position: 0,
+      content: '',
+      words: 0,
+    });
+
+    let created: unknown;
+    await act(async () => {
+      created = await mutations?.createDraft();
+    });
+
+    expect(createDraftSceneMock).toHaveBeenCalledWith('book-1', 'user-1', {
+      title: 'Сцена 1',
+      position: 0,
+    });
+    expect(created).toMatchObject({ id: 'd-1', title: 'Сцена 1' });
+    expect(queryClient.getQueryData(QUERY_KEYS.draftScenes('book-1'))).toEqual([
+      expect.objectContaining({ id: 'd-1' }),
+    ]);
+  });
+
+  it('deleteDraft удаляет черновик сцены и обновляет кэш', async () => {
+    setup([]);
+    queryClient.setQueryData(QUERY_KEYS.draftScenes('book-1'), [
+      { id: 'd-1', title: 'Сцена 1' },
+      { id: 'd-2', title: 'Сцена 2' },
+    ]);
+    deleteDraftSceneMock.mockResolvedValueOnce(undefined);
+
+    let ok = false;
+    await act(async () => {
+      ok = (await mutations?.deleteDraft('d-1')) ?? false;
+    });
+
+    expect(ok).toBe(true);
+    expect(deleteDraftSceneMock).toHaveBeenCalledWith('d-1');
+    expect(queryClient.getQueryData(QUERY_KEYS.draftScenes('book-1'))).toEqual([
+      { id: 'd-2', title: 'Сцена 2' },
     ]);
   });
 });

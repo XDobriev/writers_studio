@@ -359,8 +359,8 @@ export default function Export() {
                       background: active ? 'var(--accent-soft)' : undefined,
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                         <span style={{ width: 14, height: 14, borderRadius: 999, border: '1.5px solid ' + (active ? 'var(--accent)' : 'var(--border-strong)'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {active && <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)' }} />}
                         </span>
@@ -369,7 +369,7 @@ export default function Export() {
                       {showProBadge && (
                         <span
                           className="chip chip--accent chip--sm"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 500 }}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 500, flexShrink: 0 }}
                           title="Формат доступен на тарифе Pro"
                         >
                           <Icon name="lock" size={10} />

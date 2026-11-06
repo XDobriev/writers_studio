@@ -1,8 +1,21 @@
-.rel-block.rel-workspace { max-width: 1100px; min-width: 0; padding: 0; border: 0; background: transparent; }
+.rel-block.rel-workspace { max-width: 1040px; min-width: 0; padding: 0; border: 0; background: transparent; }
 .rel-workspace h3, .rel-workspace h4 { margin: 0; font: 600 16px/1.4 var(--font-ui); }
 .rel-workspace h4 { font-size: 14px; }
 .rel-workspace p { margin: 4px 0; overflow-wrap: anywhere; }
-.rel-workspace .rel-block__head { flex-wrap: wrap; gap: 12px; }
+.rel-workspace .rel-block__head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.rel-block__title-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
 .rel-workspace .rel-back { margin: 0 0 8px -8px; }
 .rel-workspace .rel-field { display: flex; flex-direction: column; gap: 6px; font: 400 12px/1.5 var(--font-ui); }
 .rel-workspace fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
@@ -11,8 +24,19 @@
 .rel-workspace .rel-row__body { min-width: 140px; font: 400 12px/1.5 var(--font-ui); }
 .rel-workspace .rel-row__avatar { border: 0; cursor: pointer; }
 .rel-hint { color: var(--ink-3); font: 400 12px/1.6 var(--font-ui); }
-.rel-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; margin: 18px 0; }
-.rel-toolbar > label { flex: 1; max-width: 380px; min-width: 160px; }
+.rel-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 16px;
+  margin: 16px 0 20px;
+}
+.rel-toolbar > label {
+  flex: 0 1 260px;
+  min-width: 180px;
+  max-width: 320px;
+}
 .rel-view-switch { display: flex; border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
 .rel-view-switch [aria-pressed="true"] { color: var(--accent); background: var(--surface-2); }
 .rel-secret-toggle { display: flex; align-items: center; gap: 8px; font: 400 13px/1.5 var(--font-ui); cursor: pointer; }
