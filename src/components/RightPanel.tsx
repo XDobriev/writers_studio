@@ -34,6 +34,10 @@ interface RightPanelProps {
   focusedCharacterId?: string | null;
   /** Временная метка фокуса, чтобы повторный клик по тому же персонажу переоткрывал досье */
   focusedCharacterTs?: number;
+  /** Открыта ли свободная сцена (черновик) */
+  isDraft?: boolean;
+  /** ID активного черновика */
+  draftId?: string;
 }
 
 export function RightPanel({
@@ -51,6 +55,8 @@ export function RightPanel({
   demo,
   focusedCharacterId,
   focusedCharacterTs,
+  isDraft,
+  draftId,
 }: RightPanelProps) {
   const navigate = useNavigate();
   const labels: Record<string, string> = { idea: 'Идея', question: 'Вопрос', todo: 'TODO', important: 'Важно', custom: 'Прочее' };
@@ -123,7 +129,12 @@ export function RightPanel({
     ? selectedChar.quote || selectedChar.personality?.slice(0, 140) || selectedChar.appearance?.slice(0, 140) || ''
     : '';
 
-  const notes = chapterId ? allNotes.filter(n => n.chapter_id === chapterId) : allNotes;
+  const isDraftScene = Boolean(isDraft || draftId);
+  const notes = useMemo(() => {
+    if (isDraftScene) return [];
+    if (chapterId) return allNotes.filter((n) => n.chapter_id === chapterId);
+    return allNotes.filter((n) => !n.chapter_id);
+  }, [allNotes, chapterId, isDraftScene]);
   const [activeTab, setActiveTab] = useState<'notes' | 'versions'>('notes');
   const [showForm, setShowForm] = useState(false);
   const [formKind, setFormKind] = useState<NoteKind>('idea');
@@ -228,7 +239,7 @@ export function RightPanel({
             )}
             {!chapterId && (
               <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center' }}>
-                Выберите главу
+                {isDraftScene ? 'История версий доступна только для глав книги' : 'Выберите главу'}
               </div>
             )}
           </div>
@@ -391,7 +402,7 @@ export function RightPanel({
             )}
             {notes.length === 0 && !showForm && (
               <div style={{ padding: '24px 14px', color: 'var(--ink-4)', fontSize: 12, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                {chapterId ? 'Заметок для этой главы нет' : 'Нет заметок'}
+                {chapterId ? 'Заметок для этой главы нет' : isDraftScene ? 'Заметок для этого черновика нет' : 'Нет заметок'}
                 <button className="btn btn--primary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => (demo ? navigate('/login?tab=signup') : setShowForm(true))}>
                   <Icon name="plus" size={13} /> Добавить заметку
                 </button>

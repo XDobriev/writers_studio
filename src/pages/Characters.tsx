@@ -24,8 +24,7 @@ import {
   type Character,
   type CharacterPatch,
 } from '../lib/characters';
-import { QUERY_KEYS, useBook, useCharacters, useRelationships, useCharacterSearch, useChapters } from '../lib/queries';
-import { useRelationshipHistory } from '../lib/useRelationshipHistory';
+import { QUERY_KEYS, useBook, useCharacters, useRelationships, useCharacterSearch } from '../lib/queries';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useDebouncedSave } from '../lib/useDebouncedSave';
 import { useCharacterNavigation } from '../lib/useCharacterNavigation';
@@ -33,7 +32,7 @@ import { useCreateOnMount } from '../lib/useCreateOnMount';
 import { useDiscardEmptyDraft } from '../lib/useDiscardEmptyDraft';
 import { useCharacterMutations, charInfiniteUpdate } from '../lib/useCharacterMutations';
 import { CharacterHeroBlock } from '../components/CharacterHeroBlock';
-import { CharacterRelationsBlock, type RelationshipWorkspaceDraft } from '../components/CharacterRelationsBlock';
+import { CharacterRelationshipsSection } from '../components/CharacterRelationsBlock';
 import { CharacterChaptersTab } from '../components/CharacterChaptersTab';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -71,15 +70,6 @@ export default function Characters() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [query, setQuery] = useState('');
   const [charToDelete, setCharToDelete] = useState<Character | null>(null);
-  const [relationshipTrail, setRelationshipTrail] = useState<string[]>([]);
-  const [relationshipDraft, setRelationshipDraft] = useState<RelationshipWorkspaceDraft>({ creation: null, history: null });
-  const hasRelationshipDraft = !!(relationshipDraft.creation || relationshipDraft.history);
-  useEffect(() => {
-    if (!hasRelationshipDraft) return;
-    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, [hasRelationshipDraft]);
   const { isMobile } = useResponsive();
   const [sbOpen, setSbOpen] = useState(false);
 
@@ -112,11 +102,6 @@ export default function Characters() {
     if (tab === 'info') next.delete('view'); else next.set('view', tab);
     setSearch(next);
   };
-  const relationHistory = useRelationshipHistory(bookId, user?.id, detailTab === 'relationships');
-  const relationChapters = useChapters(detailTab === 'relationships' || relationHistory.data ? bookId : undefined);
-  const requestedChapter = search.get('at') ?? search.get('chapter') ?? '';
-  const relationshipChapter = relationChapters.data && requestedChapter && requestedChapter !== 'baseline' && !relationChapters.data.some((c) => c.id === requestedChapter)
-    ? 'baseline' : requestedChapter;
   useEffect(() => {
     if (detailTab === 'relationships' && hasNextPage && !isFetchingCharacters && !charsQueryError) void fetchNextPage();
   }, [detailTab, hasNextPage, isFetchingCharacters, charsQueryError, fetchNextPage]);
@@ -166,8 +151,7 @@ export default function Characters() {
     isEmpty: (id) => {
       const c = characters?.find((x) => x.id === id);
       const hasRelations = relationships?.some((r) => r.char_a_id === id || r.char_b_id === id) ?? true;
-      const hasRelationDraft = relationshipDraft.creation?.sourceId === id || relationshipDraft.creation?.toId === id;
-      return !!c && isBlankCharacter(c) && !hasRelations && !hasRelationDraft;
+      return !!c && isBlankCharacter(c) && !hasRelations;
     },
     discard: (id) => onDeleteConfirmed(id),
   });
@@ -196,7 +180,7 @@ export default function Characters() {
     setSearch(next, { replace: true });
   }, [search, setSearch, setViewMode, activeId]);
 
-  const { onCreate, onUpdate, onDeleteConfirmed, onCreateRelationship, onDeleteRelationship, onRelationshipLabelChange } = useCharacterMutations({
+  const { onCreate, onUpdate, onDeleteConfirmed } = useCharacterMutations({
     bookId,
     userId: user?.id,
     characters,
@@ -422,6 +406,7 @@ export default function Characters() {
           {/* Основное содержимое */}
           {!showGrid && active ? (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '20px 16px' : '32px 48px' }}>
+              <div style={{ maxWidth: 1040, minWidth: 0 }}>
               <CharacterHeroBlock character={active} bookId={bookId!} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} isMobile={isMobile} />
 
               {/* Вкладки */}
@@ -499,29 +484,31 @@ export default function Characters() {
               ) : null}
 
               <div hidden={detailTab !== 'relationships'}>
-                {search.get('from') === 'editor' && <button className="btn btn--ghost btn--sm" onClick={() => navigate(`/books/${bookId}/editor${search.get('chapter') ? `?chapter=${encodeURIComponent(search.get('chapter')!)}` : ''}`)}>← Вернуться к редактору</button>}
-                {charsQueryError && <div role="alert" className="rel-error">Не удалось загрузить всех персонажей.
-                  <button className="btn btn--ghost btn--sm" onClick={() => { if (isFetchNextPageError) void fetchNextPage(); else void refetchCharacters(); }}>Повторить загрузку персонажей</button>
-                </div>}
-                {(relationHistory.error || relationChapters.error) && <div role="alert" className="rel-error">
-                  Не удалось загрузить историю отношений.
-                  <button className="btn btn--ghost btn--sm" onClick={() => { void relationHistory.refetch(); void relationChapters.refetch(); }}>Повторить</button>
-                </div>}
-                {hasNextPage || !relationHistory.data || !relationChapters.data ? <p className="rel-hint">{charsQueryError ? 'Граф будет доступен после загрузки всех персонажей.' : 'Загрузка связей и персонажей…'}</p> :
-                  <CharacterRelationsBlock activeId={active.id} characters={characters} relationships={relationships}
-                    previousCharacter={characters.find((c) => c.id === relationshipTrail[relationshipTrail.length - 1])?.name}
-                    onBack={relationshipTrail.length ? () => { selectCharacter(relationshipTrail[relationshipTrail.length - 1]); setRelationshipTrail((prev) => prev.slice(0, -1)); } : undefined}
-                    draft={relationshipDraft} onDraftChange={setRelationshipDraft}
-                    events={relationHistory.data} chapters={relationChapters.data} chapterId={relationshipChapter}
-                    onChapterChange={(id) => { const next = new URLSearchParams(search); next.set('at', id); setSearch(next, { replace: true }); }}
-                    onCreate={onCreateRelationship} onDelete={onDeleteRelationship} onLabelChange={onRelationshipLabelChange}
-                    onSaveEvent={relationHistory.save} onDeleteEvent={relationHistory.remove}
-                    onSelectCharacter={(id) => { if (id !== active.id) { setRelationshipTrail((prev) => [...prev, active.id]); selectCharacter(id); } }}
-                    onNavigateChapter={(id) => navigate(`/books/${bookId}/editor?chapter=${id}`)} />}
+                {charsQueryError && (
+                  <div role="alert" className="rel-error">
+                    Не удалось загрузить всех персонажей.
+                    <button className="btn btn--ghost btn--sm" onClick={() => { if (isFetchNextPageError) void fetchNextPage(); else void refetchCharacters(); }}>
+                      Повторить загрузку персонажей
+                    </button>
+                  </div>
+                )}
+                {hasNextPage ? (
+                  <p className="rel-hint">{charsQueryError ? 'Граф будет доступен после загрузки всех персонажей.' : 'Загрузка связей и персонажей…'}</p>
+                ) : (
+                  <CharacterRelationshipsSection
+                    bookId={bookId!}
+                    activeId={active.id}
+                    characters={characters}
+                    userId={user?.id}
+                    onSelectCharacter={selectCharacter}
+                    onNavigateChapter={(id) => navigate(`/books/${bookId}/editor?chapter=${id}`)}
+                  />
+                )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, paddingBottom: 32 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16, paddingBottom: 32 }}>
                 <button onClick={() => active && setCharToDelete(active)} className="btn btn--danger-ghost">Удалить персонажа</button>
+              </div>
               </div>
             </div>
           ) : (

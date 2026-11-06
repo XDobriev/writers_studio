@@ -20,12 +20,13 @@ import { Subscript } from '@tiptap/extension-subscript';
 import { Superscript } from '@tiptap/extension-superscript';
 import { Image } from '@tiptap/extension-image';
 import { LanguageTool, LT_KEY } from '../extensions/LanguageTool';
-import { Hyphenation } from '../extensions/Hyphenation';
+import { Hyphenation, HYPH_KEY, buildHyphenationDecos, collectExclusions } from '../extensions/Hyphenation';
 import Focus from '@tiptap/extension-focus';
 import {
   CharacterHighlight,
   CHARACTER_HIGHLIGHT_KEY,
   findCharacterDecorations,
+  findCharacterMatches,
 } from '../extensions/CharacterHighlight';
 import type { Character } from '../lib/characters';
 import { DecorationSet } from '@tiptap/pm/view';
@@ -136,6 +137,14 @@ export function RichEditor({
     [contentKey],
   );
 
+  const hyphenationExt = useMemo(
+    () => Hyphenation.configure({
+      getCharacters: () => charsRef.current,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [contentKey],
+  );
+
   const charHighlightExt = useMemo(
     () => CharacterHighlight.configure({
       getCharacters: () => charsRef.current,
@@ -169,9 +178,9 @@ export function RichEditor({
       Image.configure({ allowBase64: false }),
       Placeholder.configure({ placeholder: placeholder ?? 'Начните писать…' }),
       Focus.configure({ className: 'has-focus', mode: 'shallowest' }),
-      Hyphenation,
-      langToolExt,
       charHighlightExt,
+      hyphenationExt,
+      langToolExt,
     ],
     content: value || '',
     editorProps: {
@@ -193,6 +202,12 @@ export function RichEditor({
       ? findCharacterDecorations(editor.state.doc, charsRef.current)
       : DecorationSet.empty;
     editor.view.dispatch(editor.state.tr.setMeta(CHARACTER_HIGHLIGHT_KEY, decos));
+
+    const exclusions = isEnabled
+      ? findCharacterMatches(editor.state.doc, charsRef.current).map((m) => ({ from: m.pmFrom, to: m.pmTo }))
+      : [];
+    const hyphDecos = buildHyphenationDecos(editor.state.doc, exclusions);
+    editor.view.dispatch(editor.state.tr.setMeta(HYPH_KEY, hyphDecos));
   }, [characters, highlightCharacters, editor]);
 
   useEffect(() => {
@@ -223,6 +238,27 @@ export function RichEditor({
       editor.view.dispatch(editor.state.tr.setMeta(CHARACTER_HIGHLIGHT_KEY, decos));
     }
   }, [editor, value, contentReady, highlightCharacters]);
+
+  // При асинхронной загрузке или обновлении списка персонажей — синхронно обновляем
+  // декорации подсветки и пересчитываем исключения для мягких переносов,
+  // чтобы имена не разбивались на слоги точками при появлении персонажей после холодного старта.
+  useEffect(() => {
+    if (!editor || editor.isDestroyed || !contentReady || !seededRef.current) return;
+    const charList = characters ?? [];
+    const charDecos = highlightCharacters !== false
+      ? findCharacterDecorations(editor.state.doc, charList)
+      : DecorationSet.empty;
+    const exclusions = collectExclusions(editor.state.doc, editor.state, {
+      getCharacters: () => charList,
+    });
+    const hyphDecos = buildHyphenationDecos(editor.state.doc, exclusions);
+
+    editor.view.dispatch(
+      editor.state.tr
+        .setMeta(CHARACTER_HIGHLIGHT_KEY, charDecos)
+        .setMeta(HYPH_KEY, hyphDecos),
+    );
+  }, [editor, contentReady, characters, highlightCharacters]);
 
   const bubbleStateRef = useRef<'hidden' | 'visible' | 'leaving'>('hidden');
   const bubbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

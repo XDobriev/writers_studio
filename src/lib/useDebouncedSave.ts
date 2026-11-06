@@ -67,6 +67,10 @@ export function useDebouncedSave<P extends object>(
       queueRef.current.delete(id);
       if (targetIdRef.current === id) targetIdRef.current = null;
       syncMirror();
+      if (queueRef.current.size === 0 && timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
       return;
     }
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
@@ -100,5 +104,5 @@ export function useDebouncedSave<P extends object>(
     };
   }, [flush]);
 
-  return { scheduleSave, flush, cancel, pendingPatchRef, targetIdRef };
+  return { scheduleSave, flush, cancel };
 }

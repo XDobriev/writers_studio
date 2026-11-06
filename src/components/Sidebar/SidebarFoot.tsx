@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useUserDisplay } from '../../lib/useUserDisplay';
 import { Icon } from '../Icon';
 import { AccountMenu } from '../AccountMenu';
@@ -10,6 +11,14 @@ const PLAN_LABEL: Record<string, string> = {
 
 export function SidebarFoot() {
   const { displayName, initials, avatarUrl, plan, planLoaded } = useUserDisplay();
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [avatarUrl]);
+
+  const validInitials = initials && initials !== '?' ? initials : null;
+  const fallback = validInitials || (displayName?.trim() ? displayName.trim()[0]?.toUpperCase() : null);
 
   return (
     <AccountMenu placement="above">
@@ -23,10 +32,20 @@ export function SidebarFoot() {
           onClick={onClick}
         >
           <div className="sb-avatar" style={signingOut ? { opacity: 0.5 } : undefined}>
-            {avatarUrl
-              ? <img src={avatarUrl} alt={displayName} referrerPolicy="no-referrer" loading="lazy" decoding="async" />
-              : initials
-            }
+            {avatarUrl && !imgError ? (
+              <img
+                src={avatarUrl}
+                alt={displayName || 'Аватар'}
+                referrerPolicy="no-referrer"
+                loading="lazy"
+                decoding="async"
+                onError={() => setImgError(true)}
+              />
+            ) : fallback ? (
+              fallback
+            ) : (
+              <Icon name="user" size={14} />
+            )}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="sb-foot-name" title={displayName || undefined}>

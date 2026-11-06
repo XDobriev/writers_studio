@@ -14,6 +14,7 @@ import { QUERY_KEYS } from './queries';
 import { clearDraft, decideDraft, readDraft, writeDraft, type DraftDecision } from './chapterDrafts';
 import { createVersion } from './versions';
 import { listMatchableCharacters, syncBacklinks } from './crossrefs';
+import { updateDraftScene, type DraftScene, type DraftScenePatch } from './draftScenes';
 
 // Единое автосохранение глав для Editor / Focus / Split.
 //
@@ -58,8 +59,16 @@ export function useChapterAutosave({
   const tokenRef = useRef<string | null>(null);
   const mountedRef = useRef(true);
 
+  const pendingDraftRef = useRef(new Map<string, DraftScenePatch>());
+  const inFlightDraftRef = useRef<{ id: string; patch: DraftScenePatch } | null>(null);
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftLoopRef = useRef<Promise<void> | null>(null);
+  const draftFailuresRef = useRef(0);
+
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [draftSaveState, setDraftSaveState] = useState<SaveState>('idle');
+  const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -91,7 +100,7 @@ export function useChapterAutosave({
     if (content !== undefined) writeDraft(id, content, baseOf(id));
   }, [baseOf]);
 
-  const scheduleDraft = useCallback((id: string) => {
+  const scheduleLocalDraft = useCallback((id: string) => {
     if (draftTimersRef.current.has(id)) return;
     draftTimersRef.current.set(id, setTimeout(() => {
       draftTimersRef.current.delete(id);
@@ -231,12 +240,12 @@ export function useChapterAutosave({
       if (known) baseRef.current.set(id, known);
     }
     pendingRef.current.set(id, { ...(pendingRef.current.get(id) ?? {}), ...patch });
-    if (patch.content !== undefined) scheduleDraft(id);
+    if (patch.content !== undefined) scheduleLocalDraft(id);
     setSaveState('saving');
     if (timerRef.current) clearTimeout(timerRef.current);
     const delay = failuresRef.current > 0 ? RETRY_DELAYS_MS[Math.min(failuresRef.current - 1, RETRY_DELAYS_MS.length - 1)] : DEBOUNCE_MS;
     timerRef.current = setTimeout(() => { void flush(); }, delay);
-  }, [queryClient, metaOf, scheduleDraft, flush]);
+  }, [queryClient, metaOf, scheduleLocalDraft, flush]);
 
   const scheduleContent = useCallback((id: string, html: string) => {
     schedule(id, { content: html, words: countWords(html) });
@@ -266,22 +275,116 @@ export function useChapterAutosave({
     [],
   );
 
+  // Автосохранение черновиков свободных сцен (draft_scenes)
+  const drainDraft = useCallback(async () => {
+    while (pendingDraftRef.current.size > 0) {
+      const [id, patch] = pendingDraftRef.current.entries().next().value as [string, DraftScenePatch];
+      pendingDraftRef.current.delete(id);
+      inFlightDraftRef.current = { id, patch };
+      if (mountedRef.current) setDraftSaveState('saving');
+      try {
+        const updated = await updateDraftScene(id, patch);
+        const b = ctxRef.current.bookId;
+        if (b) {
+          queryClient.setQueryData<DraftScene[]>(QUERY_KEYS.draftScenes(b), (prev) =>
+            prev ? prev.map((d) => (d.id === id ? updated : d)) : prev,
+          );
+        }
+        draftFailuresRef.current = 0;
+      } catch (e) {
+        const newer = pendingDraftRef.current.get(id);
+        pendingDraftRef.current.set(id, { ...patch, ...(newer ?? {}) });
+        throw e;
+      } finally {
+        inFlightDraftRef.current = null;
+      }
+    }
+  }, [queryClient]);
+
+  const flushDraft = useCallback(async (): Promise<void> => {
+    if (draftTimerRef.current) { clearTimeout(draftTimerRef.current); draftTimerRef.current = null; }
+    if (draftLoopRef.current) {
+      await draftLoopRef.current.catch(() => {});
+      if (pendingDraftRef.current.size === 0) return;
+    }
+    if (pendingDraftRef.current.size === 0) return;
+    const loop = drainDraft();
+    draftLoopRef.current = loop;
+    try {
+      await loop;
+      if (mountedRef.current && pendingDraftRef.current.size === 0) {
+        setDraftSaveState('saved');
+        setDraftSavedAt(new Date());
+      }
+    } catch {
+      draftFailuresRef.current += 1;
+      if (!mountedRef.current) return;
+      setDraftSaveState('error');
+      const delay = RETRY_DELAYS_MS[Math.min(draftFailuresRef.current - 1, RETRY_DELAYS_MS.length - 1)];
+      if (!draftTimerRef.current) draftTimerRef.current = setTimeout(() => { void flushDraft(); }, delay);
+    } finally {
+      if (draftLoopRef.current === loop) draftLoopRef.current = null;
+    }
+  }, [drainDraft]);
+
+  const scheduleDraft = useCallback((id: string, patch: DraftScenePatch) => {
+    const b = ctxRef.current.bookId;
+    if (b) {
+      queryClient.setQueryData<DraftScene[]>(QUERY_KEYS.draftScenes(b), (prev) =>
+        prev ? prev.map((d) => (d.id === id ? { ...d, ...patch } : d)) : prev,
+      );
+    }
+    pendingDraftRef.current.set(id, { ...(pendingDraftRef.current.get(id) ?? {}), ...patch });
+    setDraftSaveState('saving');
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    const delay = draftFailuresRef.current > 0
+      ? RETRY_DELAYS_MS[Math.min(draftFailuresRef.current - 1, RETRY_DELAYS_MS.length - 1)]
+      : DEBOUNCE_MS;
+    draftTimerRef.current = setTimeout(() => { void flushDraft(); }, delay);
+  }, [queryClient, flushDraft]);
+
+  const cancelDraft = useCallback((id?: string) => {
+    if (id !== undefined) {
+      pendingDraftRef.current.delete(id);
+      if (pendingDraftRef.current.size === 0 && draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = null;
+      }
+      return;
+    }
+    if (draftTimerRef.current) { clearTimeout(draftTimerRef.current); draftTimerRef.current = null; }
+    pendingDraftRef.current.clear();
+  }, []);
+
+  const hasUnsavedDraft = useCallback(
+    () => pendingDraftRef.current.size > 0 || inFlightDraftRef.current !== null,
+    [],
+  );
+
   useEffect(() => {
     const onOnline = () => {
       failuresRef.current = 0;
+      draftFailuresRef.current = 0;
       void flush();
+      void flushDraft();
     };
     const onHidden = () => {
       if (document.visibilityState !== 'hidden') return;
       for (const id of pendingRef.current.keys()) persistDraft(id);
       if (inFlightRef.current) persistDraft(inFlightRef.current.id);
       void flush();
+      void flushDraft();
     };
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       const items: { id: string; patch: ChapterPatch }[] = [];
       if (inFlightRef.current) items.push(inFlightRef.current);
       for (const [id, patch] of pendingRef.current) items.push({ id, patch });
-      if (items.length === 0) return;
+
+      const draftItems: { id: string; patch: DraftScenePatch }[] = [];
+      if (inFlightDraftRef.current) draftItems.push(inFlightDraftRef.current);
+      for (const [id, patch] of pendingDraftRef.current) draftItems.push({ id, patch });
+
+      if (items.length === 0 && draftItems.length === 0) return;
       for (const { id } of items) persistDraft(id);
       const token = tokenRef.current;
       let budget = KEEPALIVE_BUDGET;
@@ -293,6 +396,23 @@ export function useChapterAutosave({
           const base = patch.content !== undefined ? baseOf(id) : null;
           const filter = base ? `&updated_at=eq.${encodeURIComponent(base)}` : '';
           void fetch(`${SUPABASE_URL}/rest/v1/chapters?id=eq.${id}${filter}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${token}`,
+              Prefer: 'return=minimal',
+            },
+            body,
+            keepalive: true,
+          }).catch(() => {});
+        }
+
+        for (const { id, patch } of draftItems) {
+          const body = JSON.stringify(patch);
+          if (body.length * 2 > budget) continue;
+          budget -= body.length * 2;
+          void fetch(`${SUPABASE_URL}/rest/v1/draft_scenes?id=eq.${id}`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
@@ -317,7 +437,7 @@ export function useChapterAutosave({
       document.removeEventListener('visibilitychange', onHidden);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
-  }, [flush, persistDraft, baseOf]);
+  }, [flush, flushDraft, persistDraft, baseOf]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -325,12 +445,14 @@ export function useChapterAutosave({
     return () => {
       mountedRef.current = false;
       if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+      if (draftTimerRef.current) { clearTimeout(draftTimerRef.current); draftTimerRef.current = null; }
       for (const id of draftTimers.keys()) persistDraft(id);
       // Уход со страницы: дописать очередь. Если сеть упала — текст в черновике,
       // восстановится при следующем открытии главы.
       void flush();
+      void flushDraft();
     };
-  }, [flush, persistDraft]);
+  }, [flush, flushDraft, persistDraft]);
 
   return {
     schedule,
@@ -344,6 +466,13 @@ export function useChapterAutosave({
     notice,
     clearNotice: useCallback(() => setNotice(null), []),
     setNotice,
+    // Черновики сцен
+    scheduleDraft,
+    flushDraft,
+    cancelDraft,
+    hasUnsavedDraft,
+    draftSaveState,
+    draftSavedAt,
   };
 }
 

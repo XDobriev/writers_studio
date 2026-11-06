@@ -8,21 +8,17 @@ import { useAuth } from '../lib/auth';
 import { type Book } from '../lib/supabase';
 import { updateBook } from '../lib/books';
 import {
-  createChapter,
-  deleteChapter,
-  updateChapter,
+  countWords,
   getChapterContent,
-  renumberChapters,
-  type ChapterMeta,
   type ChapterStatus,
 } from '../lib/chapters';
-import { getNextChapterTitle, recalculateBookChapterTitles, type ChapterType } from '../lib/chapterNumbering';
-import { QUERY_KEYS, useBook, useChapters, useChapterContent } from '../lib/queries';
 import {
-  createChapterWithCache,
-  deleteChapterWithCache,
-  invalidateChaptersCache,
-} from '../lib/chapterMutations';
+  type DraftConvertPlacement,
+  type DraftInsertPosition,
+} from '../lib/draftScenes';
+import { type ChapterType } from '../lib/chapterNumbering';
+import { QUERY_KEYS, useBook, useChapters, useChapterContent, useDraftScenes } from '../lib/queries';
+import { useOutlineMutations } from '../lib/useOutlineMutations';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useChapterVersioning } from '../lib/useChapterVersioning';
 import { useChapterAutosave, useRecoveredChapterContent } from '../lib/useChapterAutosave';
@@ -54,17 +50,28 @@ export default function Editor() {
 
   const { data: book, error: bookError } = useBook(bookId);
   const { data: chapters, error: chaptersError } = useChapters(bookId);
+  const { data: draftScenes = [], isSuccess: draftsLoaded } = useDraftScenes(bookId);
   const { error: mutationError, setError, clearError } = useErrorState();
   // Только фатальные ошибки загрузки (книга/главы) заменяют экран целиком.
   // mutationError (статус главы, удаление и т.п.) — некритичен, показывается баннером поверх редактора.
   const error = (bookError ?? chaptersError)?.message;
 
-  const activeId = search.get('chapter');
+  const activeDraftId = search.get('draft');
+  const activeId = activeDraftId ? null : search.get('chapter');
 
   const { plan } = useUserDisplay();
   const isPro = plan === 'pro' || plan === 'lifetime';
   const autosave = useChapterAutosave({ bookId, userId: user?.id, isPro });
-  const { flush, saveState, savedAt } = autosave;
+  const {
+    flush,
+    saveState,
+    savedAt,
+    scheduleDraft: scheduleDraftSave,
+    flushDraft: flushDraftSave,
+    cancelDraft: cancelDraftSave,
+    draftSaveState,
+    draftSavedAt,
+  } = autosave;
 
   // Контент только активной главы — загружается отдельно, не вместе с метаданными.
   // До загрузки (ready) редактор не засеивается — защита от записи ввода в ещё
@@ -76,6 +83,15 @@ export default function Editor() {
   );
 
   useEffect(() => {
+    if (activeDraftId) {
+      if (draftsLoaded && !draftScenes.some((d) => d.id === activeDraftId)) {
+        const next = new URLSearchParams(search);
+        next.delete('draft');
+        if (chapters && chapters.length > 0) next.set('chapter', chapters[0].id);
+        setSearch(next, { replace: true });
+      }
+      return;
+    }
     if (!chapters || chapters.length === 0) return;
     const exists = activeId && chapters.some((c) => c.id === activeId);
     if (!exists) {
@@ -85,37 +101,122 @@ export default function Editor() {
       next.set('chapter', firstId);
       setSearch(next, { replace: true });
     }
-  }, [chapters, activeId, search, setSearch, bookId]);
+  }, [chapters, activeId, activeDraftId, draftScenes, draftsLoaded, search, setSearch, bookId]);
 
   const activeChapter = useMemo(
     () => (chapters && activeId ? chapters.find((c) => c.id === activeId) ?? null : null),
     [chapters, activeId],
   );
 
+  const activeDraft = useMemo(
+    () => (activeDraftId ? draftScenes.find((d) => d.id === activeDraftId) ?? null : null),
+    [draftScenes, activeDraftId],
+  );
+
   const selectChapter = useCallback((id: string) => {
+    void flushDraftSave();
     if (bookId) localStorage.setItem(LAST_CHAPTER_KEY(bookId), id);
     const next = new URLSearchParams(search);
+    next.delete('draft');
     next.set('chapter', id);
     setSearch(next, { replace: false });
-  }, [search, setSearch, bookId]);
+  }, [search, setSearch, bookId, flushDraftSave]);
+
+  const selectDraft = useCallback((id: string) => {
+    void flush();
+    void flushDraftSave();
+    const next = new URLSearchParams(search);
+    next.delete('chapter');
+    next.set('draft', id);
+    setSearch(next, { replace: false });
+  }, [search, setSearch, flush, flushDraftSave]);
+
+  const bookStructure = useOutlineMutations({
+    bookId,
+    userId: user?.id,
+    chapters,
+    draftScenes,
+    setError,
+    onCancelDraftSave: cancelDraftSave,
+    onRebaseChapter: autosave.rebase,
+  });
 
   const onCreateChapter = useCallback(async () => {
     if (!bookId || !user) return;
-    const position = (chapters?.length ?? 0);
-    const title = getNextChapterTitle(chapters ?? []);
-    try {
-      const created = await createChapter(bookId, user.id, {
-        title,
-        position,
-      });
-      createChapterWithCache(queryClient, bookId!, created);
+    await flushDraftSave();
+    const created = await bookStructure.createChapter(false);
+    if (created) {
       const next = new URLSearchParams(search);
+      next.delete('draft');
       next.set('chapter', created.id);
       setSearch(next, { replace: false });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
     }
-  }, [bookId, user, chapters, queryClient, search, setSearch, setError]);
+  }, [bookId, user, flushDraftSave, bookStructure, search, setSearch]);
+
+  const onCreateDraft = useCallback(async () => {
+    if (!bookId || !user) return;
+    await flush();
+    await flushDraftSave();
+    const created = await bookStructure.createDraft();
+    if (created) {
+      const next = new URLSearchParams(search);
+      next.delete('chapter');
+      next.set('draft', created.id);
+      setSearch(next, { replace: false });
+    }
+  }, [bookId, user, flush, flushDraftSave, bookStructure, search, setSearch]);
+
+  const onDeleteDraft = useCallback(async (id: string) => {
+    if (!bookId) return;
+    const remaining = draftScenes.filter((d) => d.id !== id);
+    await bookStructure.deleteDraft(id);
+    if (activeDraftId === id) {
+      const next = new URLSearchParams(search);
+      next.delete('draft');
+      if (remaining.length > 0) {
+        next.set('draft', remaining[0].id);
+      } else if (chapters && chapters.length > 0) {
+        next.set('chapter', chapters[0].id);
+      }
+      setSearch(next, { replace: false });
+    }
+  }, [bookId, draftScenes, bookStructure, activeDraftId, chapters, search, setSearch]);
+
+  const onConvertDraftToChapter = useCallback(async (sceneId: string, placement: DraftConvertPlacement) => {
+    const res = await bookStructure.convertDraftToChapter(sceneId, placement);
+    if (res) {
+      const next = new URLSearchParams(search);
+      next.delete('draft');
+      next.set('chapter', res.chapter.id);
+      setSearch(next, { replace: false });
+    }
+  }, [bookStructure, search, setSearch]);
+
+  const onInsertDraftIntoChapter = useCallback(async (
+    sceneId: string,
+    targetChapterId: string,
+    position: DraftInsertPosition,
+  ) => {
+    await flush();
+    const updated = await bookStructure.insertDraftToChapter(sceneId, targetChapterId, position);
+    if (updated) {
+      const next = new URLSearchParams(search);
+      next.delete('draft');
+      next.set('chapter', targetChapterId);
+      setSearch(next, { replace: false });
+    }
+  }, [flush, bookStructure, search, setSearch]);
+
+  const onDraftContentChange = useCallback((html: string) => {
+    if (!activeDraft || !bookId) return;
+    const words = countWords(html);
+    scheduleDraftSave(activeDraft.id, { content: html, words });
+  }, [activeDraft, bookId, scheduleDraftSave]);
+
+  const onDraftTitleChange = useCallback((title: string) => {
+    if (!activeDraft || !bookId) return;
+    scheduleDraftSave(activeDraft.id, { title });
+  }, [activeDraft, bookId, scheduleDraftSave]);
 
   const [versionToast, setVersionToast] = useState(false);
   const versionToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -168,30 +269,12 @@ export default function Editor() {
   }, [activeId, autosave]);
 
   const onStatusChange = useCallback(async (id: string, status: ChapterStatus) => {
-    if (bookId) {
-      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
-        prev ? prev.map((c) => (c.id === id ? { ...c, status } : c)) : prev
-      );
-    }
-    await updateChapter(id, { status }).catch((e: unknown) => {
-      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-      if (bookId) invalidateChaptersCache(queryClient, bookId);
-    });
-  }, [bookId, queryClient, setError]);
+    await bookStructure.patchChapter(id, { status });
+  }, [bookStructure]);
 
   const onTypeChange = useCallback(async (id: string, type: ChapterType) => {
-    if (!bookId || !chapters) return;
-    const { updates, nextChapters } = recalculateBookChapterTitles(chapters, id, type);
-    if (updates.length === 0) return;
-
-    queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), nextChapters);
-    try {
-      await renumberChapters(updates);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-      invalidateChaptersCache(queryClient, bookId);
-    }
-  }, [bookId, chapters, queryClient, setError]);
+    await bookStructure.changeChapterType(id, type);
+  }, [bookStructure]);
 
   const onGoalChange = useCallback(async (goal: number) => {
     if (!bookId) return;
@@ -216,20 +299,19 @@ export default function Editor() {
   }, [queryClient]);
 
   const onDeleteChapter = useCallback(async (id: string) => {
-    try {
-      await deleteChapter(id);
-      if (bookId) deleteChapterWithCache(queryClient, bookId, id);
-      const remaining = (chapters ?? []).filter((c) => c.id !== id);
-      if (id === activeId && remaining.length > 0) {
-        const next = new URLSearchParams(search);
-        next.set('chapter', remaining[0].id);
-        setSearch(next, { replace: false });
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-      if (bookId) invalidateChaptersCache(queryClient, bookId);
+    const remaining = (chapters ?? []).filter((c) => c.id !== id);
+    const ok = await bookStructure.deleteChapter(id);
+    if (ok && id === activeId && remaining.length > 0) {
+      const next = new URLSearchParams(search);
+      next.set('chapter', remaining[0].id);
+      setSearch(next, { replace: false });
     }
-  }, [chapters, activeId, bookId, queryClient, search, setSearch, setError]);
+  }, [chapters, bookStructure, activeId, search, setSearch]);
+
+  const handleManualSave = useCallback(() => {
+    if (activeDraft) void flushDraftSave();
+    else void flush();
+  }, [activeDraft, flushDraftSave, flush]);
 
   if (!bookId) return <Navigate to="/books" replace />;
 
@@ -254,6 +336,9 @@ export default function Editor() {
     );
   }
 
+  const effectiveSaveState = activeDraft ? draftSaveState : saveState;
+  const effectiveSavedAt = activeDraft ? draftSavedAt : savedAt;
+
   return (
     <div style={{ height: '100dvh', overflow: 'hidden', position: 'relative' }}>
       {mutationError && (
@@ -261,12 +346,12 @@ export default function Editor() {
           message={mutationError}
           onDismiss={clearError}
           style={{
-            position: 'fixed', top: saveState === 'error' ? 40 : 0, left: 0, right: 0, zIndex: 'var(--z-toast)',
+            position: 'fixed', top: effectiveSaveState === 'error' ? 40 : 0, left: 0, right: 0, zIndex: 'var(--z-toast)',
             borderRadius: 0,
           }}
         />
       )}
-      {saveState === 'error' && <UnsavedBanner onRetry={() => { void flush(); }} />}
+      {effectiveSaveState === 'error' && <UnsavedBanner onRetry={handleManualSave} />}
       {autosave.notice && <SaveNotice message={autosave.notice} onDismiss={autosave.clearNotice} />}
       <EditorHybrid
         defaultMode="studio"
@@ -278,12 +363,23 @@ export default function Editor() {
         chapterActions={{ onSelectChapter: selectChapter, onCreateChapter, onStatusChange, onTypeChange, onDeleteChapter, onChapterHover }}
         onContentChange={onContentChange}
         onTitleChange={onTitleChange}
+        draftScenes={draftScenes}
+        activeDraft={activeDraft}
+        draftActions={{
+          onSelectDraft: selectDraft,
+          onCreateDraft,
+          onDeleteDraft,
+          onConvertDraftToChapter,
+          onInsertDraftIntoChapter,
+        }}
+        onDraftContentChange={onDraftContentChange}
+        onDraftTitleChange={onDraftTitleChange}
         onGoalChange={onGoalChange}
-        onSave={flush}
+        onSave={handleManualSave}
         onBeforeRestore={onBeforeRestore}
         onRebase={autosave.rebase}
-        saveState={saveState}
-        savedAt={savedAt}
+        saveState={effectiveSaveState}
+        savedAt={effectiveSavedAt}
         versionToast={versionToast}
       />
     </div>

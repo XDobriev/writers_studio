@@ -1,10 +1,12 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { initialsFromName, type Character } from '../lib/characters';
 import { orderedRelationshipChapters, resolveRelationship, type CharacterRelationship, type RelationshipChapter, type RelationshipEvent, type RelationshipEventInput } from '../lib/relationships';
 import { CharacterRelationshipGraph } from './CharacterRelationshipGraph';
 import { RelationshipHistory, RelationshipStateFields, type RelationshipState, type RelationshipHistoryDraft } from './RelationshipHistory';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Icon } from './Icon';
+import { useCharacterRelationships } from '../lib/useCharacterRelationships';
 import '../styles/character-relationships.css';
 
 export type RelationshipWorkspaceDraft = {
@@ -43,10 +45,15 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, e
   const selected = relationships.find((r) => r.id === selectedId);
 
   return <div className="rel-block rel-workspace">
-    <div className="rel-block__head"><div>{onBack && <button type="button" className="btn btn--ghost btn--sm rel-back" onClick={onBack}>← {previousCharacter || 'Предыдущий персонаж'}</button>}<h3>Связи персонажа</h3><p className="rel-hint">Отношения к концу выбранной главы</p></div>
-      <button className="btn btn--ghost btn--sm" disabled={adding || !!draft.history || candidates.length === 0} onClick={() => {
-        setSelectedId(null); setDraft((prev) => ({ ...prev, creation: { sourceId: activeId, toId: candidates[0]?.id ?? '', value: { label_a: '', label_b: '', is_secret: false } } })); setError('');
-      }}><Icon name="plus" size={12} /> Добавить связь</button>
+    <div className="rel-block__head">
+      {onBack && <button type="button" className="btn btn--ghost btn--sm rel-back" onClick={onBack}>← {previousCharacter || 'Предыдущий персонаж'}</button>}
+      <div className="rel-block__title-group">
+        <h3>Связи персонажа</h3>
+        <button className="btn btn--ghost btn--sm rel-add-btn" disabled={adding || !!draft.history || candidates.length === 0} onClick={() => {
+          setSelectedId(null); setDraft((prev) => ({ ...prev, creation: { sourceId: activeId, toId: candidates[0]?.id ?? '', value: { label_a: '', label_b: '', is_secret: false } } })); setError('');
+        }}><Icon name="plus" size={12} /> Добавить связь</button>
+      </div>
+      <p className="rel-hint">Отношения к концу выбранной главы</p>
     </div>
     <div className="rel-toolbar"><label className="rel-field">Момент истории
       <select className="input input--sm" aria-label="Момент истории" value={chapterId} onChange={(e) => onChapterChange(e.target.value)}>
@@ -112,4 +119,90 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, e
       else { setError('Не удалось удалить связь. Попробуйте ещё раз.'); setDeleting(null); }
     }} />
   </div>;
+}
+
+export function CharacterRelationshipsSection({
+  bookId,
+  activeId,
+  characters,
+  userId,
+  onSelectCharacter,
+  onNavigateChapter,
+}: {
+  bookId: string;
+  activeId: string;
+  characters: Character[];
+  userId?: string;
+  onSelectCharacter: (id: string) => void;
+  onNavigateChapter: (chapterId: string) => void;
+}) {
+  const [search] = useSearchParams();
+  const rels = useCharacterRelationships({
+    bookId,
+    userId,
+    activeId,
+    characters,
+  });
+
+  const onBack = rels.previousCharacter
+    ? () => {
+        const prevId = rels.popTrail();
+        if (prevId) onSelectCharacter(prevId);
+      }
+    : undefined;
+
+  const handleSelectCharacter = (id: string) => {
+    if (id !== activeId) {
+      rels.pushTrail(activeId);
+      onSelectCharacter(id);
+    }
+  };
+
+  return (
+    <>
+      {search.get('from') === 'editor' && (
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm"
+          onClick={() =>
+            onNavigateChapter(search.get('chapter') ?? '')
+          }
+        >
+          ← Вернуться к редактору
+        </button>
+      )}
+      {rels.historyError && (
+        <div role="alert" className="rel-error">
+          Не удалось загрузить историю отношений.
+          <button type="button" className="btn btn--ghost btn--sm" onClick={rels.refetchHistory}>
+            Повторить
+          </button>
+        </div>
+      )}
+      {rels.isLoading ? (
+        <p className="rel-hint">Загрузка связей и истории…</p>
+      ) : (
+        <CharacterRelationsBlock
+          activeId={activeId}
+          characters={characters}
+          relationships={rels.relationships}
+          events={rels.events}
+          chapters={rels.chapters}
+          chapterId={rels.chapterId}
+          draft={rels.draft}
+          onDraftChange={rels.setDraft}
+          onChapterChange={rels.onChapterChange}
+          onCreate={rels.onCreate}
+          onDelete={rels.onDelete}
+          onLabelChange={rels.onLabelChange}
+          onSaveEvent={rels.onSaveEvent}
+          onDeleteEvent={rels.onDeleteEvent}
+          onSelectCharacter={handleSelectCharacter}
+          onNavigateChapter={onNavigateChapter}
+          previousCharacter={rels.previousCharacter}
+          onBack={onBack}
+        />
+      )}
+    </>
+  );
 }
