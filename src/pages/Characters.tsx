@@ -500,10 +500,6 @@ export default function Characters() {
 
               <div hidden={detailTab !== 'relationships'}>
                 {search.get('from') === 'editor' && <button className="btn btn--ghost btn--sm" onClick={() => navigate(`/books/${bookId}/editor${search.get('chapter') ? `?chapter=${encodeURIComponent(search.get('chapter')!)}` : ''}`)}>← Вернуться к редактору</button>}
-                {relationshipTrail.length > 0 && <button className="btn btn--ghost btn--sm" onClick={() => {
-                  selectCharacter(relationshipTrail[relationshipTrail.length - 1]);
-                  setRelationshipTrail((prev) => prev.slice(0, -1));
-                }}>← Предыдущий персонаж</button>}
                 {charsQueryError && <div role="alert" className="rel-error">Не удалось загрузить всех персонажей.
                   <button className="btn btn--ghost btn--sm" onClick={() => { if (isFetchNextPageError) void fetchNextPage(); else void refetchCharacters(); }}>Повторить загрузку персонажей</button>
                 </div>}
@@ -513,6 +509,8 @@ export default function Characters() {
                 </div>}
                 {hasNextPage || !relationHistory.data || !relationChapters.data ? <p className="rel-hint">{charsQueryError ? 'Граф будет доступен после загрузки всех персонажей.' : 'Загрузка связей и персонажей…'}</p> :
                   <CharacterRelationsBlock activeId={active.id} characters={characters} relationships={relationships}
+                    previousCharacter={characters.find((c) => c.id === relationshipTrail[relationshipTrail.length - 1])?.name}
+                    onBack={relationshipTrail.length ? () => { selectCharacter(relationshipTrail[relationshipTrail.length - 1]); setRelationshipTrail((prev) => prev.slice(0, -1)); } : undefined}
                     draft={relationshipDraft} onDraftChange={setRelationshipDraft}
                     events={relationHistory.data} chapters={relationChapters.data} chapterId={relationshipChapter}
                     onChapterChange={(id) => { const next = new URLSearchParams(search); next.set('at', id); setSearch(next, { replace: true }); }}

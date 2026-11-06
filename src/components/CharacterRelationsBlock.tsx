@@ -12,7 +12,7 @@ export type RelationshipWorkspaceDraft = {
   history: RelationshipHistoryDraft | null;
 };
 
-export function CharacterRelationsBlock({ activeId, characters, relationships, events, chapters, chapterId, draft: externalDraft, onDraftChange, onChapterChange, onCreate, onDelete, onLabelChange, onSaveEvent, onDeleteEvent, onSelectCharacter, onNavigateChapter }: {
+export function CharacterRelationsBlock({ activeId, characters, relationships, events, chapters, chapterId, draft: externalDraft, onDraftChange, onChapterChange, onCreate, onDelete, onLabelChange, onSaveEvent, onDeleteEvent, onSelectCharacter, onNavigateChapter, previousCharacter, onBack }: {
   activeId: string; characters: Character[]; relationships: CharacterRelationship[];
   events: RelationshipEvent[]; chapters: RelationshipChapter[]; chapterId: string; onChapterChange: (id: string) => void;
   draft?: RelationshipWorkspaceDraft; onDraftChange?: Dispatch<SetStateAction<RelationshipWorkspaceDraft>>;
@@ -20,6 +20,7 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, e
   onDelete: (id: string) => Promise<boolean>; onLabelChange: (id: string, state: RelationshipState) => Promise<boolean>;
   onSaveEvent: (relationshipId: string, input: RelationshipEventInput, id?: string) => Promise<void>;
   onDeleteEvent: (id: string) => Promise<void>; onSelectCharacter: (id: string) => void; onNavigateChapter: (id: string) => void;
+  previousCharacter?: string; onBack?: () => void;
 }) {
   const charMap = useMemo(() => new Map(characters.map((c) => [c.id, c])), [characters]);
   const states = useMemo(() => relationships.map((r) => resolveRelationship(r, events, chapters, chapterId)), [relationships, events, chapters, chapterId]);
@@ -42,7 +43,7 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, e
   const selected = relationships.find((r) => r.id === selectedId);
 
   return <div className="rel-block rel-workspace">
-    <div className="rel-block__head"><div><h3>Связи персонажа</h3><p className="rel-hint">Отношения к концу выбранной главы</p></div>
+    <div className="rel-block__head"><div>{onBack && <button type="button" className="btn btn--ghost btn--sm rel-back" onClick={onBack}>← {previousCharacter || 'Предыдущий персонаж'}</button>}<h3>Связи персонажа</h3><p className="rel-hint">Отношения к концу выбранной главы</p></div>
       <button className="btn btn--ghost btn--sm" disabled={adding || !!draft.history || candidates.length === 0} onClick={() => {
         setSelectedId(null); setDraft((prev) => ({ ...prev, creation: { sourceId: activeId, toId: candidates[0]?.id ?? '', value: { label_a: '', label_b: '', is_secret: false } } })); setError('');
       }}><Icon name="plus" size={12} /> Добавить связь</button>
