@@ -21,7 +21,7 @@ export const EDITOR_SHORTCUTS: ShortcutDef[] = [
   { keys: 'Shift + Enter',     macKeys: '⇧ Enter', label: 'Перенос строки',         group: 'formatting' },
 ];
 
-export function isMac(): boolean {
+function isMac(): boolean {
   return typeof navigator !== 'undefined' && (/mac/i.test(navigator.platform) || /mac/i.test(navigator.userAgent));
 }
 
