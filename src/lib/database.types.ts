@@ -419,6 +419,7 @@ export type Database = {
           char_b_id: string
           created_at: string
           id: string
+          is_secret: boolean
           label_a: string
           label_b: string
           updated_at: string
@@ -430,6 +431,7 @@ export type Database = {
           char_b_id: string
           created_at?: string
           id?: string
+          is_secret?: boolean
           label_a?: string
           label_b?: string
           updated_at?: string
@@ -441,6 +443,7 @@ export type Database = {
           char_b_id?: string
           created_at?: string
           id?: string
+          is_secret?: boolean
           label_a?: string
           label_b?: string
           updated_at?: string
@@ -468,6 +471,55 @@ export type Database = {
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      character_relationship_events: {
+        Row: {
+          id: string
+          book_id: string
+          user_id: string
+          relationship_id: string
+          chapter_id: string | null
+          chapter_title: string
+          label_a: string
+          label_b: string
+          is_secret: boolean
+          note: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          book_id: string
+          user_id: string
+          relationship_id: string
+          chapter_id?: string | null
+          chapter_title?: string
+          label_a?: string
+          label_b?: string
+          is_secret?: boolean
+          note?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          book_id?: string
+          user_id?: string
+          relationship_id?: string
+          chapter_id?: string | null
+          chapter_title?: string
+          label_a?: string
+          label_b?: string
+          is_secret?: boolean
+          note?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "character_relationship_events_relationship_id_fkey"; columns: ["relationship_id"]; isOneToOne: false; referencedRelation: "character_relationships"; referencedColumns: ["id"] },
+          { foreignKeyName: "character_relationship_events_chapter_id_fkey"; columns: ["chapter_id"]; isOneToOne: false; referencedRelation: "chapters"; referencedColumns: ["id"] },
+          { foreignKeyName: "character_relationship_events_book_id_fkey"; columns: ["book_id"]; isOneToOne: false; referencedRelation: "books"; referencedColumns: ["id"] },
         ]
       }
       characters: {

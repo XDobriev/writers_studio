@@ -1,0 +1,142 @@
+.rel-block.rel-workspace { max-width: 1100px; min-width: 0; padding: 0; border: 0; background: transparent; }
+.rel-workspace h3, .rel-workspace h4 { margin: 0; font: 600 16px/1.4 var(--font-ui); }
+.rel-workspace h4 { font-size: 14px; }
+.rel-workspace p { margin: 4px 0; overflow-wrap: anywhere; }
+.rel-workspace .rel-block__head { flex-wrap: wrap; gap: 12px; }
+.rel-workspace .rel-field { display: flex; flex-direction: column; gap: 6px; font: 400 12px/1.5 var(--font-ui); }
+.rel-workspace fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.rel-workspace .rel-form { padding: 16px; border: 1px solid var(--border); border-radius: 10px; margin: 16px 0; }
+.rel-workspace .rel-row { flex-wrap: wrap; gap: 10px; }
+.rel-workspace .rel-row__body { min-width: 140px; font: 400 12px/1.5 var(--font-ui); }
+.rel-workspace .rel-row__avatar { border: 0; cursor: pointer; }
+.rel-hint { color: var(--ink-3); font: 400 12px/1.6 var(--font-ui); }
+.rel-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; margin: 18px 0; }
+.rel-toolbar > label { flex: 1; max-width: 380px; min-width: 160px; }
+.rel-view-switch { display: flex; border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+.rel-view-switch [aria-pressed="true"] { color: var(--accent); background: var(--surface-2); }
+.rel-secret-toggle { display: flex; align-items: center; gap: 8px; font: 400 13px/1.5 var(--font-ui); cursor: pointer; }
+.rel-secret { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); font: 500 11px/1.5 var(--font-ui); }
+.rel-error { color: var(--danger); font: 400 13px/1.5 var(--font-ui); margin: 8px 0; }
+.rel-person-link, .rel-chapter-link { border: 0; background: none; padding: 0; color: var(--accent); font: 500 13px/1.5 var(--font-ui); text-align: left; cursor: pointer; }
+.rel-history { padding: 20px; border: 1px solid var(--border); border-radius: 12px; margin-top: 20px; background: var(--surface); font: 400 13px/1.6 var(--font-ui); }
+.rel-history__baseline { display: flex; align-items: flex-start; flex-direction: column; gap: 5px; padding: 14px 0; }
+.rel-kicker { color: var(--ink-3); font: 500 11px/1.6 var(--font-ui); }
+.rel-history__note { white-space: pre-wrap; color: var(--ink-2); }
+.rel-timeline { list-style: none; padding: 0; margin: 0 0 18px 5px; border-left: 2px solid var(--border); }
+.rel-timeline > li { position: relative; padding: 0 0 22px 18px; }
+.rel-timeline > li::before { content: ''; position: absolute; left: -5px; top: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.rel-timeline__orphan { opacity: .85; }
+.rel-atlas {
+  --atlas-ink: var(--ink);
+  --atlas-muted: var(--ink-3);
+  --atlas-accent: var(--accent);
+  --atlas-ground: var(--bg-deep);
+  --atlas-top-inset: 0px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-4);
+  background: radial-gradient(ellipse at 48% 48%, color-mix(in oklch, var(--accent) 5%, transparent), transparent 56%), var(--atlas-ground);
+  color: var(--atlas-ink);
+}
+.rel-atlas::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; pointer-events: none;
+  background-image: radial-gradient(color-mix(in oklch, var(--ink) 7%, transparent) .7px, transparent .7px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse at center, #000, transparent 82%);
+}
+.rel-atlas__heading {
+  position: absolute; z-index: 2; inset: 27px 30px auto; display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 24px; pointer-events: none;
+}
+.rel-atlas__eyebrow { display: block; color: var(--atlas-accent); font: 500 9px/1.5 var(--font-mono); letter-spacing: .18em; text-transform: uppercase; }
+.rel-workspace .rel-atlas__heading h4 { margin: 7px 0 0; max-width: 420px; color: var(--atlas-ink); font: 400 30px/1.12 var(--font-serif); letter-spacing: -.025em; }
+.rel-atlas__numbers { display: flex; align-items: center; gap: 18px; color: var(--atlas-muted); font: 400 11px/1.4 var(--font-ui); }
+.rel-atlas__numbers > span:first-child { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.rel-atlas__numbers strong { color: var(--atlas-accent); font: 400 23px/1 var(--font-serif); font-variant-numeric: tabular-nums; }
+.rel-atlas__secret-count { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border); padding: 6px 9px; border-radius: 20px; color: var(--accent-2); }
+.rel-atlas__tools { position: absolute; z-index: 3; top: 110px; right: 23px; display: flex; flex-direction: column; gap: 1px; }
+.rel-atlas__tools button { width: 36px; height: 36px; border: 1px solid var(--border); background: var(--surface); color: var(--atlas-ink); display: grid; place-items: center; font: 300 22px var(--font-ui); cursor: pointer; }
+.rel-atlas__tools button:first-child { border-radius: 8px 8px 0 0; }
+.rel-atlas__tools button:nth-child(3) { border-radius: 0 0 8px 8px; }
+.rel-atlas__tools button:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.rel-atlas__tools button:focus-visible { outline: 2px solid var(--atlas-accent); outline-offset: 2px; }
+.rel-atlas__tools > span { color: var(--atlas-muted); font: 400 9px/1.7 var(--font-mono); text-align: center; margin-top: 5px; }
+.rel-atlas .rel-graph-scroll { height: 700px; overflow: auto; border: 0; border-radius: inherit; background: transparent; scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+.rel-atlas .rel-graph-scroll:focus-visible { outline: 2px solid var(--atlas-accent); outline-offset: -4px; }
+.rel-atlas .rel-graph { display: block; width: 100%; margin-top: var(--atlas-top-inset); }
+.rel-atlas .rel-graph text { pointer-events: none; fill: var(--atlas-ink); }
+.rel-atlas__construction { fill: none; stroke: var(--border); stroke-opacity: .35; stroke-width: 1; pointer-events: none; }
+.rel-atlas__edge, .rel-atlas__node { cursor: pointer; outline: none; transition: opacity .22s ease; animation: rel-atlas-reveal .6s both; animation-delay: var(--reveal-delay); }
+.rel-atlas__edge-hit { fill: none; stroke: transparent; stroke-width: 26; }
+.rel-atlas__edge-line { fill: none; stroke-width: 1.7; transition: stroke-width .2s ease; }
+.rel-atlas__edge-glow { fill: none; stroke-width: 4; opacity: .1; pointer-events: none; transition: opacity .2s ease; }
+.rel-atlas__edge--neighbor .rel-atlas__edge-line { stroke-width: 1; opacity: .5; }
+.rel-atlas__edge--neighbor .rel-atlas__edge-label { fill: var(--atlas-muted); }
+.rel-atlas__edge-caption { fill: var(--surface); stroke: var(--rel-tone); stroke-opacity: .25; stroke-width: .7; transition: fill .2s, stroke-opacity .2s; }
+.rel-atlas .rel-atlas__edge-label { fill: var(--atlas-ink); font: 400 12px var(--font-ui); }
+.rel-atlas__lock { color: var(--accent-2); pointer-events: none; }
+.rel-atlas__edge--secret .rel-atlas__edge-caption { stroke-opacity: .45; }
+.rel-atlas--dense .rel-atlas__edge:not(.rel-atlas__edge--lit) .rel-atlas__edge-caption,
+.rel-atlas--dense .rel-atlas__edge:not(.rel-atlas__edge--lit) .rel-atlas__edge-label,
+.rel-atlas--dense .rel-atlas__edge:not(.rel-atlas__edge--lit) .rel-atlas__lock { opacity: 0; pointer-events: none; }
+.rel-atlas__node-aura { fill: var(--rel-tone); opacity: .035; transition: opacity .25s; }
+.rel-atlas__node-orbit { fill: none; stroke: var(--rel-tone); stroke-opacity: .2; stroke-width: 1; }
+.rel-atlas__node-rim { fill: var(--atlas-ground); stroke: var(--rel-tone); stroke-opacity: .75; stroke-width: 1.1; transition: stroke-opacity .2s, stroke-width .2s; }
+.rel-atlas__portrait { stroke: var(--border); stroke-width: 1; }
+.rel-atlas__node image { filter: saturate(.78); transition: filter .25s; }
+.rel-atlas .rel-atlas__monogram { fill: var(--rel-tone); font: 400 31px var(--font-serif); letter-spacing: -.05em; }
+.rel-atlas__monogram-lines { fill: none; stroke: var(--rel-tone); stroke-width: 1; opacity: .12; }
+.rel-atlas__node--hero .rel-atlas__node-rim { stroke-width: 1.4; }
+.rel-atlas__node--hero .rel-atlas__node-aura { opacity: .07; }
+.rel-atlas__node--hero .rel-atlas__monogram { font-size: 45px; }
+.rel-atlas .rel-atlas__hero-name { fill: var(--atlas-ink); font: 500 9px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+.rel-atlas .rel-atlas__name { fill: var(--atlas-ink); font: 400 21px var(--font-serif); letter-spacing: -.015em; }
+.rel-atlas .rel-atlas__surname { fill: var(--atlas-muted); font: 400 11px var(--font-ui); letter-spacing: .055em; }
+.rel-atlas__node-pin { fill: var(--rel-tone); stroke: var(--atlas-ground); stroke-width: 3; }
+.rel-atlas--focused .rel-atlas__edge:not(.rel-atlas__edge--lit) { opacity: .16; }
+.rel-atlas--focused .rel-atlas__node:not(.rel-atlas__node--lit):not(.rel-atlas__node--hero) { opacity: .4; }
+.rel-atlas__edge--lit { opacity: 1; }
+.rel-atlas__edge--lit .rel-atlas__edge-line, .rel-atlas__edge:focus-visible .rel-atlas__edge-line { stroke-width: 2.8; }
+.rel-atlas__edge--lit .rel-atlas__edge-glow { opacity: .35; }
+.rel-atlas__edge--lit .rel-atlas__edge-caption, .rel-atlas__edge:focus-visible .rel-atlas__edge-caption { fill: var(--surface-2); stroke-opacity: .9; }
+.rel-atlas__node--lit .rel-atlas__node-aura { opacity: .14; }
+.rel-atlas__node--lit .rel-atlas__node-rim, .rel-atlas__node:focus-visible .rel-atlas__node-rim { stroke-opacity: 1; stroke-width: 2.5; }
+.rel-atlas__node:focus-visible .rel-atlas__node-orbit { stroke: var(--atlas-ink); stroke-opacity: 1; }
+.rel-atlas__node--lit image { filter: saturate(1); }
+.rel-atlas__footer { position: absolute; z-index: 2; inset: auto 27px 21px; display: flex; justify-content: space-between; align-items: center; gap: 16px; pointer-events: none; }
+.rel-atlas__legend { display: flex; gap: 18px; color: var(--atlas-muted); font: 400 10px/1.5 var(--font-ui); }
+.rel-atlas__legend span { display: inline-flex; align-items: center; gap: 6px; }
+.rel-atlas__legend i { display: inline-block; width: 24px; border-top: 1px solid var(--ink-3); }
+.rel-atlas__legend .rel-atlas__legend-secret { border-top-style: dashed; border-color: var(--accent-2); }
+.rel-atlas__instruction { color: var(--atlas-muted); font: 400 10px/1.5 var(--font-ui); }
+.rel-atlas__inspector {
+  position: absolute; z-index: 3; left: 27px; bottom: 58px; max-width: min(380px, calc(100% - 54px));
+  padding: 14px 18px; border: 1px solid var(--border); border-radius: var(--r-10); background: var(--surface);
+  pointer-events: none; animation: rel-atlas-reveal .18s ease both;
+}
+.rel-atlas__inspector strong { display: block; margin: 5px 0; color: var(--atlas-ink); font: 400 18px/1.4 var(--font-serif); }
+.rel-workspace .rel-atlas__inspector p { color: var(--atlas-muted); font: 400 12px/1.6 var(--font-ui); }
+.rel-atlas__inspector strong span, .rel-atlas__inspector p span { margin: 0 4px; color: var(--atlas-accent); }
+@keyframes rel-atlas-reveal { from { opacity: 0; } }
+@media (max-width: 600px) {
+  .rel-atlas { --atlas-top-inset: 96px; }
+  .rel-history { padding: 14px; }
+  .rel-workspace .rel-row__body { flex-basis: calc(100% - 50px); }
+  .rel-toolbar > label { max-width: none; }
+  .rel-atlas .rel-graph-scroll { height: 560px; }
+  .rel-atlas__heading { inset: 0 0 auto; padding: 20px 19px 25px; gap: 12px; background: linear-gradient(var(--atlas-ground) 65%, transparent); }
+  .rel-workspace .rel-atlas__heading h4 { max-width: 195px; font-size: 24px; }
+  .rel-atlas__numbers { gap: 9px; }
+  .rel-atlas__numbers strong { font-size: 21px; }
+  .rel-atlas__secret-count { padding: 5px 6px; }
+  .rel-atlas__tools { top: 109px; right: 17px; }
+  .rel-atlas__tools button { width: 44px; height: 44px; }
+  .rel-atlas__footer { inset: auto 18px 17px; }
+  .rel-atlas__instruction { display: none; }
+  .rel-atlas__inspector { left: 18px; bottom: 51px; max-width: calc(100% - 36px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rel-atlas *, .rel-atlas *::before, .rel-atlas *::after { animation: none !important; transition: none !important; }
+}

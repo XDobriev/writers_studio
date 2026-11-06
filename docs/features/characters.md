@@ -1,46 +1,61 @@
-# Feature: Персонажи
-
-**Маршрут:** `/books/:id/characters`
-
-## Компоненты
-
-- `src/pages/Characters.tsx` — весь UI, inline-формы связей.
-- `src/lib/characters.ts` — CRUD персонажей.
-- `src/lib/relationships.ts` — CRUD двухсторонних связей (`character_relationships`).
-- `src/lib/crossrefs.ts` — авто-детектирование упоминаний персонажа в тексте глав, синхронизация backlinks, поиск вариантов имени.
-- `src/lib/pov.ts` — управление POV-маркером в `chapter_characters`, цвета персонажей.
-- `src/lib/useCharacterNavigation.ts` — хук навигации (выбор персонажа, mobile/desktop режимы).
-- `src/lib/useCharacterMutations.ts` — мутации через `@tanstack/react-query`.
-
-## БД
-
-- Таблица `characters`. Поля: `name`, `role`, `age`, `quote`, `appearance`, `personality`, `interior_life`, `exterior_life`, `gap`, `backstory`, `notes`, `position`, `avatar_url`, `aliases` (text[]).
-- Таблица `character_relationships` — `char_a_id + char_b_id` (каноническое хранение: `char_a_id < char_b_id`), `label_a`, `label_b` (пусто = симметрия), `book_id`. При создании пустая подпись партнёра («Как они видят вас») заполняется подписью автора (`createRelationship`) — иначе у партнёра связь без подписи. RLS по `user_id`. Миграция: `0020_character_relationships.sql`.
-- Таблица `character_relations` — **устаревшая** (директивные связи). Файл `character_relations.ts` существует, но UI не использует. Данные мигрированы в `character_relationships`.
-- Таблица `chapter_characters` — many-to-many character ↔ chapter. Поля: `auto_detected: boolean` (проставляется `crossrefs.ts`), `is_pov: boolean`. UNIQUE по `chapter_id,character_id`, on delete cascade.
-
-## Функции
-
-- Список в sidebar с аватаром (или инициалами) и ролью.
-- Поиск по имени, фильтр по роли (все / главные / второстеп. / эпиз.).
-- Inline-редактирование всех полей с автосейвом debounce 700 мс.
-- Смена роли через чипы.
-- Удаление с подтверждением (`ConfirmDialog`).
-- **Аватар:** загрузка через `<input type="file">`, Storage бакет `character-avatars`, путь `{user_id}/{character_id}`.
-- **Псевдонимы (`aliases`):** массив альтернативных имён — используется при авто-детектировании упоминаний.
-- **Авто-детектирование упоминаний:** `syncBacklinks` (при сохранении главы) и `syncCharacterAcrossAllChapters` (при изменении имени/псевдонимов) — ищут упоминания через Unicode-aware regex, простанавливают `auto_detected=true`.
-- **Поиск вариантов имени:** `findNameVariantsInText` — предлагает похожие слова из текста глав для добавления в aliases.
-- **Вкладки карточки:** `info` (поля персонажа) и `chapters` (в каких главах встречается, с POV-маркером).
-- **Связи:** двухсторонние через `character_relationships`. Пресеты: «Друг», «Враг», «Родственник». Правка обоих лейблов с debounce, удаление крестиком.
-- **POV:** `is_pov` в `chapter_characters`. `setPovCharacter` / `removePovCharacter` из `pov.ts`. Цвета персонажей — 5 oklch-цветов, назначаются по `position % 5`.
-- Данные через `@tanstack/react-query` (хуки `useCharacters`, `useRelationships`, `useChapterCharacters`, `useChapterMembers` из `queries.ts`).
-- **Персонажи в правой панели редактора:** `RightPanel.tsx` показывает секцию «Персонажи главы» в табе «Заметки» — список персонажей текущей главы с POV-меткой. Данные — `useChapterMembers(chapterId)` → `listChapterMembers` (запрос по `chapter_id`). Добавлен в `crossrefs.ts` рядом с `listChapterCharacters`.
-
-## Аватары и перенос в серию
-
-- Файл аватара: бакет `character-avatars`, путь `<uid>/<characterId>.<ext>` (upsert при перезагрузке).
+# Feature: Персонажи
+
+**Маршрут:** `/books/:id/characters`
+
+## Компоненты
+
+- `src/pages/Characters.tsx` — весь UI, inline-формы связей.
+- `src/lib/characters.ts` — CRUD персонажей.
+- `src/lib/relationships.ts` — CRUD двухсторонних связей (`character_relationships`).
+- `src/lib/crossrefs.ts` — авто-детектирование упоминаний персонажа в тексте глав, синхронизация backlinks, поиск вариантов имени.
+- `src/lib/pov.ts` — управление POV-маркером в `chapter_characters`, цвета персонажей.
+- `src/lib/useCharacterNavigation.ts` — хук навигации (выбор персонажа, mobile/desktop режимы).
+- `src/lib/useCharacterMutations.ts` — мутации через `@tanstack/react-query`.
+
+## БД
+
+- Таблица `characters`. Поля: `name`, `role`, `age`, `quote`, `appearance`, `personality`, `interior_life`, `exterior_life`, `gap`, `backstory`, `notes`, `position`, `avatar_url`, `aliases` (text[]).
+- Таблица `character_relationships` — `char_a_id + char_b_id` (каноническое хранение: `char_a_id < char_b_id`), `label_a`, `label_b` (пусто = симметрия), `book_id`. При создании пустая подпись партнёра («Как они видят вас») заполняется подписью автора (`createRelationship`) — иначе у партнёра связь без подписи. RLS по `user_id`. Миграция: `0020_character_relationships.sql`.
+- Таблица `character_relations` — **устаревшая** (директивные связи). Файл `character_relations.ts` существует, но UI не использует. Данные мигрированы в `character_relationships`.
+- Таблица `chapter_characters` — many-to-many character ↔ chapter. Поля: `auto_detected: boolean` (проставляется `crossrefs.ts`), `is_pov: boolean`. UNIQUE по `chapter_id,character_id`, on delete cascade.
+
+## Функции
+
+- Список в sidebar с аватаром (или инициалами) и ролью.
+- Поиск по имени, фильтр по роли (все / главные / второстеп. / эпиз.).
+- Inline-редактирование всех полей с автосейвом debounce 700 мс.
+- Смена роли через чипы.
+- Удаление с подтверждением (`ConfirmDialog`).
+- **Аватар:** загрузка через `<input type="file">`, Storage бакет `character-avatars`, путь `{user_id}/{character_id}`.
+- **Псевдонимы (`aliases`):** массив альтернативных имён — используется при авто-детектировании упоминаний.
+- **Авто-детектирование упоминаний:** `syncBacklinks` (при сохранении главы) и `syncCharacterAcrossAllChapters` (при изменении имени/псевдонимов) — ищут упоминания через Unicode-aware regex, простанавливают `auto_detected=true`.
+- **Поиск вариантов имени:** `findNameVariantsInText` — предлагает похожие слова из текста глав для добавления в aliases.
+- **Вкладки карточки:** `info` (поля персонажа), `chapters` (упоминания с POV-маркером), `relationships` (граф, список и история связей).
+- **Связи:** двухсторонние через `character_relationships`. Пресеты: «Друг», «Враг», «Родственник». Исходные подписи и секретность исправляются явным сохранением; повороты сюжета добавляются отдельно в историю. Удаление связи с историей требует подтверждения.
+- **POV:** `is_pov` в `chapter_characters`. `setPovCharacter` / `removePovCharacter` из `pov.ts`. Цвета персонажей — 5 oklch-цветов, назначаются по `position % 5`.
+- Данные через `@tanstack/react-query` (хуки `useCharacters`, `useRelationships`, `useChapterCharacters`, `useChapterMembers` из `queries.ts`).
+- **Персонажи в правой панели редактора:** `RightPanel.tsx` показывает секцию «Персонажи главы» в табе «Заметки» — список персонажей текущей главы с POV-меткой. Данные — `useChapterMembers(chapterId)` → `listChapterMembers` (запрос по `chapter_id`). Добавлен в `crossrefs.ts` рядом с `listChapterCharacters`.
+
+## Аватары и перенос в серию
+
+- Файл аватара: бакет `character-avatars`, путь `<uid>/<characterId>.<ext>` (upsert при перезагрузке).
 - После `duplicate_book_content` клиент (`copyCharacterAvatars` в `books.ts`) копирует файлы аватаров под id копий и перешивает ссылки одним RPC `remap_character_avatars(p_book, p_map)` (миграция `20261023000100`, `SECURITY INVOKER`). Без этого удаление аватара в книге-источнике удаляло картинку и у копии. Не через `upsert`: на `characters` висит `BEFORE INSERT`-триггер лимита Free, он срабатывает и при `ON CONFLICT`.
 
 ## Пустые черновики
 
 Создание сразу пишет запись в БД. Если пользователь её покинул, ничего не введя (закрыл карточку, создал следующую, ушёл со страницы), запись удаляется: `useDiscardEmptyDraft` + `isBlankCharacter`. Персонаж с любым текстом, возрастом, аватаром, псевдонимом, сменой роли или связью не удаляется. Закрытие вкладки без ухода со страницы пустую запись не убирает.
+
+## Отношения по главам и граф (F-14, F-3)
+
+- Миграция `20261106090935_character_relationship_history.sql` добавляет `character_relationships.is_secret` и таблицу `character_relationship_events`. До включения интерфейса требуется применить эту миграцию; она сохраняет существующие подписи.
+- У записи истории: глава (`chapter_id`), обе подписи, `is_secret`, необязательная причина `note`. Одна запись на пару/главу означает состояние **к концу главы**, действующее до следующего изменения. Порядок определяется текущим порядком глав, не временем создания записи. Предусмотрены «Исходное состояние» и «Конец книги».
+- Привязка идёт по ID: переименование и перестановка главы не разрывают связь. При удалении главы FK становится `null`; запись и заметка остаются в истории, не влияют на граф до назначения другой главы. `chapter_title` — название на момент сохранения записи, оно может отличаться от последнего названия удалённой главы.
+- Секретность — пометка тайны внутри сюжета; автор всегда видит связь. Она не моделирует знания отдельных героев и не управляет доступом к данным. На графе отмечена пунктиром и значком, в списке/истории — текстом.
+- Граф включает героя, его непосредственных соседей и существующие связи между ними, без рекурсивного расширения. Нажатие на ребро открывает историю, на героя — его окружение; есть возврат к предыдущему герою. Оформлен как литературный атлас: портреты в медальонах, монограммы при отсутствии или ошибке загрузки аватара, изогнутые связи и подсветка окружения при наведении или фокусе с клавиатуры. Есть увеличение, уменьшение и «Уместить граф»; большое окружение прокручивается, текстовый список доступен отдельно. При более чем 10 героях подписи рёбер раскрываются при наведении/фокусе. Поверхности, текст, терракотовый акцент, границы и скругления используют дизайн-токены студии и меняются вместе со светлой/тёмной темой. Анимация отключается при `prefers-reduced-motion`.
+- `src/lib/relationships.ts` содержит общий resolver состояния. `CharacterRelationsBlock`, `RelationshipHistory`, `CharacterRelationshipGraph` используют одни данные. `src/lib/useRelationshipHistory.ts` загружает историю и обновляет кэш после CRUD. Данные отношений и истории читаются постранично без ограничения первой тысячей строк; перед графом догружаются все страницы персонажей.
+- Черновики форм хранятся в состоянии страницы персонажей: переключение героя, вкладки или возврат в сетку их не удаляет. Нажатие на другую связь заблокировано во время редактирования. Ошибка сохранения оставляет введённое в форме. Черновики не являются автосохранением в БД и не переживают перезагрузку страницы.
+- Из досье в правой панели редактора кнопка «Связи персонажа» ведёт в `?character=<id>&view=relationships&chapter=<id>&from=editor`. Выбор исторического состояния меняет отдельный параметр `at`, сохраняя исходную главу для возврата к редактору.
+- При переносе персонажей в другую книгу `duplicate_book_content` копирует финальные подписи/секретность как исходное состояние. История остаётся в исходной книге: её главы не принадлежат продолжению. Каноническая ориентация новых ID учитывается.
+- Новая таблица закрыта для `anon`; RLS проверяет владельца, связь и главу одной книги. Прямая запись связи между персонажами разных книг также отклоняется.
+
+Проверки: `npm.cmd test`, `npm.cmd run typecheck`, `npm.cmd run build`. Интеграционная проверка миграции на одноразовом PGlite: установить `@electric-sql/pglite@0.3.14` во временную папку, задать `PGLITE_MODULE` абсолютным путём к `dist/index.js`, затем `node --test scripts/relationship-history-db.test.mjs`. Она не подключается к рабочей БД. Исследование: `docs/character-relationships-research-2026-11-06.md`.

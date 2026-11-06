@@ -10,6 +10,7 @@ export function useCharacterNavigation({
   filtered,
   hasNextPage = false,
   isFetchingNextPage = false,
+  isFetchNextPageError = false,
   fetchNextPage,
 }: {
   isMobile: boolean;
@@ -17,6 +18,7 @@ export function useCharacterNavigation({
   filtered: Character[];
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
+  isFetchNextPageError?: boolean;
   fetchNextPage?: () => unknown;
 }) {
   const [search, setSearch] = useSearchParams();
@@ -45,7 +47,7 @@ export function useCharacterNavigation({
     // Персонаж может быть на ещё не загруженной странице (список грузится по 50) —
     // сначала догружаем, подменяем первым только если его действительно нет.
     if (!exists && (hasNextPage || isFetchingNextPage)) {
-      if (!isFetchingNextPage) void fetchNextPage?.();
+      if (!isFetchingNextPage && !isFetchNextPageError) void fetchNextPage?.();
       return;
     }
     if (!exists) {
@@ -54,11 +56,12 @@ export function useCharacterNavigation({
       next.set('character', first.id);
       setSearch(next, { replace: true });
     }
-  }, [isMobile, viewMode, characters, filtered, activeId, search, setSearch, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [isMobile, viewMode, characters, filtered, activeId, search, setSearch, hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage]);
 
   const selectCharacter = useCallback((id: string) => {
     const next = new URLSearchParams(search);
     next.set('character', id);
+    next.delete('char');
     setSearch(next, { replace: false });
     setViewMode('detail');
   }, [search, setSearch]);
@@ -70,6 +73,7 @@ export function useCharacterNavigation({
   const clearCharacter = useCallback(() => {
     const next = new URLSearchParams(search);
     next.delete('character');
+    next.delete('char');
     setSearch(next, { replace: false });
     setViewMode('grid');
   }, [search, setSearch]);
