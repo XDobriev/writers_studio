@@ -25,18 +25,40 @@
 | Sender Name | `Авторская студия` |
 | Sender Email | `noreply@avtorstudio.com` |
 
-## Шаблоны auth-писем
+## Шаблоны auth-писем и Темы (Subject)
 
-Authentication → Emails → Templates. Для каждого из 4 типов вставить HTML из файла этой папки:
+В Dashboard → Authentication → Emails → Templates для каждого типа необходимо задать русскую тему (Subject) и вставить HTML из соответствующего файла этой папки.
 
-| Тип в Supabase | Файл |
-|---|---|
-| Confirm signup | `confirm-signup.html` |
-| Reset password | `reset-password.html` |
-| Magic Link | `magic-link.html` |
-| Email change | `email-change.html` |
+> ⚠️ **Важно для антиспама Gmail:** Если тема письма на английском («Reset Your Password»), а тело на русском — Gmail присваивает высокий спам-рейтинг и отправляет письмо в Спам!
 
-Применены ли шаблоны в Dashboard — проверить: письмо сброса пароля 25.10.2026 пришло с темой «Reset Your Password» (дефолт Supabase).
+| Тип в Supabase | Тема письма (Subject) | Файл шаблона |
+|---|---|---|
+| Confirm signup | `Подтверждение почты в Авторской студии` | `confirm-signup.html` |
+| Reset password | `Сброс пароля в Авторской студии` | `reset-password.html` |
+| Magic Link | `Вход в Авторскую студию` | `magic-link.html` |
+| Email change | `Подтверждение смены email в Авторской студии` | `email-change.html` |
+
+### Ссылка на сброс пароля (TokenHash vs ConfirmationURL)
+
+- **Рекомендуемый вариант (прямой домен):** `{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}`
+  - Генерирует: `https://avtorstudio.com/reset-password?token_hash=...`
+  - Домен письма (`avtorstudio.com`) совпадает с доменом ссылки — улучшает спам-рейтинг, нет чужого домена `supabase.co`.
+  - Приложение на `/reset-password` автоматически валидирует `token_hash` через `supabase.auth.verifyOtp`.
+- **Дефолтный вариант Supabase:** `{{ .ConfirmationURL }}`
+  - Генерирует длинную техническую ссылку: `https://<ref>.supabase.co/auth/v1/verify?token=...&type=recovery&redirect_to=https://avtorstudio.com/reset-password`
+
+## Логотип в письме (PNG)
+
+Gmail, Outlook и другие почтовики **не поддерживают SVG** в письмах (блокируют из соображений безопасности).
+Для писем используется `https://avtorstudio.com/logo-email.png` (96×96 retina PNG, прозрачный фон).
+
+## Аватарка отправителя в Gmail
+
+В Gmail круглая иконка профиля отправителя не берётся из favicon сайта. Чтобы она появилась:
+1. Зарегистрировать бесплатный Google-аккаунт на адрес `noreply@avtorstudio.com` (выбрать «Использовать текущий адрес эл. почты»).
+2. Подтвердить код, который придёт на почту домена (в ящик Mail.ru).
+3. В профиле созданного Google-аккаунта установить имя «Авторская студия» и загрузить аватар `brand/avatar-dark.png`.
+4. После этого все пользователи Gmail будут видеть логотип Авторской студии рядом с письмами от `noreply@avtorstudio.com`.
 
 ## Ротация ключа
 
