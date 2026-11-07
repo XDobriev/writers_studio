@@ -10,7 +10,11 @@ import {
   type Chapter,
   type ChapterMeta,
 } from './chapters';
-import { getChaptersNeedingRenumber } from './chapterNumbering';
+import {
+  formatChapterTitle,
+  getChaptersNeedingRenumber,
+  parseChapterTitle,
+} from './chapterNumbering';
 
 export type DraftScene = Tables<'draft_scenes'>;
 export type DraftScenePatch = Partial<Pick<DraftScene, 'title' | 'content' | 'words' | 'position'>>;
@@ -136,6 +140,47 @@ export function buildChaptersAfterInsert(
   return { nextChapters, reorderUpdates };
 }
 
+const DEFAULT_SCENE_TITLE_RE =
+  /^(?:сцена|scene|черновик|draft|глава|chapter)(?:\s*(?:№|#|[-–—:])?\s*\(?\d+\)?)?\.?$/iu;
+
+/**
+ * Проверяет, является ли заголовок сцены дефолтным/техническим
+ * («Сцена 1», «Сцена № 1», «Сцена», «Черновик», «Draft 2», «Глава 1», пустой заголовок, «Без названия»).
+ */
+export function isDefaultDraftSceneTitle(title: string | null | undefined): boolean {
+  if (!title) return true;
+  const trimmed = title.trim();
+  if (!trimmed || /^(?:без\s+названия|untitled)$/iu.test(trimmed)) return true;
+  return DEFAULT_SCENE_TITLE_RE.test(trimmed);
+}
+
+/**
+ * Вычисляет заголовок создаваемой главы при конвертации черновика сцены.
+ * Если у сцены дефолтное название («Сцена 1», «Сцена», пустое и т.п.),
+ * ей присваивается регулярный заголовок «Глава N» в соответствии с позицией вставки.
+ * Если автор дал сцене собственное название (например, «Ночной побег»),
+ * оно сохраняется.
+ */
+export function resolveConvertedChapterTitle(
+  sceneTitle: string | null | undefined,
+  chapters: readonly Pick<ChapterMeta, 'title'>[],
+  insertIndex: number,
+): string {
+  const trimmed = (sceneTitle ?? '').trim();
+  if (isDefaultDraftSceneTitle(trimmed)) {
+    const clampedIndex = Math.max(0, Math.min(insertIndex, chapters.length));
+    let priorRegularCount = 0;
+    for (let i = 0; i < clampedIndex; i++) {
+      if (parseChapterTitle(chapters[i].title).type === 'regular') {
+        priorRegularCount += 1;
+      }
+    }
+    const targetRank = priorRegularCount + 1;
+    return formatChapterTitle('regular', targetRank);
+  }
+  return trimmed;
+}
+
 /**
  * Превращает черновик сцены в полноценную главу книги на выбранной позиции
  * (в начало, в конец или после выбранной главы) и удаляет исходный черновик.
@@ -146,7 +191,7 @@ export async function convertDraftSceneToChapter(
   placement: DraftConvertPlacement,
 ): Promise<{ chapter: Chapter; nextChapters: ChapterMeta[] }> {
   const insertIndex = resolveConvertPosition(chapters, placement);
-  const title = scene.title.trim() || 'Без названия';
+  const title = resolveConvertedChapterTitle(scene.title, chapters, insertIndex);
   const words = countWords(scene.content);
 
   const created = await createChapter(scene.book_id, scene.user_id, {

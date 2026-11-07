@@ -17,8 +17,9 @@ import { EditorToolbar, ModeSegment } from './EditorToolbar';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
 import type { Book } from '../lib/supabase';
 import type { ChapterMeta, ChapterActions } from '../lib/chapters';
-import type { DraftScene, DraftSceneActions, DraftConvertPlacement, DraftInsertPosition } from '../lib/draftScenes';
+import type { DraftScene, DraftSceneActions } from '../lib/draftScenes';
 import { ConfirmDialog } from './ConfirmDialog';
+import { ConvertDraftModal, InsertDraftModal } from './DraftModals';
 import { useWritingStats } from '../lib/useWritingStats';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useAuth } from '../lib/auth';
@@ -155,42 +156,31 @@ function ManuscriptSheet({
   );
 }
 
-interface DraftSceneBridgeBarProps {
+export interface DraftSceneBridgeBarProps {
   scene: DraftScene;
   chapters: ChapterMeta[];
   draftActions?: DraftSceneActions;
 }
 
-function DraftSceneBridgeBar({
+export function DraftSceneBridgeBar({
   scene,
   chapters,
   draftActions,
 }: DraftSceneBridgeBarProps) {
   const [bridgeAction, setBridgeAction] = useState<'convert' | 'insert' | null>(null);
-  const [convertMode, setConvertMode] = useState<'end' | 'start' | 'after'>('end');
-  const [afterChapterId, setAfterChapterId] = useState<string>(chapters[chapters.length - 1]?.id ?? '');
-  const [insertChapterId, setInsertChapterId] = useState<string>(chapters[0]?.id ?? '');
-  const [insertPos, setInsertPos] = useState<DraftInsertPosition>('end');
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  useEffect(() => {
-    if (chapters.length > 0) {
-      setAfterChapterId((prev) => (prev && chapters.some((c) => c.id === prev) ? prev : chapters[chapters.length - 1].id));
-      setInsertChapterId((prev) => (prev && chapters.some((c) => c.id === prev) ? prev : chapters[0].id));
-    }
-  }, [chapters]);
 
   return (
     <>
-      <div className="draft-scene-banner">
+      <div className="draft-scene-banner" role="region" aria-label="Панель черновика сцены">
         <div className="draft-scene-banner__meta">
-          <span className="draft-scene-banner__icon">
+          <span className="draft-scene-banner__icon" aria-hidden="true">
             <Icon name="feather" size={14} />
           </span>
           <span className="draft-scene-banner__title">
             Свободная сцена
           </span>
-          <span className="draft-scene-banner__chip">
+          <span className="draft-scene-banner__chip" aria-label={`Слов: ${scene.words}`}>
             {scene.words.toLocaleString('ru-RU')} {plural(scene.words, 'слово', 'слова', 'слов')}
           </span>
         </div>
@@ -199,157 +189,57 @@ function DraftSceneBridgeBar({
           {draftActions?.onConvertDraftToChapter && (
             <button
               type="button"
-              aria-expanded={bridgeAction === 'convert'}
-              className={`draft-scene-banner__btn${bridgeAction === 'convert' ? ' draft-scene-banner__btn--active' : ''}`}
-              style={{ fontSize: 12, padding: '4px 10px', height: 28 }}
-              onClick={() => setBridgeAction((v) => (v === 'convert' ? null : 'convert'))}
+              className="draft-scene-banner__btn"
+              onClick={() => setBridgeAction('convert')}
             >
-              Превратить в главу
+              <Icon name="book" size={13} />
+              <span>Превратить в главу</span>
             </button>
           )}
           {draftActions?.onInsertDraftIntoChapter && chapters.length > 0 && (
             <button
               type="button"
-              aria-expanded={bridgeAction === 'insert'}
-              className={`draft-scene-banner__btn${bridgeAction === 'insert' ? ' draft-scene-banner__btn--active' : ''}`}
-              style={{ fontSize: 12, padding: '4px 10px', height: 28 }}
-              onClick={() => setBridgeAction((v) => (v === 'insert' ? null : 'insert'))}
+              className="draft-scene-banner__btn"
+              onClick={() => setBridgeAction('insert')}
             >
-              Вставить в существующую главу
+              <Icon name="plus" size={13} />
+              <span>Вставить в существующую главу</span>
             </button>
           )}
           {draftActions?.onDeleteDraft && (
             <button
               type="button"
               className="draft-scene-banner__btn draft-scene-banner__btn--danger"
-              style={{ fontSize: 12, padding: '4px 8px', height: 28 }}
               onClick={() => setConfirmDelete(true)}
               title="Удалить черновик"
               aria-label="Удалить черновик"
             >
-              <Icon name="trash" size={13} /> Удалить
+              <Icon name="trash" size={13} />
+              <span>Удалить</span>
             </button>
           )}
         </div>
       </div>
 
-      {bridgeAction === 'convert' && draftActions?.onConvertDraftToChapter && (
-        <div className="draft-scene-banner__panel">
-          <span style={{ font: '500 12px var(--font-ui)', color: 'var(--paper-ink-2)' }}>Позиция новой главы:</span>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {([
-              ['end', 'В конец'],
-              ['start', 'В начало'],
-              ...(chapters.length > 0 ? [['after', 'После выбранной главы'] as const] : []),
-            ] as const).map(([m, lbl]) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setConvertMode(m)}
-                className={`draft-scene-banner__seg-btn${convertMode === m ? ' draft-scene-banner__seg-btn--on' : ''}`}
-              >
-                {lbl}
-              </button>
-            ))}
-          </div>
-          {convertMode === 'after' && chapters.length > 0 && (
-            <select
-              aria-label="Выбрать главу, после которой вставить"
-              value={afterChapterId || chapters[chapters.length - 1].id}
-              onChange={(e) => setAfterChapterId(e.target.value)}
-              className="draft-scene-banner__select"
-            >
-              {chapters.map((ch, idx) => (
-                <option key={ch.id} value={ch.id}>
-                  После: {idx + 1}. {ch.title || 'Без названия'}
-                </option>
-              ))}
-            </select>
-          )}
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-            <button
-              type="button"
-              className="btn btn--primary"
-              style={{ fontSize: 12, padding: '4px 12px', height: 28 }}
-              onClick={() => {
-                const placement: DraftConvertPlacement =
-                  convertMode === 'start'
-                    ? { mode: 'start' }
-                    : convertMode === 'after' && chapters.length > 0
-                      ? { mode: 'after', afterChapterId: afterChapterId || chapters[chapters.length - 1].id }
-                      : { mode: 'end' };
-                void draftActions.onConvertDraftToChapter?.(scene.id, placement);
-                setBridgeAction(null);
-              }}
-            >
-              Подтвердить перенос
-            </button>
-            <button
-              type="button"
-              className="draft-scene-banner__btn"
-              style={{ fontSize: 12, padding: '4px 10px', height: 28 }}
-              onClick={() => setBridgeAction(null)}
-            >
-              Отмена
-            </button>
-          </div>
-        </div>
-      )}
+      <ConvertDraftModal
+        open={bridgeAction === 'convert'}
+        chapters={chapters}
+        onCancel={() => setBridgeAction(null)}
+        onConfirm={(placement) => {
+          setBridgeAction(null);
+          void draftActions?.onConvertDraftToChapter?.(scene.id, placement);
+        }}
+      />
 
-      {bridgeAction === 'insert' && draftActions?.onInsertDraftIntoChapter && chapters.length > 0 && (
-        <div className="draft-scene-banner__panel">
-          <span style={{ font: '500 12px var(--font-ui)', color: 'var(--paper-ink-2)' }}>Глава:</span>
-          <select
-            aria-label="Выбрать главу для вставки сцены"
-            value={insertChapterId || chapters[0].id}
-            onChange={(e) => setInsertChapterId(e.target.value)}
-            className="draft-scene-banner__select"
-          >
-            {chapters.map((ch, idx) => (
-              <option key={ch.id} value={ch.id}>
-                {idx + 1}. {ch.title || 'Без названия'}
-              </option>
-            ))}
-          </select>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {([
-              ['end', 'Дописать в конец'],
-              ['start', 'Вставить в начало'],
-            ] as const).map(([pos, lbl]) => (
-              <button
-                key={pos}
-                type="button"
-                onClick={() => setInsertPos(pos)}
-                className={`draft-scene-banner__seg-btn${insertPos === pos ? ' draft-scene-banner__seg-btn--on' : ''}`}
-              >
-                {lbl}
-              </button>
-            ))}
-          </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-            <button
-              type="button"
-              className="btn btn--primary"
-              style={{ fontSize: 12, padding: '4px 12px', height: 28 }}
-              onClick={() => {
-                const targetId = insertChapterId || chapters[0].id;
-                void draftActions.onInsertDraftIntoChapter?.(scene.id, targetId, insertPos);
-                setBridgeAction(null);
-              }}
-            >
-              Подтвердить вставку
-            </button>
-            <button
-              type="button"
-              className="draft-scene-banner__btn"
-              style={{ fontSize: 12, padding: '4px 10px', height: 28 }}
-              onClick={() => setBridgeAction(null)}
-            >
-              Отмена
-            </button>
-          </div>
-        </div>
-      )}
+      <InsertDraftModal
+        open={bridgeAction === 'insert' && chapters.length > 0}
+        chapters={chapters}
+        onCancel={() => setBridgeAction(null)}
+        onConfirm={(targetId, pos) => {
+          setBridgeAction(null);
+          void draftActions?.onInsertDraftIntoChapter?.(scene.id, targetId, pos);
+        }}
+      />
 
       <ConfirmDialog
         open={confirmDelete}
@@ -431,7 +321,7 @@ interface DraftSceneSheetProps {
   draftActions?: DraftSceneActions;
 }
 
-function DraftSceneSheet({
+export function DraftSceneSheet({
   scene,
   chapters,
   onContentChange,
@@ -446,36 +336,44 @@ function DraftSceneSheet({
   onMentionClick,
   draftActions,
 }: DraftSceneSheetProps) {
-  const headerSlot = (
-    <DraftSceneBridgeBar
-      scene={scene}
-      chapters={chapters}
-      draftActions={draftActions}
-    />
-  );
-
   return (
-    <ManuscriptSheet
-      id={scene.id}
-      title={scene.title}
-      titlePlaceholder="Название сцены или фрагмента"
-      titleAriaLabel="Название черновика"
-      content={scene.content}
-      contentReady={true}
-      contentPlaceholder="Набросайте сцену, диалог или мысль вне структуры глав…"
-      contentKey={`draft-${scene.id}`}
-      onContentChange={onContentChange}
-      onTitleChange={onTitleChange}
-      onEditor={onEditor}
-      width={width}
-      padding={padding}
-      userDictionary={userDictionary}
-      onAddWord={onAddWord}
-      characters={characters}
-      highlightCharacters={highlightCharacters}
-      onMentionClick={onMentionClick}
-      headerSlot={headerSlot}
-    />
+    <div
+      className="draft-scene-container"
+      style={{
+        width,
+        maxWidth: 'min(100%, 760px)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        flex: 1,
+      }}
+    >
+      <DraftSceneBridgeBar
+        scene={scene}
+        chapters={chapters}
+        draftActions={draftActions}
+      />
+      <ManuscriptSheet
+        id={scene.id}
+        title={scene.title}
+        titlePlaceholder="Название сцены или фрагмента"
+        titleAriaLabel="Название черновика"
+        content={scene.content}
+        contentReady={true}
+        contentPlaceholder="Набросайте сцену, диалог или мысль вне структуры глав…"
+        contentKey={`draft-${scene.id}`}
+        onContentChange={onContentChange}
+        onTitleChange={onTitleChange}
+        onEditor={onEditor}
+        width="100%"
+        padding={padding}
+        userDictionary={userDictionary}
+        onAddWord={onAddWord}
+        characters={characters}
+        highlightCharacters={highlightCharacters}
+        onMentionClick={onMentionClick}
+      />
+    </div>
   );
 }
 

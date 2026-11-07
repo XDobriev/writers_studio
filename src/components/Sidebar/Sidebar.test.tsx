@@ -130,7 +130,7 @@ describe('Sidebar — секция «Черновики / Свободные с�
     expect(container?.textContent).toContain('Сцена в таверне');
   });
 
-  it('открывает контекстное меню черновика и вызывает превращение в главу, вставку в существующую главу и удаление с подтверждением', () => {
+  it('открывает компактное контекстное меню черновика и вызывает превращение в главу, вставку и удаление через модальные окна', async () => {
     const onConvertDraftToChapter = vi.fn();
     const onInsertDraftIntoChapter = vi.fn();
     const onDeleteDraft = vi.fn();
@@ -155,78 +155,114 @@ describe('Sidebar — секция «Черновики / Свободные с�
     ) as HTMLButtonElement;
     expect(menuTrigger).toBeTruthy();
 
-    // 1. Превратить в главу (после выбранной главы)
+    // 1. Открытие контекстного меню и вызов модалки «Превратить в отдельную главу…»
     act(() => {
       menuTrigger.click();
     });
 
-    const afterModeBtn = Array.from(container!.querySelectorAll('button')).find(
-      (b) => b.textContent === 'После…',
+    const ctxMenu = container?.querySelector('.ctx-menu');
+    expect(ctxMenu).toBeTruthy();
+    expect(ctxMenu?.textContent).toContain('Превратить в отдельную главу…');
+    expect(ctxMenu?.textContent).toContain('Вставить в существующую главу…');
+    expect(ctxMenu?.textContent).toContain('Удалить черновик');
+
+    const convertMenuItem = Array.from(ctxMenu!.querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.includes('Превратить в отдельную главу…'),
     )!;
     act(() => {
-      afterModeBtn.click();
+      convertMenuItem.click();
     });
 
-    const afterSelect = container?.querySelector('select[aria-label="После какой главы"]') as HTMLSelectElement;
+    // Меню закрылось, открылась модалка превращения в главу
+    expect(container?.querySelector('.ctx-menu')).toBeNull();
+    const convertDialog = container?.querySelector('div[aria-labelledby="convert-draft-modal-title"]');
+    expect(convertDialog).toBeTruthy();
+    expect(convertDialog?.textContent).toContain('Превратить сцену в главу');
+
+    // Переключаем в режим «После выбранной главы» и выбираем главу c1
+    const afterBtn = Array.from(convertDialog!.querySelectorAll('button')).find(
+      (b) => b.textContent?.includes('После выбранной главы'),
+    )!;
+    act(() => {
+      afterBtn.click();
+    });
+
+    const afterSelect = convertDialog?.querySelector('select#convert-after-chapter') as HTMLSelectElement;
     expect(afterSelect).toBeTruthy();
     act(() => {
       afterSelect.value = 'c1';
       afterSelect.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
-    const convertConfirmBtn = Array.from(container!.querySelectorAll<HTMLButtonElement>('button.ctx-item')).find(
-      (b) => b.textContent === 'Превратить в главу',
+    const confirmConvertBtn = Array.from(convertDialog!.querySelectorAll<HTMLButtonElement>('button.btn--primary')).find(
+      (b) => b.textContent?.includes('Превратить в главу'),
     )!;
     act(() => {
-      convertConfirmBtn.click();
+      confirmConvertBtn.click();
     });
     expect(onConvertDraftToChapter).toHaveBeenCalledWith('d1', { mode: 'after', afterChapterId: 'c1' });
 
-    // 2. Вставить в существующую главу (в начало главы)
+    // 2. Вставить в существующую главу через модалку
     act(() => {
       menuTrigger.click();
     });
 
-    const startPosBtn = Array.from(container!.querySelectorAll<HTMLButtonElement>('button')).find(
-      (b) => b.textContent === 'В начало главы',
+    const insertMenuItem = Array.from(container!.querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.includes('Вставить в существующую главу…'),
+    )!;
+    act(() => {
+      insertMenuItem.click();
+    });
+
+    const insertDialog = container?.querySelector('div[aria-labelledby="insert-draft-modal-title"]');
+    expect(insertDialog).toBeTruthy();
+    expect(insertDialog?.textContent).toContain('Вставить в существующую главу');
+
+    // Выбираем вставку в начало
+    const startPosBtn = Array.from(insertDialog!.querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.includes('Вставить в начало'),
     )!;
     act(() => {
       startPosBtn.click();
     });
 
-    const insertConfirmBtn = Array.from(container!.querySelectorAll<HTMLButtonElement>('button.ctx-item')).find(
-      (b) => b.textContent === 'Вставить в существующую главу',
+    const confirmInsertBtn = Array.from(insertDialog!.querySelectorAll<HTMLButtonElement>('button.btn--primary')).find(
+      (b) => b.textContent?.includes('Вставить в главу'),
     )!;
     act(() => {
-      insertConfirmBtn.click();
+      confirmInsertBtn.click();
     });
     expect(onInsertDraftIntoChapter).toHaveBeenCalledWith('d1', 'c1', 'start');
 
-    // 3. Удалить черновик с подтверждением
+    // 3. Удалить черновик через ConfirmDialog
     act(() => {
       menuTrigger.click();
     });
 
-    const deleteBtn = Array.from(container!.querySelectorAll<HTMLButtonElement>('button')).find(
-      (b) => b.textContent === 'Удалить черновик',
+    const deleteMenuItem = Array.from(container!.querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.includes('Удалить черновик'),
     )!;
     act(() => {
-      deleteBtn.click();
+      deleteMenuItem.click();
     });
-    expect(onDeleteDraft).not.toHaveBeenCalled();
-    expect(container?.textContent).toContain('Удалить черновик? Текст будет потерян.');
 
-    const confirmDeleteBtn = Array.from(container!.querySelectorAll<HTMLButtonElement>('button.btn-inline-danger')).find(
-      (b) => b.textContent === 'Удалить',
+    // Меню закрылось, открылся ConfirmDialog (role="alertdialog")
+    const alertDialog = container?.querySelector('div[role="alertdialog"]');
+    expect(alertDialog).toBeTruthy();
+    expect(alertDialog?.textContent).toContain('Свободная сцена и её текст будут удалены');
+    expect(onDeleteDraft).not.toHaveBeenCalled();
+
+    const confirmDeleteBtn = Array.from(alertDialog!.querySelectorAll<HTMLButtonElement>('button.btn--danger-ghost')).find(
+      (b) => b.textContent?.includes('Удалить черновик'),
     )!;
-    act(() => {
+    await act(async () => {
       confirmDeleteBtn.click();
     });
     expect(onDeleteDraft).toHaveBeenCalledWith('d1');
   });
 
-  it('позволяет выбирать главу через кастомный выпадающий список (listbox option)', () => {
-    const onConvertDraftToChapter = vi.fn();
+  it('позволяет выбрать целевую главу и закрыть модалку без сохранения по кнопке Отмена', () => {
+    const onInsertDraftIntoChapter = vi.fn();
     const chapters = [
       makeChapter('c1', 0, 'Первая глава'),
       makeChapter('c2', 1, 'Вторая глава'),
@@ -236,7 +272,7 @@ describe('Sidebar — секция «Черновики / Свободные с�
     renderSidebar({
       chapters,
       draftScenes: drafts,
-      draftActions: { onConvertDraftToChapter },
+      draftActions: { onInsertDraftIntoChapter },
     });
 
     const menuTrigger = container?.querySelector(
@@ -246,40 +282,117 @@ describe('Sidebar — секция «Черновики / Свободные с�
       menuTrigger.click();
     });
 
-    const afterModeBtn = Array.from(container!.querySelectorAll('button')).find(
-      (b) => b.textContent === 'После…',
+    const insertMenuItem = Array.from(container!.querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.includes('Вставить в существующую главу…'),
     )!;
     act(() => {
-      afterModeBtn.click();
+      insertMenuItem.click();
     });
 
-    // Находим кнопку-триггер кастомного селекта
-    const customSelectTrigger = container?.querySelector('button[aria-label="После какой главы"]') as HTMLButtonElement;
-    expect(customSelectTrigger).toBeTruthy();
+    const insertDialog = container?.querySelector('div[role="dialog"]');
+    expect(insertDialog).toBeTruthy();
 
-    // Кликаем по триггеру для открытия списка опций
+    const select = insertDialog?.querySelector('select#insert-target-chapter') as HTMLSelectElement;
+    expect(select).toBeTruthy();
     act(() => {
-      customSelectTrigger.click();
+      select.value = 'c2';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
-    // Находим опцию "После: 1. Первая глава" в кастомном role="listbox"
-    const option1 = Array.from(container!.querySelectorAll<HTMLButtonElement>('button[role="option"]')).find(
-      (b) => b.textContent?.includes('Первая глава'),
-    )!;
-    expect(option1).toBeTruthy();
-
-    act(() => {
-      option1.click();
-    });
-
-    // Подтверждаем перенос
-    const convertConfirmBtn = Array.from(container!.querySelectorAll<HTMLButtonElement>('button.ctx-item')).find(
-      (b) => b.textContent === 'Превратить в главу',
+    // Нажимаем Отмена — действие не вызывается, модалка закрывается
+    const cancelBtn = Array.from(insertDialog!.querySelectorAll<HTMLButtonElement>('button.btn--ghost')).find(
+      (b) => b.textContent?.includes('Отмена'),
     )!;
     act(() => {
-      convertConfirmBtn.click();
+      cancelBtn.click();
     });
 
-    expect(onConvertDraftToChapter).toHaveBeenCalledWith('d1', { mode: 'after', afterChapterId: 'c1' });
+    expect(onInsertDraftIntoChapter).not.toHaveBeenCalled();
+  });
+
+  it('при отсутствии глав в книге пункт «Вставить в существующую главу…» скрыт, доступна только конвертация и удаление', () => {
+    const onConvertDraftToChapter = vi.fn();
+    const onInsertDraftIntoChapter = vi.fn();
+    const onDeleteDraft = vi.fn();
+    const drafts = [makeDraft('d1', 0, 'Начало пути', 30)];
+
+    renderSidebar({
+      chapters: [],
+      draftScenes: drafts,
+      draftActions: {
+        onConvertDraftToChapter,
+        onInsertDraftIntoChapter,
+        onDeleteDraft,
+      },
+    });
+
+    const menuTrigger = container?.querySelector(
+      'button[aria-label="Действия с черновиком: Начало пути"]',
+    ) as HTMLButtonElement;
+    expect(menuTrigger).toBeTruthy();
+    expect(menuTrigger.getAttribute('aria-expanded')).toBe('false');
+    expect(menuTrigger.getAttribute('aria-haspopup')).toBe('menu');
+
+    act(() => {
+      menuTrigger.click();
+    });
+    expect(menuTrigger.getAttribute('aria-expanded')).toBe('true');
+
+    const ctxMenu = container?.querySelector('.ctx-menu');
+    expect(ctxMenu).toBeTruthy();
+    expect(ctxMenu?.textContent).toContain('Превратить в отдельную главу…');
+    expect(ctxMenu?.textContent).not.toContain('Вставить в существующую главу…');
+    expect(ctxMenu?.textContent).toContain('Удалить черновик');
+
+    // Кликаем по «Превратить в отдельную главу…»
+    const convertBtn = Array.from(ctxMenu!.querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.includes('Превратить в отдельную главу…'),
+    )!;
+    act(() => {
+      convertBtn.click();
+    });
+
+    const dialog = container?.querySelector('div[role="dialog"]');
+    expect(dialog).toBeTruthy();
+    // При 0 глав кнопки «После выбранной главы» нет
+    expect(dialog?.textContent).not.toContain('После выбранной главы');
+
+    // Подтверждаем конвертацию
+    const confirmBtn = Array.from(dialog!.querySelectorAll<HTMLButtonElement>('button.btn--primary')).find(
+      (b) => b.textContent?.includes('Превратить в главу'),
+    )!;
+    act(() => {
+      confirmBtn.click();
+    });
+
+    expect(onConvertDraftToChapter).toHaveBeenCalledWith('d1', { mode: 'end' });
+  });
+
+  it('закрывает меню действий по нажатию Escape и возвращает фокус на кнопку вызова', () => {
+    const drafts = [makeDraft('d1', 0, 'Пролог сцены', 40)];
+
+    renderSidebar({
+      chapters: [makeChapter('c1', 0, 'Глава 1')],
+      draftScenes: drafts,
+      draftActions: {
+        onConvertDraftToChapter: vi.fn(),
+      },
+    });
+
+    const menuTrigger = container?.querySelector(
+      'button[aria-label="Действия с черновиком: Пролог сцены"]',
+    ) as HTMLButtonElement;
+
+    act(() => {
+      menuTrigger.click();
+    });
+    expect(container?.querySelector('.ctx-menu')).toBeTruthy();
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+
+    expect(container?.querySelector('.ctx-menu')).toBeNull();
+    expect(document.activeElement).toBe(menuTrigger);
   });
 });

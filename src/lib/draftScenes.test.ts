@@ -53,6 +53,8 @@ import {
   buildChaptersAfterInsert,
   convertDraftSceneToChapter,
   insertDraftSceneIntoChapter,
+  isDefaultDraftSceneTitle,
+  resolveConvertedChapterTitle,
   type DraftScene,
 } from './draftScenes';
 import type { Chapter, ChapterMeta } from './chapters';
@@ -143,6 +145,79 @@ describe('draftScenes repository CRUD', () => {
     mockRepoDelete.mockResolvedValueOnce(undefined);
     await deleteDraftScene('draft-1');
     expect(mockRepoDelete).toHaveBeenCalledWith('draft-1');
+  });
+});
+
+describe('isDefaultDraftSceneTitle & resolveConvertedChapterTitle', () => {
+  it('распознает дефолтные и технические названия черновиков', () => {
+    expect(isDefaultDraftSceneTitle('')).toBe(true);
+    expect(isDefaultDraftSceneTitle('   ')).toBe(true);
+    expect(isDefaultDraftSceneTitle(null)).toBe(true);
+    expect(isDefaultDraftSceneTitle(undefined)).toBe(true);
+    expect(isDefaultDraftSceneTitle('Сцена')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Сцена 1')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Сцена 1.')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Сцена № 1')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Сцена №2')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Сцена #3')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Сцена - 4')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Сцена (5)')).toBe(true);
+    expect(isDefaultDraftSceneTitle('сцена 42')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Черновик')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Черновик 3')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Черновик (2)')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Scene')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Scene 2')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Draft')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Draft 5')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Глава')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Глава 1')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Chapter 1')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Без названия')).toBe(true);
+    expect(isDefaultDraftSceneTitle('Untitled')).toBe(true);
+
+    // Авторские названия не считаются дефолтными
+    expect(isDefaultDraftSceneTitle('Ночной разговор на мосту')).toBe(false);
+    expect(isDefaultDraftSceneTitle('Ночной побег')).toBe(false);
+    expect(isDefaultDraftSceneTitle('Глава 1. Пробуждение')).toBe(false);
+    expect(isDefaultDraftSceneTitle('Сцена 1: Погоня')).toBe(false);
+    expect(isDefaultDraftSceneTitle('Пролог')).toBe(false);
+  });
+
+  it('вычисляет заголовок «Глава 1» для пустой книги при дефолтном названии сцены', () => {
+    expect(resolveConvertedChapterTitle('Сцена 1', [], 0)).toBe('Глава 1');
+    expect(resolveConvertedChapterTitle('Черновик', [], 0)).toBe('Глава 1');
+    expect(resolveConvertedChapterTitle('', [], 0)).toBe('Глава 1');
+  });
+
+  it('вычисляет правильный номер «Глава N» на основе существующих регулярных глав', () => {
+    const chapters = [
+      makeChapterMeta('c1', 0, 'Глава 1'),
+      makeChapterMeta('c2', 1, 'Глава 2'),
+    ];
+    // В конец:
+    expect(resolveConvertedChapterTitle('Сцена 1', chapters, 2)).toBe('Глава 3');
+    // В начало:
+    expect(resolveConvertedChapterTitle('Сцена 1', chapters, 0)).toBe('Глава 1');
+    // Между 1 и 2:
+    expect(resolveConvertedChapterTitle('Сцена 1', chapters, 1)).toBe('Глава 2');
+  });
+
+  it('игнорирует служебные главы (Пролог) при подсчете номера обычной главы', () => {
+    const chaptersWithPrologue = [
+      makeChapterMeta('c0', 0, 'Пролог'),
+      makeChapterMeta('c1', 1, 'Глава 1'),
+    ];
+    // После Пролога, но до Главы 1 (insertIndex = 1):
+    expect(resolveConvertedChapterTitle('Сцена 1', chaptersWithPrologue, 1)).toBe('Глава 1');
+    // В конец:
+    expect(resolveConvertedChapterTitle('Сцена 2', chaptersWithPrologue, 2)).toBe('Глава 2');
+  });
+
+  it('сохраняет авторское творческое название сцены без изменений', () => {
+    const chapters = [makeChapterMeta('c1', 0, 'Глава 1')];
+    expect(resolveConvertedChapterTitle('Ночной побег', chapters, 1)).toBe('Ночной побег');
+    expect(resolveConvertedChapterTitle('Глава 2. Тени прошлого', chapters, 1)).toBe('Глава 2. Тени прошлого');
   });
 });
 
@@ -259,15 +334,16 @@ describe('convertDraftSceneToChapter', () => {
     expect(result.nextChapters.map((c) => c.id)).toEqual(['c1', 'c2', 'c3']);
   });
 
-  it('превращает черновик в главу после выбранной главы и перенумеровывает позиции', async () => {
+  it('превращает черновик с пустым названием в регулярную главу и перенумеровывает последующие главы', async () => {
     const scene = makeDraftScene({ title: '   ' });
     const createdChapter: Chapter = {
-      ...makeChapterMeta('c-new', 1, 'Без названия'),
+      ...makeChapterMeta('c-new', 1, 'Глава 2'),
       content: scene.content,
       words: 7,
     };
     mockCreateChapter.mockResolvedValueOnce(createdChapter);
     mockReorderChapters.mockResolvedValueOnce(undefined);
+    mockRenumberChapters.mockResolvedValueOnce(undefined);
     mockRepoDelete.mockResolvedValueOnce(undefined);
 
     const result = await convertDraftSceneToChapter(scene, existing, {
@@ -276,18 +352,113 @@ describe('convertDraftSceneToChapter', () => {
     });
 
     expect(mockCreateChapter).toHaveBeenCalledWith('book-1', 'user-1', {
-      title: 'Без названия',
+      title: 'Глава 2',
       content: scene.content,
       words: 7,
       position: 1,
     });
     expect(mockReorderChapters).toHaveBeenCalledWith([{ id: 'c2', position: 2 }]);
-    expect(mockRepoDelete).toHaveBeenCalledWith('draft-1');
-    expect(result.nextChapters.map((c) => ({ id: c.id, position: c.position }))).toEqual([
-      { id: 'c1', position: 0 },
-      { id: 'c-new', position: 1 },
-      { id: 'c2', position: 2 },
+    expect(mockRenumberChapters).toHaveBeenCalledWith([
+      { id: 'c2', title: 'Глава 3', book_id: 'book-1', user_id: 'user-1' },
     ]);
+    expect(mockRepoDelete).toHaveBeenCalledWith('draft-1');
+    expect(result.nextChapters.map((c) => ({ id: c.id, title: c.title, position: c.position }))).toEqual([
+      { id: 'c1', title: 'Глава 1', position: 0 },
+      { id: 'c-new', title: 'Глава 2', position: 1 },
+      { id: 'c2', title: 'Глава 3', position: 2 },
+    ]);
+  });
+
+  it('конвертация черновика с названием «Сцена 1» дает регулярную «Глава 2» при вставке после «Глава 1»', async () => {
+    const scene = makeDraftScene({ id: 'draft-s1', title: 'Сцена 1' });
+    const createdChapter: Chapter = {
+      ...makeChapterMeta('c-after-1', 1, 'Глава 2'),
+      content: scene.content,
+      words: 7,
+    };
+    mockCreateChapter.mockResolvedValueOnce(createdChapter);
+    mockReorderChapters.mockResolvedValueOnce(undefined);
+    mockRenumberChapters.mockResolvedValueOnce(undefined);
+    mockRepoDelete.mockResolvedValueOnce(undefined);
+
+    const result = await convertDraftSceneToChapter(scene, existing, {
+      mode: 'after',
+      afterChapterId: 'c1',
+    });
+
+    expect(mockCreateChapter).toHaveBeenCalledWith('book-1', 'user-1', {
+      title: 'Глава 2',
+      content: scene.content,
+      words: 7,
+      position: 1,
+    });
+    expect(result.chapter.title).toBe('Глава 2');
+    expect(mockRenumberChapters).toHaveBeenCalledWith([
+      { id: 'c2', title: 'Глава 3', book_id: 'book-1', user_id: 'user-1' },
+    ]);
+    expect(result.nextChapters.map((c) => c.title)).toEqual(['Глава 1', 'Глава 2', 'Глава 3']);
+  });
+
+  it('последовательная конвертация нескольких дефолтных черновиков создает главы «Глава 1», «Глава 2», без дублирования «Сцена 1»', async () => {
+    // 1. Первая сцена конвертируется в пустую книгу
+    const sceneA = makeDraftScene({ id: 'draft-a', title: 'Сцена 1' });
+    const chapterA: Chapter = {
+      ...makeChapterMeta('ch-a', 0, 'Глава 1'),
+      content: sceneA.content,
+      words: 5,
+    };
+    mockCreateChapter.mockResolvedValueOnce(chapterA);
+    mockRepoDelete.mockResolvedValueOnce(undefined);
+
+    const step1 = await convertDraftSceneToChapter(sceneA, [], { mode: 'end' });
+    expect(mockCreateChapter).toHaveBeenLastCalledWith('book-1', 'user-1', {
+      title: 'Глава 1',
+      content: sceneA.content,
+      words: 7,
+      position: 0,
+    });
+    expect(step1.chapter.title).toBe('Глава 1');
+    expect(step1.nextChapters.map((c) => c.title)).toEqual(['Глава 1']);
+
+    // 2. Вторая дефолтная сцена «Сцена 2» конвертируется в конец книги
+    const sceneB = makeDraftScene({ id: 'draft-b', title: 'Сцена 2' });
+    const chapterB: Chapter = {
+      ...makeChapterMeta('ch-b', 1, 'Глава 2'),
+      content: sceneB.content,
+      words: 5,
+    };
+    mockCreateChapter.mockResolvedValueOnce(chapterB);
+    mockRepoDelete.mockResolvedValueOnce(undefined);
+
+    const step2 = await convertDraftSceneToChapter(sceneB, step1.nextChapters, { mode: 'end' });
+    expect(mockCreateChapter).toHaveBeenLastCalledWith('book-1', 'user-1', {
+      title: 'Глава 2',
+      content: sceneB.content,
+      words: 7,
+      position: 1,
+    });
+    expect(step2.chapter.title).toBe('Глава 2');
+    expect(step2.nextChapters.map((c) => c.title)).toEqual(['Глава 1', 'Глава 2']);
+
+    // 3. Третья дефолтная сцена без номера «Сцена» конвертируется в конец
+    const sceneC = makeDraftScene({ id: 'draft-c', title: 'Сцена' });
+    const chapterC: Chapter = {
+      ...makeChapterMeta('ch-c', 2, 'Глава 3'),
+      content: sceneC.content,
+      words: 5,
+    };
+    mockCreateChapter.mockResolvedValueOnce(chapterC);
+    mockRepoDelete.mockResolvedValueOnce(undefined);
+
+    const step3 = await convertDraftSceneToChapter(sceneC, step2.nextChapters, { mode: 'end' });
+    expect(mockCreateChapter).toHaveBeenLastCalledWith('book-1', 'user-1', {
+      title: 'Глава 3',
+      content: sceneC.content,
+      words: 7,
+      position: 2,
+    });
+    expect(step3.chapter.title).toBe('Глава 3');
+    expect(step3.nextChapters.map((c) => c.title)).toEqual(['Глава 1', 'Глава 2', 'Глава 3']);
   });
 
   it('не удаляет черновик при ошибке создания главы', async () => {
