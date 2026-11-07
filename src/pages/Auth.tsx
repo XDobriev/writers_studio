@@ -1,16 +1,26 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useResponsive } from '../lib/useResponsive';
 import { usePostAuthRedirect } from '../lib/usePostAuthRedirect';
 import { useTelegramAuth } from '../lib/useTelegramAuth';
 import { usePageMeta } from '../lib/usePageMeta';
 import { LogoMark } from '../components/LogoMark';
+import { Icon } from '../components/Icon';
 import { AuthForm } from '../components/AuthForm';
 import { PendingCheckoutPanel } from '../components/PendingCheckoutPanel';
+import { applyTheme, getStoredTheme, type Theme } from '../lib/theme';
 
 export default function Auth() {
+  const [theme, setTheme] = useState<Theme>(getStoredTheme);
   const tgAuth = useTelegramAuth();
   const { redirectingToPay, pendingCheckout, confirmCheckout, cancelCheckout } = usePostAuthRedirect(tgAuth.busy);
   const { isMobile } = useResponsive();
+
+  const toggleTheme = () => {
+    const next: Theme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    applyTheme(next);
+  };
   usePageMeta({
     title: 'Вход — Авторская студия',
     description: 'Войдите или создайте аккаунт. Email, Telegram, ВКонтакте.',
@@ -29,7 +39,35 @@ export default function Auth() {
   }
 
   return (
-    <div className="as" style={{ minHeight: '100dvh', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.05fr 1fr', background: 'var(--bg)' }}>
+    <div className="as" style={{ minHeight: '100dvh', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.05fr 1fr', background: 'var(--bg)', position: 'relative' }}>
+      <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label={theme === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему'}
+        title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+        className="tb-btn"
+        style={{
+          position: 'fixed',
+          top: isMobile ? 16 : 24,
+          right: isMobile ? 16 : 24,
+          width: 36,
+          height: 36,
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          color: 'var(--ink-2)',
+          cursor: 'pointer',
+          zIndex: 50,
+          boxShadow: '0 2px 8px oklch(0 0 0 / 0.1)',
+          transition: 'background var(--dur-hover), color var(--dur-hover)',
+        }}
+      >
+        <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
+      </button>
+
       <div style={{ position: 'relative', padding: isMobile ? '32px 24px' : 'clamp(36px, 4.5vw, 56px) clamp(28px, 4.5vw, 64px)', background: 'var(--bg-deep)', borderRight: isMobile ? 'none' : '1px solid var(--border-soft)', borderBottom: isMobile ? '1px solid var(--border-soft)' : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: isMobile ? 32 : 0 }}>
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', margin: '-10px 0', textDecoration: 'none' }}>
           <LogoMark size={20} />
