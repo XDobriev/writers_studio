@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Skeleton } from '../components/Skeleton';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { toUserMessage } from '../lib/errors';
@@ -80,7 +80,6 @@ export default function Home() {
   const [showImport, setShowImport] = useState(false);
   const [showFork, setShowFork] = useState(false);
   const [forkSeriesTransfer, setForkSeriesTransfer] = useState<SeriesTransferState>(INITIAL_SERIES_TRANSFER);
-  const trialResumeRef = useRef<(() => void) | null>(null);
 
   const [editBook, setEditBook] = useState<Book | null>(null);
   const [confirmDeleteBook, setConfirmDeleteBook] = useState(false);
@@ -127,10 +126,6 @@ export default function Home() {
     const nonSampleBooks = (books ?? []).filter((b) => !isSampleBook(b));
     if (nonSampleBooks.length >= limits.maxBooks) {
       setUpgradeFeature('books');
-      trialResumeRef.current = () => {
-        setForkSeriesTransfer(INITIAL_SERIES_TRANSFER);
-        setShowFork(true);
-      };
       setShowUpgrade(true);
       return;
     }
@@ -164,10 +159,8 @@ export default function Home() {
 
   // Импорт создаёт новую книгу — тот же лимит Free, что и «Новая книга».
   const handleImportClick = () => {
-    const nonSampleBooks = (books ?? []).filter((b) => !isSampleBook(b));
-    if (nonSampleBooks.length >= limits.maxBooks) {
+    if ((books?.length ?? 0) >= limits.maxBooks) {
       setUpgradeFeature('books');
-      trialResumeRef.current = () => setShowImport(true);
       setShowUpgrade(true);
     } else {
       setShowImport(true);
@@ -177,7 +170,6 @@ export default function Home() {
   const handleImportNeedsPro = useCallback(() => {
     setShowImport(false);
     setUpgradeFeature('import');
-    trialResumeRef.current = null;
     setShowUpgrade(true);
   }, []);
 
@@ -186,10 +178,6 @@ export default function Home() {
     const nonSampleBooks = (books ?? []).filter((b) => !isSampleBook(b));
     if (nonSampleBooks.length >= limits.maxBooks) {
       setUpgradeFeature('books');
-      trialResumeRef.current = () => {
-        setForkSeriesTransfer({ ...INITIAL_SERIES_TRANSFER, enabled: true, sourceBookId: source.id });
-        setShowFork(true);
-      };
       setShowUpgrade(true);
       return;
     }
@@ -385,19 +373,7 @@ export default function Home() {
         onUploadCover={handleUploadCoverForFork}
       />
 
-      <UpgradePrompt
-        open={showUpgrade}
-        feature={upgradeFeature}
-        onClose={() => {
-          setShowUpgrade(false);
-          trialResumeRef.current = null;
-        }}
-        onTrialActivated={() => {
-          const resume = trialResumeRef.current;
-          trialResumeRef.current = null;
-          resume?.();
-        }}
-      />
+      <UpgradePrompt open={showUpgrade} feature={upgradeFeature} onClose={() => setShowUpgrade(false)} />
 
       <ImportManuscriptModal
         isOpen={showImport}

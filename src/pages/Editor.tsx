@@ -183,6 +183,7 @@ export default function Editor() {
   }, [bookId, draftScenes, bookStructure, activeDraftId, chapters, search, setSearch]);
 
   const onConvertDraftToChapter = useCallback(async (sceneId: string, placement: DraftConvertPlacement) => {
+    await flushDraftSave();
     const res = await bookStructure.convertDraftToChapter(sceneId, placement);
     if (res) {
       const next = new URLSearchParams(search);
@@ -190,7 +191,7 @@ export default function Editor() {
       next.set('chapter', res.chapter.id);
       setSearch(next, { replace: false });
     }
-  }, [bookStructure, search, setSearch]);
+  }, [bookStructure, search, setSearch, flushDraftSave]);
 
   const onInsertDraftIntoChapter = useCallback(async (
     sceneId: string,
@@ -198,6 +199,7 @@ export default function Editor() {
     position: DraftInsertPosition,
   ) => {
     await flush();
+    await flushDraftSave();
     const updated = await bookStructure.insertDraftToChapter(sceneId, targetChapterId, position);
     if (updated) {
       const next = new URLSearchParams(search);
@@ -205,7 +207,7 @@ export default function Editor() {
       next.set('chapter', targetChapterId);
       setSearch(next, { replace: false });
     }
-  }, [flush, bookStructure, search, setSearch]);
+  }, [flush, flushDraftSave, bookStructure, search, setSearch]);
 
   const onDraftContentChange = useCallback((html: string) => {
     if (!activeDraft || !bookId) return;

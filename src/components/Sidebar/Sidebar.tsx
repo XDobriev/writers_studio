@@ -6,7 +6,7 @@ import { Icon } from '../Icon';
 import { LogoMark } from '../LogoMark';
 import { NOVEL } from '../../data/sample';
 import { type ChapterMeta, type ChapterStatus, type ChapterActions, renumberChapters } from '../../lib/chapters';
-import { type DraftScene, type DraftSceneActions, type DraftConvertPlacement, type DraftInsertPosition } from '../../lib/draftScenes';
+import { type DraftScene, type DraftSceneActions } from '../../lib/draftScenes';
 import { computeChapterRanks, recalculateBookChapterTitles, type ChapterType } from '../../lib/chapterNumbering';
 import { invalidateChaptersCache } from '../../lib/chapterMutations';
 import { useMemo, useCallback } from 'react';
@@ -16,6 +16,7 @@ import { Skeleton } from '../Skeleton';
 import { SidebarNav } from './SidebarNav';
 import { SidebarFoot } from './SidebarFoot';
 import { ConfirmDialog } from '../ConfirmDialog';
+import { ConvertDraftModal, InsertDraftModal } from '../DraftModals';
 import { useFeatureFlag } from '../../lib/useFeatureFlag';
 import { useErrorState } from '../../lib/useErrorState';
 import { ErrorBanner } from '../ErrorBanner';
@@ -32,167 +33,6 @@ const SB_STATUS_COLOR: Record<ChapterStatus, string> = {
   progress: 'var(--accent-2)',
   done: 'var(--ok)',
 };
-
-interface ChapterSelectDropdownProps {
-  chapters: ChapterMeta[];
-  value: string;
-  onChange: (id: string) => void;
-  ariaLabel: string;
-  prefix?: string;
-}
-
-function ChapterSelectDropdown({
-  chapters,
-  value,
-  onChange,
-  ariaLabel,
-  prefix,
-}: ChapterSelectDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const selectedIdx = chapters.findIndex((c) => c.id === value);
-  const selected = selectedIdx >= 0 ? chapters[selectedIdx] : chapters[0];
-  const selectedLabel = selected
-    ? `${prefix ? `${prefix} ` : ''}${selectedIdx >= 0 ? selectedIdx + 1 : 1}. ${selected.title || 'Без названия'}`
-    : 'Выберите главу';
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleDown = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleDown);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handleDown);
-      document.removeEventListener('keydown', handleKey);
-    };
-  }, [isOpen]);
-
-  return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', marginBottom: 6 }}>
-      <button
-        type="button"
-        aria-label={ariaLabel}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen((v) => !v)}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 6,
-          padding: '5px 8px',
-          fontSize: 11.5,
-          fontFamily: 'var(--font-ui)',
-          borderRadius: 6,
-          border: '1px solid var(--border-soft)',
-          background: 'var(--surface-2)',
-          color: 'var(--ink)',
-          cursor: 'pointer',
-          textAlign: 'left',
-          transition: 'border-color 0.12s, background 0.12s',
-        }}
-      >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-          {selectedLabel}
-        </span>
-        <span
-          style={{
-            transform: isOpen ? 'rotate(180deg)' : undefined,
-            transition: 'transform 0.12s',
-            color: 'var(--ink-4)',
-            flexShrink: 0,
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-        >
-          <Icon name="chevd" size={11} />
-        </span>
-      </button>
-
-      {isOpen && (
-        <div
-          role="listbox"
-          aria-label={ariaLabel}
-          style={{
-            position: 'relative',
-            maxHeight: 140,
-            overflowY: 'auto',
-            background: 'var(--surface-2)',
-            border: '1px solid var(--border)',
-            borderRadius: 6,
-            marginTop: 4,
-            padding: 2,
-            boxShadow: '0 4px 12px oklch(0 0 0 / 0.18)',
-            zIndex: 10,
-          }}
-        >
-          {chapters.map((ch, idx) => {
-            const isCur = ch.id === value;
-            return (
-              <button
-                key={ch.id}
-                role="option"
-                aria-selected={isCur}
-                type="button"
-                onClick={() => {
-                  onChange(ch.id);
-                  setIsOpen(false);
-                }}
-                className="ctx-item"
-                style={{
-                  padding: '4px 8px',
-                  fontSize: 11,
-                  borderRadius: 4,
-                  background: isCur ? 'var(--accent-soft)' : undefined,
-                  color: isCur ? 'var(--accent)' : 'var(--ink)',
-                }}
-              >
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {prefix ? `${prefix} ` : ''}{idx + 1}. {ch.title || 'Без названия'}
-                </span>
-                {isCur && <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--accent)' }}>✓</span>}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Синхронизированный select для вспомогательных технологий и тестов */}
-      <select
-        aria-label={ariaLabel}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        tabIndex={-1}
-        style={{
-          position: 'absolute',
-          opacity: 0,
-          pointerEvents: 'none',
-          width: 1,
-          height: 1,
-          margin: -1,
-          clip: 'rect(0 0 0 0)',
-        }}
-      >
-        {chapters.map((ch, idx) => (
-          <option key={ch.id} value={ch.id}>
-            {prefix ? `${prefix} ` : ''}{idx + 1}. {ch.title || 'Без названия'}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 interface SidebarProps {
   book?: Book | null;
@@ -230,11 +70,9 @@ export function Sidebar({
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const [draftsExpanded, setDraftsExpanded] = useState(true);
   const [draftMenuFor, setDraftMenuFor] = useState<string | null>(null);
-  const [draftDeleteConfirmFor, setDraftDeleteConfirmFor] = useState<string | null>(null);
-  const [draftConvertMode, setDraftConvertMode] = useState<'end' | 'start' | 'after'>('end');
-  const [draftAfterChapterId, setDraftAfterChapterId] = useState<string>('');
-  const [draftInsertChapterId, setDraftInsertChapterId] = useState<string>('');
-  const [draftInsertPos, setDraftInsertPos] = useState<DraftInsertPosition>('end');
+  const [convertDraftId, setConvertDraftId] = useState<string | null>(null);
+  const [insertDraftId, setInsertDraftId] = useState<string | null>(null);
+  const [deleteDraftId, setDeleteDraftId] = useState<string | null>(null);
   const statusMenuRef = useRef<HTMLButtonElement>(null);
   const draftMenuRef = useRef<HTMLButtonElement>(null);
   const chapterRanks = useMemo(() => computeChapterRanks(chapters ?? []), [chapters]);
@@ -256,7 +94,7 @@ export function Sidebar({
     }
   }, [onTypeChange, book?.id, chapters, queryClient]);
   const dropdownStyle = useDropdownPosition(statusMenuRef, statusMenuFor, { estimatedHeight: 360 });
-  const draftDropdownStyle = useDropdownPosition(draftMenuRef, draftMenuFor, { estimatedHeight: 380 });
+  const draftDropdownStyle = useDropdownPosition(draftMenuRef, draftMenuFor, { estimatedHeight: 130 });
   const draftList = draftScenes ?? [];
 
   useEffect(() => {
@@ -264,21 +102,11 @@ export function Sidebar({
   }, [activeDraftId]);
 
   useEffect(() => {
-    if (chapters && chapters.length > 0) {
-      setDraftAfterChapterId((prev) => (prev && chapters.some((c) => c.id === prev) ? prev : chapters[chapters.length - 1].id));
-      setDraftInsertChapterId((prev) => (prev && chapters.some((c) => c.id === prev) ? prev : chapters[0].id));
-    }
-  }, [chapters]);
-
-  useEffect(() => {
-    if (!draftMenuFor) {
-      setDraftDeleteConfirmFor(null);
-      return;
-    }
+    if (!draftMenuFor) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setDraftMenuFor(null);
-        setDraftDeleteConfirmFor(null);
+        draftMenuRef.current?.focus();
       }
     };
     document.addEventListener('keydown', handler);
@@ -653,7 +481,21 @@ export function Sidebar({
                             onClick={() => setDraftMenuFor(draftMenuFor === d.id ? null : d.id)}
                             title="Действия с черновиком"
                             aria-label={`Действия с черновиком: ${d.title || 'Без названия'}`}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, margin: -4, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4, color: 'var(--ink-3)' }}
+                            aria-haspopup="menu"
+                            aria-expanded={draftMenuFor === d.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: 24,
+                              height: 24,
+                              margin: -4,
+                              background: draftMenuFor === d.id ? 'var(--surface-2)' : 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              borderRadius: 4,
+                              color: draftMenuFor === d.id ? 'var(--ink)' : 'var(--ink-3)',
+                            }}
                           >
                             <Icon name="moremenu" size={13} />
                           </button>
@@ -661,181 +503,69 @@ export function Sidebar({
                             <>
                               <div
                                 style={{ position: 'fixed', inset: 0, zIndex: 'calc(var(--z-dropdown) - 1)' }}
-                                onMouseDown={() => { setDraftMenuFor(null); setDraftDeleteConfirmFor(null); }}
+                                onMouseDown={() => setDraftMenuFor(null)}
                               />
                               {draftDropdownStyle && (
                                 <div
+                                  className="ctx-menu"
+                                  role="menu"
+                                  aria-label="Действия с черновиком"
                                   style={{
                                     ...draftDropdownStyle,
                                     background: 'var(--surface)',
                                     border: '1px solid var(--border-soft)',
                                     borderRadius: 6,
-                                    padding: 6,
-                                    minWidth: 210,
+                                    padding: 4,
+                                    minWidth: 230,
                                     boxShadow: '0 4px 20px oklch(0.05 0.01 50 / 0.18)',
                                     animation: 'dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both',
                                     overscrollBehavior: 'contain',
                                   }}
                                 >
                                   {onConvertDraftToChapter && (
-                                    <div style={{ padding: '4px 6px' }}>
-                                      <div style={{ font: '500 11.5px/1.3 var(--font-ui)', color: 'var(--ink-2)', marginBottom: 8 }}>
-                                        Превратить в главу
-                                      </div>
-                                      <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
-                                        {([
-                                          ['end', 'В конец'],
-                                          ['start', 'В начало'],
-                                          ...(chapters && chapters.length > 0 ? [['after', 'После…'] as const] : []),
-                                        ] as const).map(([m, lbl]) => (
-                                          <button
-                                            key={m}
-                                            type="button"
-                                            onClick={() => setDraftConvertMode(m)}
-                                            style={{
-                                              flex: 1,
-                                              padding: '5px 8px',
-                                              font: '500 11px/1.2 var(--font-ui)',
-                                              borderRadius: 6,
-                                              border: draftConvertMode === m ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
-                                              background: draftConvertMode === m ? 'var(--accent-soft)' : 'var(--surface-2)',
-                                              color: draftConvertMode === m ? 'var(--accent)' : 'var(--ink-2)',
-                                              cursor: 'pointer',
-                                              transition: 'all 0.12s ease',
-                                              textAlign: 'center',
-                                            }}
-                                          >
-                                            {lbl}
-                                          </button>
-                                        ))}
-                                      </div>
-                                      {draftConvertMode === 'after' && chapters && chapters.length > 0 && (
-                                        <ChapterSelectDropdown
-                                          ariaLabel="После какой главы"
-                                          value={draftAfterChapterId || chapters[chapters.length - 1].id}
-                                          onChange={(id) => setDraftAfterChapterId(id)}
-                                          chapters={chapters}
-                                          prefix="После"
-                                        />
-                                      )}
-                                       <button
-                                         type="button"
-                                         className="btn btn--primary ctx-item"
-                                         style={{ width: '100%', height: 28, fontSize: 11.5, justifyContent: 'center' }}
-                                        onClick={() => {
-                                          const placement: DraftConvertPlacement =
-                                            draftConvertMode === 'start'
-                                              ? { mode: 'start' }
-                                              : draftConvertMode === 'after' && chapters && chapters.length > 0
-                                                ? { mode: 'after', afterChapterId: draftAfterChapterId || chapters[chapters.length - 1].id }
-                                                : { mode: 'end' };
-                                          void onConvertDraftToChapter(d.id, placement);
-                                          setDraftMenuFor(null);
-                                        }}
-                                      >
-                                        Превратить в главу
-                                      </button>
-                                    </div>
+                                    <button
+                                      type="button"
+                                      role="menuitem"
+                                      className="ctx-item"
+                                      onClick={() => {
+                                        setConvertDraftId(d.id);
+                                        setDraftMenuFor(null);
+                                      }}
+                                    >
+                                      <Icon name="book" size={13} />
+                                      <span>Превратить в отдельную главу…</span>
+                                    </button>
                                   )}
-
                                   {onInsertDraftIntoChapter && chapters && chapters.length > 0 && (
-                                    <>
-                                      <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
-                                      <div style={{ padding: '4px 6px' }}>
-                                        <div style={{ font: '500 11.5px/1.3 var(--font-ui)', color: 'var(--ink-2)', marginBottom: 8 }}>
-                                          Вставить в существующую главу
-                                        </div>
-                                        <ChapterSelectDropdown
-                                          ariaLabel="Целевая глава для вставки"
-                                          value={draftInsertChapterId || chapters[0].id}
-                                          onChange={(id) => setDraftInsertChapterId(id)}
-                                          chapters={chapters}
-                                        />
-                                        <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
-                                          {([
-                                            ['end', 'В конец главы'],
-                                            ['start', 'В начало главы'],
-                                          ] as const).map(([pos, lbl]) => (
-                                            <button
-                                              key={pos}
-                                              type="button"
-                                              onClick={() => setDraftInsertPos(pos)}
-                                              style={{
-                                                flex: 1,
-                                                padding: '5px 8px',
-                                                font: '500 11px/1.2 var(--font-ui)',
-                                                borderRadius: 6,
-                                                border: draftInsertPos === pos ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
-                                                background: draftInsertPos === pos ? 'var(--accent-soft)' : 'var(--surface-2)',
-                                                color: draftInsertPos === pos ? 'var(--accent)' : 'var(--ink-2)',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.12s ease',
-                                                textAlign: 'center',
-                                              }}
-                                            >
-                                              {lbl}
-                                            </button>
-                                          ))}
-                                        </div>
-                                        <button
-                                          type="button"
-                                          className="btn btn--primary ctx-item"
-                                          style={{ width: '100%', height: 28, fontSize: 11.5, justifyContent: 'center' }}
-                                          onClick={() => {
-                                            const targetId = draftInsertChapterId || chapters[0].id;
-                                            void onInsertDraftIntoChapter(d.id, targetId, draftInsertPos);
-                                            setDraftMenuFor(null);
-                                          }}
-                                        >
-                                          Вставить в существующую главу
-                                        </button>
-                                      </div>
-                                    </>
+                                    <button
+                                      type="button"
+                                      role="menuitem"
+                                      className="ctx-item"
+                                      onClick={() => {
+                                        setInsertDraftId(d.id);
+                                        setDraftMenuFor(null);
+                                      }}
+                                    >
+                                      <Icon name="plus" size={13} />
+                                      <span>Вставить в существующую главу…</span>
+                                    </button>
                                   )}
-
+                                  {onDeleteDraft && (onConvertDraftToChapter || (onInsertDraftIntoChapter && chapters && chapters.length > 0)) && (
+                                    <div role="separator" style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
+                                  )}
                                   {onDeleteDraft && (
-                                    <>
-                                      <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
-                                      {draftDeleteConfirmFor === d.id ? (
-                                        <div style={{ padding: '6px 8px' }}>
-                                          <div style={{ font: '400 11px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 8, lineHeight: 1.4 }}>
-                                            Удалить черновик? Текст будет потерян.
-                                          </div>
-                                          <div style={{ display: 'flex', gap: 6 }}>
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                onDeleteDraft(d.id);
-                                                setDraftMenuFor(null);
-                                                setDraftDeleteConfirmFor(null);
-                                              }}
-                                              className="btn-inline-danger"
-                                              style={{ flex: 1, padding: '5px 0', fontSize: 11 }}
-                                            >
-                                              Удалить
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() => setDraftDeleteConfirmFor(null)}
-                                              className="btn btn--ghost"
-                                              style={{ flex: 1, fontSize: 11, padding: '5px 0', height: 26, justifyContent: 'center' }}
-                                            >
-                                              Отмена
-                                            </button>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          onClick={() => setDraftDeleteConfirmFor(d.id)}
-                                          className="ctx-item ctx-item--danger"
-                                          style={{ fontSize: 11.5, padding: '6px 8px' }}
-                                        >
-                                          <Icon name="trash" size={12} />
-                                          Удалить черновик
-                                        </button>
-                                      )}
-                                    </>
+                                    <button
+                                      type="button"
+                                      role="menuitem"
+                                      className="ctx-item ctx-item--danger"
+                                      onClick={() => {
+                                        setDeleteDraftId(d.id);
+                                        setDraftMenuFor(null);
+                                      }}
+                                    >
+                                      <Icon name="trash" size={13} />
+                                      <span>Удалить черновик</span>
+                                    </button>
                                   )}
                                 </div>
                               )}
@@ -873,6 +603,43 @@ export function Sidebar({
 
       </nav>
       </div>{/* /sb-body */}
+
+      <ConvertDraftModal
+        open={Boolean(convertDraftId)}
+        chapters={chapters ?? []}
+        onCancel={() => setConvertDraftId(null)}
+        onConfirm={(placement) => {
+          if (convertDraftId && onConvertDraftToChapter) {
+            void onConvertDraftToChapter(convertDraftId, placement);
+          }
+          setConvertDraftId(null);
+        }}
+      />
+
+      <InsertDraftModal
+        open={Boolean(insertDraftId && chapters && chapters.length > 0)}
+        chapters={chapters ?? []}
+        onCancel={() => setInsertDraftId(null)}
+        onConfirm={(targetChapterId, position) => {
+          if (insertDraftId && onInsertDraftIntoChapter) {
+            void onInsertDraftIntoChapter(insertDraftId, targetChapterId, position);
+          }
+          setInsertDraftId(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteDraftId)}
+        message="Свободная сцена и её текст будут удалены без возможности восстановления."
+        confirmLabel="Удалить черновик"
+        onCancel={() => setDeleteDraftId(null)}
+        onConfirm={async () => {
+          if (deleteDraftId && onDeleteDraft) {
+            await onDeleteDraft(deleteDraftId);
+          }
+          setDeleteDraftId(null);
+        }}
+      />
 
       {!demo && <SidebarFoot />}
     </aside>

@@ -215,15 +215,6 @@ export function useOutlineMutations({
         QUERY_KEYS.draftScenes(bookId),
         (prev) => (prev ? prev.filter((d) => d.id !== sceneId) : prev),
       );
-      const updates = getChaptersNeedingRenumber(nextChapters);
-      if (updates.length > 0) {
-        updateChaptersTitlesWithCache(queryClient, bookId, updates);
-        try {
-          await renumberChapters(updates);
-        } catch {
-          invalidateChaptersCache(queryClient, bookId);
-        }
-      }
       return { chapter, nextChapters };
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось преобразовать черновик');

@@ -13,6 +13,7 @@ export interface EditBookModalProps {
   isOpen: boolean;
   onClose: () => void;
   book: Book | null;
+  defaultAuthor?: string | null;
   onSave: (patch: {
     title: string;
     author: string | null;
@@ -28,6 +29,7 @@ export function EditBookModal({
   isOpen,
   onClose,
   book,
+  defaultAuthor,
   onSave,
   onDelete,
   onUploadCover,
@@ -59,7 +61,7 @@ export function EditBookModal({
     if (book && (!wasOpen || lastBookIdRef.current !== book.id)) {
       lastBookIdRef.current = book.id;
       setTitle(book.title || '');
-      setAuthor(book.author || '');
+      setAuthor(book.author || defaultAuthor || '');
       setGenres(book.genres ?? (book.genre ? [book.genre] : []));
       setGoal(book.goal || 0);
       setCover(book.cover || COVERS[0]);
@@ -67,7 +69,7 @@ export function EditBookModal({
       setSaving(false);
       setUploadingCover(false);
     }
-  }, [isOpen, book]);
+  }, [isOpen, book, defaultAuthor]);
 
   useEscapeToClose(isOpen, () => {
     if (!saving) onClose();

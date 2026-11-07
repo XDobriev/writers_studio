@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../lib/auth';
 import { useProfile, QUERY_KEYS } from '../lib/queries';
@@ -8,6 +8,7 @@ import { updateProfile, uploadAvatar, deleteAvatar, isTrialActive, type Profile 
 import { useErrorState } from '../lib/useErrorState';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { Icon } from '../components/Icon';
+import { UpgradeModal } from '../components/UpgradeModal';
 
 const PLAN_LABEL: Record<string, string> = {
   free: 'Free',
@@ -28,6 +29,7 @@ export default function ProfilePage() {
   const [nameInput, setNameInput] = useState<string>('');
   const [savedFlash, setSavedFlash] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const profileLoaded = profile !== undefined;
@@ -260,13 +262,23 @@ export default function ProfilePage() {
           <div className="profile-readonly">
             <span>{planLoaded ? (isTrial ? 'Пробный период Pro' : (PLAN_LABEL[plan] ?? plan)) : '…'}</span>
             {planLoaded && (plan === 'free' || isTrial) && (
-              <Link to="/offer" className="btn btn--primary btn--sm" style={{ textDecoration: 'none' }}>
+              <button
+                type="button"
+                className="btn btn--primary btn--sm"
+                onClick={() => setShowUpgradeModal(true)}
+              >
                 Перейти на Pro
-              </Link>
+              </button>
             )}
           </div>
         </div>
       </div>
+
+      {showUpgradeModal && (
+        <UpgradeModal
+          onClose={() => setShowUpgradeModal(false)}
+        />
+      )}
     </div>
   );
 }

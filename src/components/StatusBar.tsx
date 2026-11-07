@@ -131,13 +131,13 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
             <span
               role="button"
               tabIndex={0}
-              aria-label={`Дневная цель: ${goalWords.toLocaleString('ru')} слов. Нажмите, чтобы изменить`}
+              aria-label={`Дневная цель: ${goalWords.toLocaleString('ru')} ${plural(goalWords, 'слово', 'слова', 'слов')}. Нажмите, чтобы изменить`}
               title="Нажмите, чтобы изменить цель"
               onClick={() => { setGoalInput(String(goalWords)); setEditingGoal(true); }}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGoalInput(String(goalWords)); setEditingGoal(true); } }}
               style={{ cursor: 'pointer', borderBottom: '1px dashed var(--border)', display: 'inline-flex', alignItems: 'center', alignSelf: 'stretch', padding: '0 2px' }}
             >
-              сегодня · {todayWords.toLocaleString('ru')}/{goalWords.toLocaleString('ru')} слов
+              сегодня · {todayWords.toLocaleString('ru')}/{goalWords.toLocaleString('ru')} {plural(goalWords, 'слово', 'слова', 'слов')}
             </span>
           )}
           {streak !== undefined && streak > 0 && (

@@ -329,6 +329,27 @@ describe('Страница /profile (F-2)', () => {
     );
     expect(input.value).toBe('Несохранённое Имя');
   });
+
+  it('открывает UpgradeModal при нажатии кнопки «Перейти на Pro» на бесплатном тарифе', async () => {
+    currentProfile = makeProfile({ plan: 'free' });
+    renderWithProviders(<ProfilePage />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const upgradeBtn = Array.from(container!.querySelectorAll('button')).find(
+      (b) => b.textContent?.includes('Перейти на Pro'),
+    );
+    expect(upgradeBtn).toBeDefined();
+
+    act(() => {
+      upgradeBtn!.click();
+    });
+
+    const modal = container!.querySelector('[role="dialog"][aria-label="Перейти на Pro"]');
+    expect(modal).not.toBeNull();
+  });
 });
 
 describe('BookCard — отображение имени автора из профиля', () => {

@@ -97,6 +97,96 @@ function drawRoundedRect(
 }
 
 /**
+ * Отрисовывает аккуратный книжный символ-логотип на Canvas
+ */
+function drawBookEmblem(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string,
+) {
+  if (typeof ctx.save === 'function') ctx.save();
+  if (typeof ctx.translate === 'function') ctx.translate(cx, cy);
+  const s = size / 24;
+  if (typeof ctx.scale === 'function') ctx.scale(s, s);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.6;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Разворот книги
+  if (typeof ctx.beginPath === 'function') ctx.beginPath();
+  // Левая страница
+  if (typeof ctx.moveTo === 'function') ctx.moveTo(0, 7);
+  if (typeof ctx.bezierCurveTo === 'function') {
+    ctx.bezierCurveTo(-3, 5, -7, 5, -11, 6);
+    if (typeof ctx.lineTo === 'function') ctx.lineTo(-11, -6);
+    ctx.bezierCurveTo(-7, -7, -3, -7, 0, -4);
+    // Правая страница
+    ctx.bezierCurveTo(3, -7, 7, -7, 11, -6);
+    if (typeof ctx.lineTo === 'function') ctx.lineTo(11, 6);
+    ctx.bezierCurveTo(7, 5, 3, 5, 0, 7);
+  }
+  if (typeof ctx.stroke === 'function') ctx.stroke();
+
+  // Корешок
+  if (typeof ctx.beginPath === 'function') ctx.beginPath();
+  if (typeof ctx.moveTo === 'function') ctx.moveTo(0, -4);
+  if (typeof ctx.lineTo === 'function') ctx.lineTo(0, 7);
+  if (typeof ctx.stroke === 'function') ctx.stroke();
+
+  if (typeof ctx.restore === 'function') ctx.restore();
+}
+
+/**
+ * Отрисовывает аккуратные угловые книжные засечки для рамки
+ */
+function drawOrnamentalCorners(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  len: number,
+  color: string,
+) {
+  if (typeof ctx.save === 'function') ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.2;
+  ctx.lineCap = 'square';
+
+  // 4 уголка
+  if (typeof ctx.beginPath === 'function') {
+    ctx.beginPath();
+    ctx.moveTo(x + len, y);
+    ctx.lineTo(x, y);
+    ctx.lineTo(x, y + len);
+    if (typeof ctx.stroke === 'function') ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x + w - len, y);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w, y + len);
+    if (typeof ctx.stroke === 'function') ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x, y + h - len);
+    ctx.lineTo(x, y + h);
+    ctx.lineTo(x + len, y + h);
+    if (typeof ctx.stroke === 'function') ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x + w - len, y + h);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x + w, y + h - len);
+    if (typeof ctx.stroke === 'function') ctx.stroke();
+  }
+
+  if (typeof ctx.restore === 'function') ctx.restore();
+}
+
+/**
  * Отрисовывает брендовую шеринг-карточку прогресса на Canvas
  */
 export function renderProgressCard(
@@ -171,15 +261,29 @@ export function renderProgressCard(
   ctx.fillStyle = glowGrad;
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Внешняя тонкая рамка
+  // 2. Внешняя тонкая рамка и декоративные книжные уголки
   const margin = isStory ? 54 : 44;
   drawRoundedRect(ctx, margin, margin, width - margin * 2, height - margin * 2, 28);
   ctx.strokeStyle = colors.frameBorder;
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // 3. Шапка: Брендинг и дата
-  const topY = isStory ? 140 : 100;
+  const innerMargin = margin + 14;
+  drawOrnamentalCorners(
+    ctx,
+    innerMargin,
+    innerMargin,
+    width - innerMargin * 2,
+    height - innerMargin * 2,
+    isStory ? 22 : 18,
+    colors.accentSoft,
+  );
+
+  // 3. Шапка: Брендинг, книжная эмблема и дата
+  const emblemY = isStory ? 108 : 74;
+  drawBookEmblem(ctx, width / 2, emblemY, isStory ? 34 : 28, colors.accent);
+
+  const topY = isStory ? 152 : 110;
   ctx.textAlign = 'center';
 
   // Название студии (разрядка)
@@ -275,7 +379,7 @@ export function renderProgressCard(
     ctx.font = '400 20px -apple-system, BlinkMacSystemFont, "IBM Plex Sans", sans-serif';
     ctx.fillStyle = colors.inkMuted;
     ctx.fillText(
-      `Цель: ${fmtNumber(wordsNum)} / ${fmtNumber(goal)} слов (${percent}%)`,
+      `Цель: ${fmtNumber(wordsNum)} / ${fmtNumber(goal)} ${plural(goal, 'слово', 'слова', 'слов')} (${percent}%)`,
       width / 2,
       barY + 42,
     );
@@ -377,8 +481,8 @@ export function renderProgressCard(
     ctx.fillText('Написано без ИИ', width / 2, footerY + 125);
 
     // Название студии и сайт
-    ctx.font = '500 24px -apple-system, BlinkMacSystemFont, "IBM Plex Sans", sans-serif';
-    ctx.fillStyle = colors.inkSecondary;
+    ctx.font = '600 24px -apple-system, BlinkMacSystemFont, "IBM Plex Sans", sans-serif';
+    ctx.fillStyle = colors.accent;
     ctx.fillText('в Авторской студии · avtorstudio.com', width / 2, footerY + 175);
 
     // Тонкий девиз
@@ -391,8 +495,8 @@ export function renderProgressCard(
     ctx.fillStyle = colors.ink;
     ctx.fillText('Написано без ИИ', width / 2, footerY + 45);
 
-    ctx.font = '500 20px -apple-system, BlinkMacSystemFont, "IBM Plex Sans", sans-serif';
-    ctx.fillStyle = colors.inkSecondary;
+    ctx.font = '600 20px -apple-system, BlinkMacSystemFont, "IBM Plex Sans", sans-serif';
+    ctx.fillStyle = colors.accent;
     ctx.fillText('в Авторской студии · avtorstudio.com', width / 2, footerY + 80);
   }
 }

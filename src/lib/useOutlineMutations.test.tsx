@@ -5,6 +5,7 @@ import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ChapterMeta } from './chapters';
+import type { DraftScene } from './draftScenes';
 import { QUERY_KEYS } from './queries';
 
 const createChapterMock = vi.fn();
@@ -63,16 +64,23 @@ describe('useOutlineMutations chapter types & numbering', () => {
     }
   });
 
-  function setup(chapters: ChapterMeta[]) {
+  function setup(
+    chapters: ChapterMeta[],
+    draftScenes: DraftScene[] = [],
+    onCancelDraftSave?: (id: string) => void,
+  ) {
     queryClient.setQueryData(QUERY_KEYS.chapters('book-1'), chapters);
+    queryClient.setQueryData(QUERY_KEYS.draftScenes('book-1'), draftScenes);
 
     function TestComponent() {
       mutations = useOutlineMutations({
         bookId: 'book-1',
         userId: 'user-1',
         chapters,
+        draftScenes,
         navigate: navigateMock,
         setError: setErrorMock,
+        onCancelDraftSave,
       });
       return null;
     }
@@ -275,5 +283,116 @@ describe('useOutlineMutations chapter types & numbering', () => {
     expect(queryClient.getQueryData(QUERY_KEYS.draftScenes('book-1'))).toEqual([
       { id: 'd-2', title: 'Сцена 2' },
     ]);
+  });
+
+  it('convertDraftToChapter вызывает convertDraftSceneToChapter, обновляет кэш глав и удаляет черновик из кэша', async () => {
+    const existingChapters: ChapterMeta[] = [
+      {
+        id: 'c-1',
+        book_id: 'book-1',
+        user_id: 'user-1',
+        title: 'Глава 1',
+        position: 0,
+        words: 500,
+        status: 'draft',
+        synopsis: '',
+        created_at: '2026-01-01',
+        updated_at: '2026-01-01',
+      },
+    ];
+    const draft: DraftScene = {
+      id: 'd-1',
+      book_id: 'book-1',
+      user_id: 'user-1',
+      title: 'Сцена 1',
+      content: '<p>Текст</p>',
+      words: 10,
+      position: 0,
+      created_at: '2026-01-01',
+      updated_at: '2026-01-01',
+    };
+    const cancelMock = vi.fn();
+    setup(existingChapters, [draft], cancelMock);
+
+    const convertedChapter = {
+      ...existingChapters[0],
+      id: 'c-2',
+      title: 'Глава 2',
+      position: 1,
+      content: '<p>Текст</p>',
+      words: 10,
+    };
+    const nextChapters = [...existingChapters, { ...convertedChapter }];
+    convertDraftSceneToChapterMock.mockResolvedValueOnce({
+      chapter: convertedChapter,
+      nextChapters,
+    });
+
+    let res: unknown;
+    await act(async () => {
+      res = await mutations?.convertDraftToChapter('d-1', { mode: 'end' });
+    });
+
+    expect(cancelMock).toHaveBeenCalledWith('d-1');
+    expect(convertDraftSceneToChapterMock).toHaveBeenCalledWith(draft, existingChapters, { mode: 'end' });
+    expect(res).toEqual({ chapter: convertedChapter, nextChapters });
+    expect(queryClient.getQueryData(QUERY_KEYS.chapters('book-1'))).toEqual(nextChapters);
+    expect(queryClient.getQueryData(QUERY_KEYS.draftScenes('book-1'))).toEqual([]);
+    expect(queryClient.getQueryData(QUERY_KEYS.chapterContent('c-2'))).toEqual({
+      id: 'c-2',
+      content: '<p>Текст</p>',
+    });
+  });
+
+  it('insertDraftToChapter вызывает insertDraftSceneIntoChapter и обновляет кэш главы и черновиков', async () => {
+    const existingChapters: ChapterMeta[] = [
+      {
+        id: 'c-1',
+        book_id: 'book-1',
+        user_id: 'user-1',
+        title: 'Глава 1',
+        position: 0,
+        words: 500,
+        status: 'draft',
+        synopsis: '',
+        created_at: '2026-01-01',
+        updated_at: '2026-01-01',
+      },
+    ];
+    const draft: DraftScene = {
+      id: 'd-1',
+      book_id: 'book-1',
+      user_id: 'user-1',
+      title: 'Сцена 1',
+      content: '<p>Текст</p>',
+      words: 10,
+      position: 0,
+      created_at: '2026-01-01',
+      updated_at: '2026-01-01',
+    };
+    const cancelMock = vi.fn();
+    setup(existingChapters, [draft], cancelMock);
+
+    const updatedChapter = {
+      ...existingChapters[0],
+      words: 510,
+      content: '<p>Старый текст</p><p>Текст</p>',
+      updated_at: '2026-01-02',
+    };
+    insertDraftSceneIntoChapterMock.mockResolvedValueOnce(updatedChapter);
+
+    let res: unknown;
+    await act(async () => {
+      res = await mutations?.insertDraftToChapter('d-1', 'c-1', 'end');
+    });
+
+    expect(cancelMock).toHaveBeenCalledWith('d-1');
+    expect(insertDraftSceneIntoChapterMock).toHaveBeenCalledWith(draft, 'c-1', 'end');
+    expect(res).toEqual(updatedChapter);
+    expect(queryClient.getQueryData(QUERY_KEYS.draftScenes('book-1'))).toEqual([]);
+    expect(queryClient.getQueryData(QUERY_KEYS.chapterContent('c-1'))).toEqual({
+      id: 'c-1',
+      content: '<p>Старый текст</p><p>Текст</p>',
+    });
   });
 });
