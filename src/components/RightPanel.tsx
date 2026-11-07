@@ -304,23 +304,31 @@ export function RightPanel({
 
                   {selectedSnippet && (
                     <div className="rp-char-dossier-snippet">
-                      {selectedChar.quote ? `«${selectedSnippet}»` : selectedSnippet}
+                      {selectedChar.quote ? `«${selectedSnippet.replace(/^[«"„]+|[»"“]+$/g, '')}»` : selectedSnippet}
                     </div>
                   )}
 
                   {bookId && (
-                    <button
-                      type="button"
-                      className="rp-char-dossier-link"
-                      onClick={() => navigate(`/books/${bookId}/characters?char=${selectedChar.id}`)}
-                    >
-                      В картотеку →
-                    </button>
+                    <div className="rp-char-dossier-actions">
+                      <button
+                        type="button"
+                        className="rp-char-dossier-link"
+                        onClick={() => navigate(`/books/${bookId}/characters?char=${selectedChar.id}`)}
+                      >
+                        В картотеку →
+                      </button>
+                      <button
+                        type="button"
+                        className="rp-char-dossier-link"
+                        onClick={() => {
+                          const params = new URLSearchParams({ character: selectedChar.id, view: 'relationships', ...(chapterId ? { chapter: chapterId } : {}), from: 'editor' });
+                          navigate(`/books/${bookId}/characters?${params}`);
+                        }}
+                      >
+                        Связи персонажа →
+                      </button>
+                    </div>
                   )}
-                  {bookId && <button type="button" className="rp-char-dossier-link" onClick={() => {
-                    const params = new URLSearchParams({ character: selectedChar.id, view: 'relationships', ...(chapterId ? { chapter: chapterId } : {}), from: 'editor' });
-                    navigate(`/books/${bookId}/characters?${params}`);
-                  }}>Связи персонажа →</button>}
                 </div>
               )}
             </div>

@@ -34,7 +34,8 @@ export function getRelationshipEdge(a: Point, b: Point, central: boolean, center
   const distance = Math.hypot(mid.x - center.x, mid.y - center.y);
   const direction = distance > 0.001 ? { x: (mid.x - center.x) / distance, y: (mid.y - center.y) / distance } : { x: -dy / length, y: dx / length };
   const radius = Math.min(Math.hypot(a.x - center.x, a.y - center.y), Math.hypot(b.x - center.x, b.y - center.y));
-  const offset = (Math.max(distance, Math.min(radius * 0.9, 220), 110) - distance) * 2;
+  const target = Math.min(radius, Math.max(distance + 28, Math.min(radius * 0.92, 220), 110));
+  const offset = (target - distance) * 2;
   const control = { x: mid.x + direction.x * offset, y: mid.y + direction.y * offset };
   return { path: `M ${a.x} ${a.y} Q ${control.x} ${control.y} ${b.x} ${b.y}`,
     label: { x: (mid.x + control.x) / 2, y: (mid.y + control.y) / 2 } };

@@ -19,7 +19,7 @@ import { ConfirmDialog } from '../ConfirmDialog';
 import { useFeatureFlag } from '../../lib/useFeatureFlag';
 import { useErrorState } from '../../lib/useErrorState';
 import { ErrorBanner } from '../ErrorBanner';
-import { QUERY_KEYS } from '../../lib/queries';
+import { useProfile, QUERY_KEYS } from '../../lib/queries';
 
 const SB_STATUS_LABEL: Record<ChapterStatus, string> = {
   draft: 'Черновик',
@@ -225,6 +225,7 @@ export function Sidebar({
   const isReal = Boolean(chapters);
   const showDraftSection = Boolean(draftScenes || draftActions);
   const queryClient = useQueryClient();
+  const { data: authorProfile } = useProfile(demo ? undefined : book?.user_id);
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
   const [deleteConfirmFor, setDeleteConfirmFor] = useState<string | null>(null);
   const [draftsExpanded, setDraftsExpanded] = useState(true);
@@ -372,7 +373,7 @@ export function Sidebar({
           <div className="sb-book-title" title={book?.title ?? NOVEL.title}>{book?.title ?? NOVEL.title}</div>
         )}
         <div className="sb-book-author">
-          {subtitle ?? (book ? [book.author, book.genres?.length ? book.genres.join(', ') : book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`)}
+          {subtitle ?? (book ? [book.author || authorProfile?.display_name?.trim(), book.genres?.length ? book.genres.join(', ') : book.genre].filter(Boolean).join(' · ') || 'без описания' : `${NOVEL.author} · ${NOVEL.genre}`)}
         </div>
         {!demo && book?.id && shareEnabled && (
           <div style={{ marginTop: 8, display: 'flex', gap: 4 }}>

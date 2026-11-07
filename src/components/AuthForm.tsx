@@ -71,7 +71,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
       {/* ── reset-sent ── */}
       {flow === 'reset-sent' && (
         <>
-          <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 8 }}>Проверьте почту.</h2>
+          <h2 style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 8 }}>Проверьте почту.</h2>
           <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.6 }}>
             Ссылка для сброса пароля отправлена на <strong style={{ color: 'var(--ink-2)' }}>{email}</strong>. Перейдите по ней в течение часа.
           </p>
@@ -96,7 +96,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
           >
             ← Назад
           </button>
-          <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6 }}>Сброс пароля.</h2>
+          <h2 style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6 }}>Сброс пароля.</h2>
           <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 24 }}>
             Введите почту — пришлём ссылку для создания нового пароля.
           </p>
@@ -116,7 +116,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
             />
           </div>
           {err && (
-            <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 6, background: 'oklch(0.65 0.18 25 / 0.12)', color: 'var(--danger)', fontSize: 12.5 }}>
+            <div role="alert" style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--r-1)', background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', color: 'var(--danger-ink)', fontSize: 13 }}>
               {err}
             </div>
           )}
@@ -124,7 +124,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
             type="submit"
             disabled={busy || !supabaseConfigured}
             className="btn btn--primary"
-            style={{ width: '100%', height: 44, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
+            style={{ width: '100%', height: 44, fontSize: 13, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
           >
             {busy && <span className="btn-spinner" />}
             {busy ? 'Отправляем…' : 'Отправить ссылку'}
@@ -143,7 +143,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
               onClick={() => handleTabChange('signin')}
               style={{
                 padding: '13px 0', marginRight: 24,
-                font: tab === 'signin' ? '500 14px var(--font-ui)' : '400 14px var(--font-ui)',
+                font: tab === 'signin' ? '500 13px var(--font-ui)' : '400 13px var(--font-ui)',
                 color: tab === 'signin' ? 'var(--ink)' : 'var(--ink-3)',
                 borderBottom: tab === 'signin' ? '1.5px solid var(--accent)' : '1.5px solid transparent',
                 background: 'none', cursor: 'pointer',
@@ -156,7 +156,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
               onClick={() => handleTabChange('signup')}
               style={{
                 padding: '13px 0',
-                font: tab === 'signup' ? '500 14px var(--font-ui)' : '400 14px var(--font-ui)',
+                font: tab === 'signup' ? '500 13px var(--font-ui)' : '400 13px var(--font-ui)',
                 color: tab === 'signup' ? 'var(--ink)' : 'var(--ink-3)',
                 borderBottom: tab === 'signup' ? '1.5px solid var(--accent)' : '1.5px solid transparent',
                 background: 'none', cursor: 'pointer',
@@ -166,17 +166,17 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
 
           {tab === 'signup' && !registrationOpen ? (
             <div style={{ paddingTop: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '12px 14px', borderRadius: 'var(--r-2)', border: '1px solid var(--border)', background: 'var(--surface)' }}>
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 <div>
                   <div style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', marginBottom: 2 }}>Регистрация временно закрыта</div>
-                  <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.5 }}>Новые аккаунты сейчас не принимаются. Если вы уже зарегистрированы — войдите ниже.</div>
+                  <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.5 }}>Новые аккаунты сейчас не принимаются. Если вы уже зарегистрированы — войдите ниже.</div>
                 </div>
               </div>
               <button
                 type="button"
                 className="btn btn--primary"
-                style={{ width: '100%', height: 44, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center' }}
+                style={{ width: '100%', height: 44, fontSize: 13, justifyContent: 'center', display: 'flex', alignItems: 'center' }}
                 onClick={() => setTab('signin')}
               >
                 Войти в студию
@@ -184,7 +184,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
             </div>
           ) : (
             <>
-              <h2 style={{ font: '600 24px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6 }}>
+              <h2 style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em', marginBottom: 6 }}>
                 {tab === 'signin' ? 'С возвращением.' : 'Откройте студию.'}
               </h2>
               <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', marginBottom: 24 }}>
@@ -192,7 +192,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
               </p>
 
               {!supabaseConfigured && (
-                <div style={{ marginBottom: 16, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--danger)', background: 'oklch(0.65 0.18 25 / 0.08)', color: 'var(--ink-2)', fontSize: 12.5, lineHeight: 1.5 }}>
+                <div style={{ marginBottom: 16, padding: '10px 12px', borderRadius: 'var(--r-2)', border: '1px solid var(--danger-border)', background: 'var(--danger-bg)', color: 'var(--ink-2)', fontSize: 13, lineHeight: 1.5 }}>
                   Supabase не сконфигурирован. Скопируйте <code style={{ font: '400 11px var(--font-mono)' }}>.env.example</code> в <code style={{ font: '400 11px var(--font-mono)' }}>.env</code> и заполните значения из Supabase → Project Settings → API.
                 </div>
               )}
@@ -222,7 +222,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
                   </div>
                 )}
                 {oauthBusy === 'telegram' && (
-                  <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', textAlign: 'center' }}>Подтверждение Telegram…</div>
+                  <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', textAlign: 'center' }}>Подтверждение Telegram…</div>
                 )}
 
                 <button
@@ -260,16 +260,16 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
                     <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
                       Политикой конфиденциальности
                     </a>.{' '}
-                    <span style={{ color: 'var(--danger)', fontSize: 11 }}>обязательно</span>
+                    <span style={{ color: 'var(--danger)', fontSize: 10.5 }}>обязательно</span>
                   </ConsentCheckbox>
                   <ConsentCheckbox checked={consentMarketing} onChange={setConsentMarketing}>
                     Согласен получать письма с советами по работе со студией.{' '}
-                    <span style={{ color: 'var(--ink-4)', fontSize: 11 }}>необязательно</span>
+                    <span style={{ color: 'var(--ink-4)', fontSize: 10.5 }}>необязательно</span>
                   </ConsentCheckbox>
                 </div>
               )}
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 18px', color: 'var(--ink-4)', font: '400 11px var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 18px', color: 'var(--ink-4)', font: '400 10.5px var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                 <span style={{ flex: 1, height: 1, background: 'var(--border-soft)' }} />
                 <span>или по почте</span>
                 <span style={{ flex: 1, height: 1, background: 'var(--border-soft)' }} />
@@ -298,7 +298,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
                       <button
                         type="button"
                         onClick={() => { clearErr(); setInfo(null); setFlow('reset-request'); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', font: '400 12px var(--font-ui)', color: 'var(--ink-3)', padding: '16px 0', margin: '-16px 0', lineHeight: 1 }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', font: '400 13px var(--font-ui)', color: 'var(--ink-3)', padding: '16px 0', margin: '-16px 0', lineHeight: 1 }}
                       >
                         Забыли пароль?
                       </button>
@@ -318,12 +318,12 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
               </div>
 
               {err && (
-                <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 6, background: 'oklch(0.65 0.18 25 / 0.12)', color: 'var(--danger)', fontSize: 12.5 }}>
+                <div role="alert" style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--r-1)', background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', color: 'var(--danger-ink)', fontSize: 13 }}>
                   {err}
                 </div>
               )}
               {info && (
-                <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 6, background: 'oklch(0.72 0.14 145 / 0.12)', color: 'var(--ok)', fontSize: 12.5 }}>
+                <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--r-1)', background: 'oklch(0.72 0.14 145 / 0.12)', color: 'var(--ok)', fontSize: 13 }}>
                   {info}
                 </div>
               )}
@@ -332,7 +332,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
                 type="submit"
                 disabled={busy || !supabaseConfigured || (tab === 'signup' && !consent)}
                 className="btn btn--primary"
-                style={{ width: '100%', height: 44, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
+                style={{ width: '100%', height: 44, fontSize: 13, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
               >
                 {busy && <span className="btn-spinner" />}
                 {busy

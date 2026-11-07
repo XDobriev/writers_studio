@@ -1,4 +1,4 @@
-import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { initialsFromName, type Character } from '../lib/characters';
 import { orderedRelationshipChapters, resolveRelationship, type CharacterRelationship, type RelationshipChapter, type RelationshipEvent, type RelationshipEventInput } from '../lib/relationships';
@@ -42,6 +42,10 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, e
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
+  useEffect(() => {
+    setSelectedId(draft.history?.relationshipId ?? null);
+    setError('');
+  }, [activeId, draft.history?.relationshipId]);
   const selected = relationships.find((r) => r.id === selectedId);
 
   return <div className="rel-block rel-workspace">
@@ -106,8 +110,10 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, e
             <p>{partner.name || 'Без имени'} → {charMap.get(activeId)?.name || 'Без имени'}: {theirs || 'Без подписи'}</p>
             {rel.is_secret && <span className="rel-secret"><Icon name="lock" size={12} /> Секретная связь</span>}
           </div>
-          <button className="btn btn--ghost btn--sm" disabled={!!draft.history || adding} onClick={() => setSelectedId(rel.id)}>История</button>
-          <button className="rel-del-btn" disabled={!!draft.history || adding} onClick={() => setDeleting(rel.id)} aria-label={`Удалить связь с ${partner.name || 'персонажем'}`}>×</button>
+          <div className="rel-row__actions">
+            <button className="btn btn--ghost btn--sm" disabled={!!draft.history || adding} onClick={() => setSelectedId(rel.id)}>История</button>
+            <button className="rel-del-btn" disabled={!!draft.history || adding} onClick={() => setDeleting(rel.id)} aria-label={`Удалить связь с ${partner.name || 'персонажем'}`}>×</button>
+          </div>
         </div>;
       })}</div>}
     {selected && <RelationshipHistory key={selected.id} relationship={selected}

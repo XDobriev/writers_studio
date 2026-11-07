@@ -77,7 +77,7 @@ export function RelationshipHistory({ relationship, characters, chapters, events
   };
 
   return <section className="rel-history" aria-label="История отношений">
-    <div className="rel-block__head"><div><h3>История отношений</h3><p>{nameA} ↔ {nameB}</p></div>
+    <div className="rel-history__head"><div><h3>История отношений</h3><p>{nameA} ↔ {nameB}</p></div>
       <button type="button" className="btn btn--ghost btn--sm" onClick={onClose} disabled={busy || !!editing} aria-label="Закрыть историю">×</button>
     </div>
     {error && <div role="alert" className="rel-error">{error}</div>}

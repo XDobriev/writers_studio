@@ -109,13 +109,18 @@ export default function Export() {
   useEscapeToClose(langOpen, closeLang);
 
   useEffect(() => {
-    if (!book || authorInitial.current !== null) return;
+    if (!book) return;
     const meta = user?.user_metadata ?? {};
-    const profileName = (meta.full_name ?? meta.name ?? meta.first_name ?? '') as string;
-    const initial = book.author || profileName;
-    authorInitial.current = initial;
-    setAuthorName(initial);
-  }, [book, user]);
+    const profileName = (profile?.display_name?.trim() || meta.full_name || meta.name || meta.first_name || '') as string;
+    const nextInitial = book.author || profileName;
+    if (authorInitial.current === null) {
+      authorInitial.current = nextInitial;
+      setAuthorName(nextInitial);
+    } else if (!book.author && authorName === authorInitial.current && nextInitial !== authorInitial.current) {
+      authorInitial.current = nextInitial;
+      setAuthorName(nextInitial);
+    }
+  }, [book, user, profile?.display_name, authorName]);
 
   const close = useCallback(() => {
     navigate(bookId ? `/books/${bookId}` : '/books');

@@ -11,9 +11,10 @@ export function useUserDisplay() {
     ? ([meta?.first_name, meta?.last_name].filter(Boolean).join(' ') || (meta?.telegram_username ? `@${meta.telegram_username}` : null))
     : null;
   const vkName = meta?.provider === 'vk'
-    ? ([meta?.first_name, meta?.last_name].filter(Boolean).join(' ') || null)
+    ? ([meta?.first_name, meta?.last_name].filter(Boolean).join(' ') || (meta?.vk_id ? `id${meta.vk_id}` : null))
     : null;
-  const displayName: string = profile?.display_name ?? meta?.full_name ?? meta?.name ?? tgName ?? vkName ?? user?.email ?? '';
+  const emailFallback = user?.email && !user.email.endsWith('.local') ? user.email : null;
+  const displayName: string = (profile?.display_name?.trim() || null) ?? meta?.full_name ?? meta?.name ?? tgName ?? vkName ?? emailFallback ?? '';
   const initials = displayName
     .split(/\s+/)
     .filter(Boolean)
@@ -21,7 +22,7 @@ export function useUserDisplay() {
     .map((w: string) => w[0].toUpperCase())
     .join('') || '?';
 
-  const avatarUrl: string | null = meta?.avatar_url ?? meta?.photo_url ?? null;
+  const avatarUrl: string | null = (profile?.avatar_url?.trim() || null) ?? meta?.avatar_url ?? meta?.photo_url ?? null;
 
   return {
     displayName,

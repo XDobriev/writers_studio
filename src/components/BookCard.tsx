@@ -20,12 +20,14 @@ function dayDiff(iso: string): number {
 
 interface BookCardProps {
   book: Book;
+  defaultAuthor?: string | null;
   onEdit: () => void;
   onCreateSequel: () => void;
 }
 
-export function BookCard({ book, onEdit, onCreateSequel }: BookCardProps) {
+export function BookCard({ book, defaultAuthor, onEdit, onCreateSequel }: BookCardProps) {
   const b = book;
+  const authorLabel = b.author || defaultAuthor;
   const hasImage = b.cover ? isImageUrl(b.cover) : false;
   const [imgLoaded, setImgLoaded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -89,8 +91,8 @@ export function BookCard({ book, onEdit, onCreateSequel }: BookCardProps) {
               {(b.genres?.length ? b.genres.join(', ') : null) ?? b.genre ?? 'Без жанра'}
             </div>
             <div style={{ font: '600 22px var(--font-serif)', color: 'oklch(0.97 0.01 80)', letterSpacing: '-0.01em', lineHeight: 1.15, maxHeight: 'calc(1.15em * 3)', overflow: 'hidden', WebkitMaskImage: 'linear-gradient(to bottom, black 65%, transparent 100%)', maskImage: 'linear-gradient(to bottom, black 65%, transparent 100%)' }}>{b.title}</div>
-            {b.author && (
-              <div style={{ font: '400 11px var(--font-mono)', color: 'oklch(0.97 0.01 80 / 0.6)', marginTop: 6, letterSpacing: '0.06em' }}>{b.author}</div>
+            {authorLabel && (
+              <div style={{ font: '400 11px var(--font-mono)', color: 'oklch(0.97 0.01 80 / 0.6)', marginTop: 6, letterSpacing: '0.06em' }}>{authorLabel}</div>
             )}
           </div>
         </div>

@@ -52,6 +52,7 @@ const Changelog  = lazy(() => import('./pages/Changelog'));
 const Offer      = lazy(() => import('./pages/Offer'));
 const ShareBook  = lazy(() => import('./pages/ShareBook'));
 const Dictionary     = lazy(() => import('./pages/Dictionary'));
+const Profile        = lazy(() => import('./pages/Profile'));
 const NotFound       = lazy(() => import('./pages/NotFound'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 
@@ -126,6 +127,7 @@ function AnimatedRoutes() {
         <Route path="/offer" element={<PageMotion><Offer /></PageMotion>} />
         <Route path="/payment-success" element={<PageMotion><Guard><PaymentSuccess /></Guard></PageMotion>} />
         <Route path="/dictionary" element={<PageMotion><Guard><Dictionary /></Guard></PageMotion>} />
+        <Route path="/profile" element={<PageMotion><Guard><Profile /></Guard></PageMotion>} />
         <Route path="*" element={<PageMotion><NotFound /></PageMotion>} />
       </Routes>
     </AnimatePresence>
