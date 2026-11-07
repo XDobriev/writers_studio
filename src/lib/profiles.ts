@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+import { supabase, ensureAuthReady, storagePathFromPublicUrl } from './supabase';
+import { optimizeImage, AVATAR_OPTS } from './imageOptimize';
 import type { Tables } from './database.types';
 
 export interface PlanLimits {
@@ -95,6 +96,7 @@ export type Profile = Pick<
   | 'cancel_at_period_end'
   | 'billing_attempts'
   | 'display_name'
+  | 'avatar_url'
   | 'checklist_dismissed_at'
   | 'first_export_at'
   | 'trial_started_at'
@@ -126,7 +128,7 @@ export async function startProTrial(): Promise<StartTrialResult> {
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('user_id, plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered, recurring_inv_id, cancel_at_period_end, billing_attempts, display_name, checklist_dismissed_at, first_export_at, trial_started_at, trial_ends_at, trial_used')
+    .select('user_id, plan, plan_expires_at, onboarded_at, user_dictionary, grandfathered, recurring_inv_id, cancel_at_period_end, billing_attempts, display_name, avatar_url, checklist_dismissed_at, first_export_at, trial_started_at, trial_ends_at, trial_used')
     .eq('user_id', userId)
     .single();
   // PGRST116 — строки нет: это ответ, а не сбой. Остальное бросаем, чтобы React Query
@@ -210,10 +212,52 @@ export async function markFirstExport(userId: string): Promise<void> {
   if (error) console.error('[profiles] markFirstExport failed:', error.message);
 }
 
-export async function updateDisplayName(userId: string, name: string): Promise<void> {
+export async function updateProfile(
+  userId: string,
+  patch: { display_name?: string | null; avatar_url?: string | null },
+): Promise<void> {
   const { error } = await supabase
     .from('profiles')
-    .update({ display_name: name.trim() || null })
+    .update(patch)
     .eq('user_id', userId);
   if (error) throw error;
+}
+
+export async function updateDisplayName(userId: string, name: string): Promise<void> {
+  await updateProfile(userId, { display_name: name.trim() || null });
+}
+
+export async function uploadAvatar(
+  userId: string,
+  file: File,
+  previousAvatarUrl?: string | null,
+): Promise<string> {
+  await ensureAuthReady();
+  const prepared = typeof createImageBitmap === 'function'
+    ? await optimizeImage(file, AVATAR_OPTS).catch(() => file)
+    : file;
+  const ext = prepared.type === 'image/webp'
+    ? 'webp'
+    : (prepared.name.split('.').pop()?.toLowerCase() || 'jpg');
+  const path = `${userId}/${Date.now()}.${ext}`;
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(path, prepared, { upsert: true, contentType: prepared.type || file.type || 'image/jpeg' });
+  if (uploadError) throw uploadError;
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+  await updateProfile(userId, { avatar_url: data.publicUrl });
+  const oldPath = storagePathFromPublicUrl(previousAvatarUrl ?? null, 'avatars');
+  if (oldPath && oldPath !== path && oldPath.startsWith(`${userId}/`)) {
+    await supabase.storage.from('avatars').remove([oldPath]).catch(() => {});
+  }
+  return data.publicUrl;
+}
+
+export async function deleteAvatar(userId: string, avatarUrl: string): Promise<void> {
+  await ensureAuthReady();
+  const storagePath = storagePathFromPublicUrl(avatarUrl, 'avatars');
+  if (storagePath && storagePath.startsWith(`${userId}/`)) {
+    await supabase.storage.from('avatars').remove([storagePath]);
+  }
+  await updateProfile(userId, { avatar_url: null });
 }

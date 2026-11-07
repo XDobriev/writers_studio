@@ -8,7 +8,7 @@ type IconName =
   | 'user' | 'note' | 'plus' | 'chev' | 'chevd' | 'track' | 'history'
   | 'settings' | 'timer' | 'sound' | 'search' | 'eye' | 'eye-off' | 'panel'
   | 'dot' | 'pin' | 'char' | 'arrows' | 'moremenu' | 'feather' | 'pencil' | 'trash' | 'drag'
-  | 'sun' | 'moon' | 'camera' | 'log-out' | 'shield' | 'lock';
+  | 'sun' | 'moon' | 'camera' | 'log-out' | 'shield' | 'lock' | 'close';
 
 interface IconProps {
   name: IconName;
@@ -86,6 +86,7 @@ const PATHS: Record<IconName, JSX.Element> = {
   'log-out': <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
   shield: <path d="M12 3l8 3v5c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6z"/>,
   lock: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>,
+  close: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
 };
 
 export function Icon({ name, size = 16 }: IconProps) {

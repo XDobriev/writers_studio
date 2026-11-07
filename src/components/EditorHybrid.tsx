@@ -199,7 +199,8 @@ function DraftSceneBridgeBar({
           {draftActions?.onConvertDraftToChapter && (
             <button
               type="button"
-              className={bridgeAction === 'convert' ? 'btn btn--primary' : 'draft-scene-banner__btn'}
+              aria-expanded={bridgeAction === 'convert'}
+              className={`draft-scene-banner__btn${bridgeAction === 'convert' ? ' draft-scene-banner__btn--active' : ''}`}
               style={{ fontSize: 12, padding: '4px 10px', height: 28 }}
               onClick={() => setBridgeAction((v) => (v === 'convert' ? null : 'convert'))}
             >
@@ -209,7 +210,8 @@ function DraftSceneBridgeBar({
           {draftActions?.onInsertDraftIntoChapter && chapters.length > 0 && (
             <button
               type="button"
-              className={bridgeAction === 'insert' ? 'btn btn--primary' : 'draft-scene-banner__btn'}
+              aria-expanded={bridgeAction === 'insert'}
+              className={`draft-scene-banner__btn${bridgeAction === 'insert' ? ' draft-scene-banner__btn--active' : ''}`}
               style={{ fontSize: 12, padding: '4px 10px', height: 28 }}
               onClick={() => setBridgeAction((v) => (v === 'insert' ? null : 'insert'))}
             >

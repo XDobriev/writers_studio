@@ -1,5 +1,5 @@
 import { useState, useRef, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { dropdownVariants } from '../lib/motion';
 import { useMenuDismiss } from '../lib/useMenuDismiss';
@@ -14,6 +14,7 @@ interface AccountMenuProps {
 
 export function AccountMenu({ placement = 'above', children }: AccountMenuProps) {
   const { signOut, user } = useAuth();
+  const navigate = useNavigate();
   // Гейт согласован с серверным is_admin(): claim app_metadata.role пишет только
   // service_role, подделать через updateUser нельзя. UI-ссылка появляется после
   // релогина админа (свежий JWT с claim); реальную защиту держит серверный RPC.
@@ -72,6 +73,16 @@ export function AccountMenu({ placement = 'above', children }: AccountMenuProps)
                   Администрирование
                 </Link>
               )}
+              <button
+                type="button"
+                role="menuitem"
+                className="sb-dropdown-item"
+                onClick={() => { setOpen(false); navigate('/profile'); }}
+              >
+                <Icon name="user" size={14} />
+                Профиль
+              </button>
+              <div style={{ height: 1, background: 'var(--border-soft)', margin: '2px 0' }} />
               <button
                 type="button"
                 role="menuitem"

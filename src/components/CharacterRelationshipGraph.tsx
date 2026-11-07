@@ -14,14 +14,22 @@ export function CharacterRelationshipGraph({ activeId, characters, relationships
 }) {
   const graph = getRelationshipGraph(activeId, characters, relationships);
   const { width, height, center, points } = getRelationshipLayout(graph.characters);
+  const coords = [...points.values()];
+  const minX = coords.reduce((m, p) => Math.min(m, p.x), center.x);
+  const maxX = coords.reduce((m, p) => Math.max(m, p.x), center.x);
+  const minY = coords.reduce((m, p) => Math.min(m, p.y), center.y);
+  const maxY = coords.reduce((m, p) => Math.max(m, p.y), center.y);
+  const boxX = Math.max(0, minX - 104);
+  const boxY = Math.max(0, minY - 96);
+  const boxW = Math.min(width, Math.max(420, maxX - minX + 208));
+  const boxH = Math.min(height, Math.max(360, maxY - minY + 216));
   const uid = useId().replace(/:/g, '');
   const viewport = useRef<HTMLDivElement>(null);
   const [focus, setFocus] = useState<Focus>(null);
   const [failedAvatars, setFailedAvatars] = useState<Set<string>>(() => new Set());
   const [fitScale, setFitScale] = useState(1);
   const [zoom, setZoom] = useState<number | null>(null);
-  const [compact, setCompact] = useState(false);
-  const scale = zoom ?? (compact ? Math.max(.72, fitScale) : fitScale);
+  const scale = zoom ?? fitScale;
   const names = new Map(characters.map((c) => [c.id, c.name || 'Без имени']));
   const characterMap = new Map(characters.map((c) => [c.id, c]));
   const active = characterMap.get(activeId);
@@ -35,29 +43,28 @@ export function CharacterRelationshipGraph({ activeId, characters, relationships
     if (!element) return;
     const frame = () => {
       if (!element.clientWidth || !element.clientHeight) return;
-      const nextFit = Math.min(1, element.clientWidth / width, element.clientHeight / height);
-      const nextCompact = element.clientWidth < 600;
-      const nextScale = zoom ?? (nextCompact ? Math.max(.72, nextFit) : nextFit);
       const topInset = parseFloat(getComputedStyle(element).getPropertyValue('--atlas-top-inset')) || 0;
+      const availH = Math.max(240, element.clientHeight - topInset - 36);
+      const nextFit = Math.min(1, element.clientWidth / boxW, availH / boxH);
+      const nextScale = zoom ?? nextFit;
       setFitScale(nextFit);
-      setCompact(nextCompact);
-      element.scrollLeft = Math.max(0, center.x * nextScale - element.clientWidth / 2);
-      element.scrollTop = Math.max(0, topInset + center.y * nextScale - element.clientHeight * (nextCompact ? .64 : .5));
+      element.scrollLeft = Math.max(0, (center.x - boxX) * nextScale - element.clientWidth / 2);
+      element.scrollTop = Math.max(0, topInset + (center.y - boxY) * nextScale - element.clientHeight / 2);
     };
     frame();
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(frame);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [width, height, center.x, center.y, zoom]);
+  }, [boxX, boxY, boxW, boxH, center.x, center.y, zoom]);
 
   useLayoutEffect(() => {
     const element = viewport.current;
     if (!element) return;
     const topInset = parseFloat(getComputedStyle(element).getPropertyValue('--atlas-top-inset')) || 0;
-    element.scrollLeft = Math.max(0, center.x * scale - element.clientWidth / 2);
-    element.scrollTop = Math.max(0, topInset + center.y * scale - element.clientHeight * (element.clientWidth < 600 ? .64 : .5));
-  }, [activeId, center.x, center.y, scale]);
+    element.scrollLeft = Math.max(0, (center.x - boxX) * scale - element.clientWidth / 2);
+    element.scrollTop = Math.max(0, topInset + (center.y - boxY) * scale - element.clientHeight / 2);
+  }, [activeId, boxX, boxY, center.x, center.y, scale]);
 
   const activate = (action: () => void) => { if (!disabled) action(); };
 
@@ -75,11 +82,11 @@ export function CharacterRelationshipGraph({ activeId, characters, relationships
       <span>{Math.round(scale * 100)}%</span>
     </div>
     <div ref={viewport} className="rel-graph-scroll" tabIndex={0} role="region" aria-label="Граф связей. Прокрутите для просмотра большого окружения.">
-      <svg className="rel-graph" viewBox={`0 0 ${width} ${height}`} style={{ width: width * scale, minWidth: width * scale, height: height * scale }} aria-label="Связи персонажа">
+      <svg className="rel-graph" viewBox={`${boxX} ${boxY} ${boxW} ${boxH}`} style={{ width: boxW * scale, minWidth: boxW * scale, height: boxH * scale }} aria-label="Связи персонажа">
         <defs>
           <radialGradient id={`${uid}-halo`}><stop stopColor="var(--atlas-accent)" stopOpacity=".08" /><stop offset="1" stopColor="var(--atlas-accent)" stopOpacity="0" /></radialGradient>
           <radialGradient id={`${uid}-medallion`} cx=".3" cy=".2" r="1"><stop stopColor="var(--surface-2)" /><stop offset="1" stopColor="var(--surface)" /></radialGradient>
-          <linearGradient id={`${uid}-shade`} x1="0" y1="0" x2="0" y2="1"><stop offset=".45" stopColor="#101415" stopOpacity="0" /><stop offset="1" stopColor="#101415" stopOpacity=".9" /></linearGradient>
+          <linearGradient id={`${uid}-shade`} x1="0" y1="0" x2="0" y2="1"><stop offset=".45" stopColor="var(--bg-void)" stopOpacity="0" /><stop offset="1" stopColor="var(--bg-void)" stopOpacity=".9" /></linearGradient>
           <filter id={`${uid}-glow`} x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="7" /></filter>
           {graph.characters.map((c) => {
             const p = points.get(c.id)!; const r = c.id === activeId ? 63 : 43;
@@ -149,7 +156,7 @@ export function CharacterRelationshipGraph({ activeId, characters, relationships
               <path className="rel-atlas__monogram-lines" d={`M ${p.x - radius + 9} ${p.y + 18} l ${radius * 1.1} ${-radius * 1.1} M ${p.x - radius + 13} ${p.y + 30} l ${radius * 1.35} ${-radius * 1.35}`} clipPath={`url(#${uid}-portrait-${c.id})`} />
               <text className="rel-atlas__monogram" x={p.x} y={p.y + (isActive ? 12 : 10)} textAnchor="middle">{initialsFromName(c.name || '')}</text>
             </g>}
-            {isActive ? <text className="rel-atlas__hero-name" x={p.x} y={p.y + 43} textAnchor="middle" style={avatar ? { fill: '#fff' } : undefined}>{firstName.slice(0, 16)}</text> : <>
+            {isActive ? <text className="rel-atlas__hero-name" x={p.x} y={p.y + 43} textAnchor="middle" style={avatar ? { fill: 'oklch(0.98 0 0)' } : undefined}>{firstName.slice(0, 16)}</text> : <>
               <text className="rel-atlas__name" x={p.x} y={p.y + 74} textAnchor="middle">{firstName.length > 18 ? `${firstName.slice(0, 17)}…` : firstName}</text>
               <text className="rel-atlas__surname" x={p.x} y={p.y + 94} textAnchor="middle">{lastName.length > 23 ? `${lastName.slice(0, 22)}…` : lastName}</text>
             </>}

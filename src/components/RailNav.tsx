@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from './Icon';
 import { LogoMark } from './LogoMark';
@@ -14,8 +14,13 @@ interface RailNavProps {
 }
 
 export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
-  const { initials } = useUserDisplay();
+  const { displayName, initials, avatarUrl } = useUserDisplay();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [avatarUrl]);
 
   const items: Array<[RailKey, Parameters<typeof Icon>[0]['name'], string, string]> = [
     ['dashboard',  'layout', 'Дэшборд',   ''],
@@ -55,7 +60,20 @@ export function RailNav({ active = 'editor', bookId, style }: RailNavProps) {
       ))}
       <div style={{ flex: 1 }} />
       <button className="tb-btn" title="Настройки" aria-label="Настройки" style={{ width: 36, height: 36, borderRadius: 8 }} onClick={() => setSettingsOpen(true)}><Icon name="settings" size={17} /></button>
-      <div className="sb-avatar" style={{ width: 32, height: 32, fontSize: 11 }}>{initials}</div>
+      <Link to="/profile" title="Профиль" aria-label="Профиль" className="sb-avatar" style={{ width: 32, height: 32, fontSize: 11, textDecoration: 'none' }}>
+        {avatarUrl && !imgError ? (
+          <img
+            src={avatarUrl}
+            alt={displayName || 'Аватар'}
+            referrerPolicy="no-referrer"
+            loading="lazy"
+            decoding="async"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          initials
+        )}
+      </Link>
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </aside>
   );

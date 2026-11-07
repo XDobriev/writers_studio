@@ -1,9 +1,41 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-vi.mock('./supabase', () => ({ supabase: {} }));
+const mockUpdateEq = vi.fn();
+const mockUpload = vi.fn();
+const mockGetPublicUrl = vi.fn();
+const mockRemove = vi.fn();
+
+vi.mock('./supabase', () => ({
+  ensureAuthReady: vi.fn().mockResolvedValue(undefined),
+  storagePathFromPublicUrl: (url: string, bucket: string) => {
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const idx = url.indexOf(marker);
+    return idx === -1 ? null : url.slice(idx + marker.length);
+  },
+  supabase: {
+    from: vi.fn(() => ({
+      update: vi.fn((patch: unknown) => ({
+        eq: (col: string, val: string) => mockUpdateEq(patch, col, val),
+      })),
+    })),
+    storage: {
+      from: vi.fn(() => ({
+        upload: (...args: unknown[]) => mockUpload(...args),
+        getPublicUrl: (...args: unknown[]) => mockGetPublicUrl(...args),
+        remove: (...args: unknown[]) => mockRemove(...args),
+      })),
+    },
+  },
+}));
+
+vi.mock('./imageOptimize', () => ({
+  AVATAR_OPTS: { maxWidth: 256, maxHeight: 256, quality: 0.85 },
+  optimizeImage: vi.fn(async (file: File) => file),
+}));
 
 import {
   canStartTrial,
+  deleteAvatar,
   effectivePlan,
   getPlanLimits,
   hasPaidSubscription,
@@ -11,6 +43,8 @@ import {
   isPlanLimitError,
   isRenewalFailed,
   isTrialActive,
+  updateProfile,
+  uploadAvatar,
 } from './profiles';
 
 const NOW = new Date('2026-10-22T12:00:00Z');
@@ -177,5 +211,48 @@ describe('isRenewalFailed', () => {
     expect(isRenewalFailed(f('free', PAST, '1', 1), NOW)).toBe(false);
     expect(isRenewalFailed(f('lifetime', PAST, '1', 1), NOW)).toBe(false);
     expect(isRenewalFailed(null, NOW)).toBe(false);
+  });
+});
+
+describe('updateProfile / uploadAvatar / deleteAvatar (F-2)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUpdateEq.mockResolvedValue({ data: null, error: null });
+    mockUpload.mockResolvedValue({ data: { path: 'u1/123.png' }, error: null });
+    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://cdn.example.com/storage/v1/object/public/avatars/u1/123.png' } });
+    mockRemove.mockResolvedValue({ data: null, error: null });
+  });
+
+  it('updateProfile обновляет display_name и avatar_url для userId', async () => {
+    await updateProfile('u1', { display_name: 'Булгаков', avatar_url: 'https://cdn.example.com/a.png' });
+    expect(mockUpdateEq).toHaveBeenCalledWith(
+      { display_name: 'Булгаков', avatar_url: 'https://cdn.example.com/a.png' },
+      'user_id',
+      'u1',
+    );
+  });
+
+  it('uploadAvatar загружает файл в бакет avatars, записывает publicUrl в profiles.avatar_url и удаляет прежний файл', async () => {
+    const file = new File([new Uint8Array([1, 2, 3])], 'avatar.png', { type: 'image/png' });
+    const url = await uploadAvatar(
+      'u1',
+      file,
+      'https://cdn.example.com/storage/v1/object/public/avatars/u1/old.png',
+    );
+    expect(mockUpload).toHaveBeenCalledTimes(1);
+    expect(mockUpload.mock.calls[0][0]).toMatch(/^u1\/\d+\.png$/);
+    expect(mockUpdateEq).toHaveBeenCalledWith(
+      { avatar_url: 'https://cdn.example.com/storage/v1/object/public/avatars/u1/123.png' },
+      'user_id',
+      'u1',
+    );
+    expect(mockRemove).toHaveBeenCalledWith(['u1/old.png']);
+    expect(url).toBe('https://cdn.example.com/storage/v1/object/public/avatars/u1/123.png');
+  });
+
+  it('deleteAvatar удаляет объект из бакета avatars и сбрасывает profiles.avatar_url в null', async () => {
+    await deleteAvatar('u1', 'https://cdn.example.com/storage/v1/object/public/avatars/u1/123.png');
+    expect(mockRemove).toHaveBeenCalledWith(['u1/123.png']);
+    expect(mockUpdateEq).toHaveBeenCalledWith({ avatar_url: null }, 'user_id', 'u1');
   });
 });

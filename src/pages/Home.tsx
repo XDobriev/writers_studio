@@ -45,12 +45,17 @@ const GRID_STYLE = {
 
 export default function Home() {
   const { user } = useAuth();
-  const { displayName } = useUserDisplay();
+  const { displayName, avatarUrl } = useUserDisplay();
+  const [avatarError, setAvatarError] = useState(false);
+  useEffect(() => {
+    setAvatarError(false);
+  }, [avatarUrl]);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: books, error: booksError } = useBooks(user?.id);
   const { data: seriesList } = useSeries(user?.id);
   const { data: profile } = useProfile(user?.id);
+  const defaultAuthor = profile?.display_name?.trim() || (displayName && !displayName.includes('@') ? displayName : null);
   const limits = getPlanLimits(profile);
   const { isMobile } = useResponsive();
   const { error: err, setError: setErr } = useErrorState();
@@ -281,7 +286,20 @@ export default function Home() {
         <AccountMenu placement="below">
           {({ onClick, open }) => (
             <button className="tb-btn" onClick={onClick} aria-label="Аккаунт" aria-haspopup="menu" aria-expanded={open} style={{ width: 36, height: 36 }}>
-              <Icon name="user" size={16} />
+              {avatarUrl && !avatarError ? (
+                <div className="sb-avatar" style={{ width: 28, height: 28 }}>
+                  <img
+                    src={avatarUrl}
+                    alt={displayName || 'Аватар'}
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    decoding="async"
+                    onError={() => setAvatarError(true)}
+                  />
+                </div>
+              ) : (
+                <Icon name="user" size={16} />
+              )}
             </button>
           )}
         </AccountMenu>
@@ -364,7 +382,7 @@ export default function Home() {
                 </BookGroupHeading>
                 <div style={GRID_STYLE}>
                   {arr.map((b) => (
-                    <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} onCreateSequel={() => handleCreateSequel(b)} />
+                    <BookCard key={b.id} book={b} defaultAuthor={defaultAuthor} onEdit={() => openEditBook(b)} onCreateSequel={() => handleCreateSequel(b)} />
                   ))}
                 </div>
               </section>
@@ -377,7 +395,7 @@ export default function Home() {
                 )}
                 <div style={GRID_STYLE}>
                   {standaloneBooks.map((b) => (
-                    <BookCard key={b.id} book={b} onEdit={() => openEditBook(b)} onCreateSequel={() => handleCreateSequel(b)} />
+                    <BookCard key={b.id} book={b} defaultAuthor={defaultAuthor} onEdit={() => openEditBook(b)} onCreateSequel={() => handleCreateSequel(b)} />
                   ))}
                 </div>
               </section>

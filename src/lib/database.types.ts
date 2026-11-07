@@ -920,6 +920,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           billing_attempts: number
           billing_email: string | null
           billing_failure_notified_for: string | null
@@ -947,6 +948,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
           billing_attempts?: number
           billing_email?: string | null
           billing_failure_notified_for?: string | null
@@ -974,6 +976,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
           billing_attempts?: number
           billing_email?: string | null
           billing_failure_notified_for?: string | null

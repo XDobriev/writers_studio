@@ -2,7 +2,7 @@ import { useState, useEffect, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth, translateAuthError } from '../lib/auth';
-import { updateDisplayName } from '../lib/profiles';
+import { updateDisplayName, type Profile } from '../lib/profiles';
 import { useProfile, QUERY_KEYS } from '../lib/queries';
 import { PasswordInput } from './PasswordInput';
 import { plural } from '../lib/i18n';
@@ -19,10 +19,13 @@ export function SettingsProfileTab() {
   const { data: profile } = useProfile(user?.id);
 
   const isTelegram = user?.user_metadata?.provider === 'telegram';
-  const accountLabel = isTelegram ? 'Telegram' : 'Email';
+  const isVk = user?.user_metadata?.provider === 'vk';
+  const accountLabel = isTelegram ? 'Telegram' : isVk ? 'ВКонтакте' : 'Email';
   const accountDisplay = isTelegram
     ? (user?.user_metadata?.telegram_username ? `@${user.user_metadata.telegram_username}` : `Telegram ID: ${user?.user_metadata?.telegram_id ?? ''}`)
-    : (user?.email ?? '');
+    : isVk
+      ? `VK ID: ${user?.user_metadata?.vk_id ?? ''}`
+      : (user?.email ?? '');
 
   const metaName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.user_metadata?.first_name ?? '';
   const [name, setName] = useState(metaName);
@@ -34,16 +37,26 @@ export function SettingsProfileTab() {
   const [passError, setPassError] = useState<string | null>(null);
   const [passSaved, setPassSaved] = useState(false);
 
+  const profileLoaded = profile !== undefined;
+  const savedDisplayName = profile?.display_name;
+
   useEffect(() => {
-    if (profile?.display_name != null) setName(profile.display_name);
-  }, [profile?.display_name]);
+    if (profileLoaded) {
+      setName(savedDisplayName ?? metaName);
+    }
+  }, [profileLoaded, savedDisplayName, metaName]);
+
+  const isNameDirty = name.trim() !== (profile?.display_name ?? '').trim();
 
   const handleSaveName = async () => {
     if (!user) return;
     setNameSaving(true); setNameError(null);
     try {
       await updateDisplayName(user.id, name);
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.profile(user.id) });
+      queryClient.setQueryData<Profile | null>(QUERY_KEYS.profile(user.id), (prev) =>
+        prev ? { ...prev, display_name: name.trim() || null } : prev,
+      );
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.profile(user.id) });
       setNameSaved(true);
     } catch (e) {
       setNameError(e instanceof Error ? e.message : 'Ошибка сохранения');
@@ -82,7 +95,7 @@ export function SettingsProfileTab() {
             className="btn btn--primary"
             style={{ fontSize: 13, padding: '0 14px', height: H, flexShrink: 0, minWidth: 88 }}
             onClick={handleSaveName}
-            disabled={nameSaving || !name.trim()}
+            disabled={nameSaving || !isNameDirty}
           >
             {nameSaving ? '…' : nameSaved ? '✓' : 'Сохранить'}
           </button>
@@ -101,7 +114,7 @@ export function SettingsProfileTab() {
         />
       </div>
 
-      {!isTelegram && (
+      {!isTelegram && !isVk && (
         <form style={FG} onSubmit={(e) => { e.preventDefault(); handleSavePass(); }}>
           <label htmlFor="settings-new-password" style={FL}>Новый пароль</label>
           <div style={ROW}>

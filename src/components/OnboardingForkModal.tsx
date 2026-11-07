@@ -234,7 +234,9 @@ export function OnboardingForkModal({
                     border: 'none',
                     padding: 0,
                     margin: '0 0 8px 0',
-                    font: '500 12px var(--font-mono)',
+                    font: '500 10.5px var(--font-mono)',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
                     color: 'var(--accent)',
                     cursor: 'pointer',
                     display: 'inline-flex',
@@ -242,24 +244,24 @@ export function OnboardingForkModal({
                     gap: 5,
                   }}
                 >
-                  <Icon name="chev" size={12} /> Назад к вариантам
+                  <Icon name="arrows" size={12} /> Назад к вариантам
                 </button>
               )}
               <h2
                 id="onboarding-fork-title"
                 style={{
-                  font: '600 24px var(--font-serif)',
-                  letterSpacing: '-0.012em',
+                  font: '600 22px var(--font-serif)',
+                  letterSpacing: '-0.01em',
                   color: 'var(--ink)',
                   margin: 0,
-                  lineHeight: 1.25,
+                  lineHeight: 1.3,
                 }}
               >
                 {step === 'cards' ? 'Как вы хотите начать?' : 'Паспорт новой книги'}
               </h2>
               <p
                 style={{
-                  font: '400 13.5px/1.5 var(--font-ui)',
+                  font: '400 13px/1.5 var(--font-ui)',
                   color: 'var(--ink-3)',
                   margin: '6px 0 0 0',
                 }}
@@ -278,7 +280,7 @@ export function OnboardingForkModal({
               aria-label="Закрыть"
               style={{ width: 32, height: 32, flexShrink: 0 }}
             >
-              <Icon name="moremenu" size={16} />
+              <Icon name="close" size={16} />
             </button>
           </div>
 
@@ -312,11 +314,11 @@ export function OnboardingForkModal({
                     background: 'var(--surface)',
                     border: '1px solid var(--border-soft)',
                     borderRadius: 12,
-                    padding: '22px 20px',
+                    padding: '20px',
                     display: 'flex',
                     flexDirection: 'column',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    transition: 'background var(--dur-fast), border-color var(--dur-fast)',
                     position: 'relative',
                   }}
                 >
@@ -325,7 +327,7 @@ export function OnboardingForkModal({
                       style={{
                         width: 40,
                         height: 40,
-                        borderRadius: 10,
+                        borderRadius: 8,
                         background: 'var(--surface-2)',
                         border: '1px solid var(--border)',
                         display: 'flex',
@@ -376,8 +378,8 @@ export function OnboardingForkModal({
 
                   <div
                     style={{
-                      font: '500 12.5px var(--font-ui)',
-                      color: 'var(--accent)',
+                      font: '500 13px var(--font-ui)',
+                      color: 'var(--ink-2)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 4,
@@ -398,11 +400,11 @@ export function OnboardingForkModal({
                     background: 'var(--surface)',
                     border: '1.5px solid var(--accent)',
                     borderRadius: 12,
-                    padding: '22px 20px',
+                    padding: '20px',
                     display: 'flex',
                     flexDirection: 'column',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    transition: 'background var(--dur-fast), border-color var(--dur-fast)',
                     position: 'relative',
                   }}
                 >
@@ -411,7 +413,7 @@ export function OnboardingForkModal({
                       style={{
                         width: 40,
                         height: 40,
-                        borderRadius: 10,
+                        borderRadius: 8,
                         background: 'color-mix(in oklch, var(--accent) 15%, transparent)',
                         border: '1px solid color-mix(in oklch, var(--accent) 40%, transparent)',
                         display: 'flex',
@@ -462,7 +464,7 @@ export function OnboardingForkModal({
 
                   <div
                     style={{
-                      font: '500 12.5px var(--font-ui)',
+                      font: '500 13px var(--font-ui)',
                       color: 'var(--accent)',
                       display: 'flex',
                       alignItems: 'center',
@@ -484,11 +486,11 @@ export function OnboardingForkModal({
                     background: 'var(--surface)',
                     border: '1px solid var(--border-soft)',
                     borderRadius: 12,
-                    padding: '22px 20px',
+                    padding: '20px',
                     display: 'flex',
                     flexDirection: 'column',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    transition: 'background var(--dur-fast), border-color var(--dur-fast)',
                     position: 'relative',
                     opacity: loading ? 0.6 : 1,
                   }}
@@ -498,7 +500,7 @@ export function OnboardingForkModal({
                       style={{
                         width: 40,
                         height: 40,
-                        borderRadius: 10,
+                        borderRadius: 8,
                         background: 'var(--surface-2)',
                         border: '1px solid var(--border)',
                         display: 'flex',
@@ -549,8 +551,8 @@ export function OnboardingForkModal({
 
                   <div
                     style={{
-                      font: '500 12.5px var(--font-ui)',
-                      color: 'var(--accent)',
+                      font: '500 13px var(--font-ui)',
+                      color: 'var(--ink-2)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 4,
@@ -621,7 +623,7 @@ export function OnboardingForkModal({
                             }
                           }}
                           style={{
-                            padding: '12px 14px',
+                            padding: '12px 16px',
                             borderRadius: 8,
                             background: isSelected
                               ? 'color-mix(in oklch, var(--accent) 8%, var(--surface))'
@@ -633,7 +635,7 @@ export function OnboardingForkModal({
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 6,
-                            transition: 'all 0.12s ease',
+                            transition: 'background var(--dur-hover), border-color var(--dur-hover)',
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -648,12 +650,12 @@ export function OnboardingForkModal({
                                     : '1.5px solid var(--border)',
                                   background: 'transparent',
                                   flexShrink: 0,
-                                  transition: 'border 0.12s ease',
+                                  transition: 'border-color var(--dur-hover)',
                                 }}
                               />
                               <span
                                 style={{
-                                  font: '600 14px var(--font-ui)',
+                                  font: '600 13px var(--font-ui)',
                                   color: 'var(--ink)',
                                 }}
                               >
@@ -662,12 +664,12 @@ export function OnboardingForkModal({
                             </div>
                             <span
                               style={{
-                                font: '500 11px var(--font-mono)',
+                                font: '500 10.5px var(--font-mono)',
                                 color: isSelected ? 'var(--accent)' : 'var(--ink-3)',
                                 background: isSelected
                                   ? 'color-mix(in oklch, var(--accent) 12%, transparent)'
                                   : 'var(--surface-2)',
-                                padding: '2px 6px',
+                                padding: '2px 8px',
                                 borderRadius: 4,
                               }}
                             >
@@ -676,7 +678,7 @@ export function OnboardingForkModal({
                           </div>
                           <div
                             style={{
-                              font: '400 11.5px/1.4 var(--font-ui)',
+                              font: '400 13px/1.45 var(--font-ui)',
                               color: 'var(--ink-2)',
                               paddingLeft: 24,
                             }}
@@ -716,17 +718,24 @@ export function OnboardingForkModal({
                   {/* Подсказка про драматургические схемы */}
                   <div
                     style={{
-                      marginTop: 10,
-                      padding: '10px 14px',
+                      marginTop: 12,
+                      padding: '12px 16px',
                       borderRadius: 8,
-                      background: 'color-mix(in oklch, var(--accent) 6%, var(--surface))',
-                      border: '1px solid color-mix(in oklch, var(--accent) 20%, transparent)',
-                      fontSize: '12px',
-                      lineHeight: 1.5,
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border-soft)',
+                      font: '400 13px/1.5 var(--font-ui)',
                       color: 'var(--ink-2)',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 10,
                     }}
                   >
-                    💡 Драматургические схемы (Save the Cat, Трёхактная арка, 7 точек) доступны внутри книги в разделе «Структура» — их можно подключить в любой момент как ориентиры для сцен.
+                    <span style={{ color: 'var(--accent-2)', marginTop: 2, flexShrink: 0 }}>
+                      <Icon name="sparkles" size={14} />
+                    </span>
+                    <span>
+                      Драматургические схемы (Save the Cat, Трёхактная арка, 7 точек) доступны внутри книги в разделе «Структура» — их можно подключить в любой момент как ориентиры для сцен.
+                    </span>
                   </div>
                 </div>
 
@@ -763,15 +772,17 @@ export function OnboardingForkModal({
           {/* Footer */}
           <div
             style={{
-              padding: '16px 28px',
+              padding: '16px 24px',
               borderTop: '1px solid var(--border-soft)',
               display: 'flex',
+              flexWrap: 'wrap',
               alignItems: 'center',
               justifyContent: 'space-between',
+              gap: 12,
               background: 'var(--surface)',
             }}
           >
-            <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)' }}>
+            <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
               {loadingAction ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <span
@@ -792,12 +803,13 @@ export function OnboardingForkModal({
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
               <button
                 type="button"
                 className="btn btn--ghost"
                 onClick={onClose}
                 disabled={loading}
+                style={{ whiteSpace: 'nowrap' }}
               >
                 Отмена
               </button>
@@ -808,7 +820,7 @@ export function OnboardingForkModal({
                   className="btn btn--primary"
                   onClick={handleCreateFromForm}
                   disabled={loading || !bookTitle.trim()}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
                 >
                   {loading ? 'Создание…' : 'Создать книгу и начать →'}
                 </button>
