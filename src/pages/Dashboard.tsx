@@ -2,12 +2,11 @@ import { Link, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toastVariants } from '../lib/motion';
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { useErrorState } from '../lib/useErrorState';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { Skeleton } from '../components/Skeleton';
-import { GenrePicker } from '../components/GenrePicker';
+import { EditBookModal } from '../components/EditBookModal';
 import { updateBook } from '../lib/books';
 import { DbError } from '../lib/repository';
 import { type Chapter } from '../lib/chapters';
@@ -17,7 +16,7 @@ import { useResponsive } from '../lib/useResponsive';
 import { computeActivityData } from '../lib/activity';
 import { toLocalISODate } from '../lib/dates';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
-import { trapTab, useModalFocus } from '../lib/useModalFocus';
+import { trapTab } from '../lib/useModalFocus';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
 
 const STATUS_DOT: Record<Chapter['status'], string> = {
@@ -50,15 +49,6 @@ export default function Dashboard() {
   const isBookNotFound = bookError instanceof DbError && bookError.code === 'PGRST116';
 
   const [editOpen, setEditOpen] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
-  const [editGenres, setEditGenres] = useState<string[]>([]);
-  const [editGoal, setEditGoal] = useState(0);
-  const [editSaving, setEditSaving] = useState(false);
-  const editPanelRef = useRef<HTMLDivElement>(null);
-  const editTitleRef = useRef<HTMLInputElement>(null);
-  useModalFocus(editOpen, editPanelRef, editTitleRef);
-  useEscapeToClose(editOpen, () => { if (!editSaving) setEditOpen(false); });
-  const { error: editError, setError: setEditError, clearError: clearEditError } = useErrorState();
   const [weeklyToast, setWeeklyToast] = useState<string | null>(null);
 
   const navigate = useNavigate();
@@ -84,26 +74,20 @@ export default function Dashboard() {
 
   const openEdit = () => {
     if (!book) return;
-    setEditTitle(book.title);
-    setEditGenres(book.genres?.length ? book.genres : book.genre ? [book.genre] : []);
-    setEditGoal(book.goal);
-    clearEditError();
     setEditOpen(true);
   };
 
-  const saveEdit = async () => {
-    if (editSaving || !editTitle.trim() || !id) return;
-    setEditSaving(true);
-    clearEditError();
-    try {
-      const data = await updateBook(id, { title: editTitle.trim(), genres: editGenres, goal: Math.max(0, editGoal) });
-      queryClient.setQueryData(QUERY_KEYS.book(id), data);
-      setEditOpen(false);
-    } catch (e) {
-      setEditError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-    } finally {
-      setEditSaving(false);
-    }
+  const handleSaveEditBook = async (patch: {
+    title: string;
+    author: string | null;
+    genres: string[];
+    goal: number;
+    cover: string;
+  }) => {
+    if (!id) return;
+    const data = await updateBook(id, patch);
+    queryClient.setQueryData(QUERY_KEYS.book(id), data);
+    setEditOpen(false);
   };
 
   const stats = useMemo(() => {
@@ -433,73 +417,12 @@ export default function Dashboard() {
           </div>
         </main>
 
-        {editOpen && (
-          <div className="modal-overlay" onClick={() => { if (!editSaving) setEditOpen(false); }}>
-            <div
-              ref={editPanelRef}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Редактировать книгу"
-              tabIndex={-1}
-              className="modal-panel"
-              style={{ width: 460 }}
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => trapTab(e)}
-            >
-              <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
-
-              <div>
-                <label className="label" htmlFor="edit-book-title">Название</label>
-                <input
-                  id="edit-book-title"
-                  ref={editTitleRef}
-                  className="input"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); }}
-                  maxLength={120}
-                />
-              </div>
-
-              <GenrePicker value={editGenres} onChange={setEditGenres} />
-
-              <div>
-                <label className="label" htmlFor="edit-book-goal">Цель по словам</label>
-                <input
-                  id="edit-book-goal"
-                  className="input"
-                  type="number"
-                  min={0}
-                  step={1000}
-                  value={editGoal || ''}
-                  placeholder="необязательно"
-                  onChange={(e) => setEditGoal(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
-                  onKeyDown={(e) => { if (e.key === 'Escape') setEditOpen(false); }}
-                />
-                <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
-                  Рассказ 1–10 тыс. · Новелла 10–20 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпос / сага 120–300 тыс. слов
-                </div>
-              </div>
-
-              {editError && (
-                <div style={{ fontSize: 12, color: 'var(--danger)' }}>{editError}</div>
-              )}
-
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button className="btn btn--ghost" onClick={() => setEditOpen(false)}>Отмена</button>
-                <button
-                  className="btn btn--primary"
-                  onClick={saveEdit}
-                  disabled={editSaving || !editTitle.trim()}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  {editSaving && <span className="btn-spinner" />}
-                  {editSaving ? 'Сохраняем…' : 'Сохранить'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <EditBookModal
+          isOpen={editOpen}
+          onClose={() => setEditOpen(false)}
+          book={book ?? null}
+          onSave={handleSaveEditBook}
+        />
       </div>
       {isMobile && showMobileSb && (
         <>
