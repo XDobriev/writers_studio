@@ -56,10 +56,10 @@ export function SeriesTransferPicker({ books, value, onChange, disabled }: Serie
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: disabled ? 'default' : 'pointer' }}>
         <input
           type="checkbox"
+          className="as-checkbox"
           checked={value.enabled}
           disabled={disabled}
           onChange={(e) => toggleEnabled(e.target.checked)}
-          style={{ flexShrink: 0, accentColor: 'var(--accent)', width: 14, height: 14 }}
         />
         <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink-1)' }}>
           Это продолжение серии
@@ -112,10 +112,10 @@ export function SeriesTransferPicker({ books, value, onChange, disabled }: Serie
                   >
                     <input
                       type="checkbox"
+                      className="as-checkbox"
                       checked={value[o.key] && !empty}
                       disabled={disabled || empty}
                       onChange={(e) => onChange({ ...value, [o.key]: e.target.checked })}
-                      style={{ flexShrink: 0, accentColor: 'var(--accent)', width: 14, height: 14 }}
                     />
                     <span style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-2)' }}>
                       {o.label}
