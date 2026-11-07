@@ -81,34 +81,50 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Перейти на Pro"
+        aria-label={skipPro ? 'Перейти на Lifetime' : 'Перейти на Pro'}
         tabIndex={-1}
         onKeyDown={(e) => trapTab(e)}
         style={{
           background: 'var(--bg)', border: '1px solid var(--border)',
           borderRadius: 14, width: 360, maxWidth: '100%',
+          maxHeight: 'min(92dvh, 760px)',
+          display: 'flex', flexDirection: 'column', outline: 'none',
           boxShadow: '0 32px 80px oklch(0.05 0.01 50 / 0.55)', overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '20px 24px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div>
-              <div style={{ font: '600 16px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 3 }}>
-                {skipPro ? 'Перейти на Lifetime' : 'Перейти на Pro'}
-              </div>
-              <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>
-                {skipPro ? 'Один раз — навсегда, без ежемесячной оплаты' : 'Полный доступ ко всем функциям редактора'}
-              </div>
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+          padding: '20px 24px 16px', flexShrink: 0,
+        }}>
+          <div>
+            <div style={{ font: '600 16px var(--font-ui)', color: 'var(--ink)', letterSpacing: '-0.01em', marginBottom: 3 }}>
+              {skipPro ? 'Перейти на Lifetime' : 'Перейти на Pro'}
             </div>
-            <button
-              className="tb-btn"
-              onClick={onClose}
-              aria-label="Закрыть"
-              style={{ fontSize: 20, lineHeight: 1, padding: '0 6px', color: 'var(--ink-4)', flexShrink: 0 }}
-            >
-              ×
-            </button>
+            <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>
+              {skipPro ? 'Один раз — навсегда, без ежемесячной оплаты' : 'Полный доступ ко всем функциям редактора'}
+            </div>
           </div>
+          <button
+            className="tb-btn"
+            onClick={onClose}
+            aria-label="Закрыть"
+            title="Закрыть"
+            style={{ fontSize: 20, lineHeight: 1, padding: '0 6px', color: 'var(--ink-4)', flexShrink: 0 }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div style={{
+          padding: '0 24px 20px',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          flex: 1,
+          minHeight: 0,
+          overscrollBehavior: 'contain',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'var(--border) transparent',
+        }}>
 
           {!skipPro && (
             <>
@@ -178,15 +194,29 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
           )}
 
           {lifetimeSlots === null && (
-            <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 16, paddingTop: 16 }}>
+            <div style={{
+              borderTop: skipPro ? 'none' : '1px solid var(--border-soft)',
+              marginTop: skipPro ? 0 : 16,
+              paddingTop: skipPro ? 0 : 16,
+            }}>
               <div className="skeleton" style={{ height: 14, width: '60%', marginBottom: 10 }} />
               <div className="skeleton" style={{ height: 22, width: '40%', marginBottom: 10 }} />
               <div className="skeleton" style={{ height: 36, width: '100%', borderRadius: 8 }} />
             </div>
           )}
 
+          {skipPro && lifetimeSlots === 0 && (
+            <div style={{ textAlign: 'center', padding: '16px 0 8px', color: 'var(--ink-3)', font: '400 13px var(--font-ui)' }}>
+              Все места по тарифу Lifetime сейчас заняты.
+            </div>
+          )}
+
           {showLifetime && (
-            <div style={{ borderTop: '1px solid var(--border-soft)', marginTop: 16, paddingTop: 16 }}>
+            <div style={{
+              borderTop: skipPro ? 'none' : '1px solid var(--border-soft)',
+              marginTop: skipPro ? 0 : 16,
+              paddingTop: skipPro ? 0 : 16,
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
                   <span style={{ font: '600 14px var(--font-ui)', color: 'var(--ink)' }}>Lifetime</span>

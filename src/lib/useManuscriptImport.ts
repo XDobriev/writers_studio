@@ -9,7 +9,9 @@ import { uploadImportedImages } from './chapterImages';
 import { QUERY_KEYS } from './queries';
 import type { Book } from './supabase';
 import {
+  DOC_UNSUPPORTED_ERROR,
   detectImportFormat,
+  isLegacyWordFileName,
   parseManuscript,
   PRO_IMPORT_FORMATS,
   type ParsedManuscript,
@@ -68,6 +70,10 @@ export function useManuscriptImport({ userId, isPro, cover, onNeedUpgrade }: {
 
   const loadFile = useCallback(async (file: File) => {
     clearError();
+    if (isLegacyWordFileName(file.name)) {
+      setError(DOC_UNSUPPORTED_ERROR);
+      return;
+    }
     const format = detectImportFormat(file.name);
     if (format && PRO_IMPORT_FORMATS.includes(format) && !isPro) {
       onNeedUpgrade();

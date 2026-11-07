@@ -8,7 +8,14 @@ import { Document, HeadingLevel, Packer, Paragraph, TextRun } from 'docx';
 import { decodeText, markdownToHtml, txtToHtml } from './importText';
 import { normalizeImportHtml } from './importSanitize';
 import { analyzeSplits, isChapterLine, joinChapters, splitManuscript } from './importSplit';
-import { parseManuscript } from './importManuscript';
+import {
+  DOC_RENAMED_ERROR,
+  DOC_UNSUPPORTED_ERROR,
+  IMPORT_ACCEPT,
+  isLegacyWordFileName,
+  isOleCompoundDocument,
+  parseManuscript,
+} from './importManuscript';
 import { parseFb2 } from './importFb2';
 
 /** Минимальный кодировщик windows-1251 для кириллицы (TextEncoder умеет только UTF-8). */
@@ -202,6 +209,45 @@ describe('normalizeImportHtml', () => {
   it('ссылки только http(s), скрипты и картинки выброшены', () => {
     const html = '<p><a href="javascript:alert(1)">плохая</a> <a href="https://ok.ru">хорошая</a><img src="x"><script>alert(1)</script></p>';
     expect(normalizeImportHtml(html)).toBe('<p>плохая <a href="https://ok.ru">хорошая</a></p>');
+  });
+});
+
+describe('DOC / старый Word', () => {
+  it('isLegacyWordFileName определяет .doc и .dot независимо от регистра', () => {
+    expect(isLegacyWordFileName('рукопись.doc')).toBe(true);
+    expect(isLegacyWordFileName('ШАБЛОН.DOT')).toBe(true);
+    expect(isLegacyWordFileName('книга.docx')).toBe(false);
+    expect(isLegacyWordFileName('текст.txt')).toBe(false);
+  });
+
+  it('расширение .doc и .dot отдают понятную инструкцию по пересохранению', async () => {
+    const dummy = new Uint8Array([1, 2, 3, 4]).buffer;
+    await expect(parseManuscript(dummy, 'рукопись.doc')).rejects.toThrow(DOC_UNSUPPORTED_ERROR);
+    await expect(parseManuscript(dummy, 'ШАБЛОН.DOT')).rejects.toThrow(DOC_UNSUPPORTED_ERROR);
+  });
+
+  it('сигнатура OLE2 корректно валидируется и имеет негативные проверки', () => {
+    const oleHeader = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]).buffer;
+    const zipHeader = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x06, 0x00]).buffer;
+    const shortBuf = new Uint8Array([1, 2, 3]).buffer;
+
+    expect(isOleCompoundDocument(oleHeader)).toBe(true);
+    expect(isOleCompoundDocument(zipHeader)).toBe(false);
+    expect(isOleCompoundDocument(shortBuf)).toBe(false);
+    expect(isOleCompoundDocument(null)).toBe(false);
+    expect(isOleCompoundDocument(undefined)).toBe(false);
+  });
+
+  it('файл .doc с сигнатурой OLE2, переименованный в .docx или .txt, распознаётся и подсказывает пересохранить', async () => {
+    // Сигнатура OLE2 Compound Document: D0 CF 11 E0 A1 B1 1A E1
+    const oleHeader = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0x00, 0x00]).buffer;
+    await expect(parseManuscript(oleHeader, 'переименованный.docx')).rejects.toThrow(DOC_RENAMED_ERROR);
+    await expect(parseManuscript(oleHeader, 'переименованный.txt')).rejects.toThrow(DOC_RENAMED_ERROR);
+  });
+
+  it('IMPORT_ACCEPT включает .doc и .dot для выбора в диалоге файла', () => {
+    expect(IMPORT_ACCEPT).toContain('.doc');
+    expect(IMPORT_ACCEPT).toContain('.dot');
   });
 });
 
