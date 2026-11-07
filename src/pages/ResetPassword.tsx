@@ -19,9 +19,28 @@ export default function ResetPassword() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+    const searchParams = new URLSearchParams(window.location.search);
+    const tokenHash = searchParams.get('token_hash');
+    const type = (searchParams.get('type') || 'recovery') as 'recovery' | 'signup' | 'invite' | 'magiclink' | 'email_change';
+
+    if (tokenHash) {
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type }).then(({ error }) => {
+        if (!isMounted) return;
+        if (error) {
+          setState('expired');
+        } else {
+          if (timerRef.current) clearTimeout(timerRef.current);
+          window.history.replaceState({}, '', window.location.pathname);
+          setState('ready');
+        }
+      });
+    }
+
     // Событие PASSWORD_RECOVERY может сработать до монтирования компонента —
     // в этом случае сессия уже установлена, просто переходим в ready.
     supabase.auth.getSession().then(({ data }) => {
+      if (!isMounted) return;
       if (data.session) {
         if (timerRef.current) clearTimeout(timerRef.current);
         setState('ready');
@@ -29,6 +48,7 @@ export default function ResetPassword() {
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (!isMounted) return;
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         if (timerRef.current) clearTimeout(timerRef.current);
         setState('ready');
@@ -36,10 +56,13 @@ export default function ResetPassword() {
     });
 
     timerRef.current = setTimeout(() => {
-      setState((s) => s === 'waiting' ? 'expired' : s);
+      if (isMounted) {
+        setState((s) => (s === 'waiting' ? 'expired' : s));
+      }
     }, 12000);
 
     return () => {
+      isMounted = false;
       sub.subscription.unsubscribe();
       if (timerRef.current) clearTimeout(timerRef.current);
     };
