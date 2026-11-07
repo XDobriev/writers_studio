@@ -200,6 +200,7 @@ export function findCharacterDecorations(doc: PmNode, characters: Character[]): 
         'data-char-id': match.character.id,
         'data-char-color': color,
         style: `--char-color: ${color};`,
+        spellcheck: 'false',
       })
     );
   }

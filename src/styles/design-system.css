@@ -829,34 +829,20 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
 .ins { background: oklch(0.72 0.14 145 / 0.20); color: var(--diff-ins-ink); }
 .del { background: oklch(0.65 0.18 25 / 0.18); color: var(--diff-del-ink); text-decoration: line-through; }
 
-/* Character Highlight in editor */
+/* Character Highlight in editor — деликатный книжный стиль */
 .char-mention-first {
   display: inline;
-  padding: 1px 6px 1px 18px;
-  border-radius: var(--r-1);
-  background: color-mix(in oklch, var(--char-color, var(--accent)) 12%, var(--paper, transparent));
+  padding: 0;
+  background: transparent;
   color: inherit;
   cursor: pointer;
-  position: relative;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-  transition: background 0.12s ease, box-shadow 0.12s ease;
-}
-.char-mention-first::before {
-  content: '';
-  position: absolute;
-  left: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--char-color, var(--accent));
-  pointer-events: none;
+  text-decoration: underline dotted var(--char-color, var(--accent));
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color 0.12s ease;
 }
 .char-mention-first:hover {
-  background: color-mix(in oklch, var(--char-color, var(--accent)) 20%, var(--paper, transparent));
-  box-shadow: 0 0 0 1px color-mix(in oklch, var(--char-color, var(--accent)) 30%, transparent);
+  text-decoration-style: solid;
 }
 
 .char-mention-subsequent {
