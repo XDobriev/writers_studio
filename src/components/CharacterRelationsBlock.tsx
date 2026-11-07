@@ -249,7 +249,7 @@ export function ChapterMomentDropdown({
   );
 }
 
-export const PRESET_RELATIONSHIP_ROLES = ['Друг', 'Враг', 'Родственник', 'Союзник', 'Наставник', 'Соперник'] as const;
+const PRESET_RELATIONSHIP_ROLES = ['Друг', 'Враг', 'Родственник', 'Союзник', 'Наставник', 'Соперник'] as const;
 
 export type RelationshipWorkspaceDraft = {
   creation: { sourceId: string; toId: string; value: RelationshipState } | null;
