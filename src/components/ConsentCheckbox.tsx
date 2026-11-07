@@ -12,9 +12,10 @@ export function ConsentCheckbox({ checked, onChange, children }: ConsentCheckbox
     <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
       <input
         type="checkbox"
+        className="as-checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        style={{ marginTop: 3, flexShrink: 0, accentColor: 'var(--accent)', width: 14, height: 14 }}
+        style={{ marginTop: 2 }}
       />
       <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.55 }}>
         {children}

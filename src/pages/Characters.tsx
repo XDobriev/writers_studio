@@ -406,7 +406,7 @@ export default function Characters() {
           {/* Основное содержимое */}
           {!showGrid && active ? (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '20px 16px' : '32px 48px' }}>
-              <div style={{ maxWidth: 1040, minWidth: 0 }}>
+              <div style={{ width: '100%', maxWidth: 1160, margin: '0 auto', minWidth: 0 }}>
               <CharacterHeroBlock character={active} bookId={bookId!} onChange={(patch) => scheduleSave(active.id, patch)} onError={setError} isMobile={isMobile} />
 
               {/* Вкладки */}

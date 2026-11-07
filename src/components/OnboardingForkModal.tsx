@@ -59,10 +59,19 @@ export function OnboardingForkModal({
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Сброс шага и формы при открытии/закрытии
+  const prevIsOpenRef = useRef(false);
+  const initialCoverRef = useRef(initialCover);
+  initialCoverRef.current = initialCover;
+  const initialSeriesTransferRef = useRef(initialSeriesTransfer);
+  initialSeriesTransferRef.current = initialSeriesTransfer;
+
+  // Сброс шага и формы только при открытии диалога (переходе isOpen в true)
   useEffect(() => {
-    if (isOpen) {
-      setStep(initialSeriesTransfer?.enabled ? 'configure' : 'cards');
+    const wasOpen = prevIsOpenRef.current;
+    prevIsOpenRef.current = isOpen;
+
+    if (isOpen && !wasOpen) {
+      setStep(initialSeriesTransferRef.current?.enabled ? 'configure' : 'cards');
       setError(null);
       setLoading(false);
       setLoadingAction(null);
@@ -70,11 +79,11 @@ export function OnboardingForkModal({
       setSelectedForm('novel');
       setTargetWords(70000);
       setGenres([]);
-      setCover(initialCover || COVERS[0]);
+      setCover(initialCoverRef.current || COVERS[0]);
       setUploadingCover(false);
-      setSeriesTransfer(initialSeriesTransfer || INITIAL_SERIES_TRANSFER);
+      setSeriesTransfer(initialSeriesTransferRef.current || INITIAL_SERIES_TRANSFER);
     }
-  }, [isOpen, initialCover, initialSeriesTransfer]);
+  }, [isOpen]);
 
   useEscapeToClose(isOpen, () => {
     if (!loading) onClose();
@@ -88,8 +97,6 @@ export function OnboardingForkModal({
       setTimeout(() => titleInputRef.current?.focus(), 50);
     }
   }, [step]);
-
-  if (!isOpen) return null;
 
   const handleCardKeyDown = (e: KeyboardEvent, action: () => void) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -183,17 +190,18 @@ export function OnboardingForkModal({
 
   return (
     <AnimatePresence>
-      <motion.div
-        role="presentation"
-        variants={overlayVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        className="modal-overlay"
-        onClick={() => {
-          if (!loading) onClose();
-        }}
-      >
+      {isOpen && (
+        <motion.div
+          role="presentation"
+          variants={overlayVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className="modal-overlay"
+          onClick={() => {
+            if (!loading) onClose();
+          }}
+        >
         <motion.div
           ref={panelRef}
           role="dialog"
@@ -201,7 +209,7 @@ export function OnboardingForkModal({
           aria-labelledby="onboarding-fork-title"
           tabIndex={-1}
           variants={modalPanelVariants}
-          className="modal-panel"
+          className="modal-panel onboarding-fork-modal"
           style={{
             width: step === 'cards' ? 880 : 700,
             maxWidth: 'calc(100vw - 28px)',
@@ -213,6 +221,7 @@ export function OnboardingForkModal({
         >
           {/* Header */}
           <div
+            className="fork-modal-header"
             style={{
               padding: '24px 28px 20px',
               borderBottom: '1px solid var(--border-soft)',
@@ -286,6 +295,7 @@ export function OnboardingForkModal({
 
           {/* Body */}
           <div
+            className="fork-modal-body"
             style={{
               padding: '24px 28px',
               maxHeight: 'calc(90vh - 120px)',
@@ -771,6 +781,7 @@ export function OnboardingForkModal({
 
           {/* Footer */}
           <div
+            className="fork-modal-footer"
             style={{
               padding: '16px 24px',
               borderTop: '1px solid var(--border-soft)',
@@ -782,7 +793,7 @@ export function OnboardingForkModal({
               background: 'var(--surface)',
             }}
           >
-            <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
+            <div className="fork-modal-footer-hint" style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
               {loadingAction ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <span
@@ -803,7 +814,7 @@ export function OnboardingForkModal({
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
+            <div className="fork-modal-footer-actions" style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
               <button
                 type="button"
                 className="btn btn--ghost"
@@ -829,6 +840,7 @@ export function OnboardingForkModal({
           </div>
         </motion.div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 }

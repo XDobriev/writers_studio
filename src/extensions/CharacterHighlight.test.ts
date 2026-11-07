@@ -95,6 +95,7 @@ describe('CharacterHighlight: findCharacterDecorations', () => {
     expect(attrs['data-char-id']).toBe(anna.id);
     expect(attrs['data-char-color']).toBe(getCharacterColor(0));
     expect(attrs.style).toContain(getCharacterColor(0));
+    expect(attrs.spellcheck).toBe('false');
   });
 
   it('помечает повторные появления персонажа как .char-mention-subsequent', () => {
