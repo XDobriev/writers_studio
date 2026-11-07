@@ -11,7 +11,38 @@ export type ImportFormat = 'docx' | 'txt' | 'md' | 'fb2' | 'epub';
 /** FB2 и EPUB — Pro: это переезд с площадок (Author.Today, Литнет), DOCX/TXT/MD — бесплатно. */
 export const PRO_IMPORT_FORMATS: readonly ImportFormat[] = ['fb2', 'epub'];
 
-export const IMPORT_ACCEPT = '.docx,.txt,.md,.markdown,.fb2,.epub';
+export const IMPORT_ACCEPT = '.docx,.doc,.dot,.txt,.md,.markdown,.fb2,.epub';
+
+export const DOC_UNSUPPORTED_ERROR =
+  'Формат .doc / .dot (Word 97–2003) не поддерживается. Пожалуйста, откройте файл в Word или Google Документах, сохраните как .docx и загрузите снова.';
+
+export const DOC_RENAMED_ERROR =
+  'Файл сохранён в старом формате .doc (Word 97–2003). Переименование файла в .docx не меняет его структуру: откройте его в Word или Google Документах, сохраните как .docx и загрузите снова.';
+
+function fileExtension(fileName: string): string | null {
+  return fileName.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? null;
+}
+
+export function isLegacyWordFileName(fileName: string): boolean {
+  const ext = fileExtension(fileName);
+  return ext === 'doc' || ext === 'dot';
+}
+
+/** Проверка сигнатуры OLE2 Compound Document (Word 97–2003 .doc): D0 CF 11 E0 A1 B1 1A E1 */
+export function isOleCompoundDocument(data: ArrayBuffer | null | undefined): boolean {
+  if (!data || data.byteLength < 8) return false;
+  const h = new Uint8Array(data, 0, 8);
+  return (
+    h[0] === 0xd0 &&
+    h[1] === 0xcf &&
+    h[2] === 0x11 &&
+    h[3] === 0xe0 &&
+    h[4] === 0xa1 &&
+    h[5] === 0xb1 &&
+    h[6] === 0x1a &&
+    h[7] === 0xe1
+  );
+}
 
 const MAX_IMPORT_BYTES = 20 * 1024 * 1024;
 
@@ -25,7 +56,7 @@ export interface ParsedManuscript {
 }
 
 export function detectImportFormat(fileName: string): ImportFormat | null {
-  const ext = fileName.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];
+  const ext = fileExtension(fileName);
   if (ext === 'docx') return 'docx';
   if (ext === 'txt' || ext === 'text') return 'txt';
   if (ext === 'md' || ext === 'markdown') return 'md';
@@ -52,6 +83,9 @@ async function normalizeUnits(units: ImportUnit[]): Promise<ImportUnit[]> {
 }
 
 export async function parseManuscript(data: ArrayBuffer, fileName: string): Promise<ParsedManuscript> {
+  if (isLegacyWordFileName(fileName)) throw new Error(DOC_UNSUPPORTED_ERROR);
+  if (isOleCompoundDocument(data)) throw new Error(DOC_RENAMED_ERROR);
+
   const format = detectImportFormat(fileName);
   if (!format) throw new Error('Неподдерживаемый формат. Можно загрузить DOCX, TXT, Markdown, FB2 или EPUB.');
   if (data.byteLength > MAX_IMPORT_BYTES) throw new Error('Файл больше 20 МБ — разделите рукопись на части.');
@@ -68,7 +102,7 @@ export async function parseManuscript(data: ArrayBuffer, fileName: string): Prom
     try {
       r = await parseDocx(data);
     } catch {
-      throw new Error('Не удалось прочитать DOCX. Если файл в старом формате .doc — пересохраните его в Word как .docx.');
+      throw new Error('Не удалось прочитать DOCX. Если файл изначально был в формате .doc — пересохраните его в Word или Google Документах как .docx.');
     }
     ({ title, author } = r);
     units = [{ html: r.html }];
