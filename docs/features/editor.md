@@ -34,7 +34,7 @@ TextStyle, Color, Highlight (multicolor), Link, TextAlign (heading+paragraph), T
 
 ## Шрифт редактора
 
-5 шрифтов с поддержкой кириллицы: Source Serif 4 (default), Lora, PT Serif, Spectral, IBM Plex Mono. Все загружены через `@fontsource` npm-пакеты (не CDN).
+6 шрифтов с поддержкой кириллицы: Source Serif 4 (default), Lora, PT Serif, Spectral, IBM Plex Mono, Cascadia Mono. Все загружены через `@fontsource` npm-пакеты (не CDN).
 
 Пакет `@fontsource-variable/source-serif-4` регистрирует семейство **`'Source Serif 4 Variable'`** (не `'Source Serif 4'`) — стек должен начинаться с него, иначе рисуется Georgia. `applyEditorFont` сразу вызывает `document.fonts.load()`: браузер качает `@font-face` только когда видит текст этим шрифтом, и без предзагрузки подмена шрифта после прихода главы перестраивала бы justify-строки.
 

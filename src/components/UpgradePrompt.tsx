@@ -42,6 +42,10 @@ const TRIAL_OFFERS: Record<string, { title: string; body: string }> = {
     title: '11-е событие — попробуйте Pro бесплатно',
     body: 'Бесплатный план включает до 10 событий хронологии. Включите 7 дней Pro в один клик — без привязки карты. По окончании пробного периода все события останутся в книге.',
   },
+  books: {
+    title: '2-я книга — попробуйте Pro бесплатно',
+    body: 'Бесплатный план включает одну книгу. Включите 7 дней Pro в один клик — без привязки карты. По окончании пробного периода все созданные книги останутся в аккаунте.',
+  },
 };
 
 export function UpgradePrompt({
@@ -65,7 +69,7 @@ export function UpgradePrompt({
   const { user } = useAuth();
   const { data: profile } = useProfile(user?.id);
 
-  const showTrialOffer = (feature === 'characters' || feature === 'timeline') && canStartTrial(profile);
+  const showTrialOffer = (feature === 'characters' || feature === 'timeline' || feature === 'books') && canStartTrial(profile);
 
   const defaultMeta = FEATURE_TEXT[feature] ?? { title: 'Лимит Free-плана', body: 'Перейдите на Pro.' };
   const { title, body } = showTrialOffer
@@ -93,8 +97,11 @@ export function UpgradePrompt({
         );
         void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.profile(user.id) });
       }
-      onClose();
-      onTrialActivated?.();
+      try {
+        onTrialActivated?.();
+      } finally {
+        onClose();
+      }
     } catch (e) {
       setTrialError(e instanceof Error ? e.message : 'Не удалось активировать пробный период.');
     } finally {

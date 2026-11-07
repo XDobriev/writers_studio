@@ -106,6 +106,15 @@ describe('UpgradePrompt', () => {
     expect(el.textContent).toContain('Включить 7 дней Pro бесплатно');
   });
 
+  it('рендерит предложение 7-дневного триала для books, когда trial_used: false', () => {
+    const el = mount({ open: true, feature: 'books' });
+    expect(el.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(el.textContent).toContain('2-я книга — попробуйте Pro бесплатно');
+    expect(el.textContent).toContain('Бесплатный план включает одну книгу. Включите 7 дней Pro в один клик');
+    expect(el.textContent).toContain('Включить 7 дней Pro бесплатно');
+    expect(el.textContent).toContain('Купить Pro');
+  });
+
   it('активирует триал в 1 клик, инвалидирует кэш и вызывает onTrialActivated', async () => {
     const onClose = vi.fn();
     const onTrialActivated = vi.fn();
@@ -133,6 +142,7 @@ describe('UpgradePrompt', () => {
     expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['profile', 'u1'] });
     expect(onClose).toHaveBeenCalled();
     expect(onTrialActivated).toHaveBeenCalledTimes(1);
+    expect(onTrialActivated.mock.invocationCallOrder[0]).toBeLessThan(onClose.mock.invocationCallOrder[0]);
   });
 
   it('показывает ошибку, если RPC startProTrial упал', async () => {
@@ -155,11 +165,132 @@ describe('UpgradePrompt', () => {
     expect(onTrialActivated).not.toHaveBeenCalled();
   });
 
+  it('активирует триал для books в 1 клик, инвалидирует кэш и вызывает onTrialActivated', async () => {
+    const onClose = vi.fn();
+    const onTrialActivated = vi.fn();
+    const nowIso = new Date().toISOString();
+    const endsIso = new Date(Date.now() + 7 * 86400000).toISOString();
+
+    mockStartProTrial.mockResolvedValueOnce({
+      trial_started_at: nowIso,
+      trial_ends_at: endsIso,
+      trial_used: true,
+    });
+
+    const el = mount({ open: true, feature: 'books', onClose, onTrialActivated });
+    const trialBtn = Array.from(el.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Включить 7 дней Pro бесплатно')
+    );
+    expect(trialBtn).toBeDefined();
+
+    await act(async () => {
+      trialBtn?.click();
+    });
+
+    expect(mockStartProTrial).toHaveBeenCalledTimes(1);
+    expect(mockSetQueryData).toHaveBeenCalledWith(['profile', 'u1'], expect.any(Function));
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['profile', 'u1'] });
+    expect(onClose).toHaveBeenCalled();
+    expect(onTrialActivated).toHaveBeenCalledTimes(1);
+    expect(onTrialActivated.mock.invocationCallOrder[0]).toBeLessThan(onClose.mock.invocationCallOrder[0]);
+  });
+
+  it('активирует триал без onTrialActivated и вызывает onClose', async () => {
+    const onClose = vi.fn();
+    const nowIso = new Date().toISOString();
+    const endsIso = new Date(Date.now() + 7 * 86400000).toISOString();
+
+    mockStartProTrial.mockResolvedValueOnce({
+      trial_started_at: nowIso,
+      trial_ends_at: endsIso,
+      trial_used: true,
+    });
+
+    const el = mount({ open: true, feature: 'books', onClose });
+    const trialBtn = Array.from(el.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Включить 7 дней Pro бесплатно')
+    );
+    expect(trialBtn).toBeDefined();
+
+    await act(async () => {
+      trialBtn?.click();
+    });
+
+    expect(mockStartProTrial).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('гарантирует вызов onClose через finally, даже если onTrialActivated выбросил ошибку', async () => {
+    const onClose = vi.fn();
+    const onTrialActivated = vi.fn().mockImplementation(() => {
+      throw new Error('Сбой в колбэке возобновления');
+    });
+    const nowIso = new Date().toISOString();
+    const endsIso = new Date(Date.now() + 7 * 86400000).toISOString();
+
+    mockStartProTrial.mockResolvedValueOnce({
+      trial_started_at: nowIso,
+      trial_ends_at: endsIso,
+      trial_used: true,
+    });
+
+    const el = mount({ open: true, feature: 'books', onClose, onTrialActivated });
+    const trialBtn = Array.from(el.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Включить 7 дней Pro бесплатно')
+    );
+    expect(trialBtn).toBeDefined();
+
+    await act(async () => {
+      trialBtn?.click();
+    });
+
+    expect(onTrialActivated).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onTrialActivated.mock.invocationCallOrder[0]).toBeLessThan(onClose.mock.invocationCallOrder[0]);
+  });
+
   it('показывает стандартный диалог «Перейти на Pro →», если триал уже использован', () => {
     mockProfile.trial_used = true;
     const el = mount({ open: true, feature: 'characters' });
 
     expect(el.textContent).toContain('Лимит персонажей');
+    expect(el.textContent).toContain('Перейти на Pro →');
+    expect(el.textContent).not.toContain('Включить 7 дней Pro бесплатно');
+  });
+
+  it('показывает стандартный диалог «Перейти на Pro →» для feature="books", если триал уже использован', () => {
+    mockProfile.trial_used = true;
+    const el = mount({ open: true, feature: 'books' });
+
+    expect(el.textContent).toContain('Лимит книг');
+    expect(el.textContent).toContain('Перейти на Pro →');
+    expect(el.textContent).not.toContain('Включить 7 дней Pro бесплатно');
+  });
+
+  it('показывает стандартный диалог «Перейти на Pro →» для feature="books", если trial_started_at уже установлен', () => {
+    mockProfile.trial_started_at = new Date().toISOString();
+    const el = mount({ open: true, feature: 'books' });
+
+    expect(el.textContent).toContain('Лимит книг');
+    expect(el.textContent).toContain('Перейти на Pro →');
+    expect(el.textContent).not.toContain('Включить 7 дней Pro бесплатно');
+  });
+
+  it('показывает стандартный диалог «Перейти на Pro →» для feature="books", если пользователь уже на тарифе pro', () => {
+    mockProfile.plan = 'pro';
+    mockProfile.plan_expires_at = new Date(Date.now() + 86400000).toISOString();
+    const el = mount({ open: true, feature: 'books' });
+
+    expect(el.textContent).toContain('Лимит книг');
+    expect(el.textContent).toContain('Перейти на Pro →');
+    expect(el.textContent).not.toContain('Включить 7 дней Pro бесплатно');
+  });
+
+  it('показывает стандартный диалог «Перейти на Pro →» для feature="books", если profile равен null', () => {
+    mockProfile = null;
+    const el = mount({ open: true, feature: 'books' });
+
+    expect(el.textContent).toContain('Лимит книг');
     expect(el.textContent).toContain('Перейти на Pro →');
     expect(el.textContent).not.toContain('Включить 7 дней Pro бесплатно');
   });

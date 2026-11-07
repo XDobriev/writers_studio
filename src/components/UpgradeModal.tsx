@@ -29,8 +29,10 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const [lifetimeSlots, setLifetimeSlots] = useState<number | null>(null);
+  const [slotsError, setSlotsError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [failedPlan, setFailedPlan] = useState<'pro' | 'lifetime' | null>(null);
   const [recurringConsent, setRecurringConsent] = useState(false);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
   const { enabled: paymentsEnabled } = useFeatureFlag('payments_enabled');
@@ -39,11 +41,13 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
   async function handlePurchase(plan: 'pro' | 'pro_annual' | 'lifetime') {
     setIsLoading(true);
     setPurchaseError(null);
+    setFailedPlan(null);
     try {
       // Согласие на рекуррент записывает сервер (create-payment-url): IP, UA, версия текста.
       window.location.href = await startCheckout(plan, plan !== 'lifetime' && recurringConsent);
     } catch (e) {
       setPurchaseError(toUserMessage(e, 'Не удалось перейти к оплате. Попробуйте ещё раз.'));
+      setFailedPlan(plan === 'lifetime' ? 'lifetime' : 'pro');
       setIsLoading(false);
     }
   }
@@ -55,17 +59,24 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
     let mounted = true;
     getLifetimeSlotsRemaining()
       .then((slots) => {
-        if (mounted && slots !== null) setLifetimeSlots(slots);
+        if (!mounted) return;
+        if (slots !== null && !Number.isNaN(slots) && slots >= 0) {
+          setLifetimeSlots(slots);
+        } else {
+          setSlotsError(true);
+        }
       })
       .catch(() => {
-        // silent fail - lifetime option won't show
+        if (mounted) {
+          setSlotsError(true);
+        }
       });
     return () => {
       mounted = false;
     };
   }, []);
 
-  const showLifetime = lifetimeSlots !== null && lifetimeSlots > 0;
+  const showLifetime = !slotsError && lifetimeSlots !== null && lifetimeSlots > 0;
 
   return (
     <div
@@ -105,6 +116,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
             </div>
           </div>
           <button
+            type="button"
             className="tb-btn"
             onClick={onClose}
             aria-label="Закрыть"
@@ -168,6 +180,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
                   </p>
                 )}
                 <button
+                  type="button"
                   className="btn btn--primary"
                   style={{ justifyContent: 'center', fontSize: 13, height: 38 }}
                   onClick={() => handlePurchase(planKeyFor(billingInterval))}
@@ -175,10 +188,10 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
                 >
                   {isLoading ? 'Переход к оплате…' : 'Оформить подписку'}
                 </button>
-                <button className="btn" onClick={onClose} style={{ justifyContent: 'center', fontSize: 13, height: 38 }}>
+                <button type="button" className="btn" onClick={onClose} style={{ justifyContent: 'center', fontSize: 13, height: 38 }}>
                   Позже
                 </button>
-                {purchaseError && (
+                {purchaseError && failedPlan === 'pro' && (
                   <p role="alert" style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', margin: '4px 0 0', textAlign: 'center' }}>
                     {purchaseError}
                   </p>
@@ -187,13 +200,30 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
             </>
           )}
 
-          {skipPro && purchaseError && (
-            <p role="alert" style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', margin: '0 0 8px', textAlign: 'center' }}>
-              {purchaseError}
-            </p>
+          {skipPro && slotsError && (
+            <div style={{
+              textAlign: 'center',
+              padding: '24px 0 8px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 16,
+            }}>
+              <p style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)', margin: 0 }}>
+                Не удалось загрузить данные о тарифе. Попробуйте позже
+              </p>
+              <button
+                type="button"
+                className="btn"
+                onClick={onClose}
+                style={{ justifyContent: 'center', fontSize: 13, height: 36, width: '100%' }}
+              >
+                Закрыть
+              </button>
+            </div>
           )}
 
-          {lifetimeSlots === null && (
+          {lifetimeSlots === null && !slotsError && (
             <div style={{
               borderTop: skipPro ? 'none' : '1px solid var(--border-soft)',
               marginTop: skipPro ? 0 : 16,
@@ -205,7 +235,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
             </div>
           )}
 
-          {skipPro && lifetimeSlots === 0 && (
+          {skipPro && !slotsError && lifetimeSlots === 0 && (
             <div style={{ textAlign: 'center', padding: '16px 0 8px', color: 'var(--ink-3)', font: '400 13px var(--font-ui)' }}>
               Все места по тарифу Lifetime сейчас заняты.
             </div>
@@ -236,6 +266,7 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
                 <span style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-4)' }}>разовый платёж</span>
               </div>
               <button
+                type="button"
                 className="btn"
                 style={{ justifyContent: 'center', fontSize: 13, height: 36, width: '100%' }}
                 onClick={() => handlePurchase('lifetime')}
@@ -243,6 +274,11 @@ export function UpgradeModal({ onClose, skipPro = false, grandfathered = false }
               >
                 {isLoading ? 'Переход к оплате…' : 'Купить Lifetime'}
               </button>
+              {purchaseError && failedPlan === 'lifetime' && (
+                <p role="alert" style={{ font: '400 12px var(--font-ui)', color: 'var(--danger)', margin: '8px 0 0', textAlign: 'center' }}>
+                  {purchaseError}
+                </p>
+              )}
             </div>
           )}
         </div>
