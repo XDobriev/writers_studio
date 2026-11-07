@@ -66,12 +66,18 @@ describe('progressCard', () => {
 
     beforeEach(() => {
       mockContext = {
+        save: vi.fn(),
+        restore: vi.fn(),
+        translate: vi.fn(),
+        scale: vi.fn(),
         fillRect: vi.fn(),
         strokeRect: vi.fn(),
         fillText: vi.fn(),
         beginPath: vi.fn(),
         closePath: vi.fn(),
         moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        bezierCurveTo: vi.fn(),
         arcTo: vi.fn(),
         stroke: vi.fn(),
         fill: vi.fn(),
@@ -116,6 +122,24 @@ describe('progressCard', () => {
       );
       expect(mockContext.fillRect).toHaveBeenCalled();
       expect(mockContext.fillText).toHaveBeenCalled();
+      expect(mockContext.save).toHaveBeenCalled();
+      expect(mockContext.restore).toHaveBeenCalled();
+    });
+
+    it('корректно отображает цель с правильным склонением слова', () => {
+      renderProgressCard(
+        mockCanvas,
+        {
+          bookTitle: 'Книга 1',
+          todayWords: 21,
+          goalWords: 501,
+        },
+        { format: 'square' },
+      );
+      // Проверяем, что в fillText передавалось "слово" для цели 501 и "слово написано" для 21
+      const fillTextCalls = mockContext.fillText.mock.calls.map((c: any[]) => c[0]);
+      expect(fillTextCalls.some((txt: string) => txt.includes('Цель: 21 / 501 слово'))).toBe(true);
+      expect(fillTextCalls.includes('слово написано')).toBe(true);
     });
   });
 

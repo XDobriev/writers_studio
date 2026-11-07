@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
 import { trapTab, useModalFocus } from '../lib/useModalFocus';
+import { LogoMark } from './LogoMark';
 import {
   renderProgressCard,
   copyCanvasToClipboard,
@@ -124,13 +125,16 @@ export function ShareProgressModal({ isOpen, onClose, data }: ShareProgressModal
       >
         {/* Шапка модалки */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div>
-            <h2 style={{ font: '600 22px var(--font-serif)', margin: 0, color: 'var(--ink)' }}>
-              Карточка прогресса
-            </h2>
-            <p style={{ margin: '4px 0 0', font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
-              Красивая карточка с плашкой «Написано без ИИ» для сторис и чатов
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <LogoMark size={28} />
+            <div>
+              <h2 style={{ font: '600 22px var(--font-serif)', margin: 0, color: 'var(--ink)' }}>
+                Карточка прогресса
+              </h2>
+              <p style={{ margin: '2px 0 0', font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
+                Красивая карточка с плашкой «Написано без ИИ» для сторис и чатов
+              </p>
+            </div>
           </div>
           <button
             type="button"
