@@ -1110,6 +1110,61 @@ button.chip:not(.chip--accent):hover { background: var(--surface-2); }
   overflow-y: auto;
 }
 
+/* OnboardingForkModal & BookPassportModal field headers and responsive layout */
+.onboarding-fork-modal .label,
+.book-passport-modal .label {
+  font: 600 13px var(--font-ui);
+  color: var(--ink);
+  letter-spacing: normal;
+  text-transform: none;
+  display: block;
+  margin-bottom: 6px;
+}
+
+@media (max-width: 639px) {
+  .onboarding-fork-modal,
+  .book-passport-modal {
+    max-width: calc(100vw - 16px) !important;
+    width: 100% !important;
+    border-radius: var(--r-3) !important;
+  }
+  .onboarding-fork-modal .fork-modal-header,
+  .book-passport-modal .fork-modal-header {
+    padding: 16px !important;
+  }
+  .onboarding-fork-modal .fork-modal-body,
+  .book-passport-modal .fork-modal-body {
+    padding: 16px !important;
+    max-height: calc(85vh - 120px) !important;
+  }
+  .onboarding-fork-modal .fork-modal-footer,
+  .book-passport-modal .fork-modal-footer {
+    padding: 16px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .onboarding-fork-modal .fork-modal-footer-hint,
+  .book-passport-modal .fork-modal-footer-hint {
+    text-align: center !important;
+    order: 2 !important;
+  }
+  .onboarding-fork-modal .fork-modal-footer-actions,
+  .book-passport-modal .fork-modal-footer-actions {
+    margin-left: 0 !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+    order: 1 !important;
+  }
+  .onboarding-fork-modal .fork-modal-footer-actions button,
+  .book-passport-modal .fork-modal-footer-actions button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
 .as ::-webkit-scrollbar { width: 10px; height: 10px; }
 .as ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
 .as ::-webkit-scrollbar-track { background: transparent; }

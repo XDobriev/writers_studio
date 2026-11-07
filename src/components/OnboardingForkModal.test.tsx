@@ -291,4 +291,21 @@ describe('OnboardingForkModal', () => {
     expect(updatedTitleInput).not.toBeNull();
     expect(updatedTitleInput.value).toBe('Моя начатая книга');
   });
+
+  it('рендерит структуру модалки с классами адаптивности и выразительными заголовками', () => {
+    mount();
+    const panel = document.querySelector('.onboarding-fork-modal');
+    expect(panel).not.toBeNull();
+    expect(panel?.querySelector('.fork-modal-header')).not.toBeNull();
+    expect(panel?.querySelector('.fork-modal-body')).not.toBeNull();
+    expect(panel?.querySelector('.fork-modal-footer')).not.toBeNull();
+    expect(panel?.querySelector('.fork-modal-footer-actions')).not.toBeNull();
+
+    // Переход на шаг 2
+    act(() => {
+      (document.querySelectorAll('.fork-card')[1] as HTMLElement).click();
+    });
+    const labels = panel?.querySelectorAll('.label');
+    expect(labels && labels.length).toBeGreaterThan(0);
+  });
 });

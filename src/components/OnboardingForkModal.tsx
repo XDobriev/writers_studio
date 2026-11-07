@@ -210,7 +210,7 @@ export function OnboardingForkModal({
           aria-labelledby="onboarding-fork-title"
           tabIndex={-1}
           variants={modalPanelVariants}
-          className="modal-panel"
+          className="modal-panel onboarding-fork-modal"
           style={{
             width: step === 'cards' ? 880 : 700,
             maxWidth: 'calc(100vw - 28px)',
@@ -222,6 +222,7 @@ export function OnboardingForkModal({
         >
           {/* Header */}
           <div
+            className="fork-modal-header"
             style={{
               padding: '24px 28px 20px',
               borderBottom: '1px solid var(--border-soft)',
@@ -295,6 +296,7 @@ export function OnboardingForkModal({
 
           {/* Body */}
           <div
+            className="fork-modal-body"
             style={{
               padding: '24px 28px',
               maxHeight: 'calc(90vh - 120px)',
@@ -780,6 +782,7 @@ export function OnboardingForkModal({
 
           {/* Footer */}
           <div
+            className="fork-modal-footer"
             style={{
               padding: '16px 24px',
               borderTop: '1px solid var(--border-soft)',
@@ -791,7 +794,7 @@ export function OnboardingForkModal({
               background: 'var(--surface)',
             }}
           >
-            <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
+            <div className="fork-modal-footer-hint" style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>
               {loadingAction ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <span
@@ -812,7 +815,7 @@ export function OnboardingForkModal({
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
+            <div className="fork-modal-footer-actions" style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
               <button
                 type="button"
                 className="btn btn--ghost"
