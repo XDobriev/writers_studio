@@ -88,6 +88,14 @@ describe('отношения по главам', () => {
     expect(inputA).not.toBeNull();
     expect(inputA.placeholder).toBe('друг, соперник, наставник...');
 
+    const inputB = el.querySelector<HTMLInputElement>('input[aria-label="Мария → Анна"]')!;
+    expect(inputB).not.toBeNull();
+    expect(inputB.placeholder).toContain('Взаимно');
+
+    // При выборе «Наставник» плейсхолдер второго поля наглядно объясняет наследование
+    await act(async () => button('Наставник').click());
+    expect(inputB.placeholder).toContain('По умолчанию «Наставник»');
+
     expect(el.textContent).toContain('Можно указать любую свою роль или статус отношений');
   });
 

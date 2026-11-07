@@ -176,4 +176,76 @@ describe('CharacterHeroBlock — аватар и заглушка персона
     expect(newImg).not.toBeNull();
     expect(newImg?.src).toBe('https://example.com/new.jpg');
   });
+
+  it('при имени только из пробелов рендерит силуэт, а не точки', async () => {
+    await mount({ name: '     ', avatar_url: null });
+
+    const placeholder = el!.querySelector('[data-testid="char-portrait-placeholder"]');
+    expect(placeholder).not.toBeNull();
+    expect(el!.querySelector('[data-testid="char-portrait-initials"]')).toBeNull();
+  });
+
+  it('при isMobile=true добавляет класс char-portrait--mobile для компактных размеров', async () => {
+    if (root) {
+      act(() => root?.unmount());
+      document.body.innerHTML = '';
+    }
+    el = document.createElement('div');
+    document.body.appendChild(el);
+    root = createRoot(el);
+
+    await act(async () => {
+      root?.render(
+        <CharacterHeroBlock
+          character={{ ...baseChar, name: 'Анна' }}
+          bookId="book-1"
+          onChange={vi.fn()}
+          onError={vi.fn()}
+          isMobile={true}
+        />
+      );
+    });
+
+    const portrait = el!.querySelector('.char-portrait');
+    expect(portrait?.classList.contains('char-portrait--mobile')).toBe(true);
+  });
+
+  it('при успешной загрузке onLoad делает картинку полностью видимой (opacity: 1)', async () => {
+    await mount({ name: 'Анна', avatar_url: 'https://example.com/avatar.jpg' });
+
+    const img = el!.querySelector<HTMLImageElement>('[data-testid="char-portrait-img"]');
+    expect(img).not.toBeNull();
+    expect(img!.style.opacity).toBe('0');
+
+    await act(async () => {
+      img!.dispatchEvent(new Event('load'));
+    });
+    expect(img!.style.opacity).toBe('1');
+  });
+
+  it('при смене id персонажа сбрасывает состояние ошибки аватара', async () => {
+    const { character, onChange, onError } = await mount({
+      id: 'char-1',
+      avatar_url: 'https://example.com/broken.jpg',
+    });
+
+    const img = el!.querySelector<HTMLImageElement>('[data-testid="char-portrait-img"]');
+    await act(async () => {
+      img!.dispatchEvent(new Event('error'));
+    });
+    expect(el!.querySelector('[data-testid="char-portrait-placeholder"]')).not.toBeNull();
+
+    await act(async () => {
+      root?.render(
+        <CharacterHeroBlock
+          character={{ ...character, id: 'char-2', avatar_url: 'https://example.com/other.jpg' }}
+          bookId="book-1"
+          onChange={onChange}
+          onError={onError}
+        />
+      );
+    });
+
+    expect(el!.querySelector('[data-testid="char-portrait-img"]')).not.toBeNull();
+  });
 });
