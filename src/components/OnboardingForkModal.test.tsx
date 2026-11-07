@@ -253,4 +253,59 @@ describe('OnboardingForkModal', () => {
     });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
+
+  it('не сбрасывает введённые пользователем данные при изменении initialCover, пока модалка открыта', () => {
+    mount({ initialCover: '#7c1d1d' });
+    const cards = document.querySelectorAll('.fork-card');
+    act(() => {
+      (cards[1] as HTMLElement).click();
+    });
+
+    const titleInput = document.querySelector('#fork-book-title') as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+      setter?.call(titleInput, 'Моя начатая книга');
+      titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(titleInput.value).toBe('Моя начатая книга');
+
+    // Перерендериваем с новым initialCover, пока isOpen остаётся true
+    act(() => {
+      root!.render(
+        createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          createElement(OnboardingForkModal, {
+            isOpen: true,
+            onClose: mockOnClose,
+            userId: 'user-123',
+            onSelectImport: mockOnSelectImport,
+            onSuccess: mockOnSuccess,
+            initialCover: '#3d4a2e',
+          }),
+        ),
+      );
+    });
+
+    const updatedTitleInput = document.querySelector('#fork-book-title') as HTMLInputElement;
+    expect(updatedTitleInput).not.toBeNull();
+    expect(updatedTitleInput.value).toBe('Моя начатая книга');
+  });
+
+  it('рендерит структуру модалки с классами адаптивности и выразительными заголовками', () => {
+    mount();
+    const panel = document.querySelector('.onboarding-fork-modal');
+    expect(panel).not.toBeNull();
+    expect(panel?.querySelector('.fork-modal-header')).not.toBeNull();
+    expect(panel?.querySelector('.fork-modal-body')).not.toBeNull();
+    expect(panel?.querySelector('.fork-modal-footer')).not.toBeNull();
+    expect(panel?.querySelector('.fork-modal-footer-actions')).not.toBeNull();
+
+    // Переход на шаг 2
+    act(() => {
+      (document.querySelectorAll('.fork-card')[1] as HTMLElement).click();
+    });
+    const labels = panel?.querySelectorAll('.label');
+    expect(labels && labels.length).toBeGreaterThan(0);
+  });
 });
