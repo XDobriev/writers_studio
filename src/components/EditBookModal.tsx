@@ -45,12 +45,19 @@ export function EditBookModal({
   const [error, setError] = useState<string | null>(null);
 
   const prevIsOpenRef = useRef(false);
+  const lastBookIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const wasOpen = prevIsOpenRef.current;
     prevIsOpenRef.current = isOpen;
 
-    if (isOpen && !wasOpen && book) {
+    if (!isOpen) {
+      lastBookIdRef.current = null;
+      return;
+    }
+
+    if (book && (!wasOpen || lastBookIdRef.current !== book.id)) {
+      lastBookIdRef.current = book.id;
       setTitle(book.title || '');
       setAuthor(book.author || '');
       setGenres(book.genres ?? (book.genre ? [book.genre] : []));
@@ -59,7 +66,6 @@ export function EditBookModal({
       setError(null);
       setSaving(false);
       setUploadingCover(false);
-      setTimeout(() => titleInputRef.current?.focus(), 50);
     }
   }, [isOpen, book]);
 
@@ -67,9 +73,7 @@ export function EditBookModal({
     if (!saving) onClose();
   });
 
-  useModalFocus(isOpen, panelRef);
-
-  if (!isOpen || !book) return null;
+  useModalFocus(isOpen && !!book, panelRef, titleInputRef);
 
   const handleCoverFileSelect = async (file: File) => {
     if (!onUploadCover) return;
@@ -115,17 +119,18 @@ export function EditBookModal({
 
   return (
     <AnimatePresence>
-      <motion.div
-        role="presentation"
-        variants={overlayVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        className="modal-overlay"
-        onClick={() => {
-          if (!saving) onClose();
-        }}
-      >
+      {isOpen && book && (
+        <motion.div
+          role="presentation"
+          variants={overlayVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className="modal-overlay"
+          onClick={() => {
+            if (!saving) onClose();
+          }}
+        >
         <motion.div
           ref={panelRef}
           role="dialog"
@@ -297,7 +302,7 @@ export function EditBookModal({
               background: 'var(--surface)',
             }}
           >
-            <div>
+            <div className="fork-modal-footer-danger">
               {onDelete && (
                 <button
                   type="button"
@@ -333,6 +338,7 @@ export function EditBookModal({
           </div>
         </motion.div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 }

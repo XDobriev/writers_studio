@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useResponsive } from '../lib/useResponsive';
 import { usePostAuthRedirect } from '../lib/usePostAuthRedirect';
@@ -8,13 +8,31 @@ import { LogoMark } from '../components/LogoMark';
 import { Icon } from '../components/Icon';
 import { AuthForm } from '../components/AuthForm';
 import { PendingCheckoutPanel } from '../components/PendingCheckoutPanel';
-import { applyTheme, getStoredTheme, type Theme } from '../lib/theme';
+import { applyTheme, getStoredTheme, THEME_EVENT, type Theme } from '../lib/theme';
 
 export default function Auth() {
   const [theme, setTheme] = useState<Theme>(getStoredTheme);
   const tgAuth = useTelegramAuth();
   const { redirectingToPay, pendingCheckout, confirmCheckout, cancelCheckout } = usePostAuthRedirect(tgAuth.busy);
   const { isMobile } = useResponsive();
+
+  useEffect(() => {
+    const handleThemeChange = (e: Event) => {
+      const nextTheme = (e as CustomEvent<Theme>).detail ?? getStoredTheme();
+      setTheme(nextTheme);
+    };
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'as-theme' && (e.newValue === 'light' || e.newValue === 'dark')) {
+        setTheme(e.newValue);
+      }
+    };
+    window.addEventListener(THEME_EVENT, handleThemeChange);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener(THEME_EVENT, handleThemeChange);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
 
   const toggleTheme = () => {
     const next: Theme = theme === 'dark' ? 'light' : 'dark';
@@ -48,8 +66,8 @@ export default function Auth() {
         className="tb-btn"
         style={{
           position: 'fixed',
-          top: isMobile ? 16 : 24,
-          right: isMobile ? 16 : 24,
+          top: isMobile ? 'calc(16px + env(safe-area-inset-top, 0px))' : 24,
+          right: isMobile ? 'calc(16px + env(safe-area-inset-right, 0px))' : 24,
           width: 36,
           height: 36,
           borderRadius: '50%',

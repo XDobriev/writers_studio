@@ -15,8 +15,8 @@ import { BookGroupHeading } from '../components/BookGroupHeading';
 import { SeriesNameEdit } from '../components/SeriesNameEdit';
 import { COVERS } from '../components/CoverPicker';
 import { OnboardingChecklist } from '../components/OnboardingChecklist';
-import { supabase, ensureAuthReady, type Book } from '../lib/supabase';
-import { updateBook, deleteBook as deleteBookApi, updateSeries, type Series } from '../lib/books';
+import { type Book } from '../lib/supabase';
+import { updateBook, deleteBook as deleteBookApi, updateSeries, uploadBookCover, type Series } from '../lib/books';
 import {
   INITIAL_SERIES_TRANSFER,
   type SeriesTransferState,
@@ -30,7 +30,6 @@ import { isSampleBook } from '../lib/onboardingTemplates';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useHasAnyCharacter, useProfile, useSeries, QUERY_KEYS } from '../lib/queries';
-import { optimizeImage, COVER_OPTS } from '../lib/imageOptimize';
 import { useFeatureFlag } from '../lib/useFeatureFlag';
 
 import { plural } from '../lib/i18n';
@@ -140,15 +139,9 @@ export default function Home() {
   };
 
   const handleUploadCoverForFork = async (file: File): Promise<string | null> => {
+    if (!user?.id) return null;
     try {
-      await ensureAuthReady();
-      const optimized = await optimizeImage(file, COVER_OPTS);
-      const ext = optimized.type === 'image/webp' ? 'webp' : 'jpg';
-      const path = `${user!.id}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from('book-covers').upload(path, optimized, { upsert: true, contentType: optimized.type });
-      if (error) throw error;
-      const { data } = supabase.storage.from('book-covers').getPublicUrl(path);
-      return data.publicUrl;
+      return await uploadBookCover(user.id, file);
     } catch (err) {
       console.error('Cover upload error:', err);
       return null;

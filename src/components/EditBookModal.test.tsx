@@ -120,4 +120,65 @@ describe('EditBookModal', () => {
 
     expect(mockOnDelete).toHaveBeenCalledTimes(1);
   });
+
+  it('инициализирует поля, когда book загружается асинхронно после открытия', () => {
+    // Монтируем сначала без книги
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    act(() => {
+      root!.render(
+        createElement(EditBookModal, {
+          isOpen: true,
+          onClose: mockOnClose,
+          book: null,
+          onSave: mockOnSave,
+        }),
+      );
+    });
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+
+    // Теперь книга загрузилась
+    act(() => {
+      root!.render(
+        createElement(EditBookModal, {
+          isOpen: true,
+          onClose: mockOnClose,
+          book: MOCK_BOOK,
+          onSave: mockOnSave,
+        }),
+      );
+    });
+
+    const titleInput = container.querySelector('#edit-book-title') as HTMLInputElement;
+    expect(titleInput).not.toBeNull();
+    expect(titleInput.value).toBe('Старое название');
+  });
+
+  it('не сбрасывает введенный пользователем текст при повторном рендере той же книги', () => {
+    const container = mount();
+    const titleInput = container.querySelector('#edit-book-title') as HTMLInputElement;
+
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+      setter?.call(titleInput, 'Черновые правки пользователя');
+      titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(titleInput.value).toBe('Черновые правки пользователя');
+
+    // Перерендериваем компонент с новым объектом книги с тем же id
+    act(() => {
+      root!.render(
+        createElement(EditBookModal, {
+          isOpen: true,
+          onClose: mockOnClose,
+          book: { ...MOCK_BOOK },
+          onSave: mockOnSave,
+        }),
+      );
+    });
+
+    const updatedTitleInput = container.querySelector('#edit-book-title') as HTMLInputElement;
+    expect(updatedTitleInput.value).toBe('Черновые правки пользователя');
+  });
 });

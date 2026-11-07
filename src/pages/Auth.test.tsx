@@ -101,4 +101,16 @@ describe('Auth page (тема)', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBeNull();
     expect(themeBtn.getAttribute('aria-label')).toBe('Переключить на светлую тему');
   });
+
+  it('синхронизирует состояние при внешнем событии смены темы', () => {
+    const container = mount();
+    const themeBtn = container.querySelector('button[aria-label="Переключить на светлую тему"]') as HTMLButtonElement;
+    expect(themeBtn).not.toBeNull();
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent('as-theme-change', { detail: 'light' }));
+    });
+
+    expect(themeBtn.getAttribute('aria-label')).toBe('Переключить на тёмную тему');
+  });
 });

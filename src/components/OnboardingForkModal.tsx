@@ -98,8 +98,6 @@ export function OnboardingForkModal({
     }
   }, [step]);
 
-  if (!isOpen) return null;
-
   const handleCardKeyDown = (e: KeyboardEvent, action: () => void) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -192,17 +190,18 @@ export function OnboardingForkModal({
 
   return (
     <AnimatePresence>
-      <motion.div
-        role="presentation"
-        variants={overlayVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        className="modal-overlay"
-        onClick={() => {
-          if (!loading) onClose();
-        }}
-      >
+      {isOpen && (
+        <motion.div
+          role="presentation"
+          variants={overlayVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className="modal-overlay"
+          onClick={() => {
+            if (!loading) onClose();
+          }}
+        >
         <motion.div
           ref={panelRef}
           role="dialog"
@@ -841,6 +840,7 @@ export function OnboardingForkModal({
           </div>
         </motion.div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 }

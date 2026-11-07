@@ -7,7 +7,8 @@ import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { Skeleton } from '../components/Skeleton';
 import { EditBookModal } from '../components/EditBookModal';
-import { updateBook } from '../lib/books';
+import { updateBook, uploadBookCover } from '../lib/books';
+import { type Book } from '../lib/supabase';
 import { DbError } from '../lib/repository';
 import { type Chapter } from '../lib/chapters';
 import { plural, pluralDays, fmtNumber, formatAuthorMetrics } from '../lib/i18n';
@@ -87,7 +88,22 @@ export default function Dashboard() {
     if (!id) return;
     const data = await updateBook(id, patch);
     queryClient.setQueryData(QUERY_KEYS.book(id), data);
+    if (book?.user_id) {
+      queryClient.setQueryData<Book[]>(QUERY_KEYS.books(book.user_id), (prev) =>
+        prev?.map((b) => (b.id === id ? data : b)),
+      );
+    }
     setEditOpen(false);
+  };
+
+  const handleUploadCover = async (file: File): Promise<string | null> => {
+    if (!book?.user_id) return null;
+    try {
+      return await uploadBookCover(book.user_id, file);
+    } catch (err) {
+      console.error('Cover upload error:', err);
+      return null;
+    }
   };
 
   const stats = useMemo(() => {
@@ -422,6 +438,7 @@ export default function Dashboard() {
           onClose={() => setEditOpen(false)}
           book={book ?? null}
           onSave={handleSaveEditBook}
+          onUploadCover={handleUploadCover}
         />
       </div>
       {isMobile && showMobileSb && (

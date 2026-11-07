@@ -1,6 +1,7 @@
 export type Theme = 'dark' | 'light';
 
 const STORAGE_KEY = 'as-theme';
+export const THEME_EVENT = 'as-theme-change';
 
 export function getStoredTheme(): Theme {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -14,4 +15,8 @@ export function applyTheme(theme: Theme) {
     document.documentElement.removeAttribute('data-theme');
   }
   localStorage.setItem(STORAGE_KEY, theme);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: theme }));
+  }
 }
+

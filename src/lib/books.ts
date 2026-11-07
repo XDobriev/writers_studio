@@ -1,5 +1,6 @@
 import * as Sentry from './monitoring';
 import { ensureAuthReady, storagePathFromPublicUrl, supabase, type Book } from './supabase';
+import { optimizeImage, COVER_OPTS } from './imageOptimize';
 import type { Tables } from './database.types';
 
 export type BookPatch = Partial<
@@ -273,6 +274,17 @@ export async function updateBook(id: string, patch: BookPatch): Promise<Book> {
     .single();
   if (error) throw error;
   return data as Book;
+}
+
+export async function uploadBookCover(userId: string, file: File): Promise<string> {
+  await ensureAuthReady();
+  const optimized = await optimizeImage(file, COVER_OPTS);
+  const ext = optimized.type === 'image/webp' ? 'webp' : 'jpg';
+  const path = `${userId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('book-covers').upload(path, optimized, { upsert: true, contentType: optimized.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from('book-covers').getPublicUrl(path);
+  return data.publicUrl;
 }
 
 export async function deleteBook(id: string): Promise<void> {

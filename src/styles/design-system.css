@@ -870,9 +870,11 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   cursor: text !important;
   text-decoration: none !important;
 }
-.focus-mode .char-mention-first::before,
-.focus-page .char-mention-first::before {
-  display: none !important;
+.focus-mode .char-mention-first:hover,
+.focus-mode .char-mention-subsequent:hover,
+.focus-page .char-mention-first:hover,
+.focus-page .char-mention-subsequent:hover {
+  text-decoration: none !important;
 }
 
 /* status bar */
@@ -1146,6 +1148,17 @@ button.chip:not(.chip--accent):hover { background: var(--surface-2); }
   }
   .onboarding-fork-modal .fork-modal-footer-actions button,
   .book-passport-modal .fork-modal-footer-actions button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  .onboarding-fork-modal .fork-modal-footer-danger,
+  .book-passport-modal .fork-modal-footer-danger {
+    margin-top: 4px;
+    width: 100% !important;
+    order: 3 !important;
+  }
+  .onboarding-fork-modal .fork-modal-footer-danger button,
+  .book-passport-modal .fork-modal-footer-danger button {
     width: 100% !important;
     justify-content: center !important;
   }
@@ -3042,6 +3055,7 @@ select.input {
   position: relative;
 }
 .as-radio:checked { border-color: var(--accent); }
+.as-radio:hover:not(:disabled) { border-color: var(--ink-3); }
 .as-radio:checked::after {
   content: '';
   position: absolute;
@@ -3067,6 +3081,9 @@ select.input {
   flex-shrink: 0;
   transition: border-color var(--dur-hover), background-color var(--dur-hover);
   position: relative;
+}
+.as-checkbox:hover:not(:disabled) {
+  border-color: var(--ink-3);
 }
 .as-checkbox:checked {
   border-color: var(--accent);
