@@ -46,7 +46,7 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
   useEffect(() => { setName(character.name); }, [character.id, character.name]);
   useEffect(() => { setQuote(character.quote); }, [character.id, character.quote]);
   useEffect(() => { setAliases(character.aliases ?? []); setAliasInput(''); setSuggestions(null); }, [character.id, character.aliases]);
-  useEffect(() => { setAvatarLoadFailed(false); }, [character.avatar_url]);
+  useEffect(() => { setAvatarLoadFailed(false); }, [character.id, character.avatar_url]);
   useEffect(() => {
     if (editingQuote && quoteRef.current) {
       autoResize(quoteRef.current);
@@ -148,9 +148,10 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
     }
   };
 
-  const hasAvatar = Boolean(character.avatar_url && !avatarLoadFailed);
-  const initials = initialsFromName(name);
-  const showSilhouette = !hasAvatar && (!name.trim() || initials === '··');
+  const hasAvatar = Boolean(character.avatar_url?.trim() && !avatarLoadFailed);
+  const safeName = (name || '').trim();
+  const initials = initialsFromName(safeName);
+  const showSilhouette = !hasAvatar && (!safeName || initials === '··');
 
   return (
     <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 16 : 32, alignItems: isMobile ? 'center' : 'flex-start', marginBottom: 36 }}>
@@ -161,7 +162,7 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
         onClick={() => fileInputRef.current?.click()}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
         title={hasAvatar ? 'Сменить портрет' : 'Загрузить портрет'}
-        className={`char-portrait${avatarBusy ? ' char-portrait--busy' : ''}`}
+        className={`char-portrait${isMobile ? ' char-portrait--mobile' : ''}${avatarBusy ? ' char-portrait--busy' : ''}`}
         style={{ width: isMobile ? 120 : 160, height: isMobile ? 150 : 200 }}
       >
         {hasAvatar && (
@@ -170,6 +171,11 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
             alt={name}
             decoding="async"
             data-testid="char-portrait-img"
+            ref={(img) => {
+              if (img?.complete && img.naturalWidth > 0) {
+                img.style.opacity = '1';
+              }
+            }}
             onLoad={e => { (e.currentTarget as HTMLImageElement).style.opacity = '1'; }}
             onError={() => { setAvatarLoadFailed(true); }}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity 0.25s ease' }}
@@ -181,12 +187,9 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
               <Icon name="user" size={48} />
             </div>
           ) : (
-            <>
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, var(--surface-2), var(--surface))', opacity: 0.8 }} />
-              <div className="char-portrait__initials" data-testid="char-portrait-initials">
-                {initials}
-              </div>
-            </>
+            <div className="char-portrait__initials" data-testid="char-portrait-initials">
+              {initials}
+            </div>
           )
         )}
         {/* Оверлей и кнопка удаления видны по hover/focus через CSS, на таче — всегда. */}

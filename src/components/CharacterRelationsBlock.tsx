@@ -334,7 +334,7 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, e
       } catch (e) { setError(e instanceof Error ? e.message : 'Связь не сохранена.'); }
       finally { setBusy(false); }
     }}><fieldset disabled={busy}>
-      <label className="rel-field">Персонаж<select className="input input--sm" aria-label="Персонаж для связи" value={toId} onChange={(e) => { const toId = e.target.value; setDraft((prev) => prev.creation ? { ...prev, creation: { ...prev.creation, toId } } : prev); }}>
+      <label className="rel-field">Персонаж<select className="input input--sm rel-form__select" aria-label="Персонаж для связи" value={toId} onChange={(e) => { const toId = e.target.value; setDraft((prev) => prev.creation ? { ...prev, creation: { ...prev.creation, toId } } : prev); }}>
         {candidates.map((c) => <option key={c.id} value={c.id}>{c.name || 'Без имени'}</option>)}
       </select></label>
       <div className="rel-presets" role="group" aria-label="Быстрый выбор роли">

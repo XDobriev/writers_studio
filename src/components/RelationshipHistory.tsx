@@ -10,6 +10,11 @@ export type RelationshipHistoryDraft = { relationshipId: string; editing: 'basel
 export function RelationshipStateFields({ value, onChange, nameA, nameB, symmetricDefault = false }: {
   value: RelationshipState; onChange: (value: RelationshipState) => void; nameA: string; nameB: string; symmetricDefault?: boolean;
 }) {
+  const defaultLabelA = value.label_a.trim();
+  const symmetricPlaceholder = defaultLabelA
+    ? `По умолчанию «${defaultLabelA}» (или введите другое: соперник, ученик...)`
+    : 'Взаимно (или введите другое: соперник, тайно завидует...)';
+
   return <>
     <label className="rel-field">Отношение: {nameA} → {nameB}
       <input className="input input--sm" aria-label={`${nameA} → ${nameB}`} value={value.label_a} maxLength={200}
@@ -17,7 +22,7 @@ export function RelationshipStateFields({ value, onChange, nameA, nameB, symmetr
     </label>
     <label className="rel-field">Отношение: {nameB} → {nameA} {symmetricDefault && <span className="rel-hint">(если отличается)</span>}
       <input className="input input--sm" aria-label={`${nameB} → ${nameA}`} value={value.label_b} maxLength={200}
-        placeholder={symmetricDefault ? 'Взаимно (или введите другое: соперник, тайно завидует...)' : 'друг, соперник, наставник...'} onChange={(e) => onChange({ ...value, label_b: e.target.value })} />
+        placeholder={symmetricDefault ? symmetricPlaceholder : 'друг, соперник, наставник...'} onChange={(e) => onChange({ ...value, label_b: e.target.value })} />
     </label>
     <span className="rel-hint">Можно указать любую свою роль или статус отношений (друг, союзник, соперник, должник и т.д.).</span>
     <label className="rel-secret-toggle"><input type="checkbox" checked={value.is_secret}
