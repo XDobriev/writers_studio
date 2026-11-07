@@ -2,22 +2,22 @@ import { Link, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toastVariants } from '../lib/motion';
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { useErrorState } from '../lib/useErrorState';
 import { useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { Skeleton } from '../components/Skeleton';
-import { GenrePicker } from '../components/GenrePicker';
-import { updateBook } from '../lib/books';
+import { EditBookModal } from '../components/EditBookModal';
+import { updateBook, uploadBookCover } from '../lib/books';
+import { type Book } from '../lib/supabase';
 import { DbError } from '../lib/repository';
 import { type Chapter } from '../lib/chapters';
-import { plural, pluralDays, fmtNumber, formatAuthorMetrics } from '../lib/i18n';
+import { plural, pluralDays, fmtNumber } from '../lib/i18n';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useWritingSnapshots } from '../lib/queries';
 import { useResponsive } from '../lib/useResponsive';
 import { computeActivityData } from '../lib/activity';
 import { toLocalISODate } from '../lib/dates';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
-import { trapTab, useModalFocus } from '../lib/useModalFocus';
+import { trapTab } from '../lib/useModalFocus';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
 
 const STATUS_DOT: Record<Chapter['status'], string> = {
@@ -50,15 +50,6 @@ export default function Dashboard() {
   const isBookNotFound = bookError instanceof DbError && bookError.code === 'PGRST116';
 
   const [editOpen, setEditOpen] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
-  const [editGenres, setEditGenres] = useState<string[]>([]);
-  const [editGoal, setEditGoal] = useState(0);
-  const [editSaving, setEditSaving] = useState(false);
-  const editPanelRef = useRef<HTMLDivElement>(null);
-  const editTitleRef = useRef<HTMLInputElement>(null);
-  useModalFocus(editOpen, editPanelRef, editTitleRef);
-  useEscapeToClose(editOpen, () => { if (!editSaving) setEditOpen(false); });
-  const { error: editError, setError: setEditError, clearError: clearEditError } = useErrorState();
   const [weeklyToast, setWeeklyToast] = useState<string | null>(null);
 
   const navigate = useNavigate();
@@ -84,25 +75,34 @@ export default function Dashboard() {
 
   const openEdit = () => {
     if (!book) return;
-    setEditTitle(book.title);
-    setEditGenres(book.genres?.length ? book.genres : book.genre ? [book.genre] : []);
-    setEditGoal(book.goal);
-    clearEditError();
     setEditOpen(true);
   };
 
-  const saveEdit = async () => {
-    if (editSaving || !editTitle.trim() || !id) return;
-    setEditSaving(true);
-    clearEditError();
+  const handleSaveEditBook = async (patch: {
+    title: string;
+    author: string | null;
+    genres: string[];
+    goal: number;
+    cover: string;
+  }) => {
+    if (!id) return;
+    const data = await updateBook(id, patch);
+    queryClient.setQueryData(QUERY_KEYS.book(id), data);
+    if (book?.user_id) {
+      queryClient.setQueryData<Book[]>(QUERY_KEYS.books(book.user_id), (prev) =>
+        prev?.map((b) => (b.id === id ? data : b)),
+      );
+    }
+    setEditOpen(false);
+  };
+
+  const handleUploadCover = async (file: File): Promise<string | null> => {
+    if (!book?.user_id) return null;
     try {
-      const data = await updateBook(id, { title: editTitle.trim(), genres: editGenres, goal: Math.max(0, editGoal) });
-      queryClient.setQueryData(QUERY_KEYS.book(id), data);
-      setEditOpen(false);
-    } catch (e) {
-      setEditError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-    } finally {
-      setEditSaving(false);
+      return await uploadBookCover(book.user_id, file);
+    } catch (err) {
+      console.error('Cover upload error:', err);
+      return null;
     }
   };
 
@@ -151,21 +151,12 @@ export default function Dashboard() {
     if (!book || !chapters || !characters || !stats) return [];
     const protagonistCount = characters.filter((c) => c.role === 'protagonist').length;
     const secondaryCount = characters.filter((c) => c.role === 'secondary').length;
-    const author = formatAuthorMetrics(book.words);
-
     return [
       {
         l: 'Слов написано',
         v: fmtNumber(book.words),
-        sub: book.goal > 0 ? `из ${fmtNumber(book.goal)} слов` : 'цель не задана',
+        sub: book.goal > 0 ? `из ${fmtNumber(book.goal)}` : 'цель не задана',
         delta: book.goal > 0 ? `${stats.goalPct}% от цели` : '—',
-      },
-      {
-        l: 'Объём рукописи',
-        v: author.sheets,
-        sub: author.pages,
-        delta: '40 000 знаков / лист',
-        title: '1 авторский лист (а. л.) = 40 000 знаков (~6 000 слов)\n1 авторская страница = 1 800 знаков (~270 слов)',
       },
       {
         l: 'Глав',
@@ -191,10 +182,11 @@ export default function Dashboard() {
         const totalMins = Math.round(book.words / 200);
         const hours = Math.floor(totalMins / 60);
         const mins = totalMins % 60;
+        const pages = Math.round(book.words / 250);
         return {
           l: 'Время чтения',
           v: hours > 0 ? `${hours} ч ${mins} мин` : totalMins === 0 && book.words > 0 ? '< 1 мин' : `${totalMins} мин`,
-          sub: book.words > 0 ? 'средний темп чтения' : 'нет текста',
+          sub: book.words > 0 ? `≈ ${pages} ${plural(pages, 'страница', 'страницы', 'страниц')} А4` : 'нет текста',
           delta: '200 слов/мин',
         };
       })(),
@@ -249,8 +241,8 @@ export default function Dashboard() {
           <div className="skeleton" style={{ height: '100%', borderRadius: 0 }} />
         )}
         <div style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: 20, background: 'var(--bg)', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: isMobile ? 10 : 16 }}>
-            {Array.from({ length: 6 }, (_, i) => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
+            {Array.from({ length: 5 }, (_, i) => (
               <div key={i} className="skeleton" style={{ height: 116, borderRadius: 12 }} />
             ))}
           </div>
@@ -329,11 +321,11 @@ export default function Dashboard() {
             ) : (
               <div className="dash-stat-grid" style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: isMobile ? 10 : 16, marginBottom: 20 }}>
                 {statCards.map((s) => (
-                  <div key={s.l} title={s.title} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: isMobile ? '16px 14px' : '18px 20px', minWidth: 0 }}>
-                    <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.l}</div>
-                    <div style={{ font: '600 var(--font-mono)', fontSize: s.v.length > 8 ? (isMobile ? 22 : 26) : (isMobile ? 26 : 30), letterSpacing: '-0.012em', color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.v}</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.sub}</div>
-                    <div style={{ font: '500 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 10, letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.delta}</div>
+                  <div key={s.l} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 20px' }}>
+                    <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>{s.l}</div>
+                    <div style={{ font: '600 32px var(--font-mono)', letterSpacing: '-0.012em', color: 'var(--ink)' }}>{s.v}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>{s.sub}</div>
+                    <div style={{ font: '500 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 10, letterSpacing: '0.04em' }}>{s.delta}</div>
                   </div>
                 ))}
               </div>
@@ -433,73 +425,13 @@ export default function Dashboard() {
           </div>
         </main>
 
-        {editOpen && (
-          <div className="modal-overlay" onClick={() => { if (!editSaving) setEditOpen(false); }}>
-            <div
-              ref={editPanelRef}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Редактировать книгу"
-              tabIndex={-1}
-              className="modal-panel"
-              style={{ width: 460 }}
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => trapTab(e)}
-            >
-              <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
-
-              <div>
-                <label className="label" htmlFor="edit-book-title">Название</label>
-                <input
-                  id="edit-book-title"
-                  ref={editTitleRef}
-                  className="input"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); }}
-                  maxLength={120}
-                />
-              </div>
-
-              <GenrePicker value={editGenres} onChange={setEditGenres} />
-
-              <div>
-                <label className="label" htmlFor="edit-book-goal">Цель по словам</label>
-                <input
-                  id="edit-book-goal"
-                  className="input"
-                  type="number"
-                  min={0}
-                  step={1000}
-                  value={editGoal || ''}
-                  placeholder="необязательно"
-                  onChange={(e) => setEditGoal(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
-                  onKeyDown={(e) => { if (e.key === 'Escape') setEditOpen(false); }}
-                />
-                <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
-                  Рассказ 1–10 тыс. · Новелла 10–20 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпос / сага 120–300 тыс. слов
-                </div>
-              </div>
-
-              {editError && (
-                <div style={{ fontSize: 12, color: 'var(--danger)' }}>{editError}</div>
-              )}
-
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button className="btn btn--ghost" onClick={() => setEditOpen(false)}>Отмена</button>
-                <button
-                  className="btn btn--primary"
-                  onClick={saveEdit}
-                  disabled={editSaving || !editTitle.trim()}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  {editSaving && <span className="btn-spinner" />}
-                  {editSaving ? 'Сохраняем…' : 'Сохранить'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <EditBookModal
+          isOpen={editOpen}
+          onClose={() => setEditOpen(false)}
+          book={book ?? null}
+          onSave={handleSaveEditBook}
+          onUploadCover={handleUploadCover}
+        />
       </div>
       {isMobile && showMobileSb && (
         <>

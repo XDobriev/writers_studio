@@ -1,8 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Skeleton } from '../components/Skeleton';
 import { ErrorBanner } from '../components/ErrorBanner';
-import { trapTab, useModalFocus } from '../lib/useModalFocus';
-import { useEscapeToClose } from '../lib/useEscapeToClose';
 import { toUserMessage } from '../lib/errors';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../lib/useResponsive';
@@ -15,11 +13,10 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { BookCard } from '../components/BookCard';
 import { BookGroupHeading } from '../components/BookGroupHeading';
 import { SeriesNameEdit } from '../components/SeriesNameEdit';
-import { CoverPicker, COVERS } from '../components/CoverPicker';
-import { GenrePicker } from '../components/GenrePicker';
+import { COVERS } from '../components/CoverPicker';
 import { OnboardingChecklist } from '../components/OnboardingChecklist';
-import { supabase, ensureAuthReady, type Book } from '../lib/supabase';
-import { updateBook, deleteBook as deleteBookApi, updateSeries, type Series } from '../lib/books';
+import { type Book } from '../lib/supabase';
+import { updateBook, deleteBook as deleteBookApi, updateSeries, uploadBookCover, type Series } from '../lib/books';
 import {
   INITIAL_SERIES_TRANSFER,
   type SeriesTransferState,
@@ -28,11 +25,11 @@ import { getPlanLimits } from '../lib/profiles';
 import { UpgradePrompt } from '../components/UpgradePrompt';
 import { ImportManuscriptModal } from '../components/ImportManuscriptModal';
 import { OnboardingForkModal } from '../components/OnboardingForkModal';
+import { EditBookModal } from '../components/EditBookModal';
 import { isSampleBook } from '../lib/onboardingTemplates';
 import { useAuth } from '../lib/auth';
 import { useUserDisplay } from '../lib/useUserDisplay';
 import { useBooks, useHasAnyCharacter, useProfile, useSeries, QUERY_KEYS } from '../lib/queries';
-import { optimizeImage, COVER_OPTS } from '../lib/imageOptimize';
 import { useFeatureFlag } from '../lib/useFeatureFlag';
 
 import { plural } from '../lib/i18n';
@@ -83,48 +80,10 @@ export default function Home() {
   const [showImport, setShowImport] = useState(false);
   const [showFork, setShowFork] = useState(false);
   const [forkSeriesTransfer, setForkSeriesTransfer] = useState<SeriesTransferState>(INITIAL_SERIES_TRANSFER);
-  const trialResumeRef = useRef<(() => void) | null>(null);
 
   const [editBook, setEditBook] = useState<Book | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editGenres, setEditGenres] = useState<string[]>([]);
-  const [editGoal, setEditGoal] = useState(0);
-  const [editCover, setEditCover] = useState(COVERS[0]);
-  const [editAuthor, setEditAuthor] = useState('');
-  const [editSaving, setEditSaving] = useState(false);
-  const { error: editError, setError: setEditError, clearError: clearEditError } = useErrorState();
-
-  const [editUploading, setEditUploading] = useState(false);
   const [confirmDeleteBook, setConfirmDeleteBook] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const editPanelRef = useRef<HTMLDivElement>(null);
-  const editTitleRef = useRef<HTMLInputElement>(null);
-  useModalFocus(editBook !== null, editPanelRef, editTitleRef);
-  useEscapeToClose(editBook !== null, () => { if (!editSaving) setEditBook(null); });
-  const editSavingRef = useRef(false);
-
-  const uploadCover = async (
-    file: File,
-    setter: (url: string) => void,
-    setUploading: (v: boolean) => void,
-    setError: (msg: string) => void,
-  ) => {
-    setUploading(true);
-    try {
-      await ensureAuthReady();
-      const optimized = await optimizeImage(file, COVER_OPTS);
-      const ext = optimized.type === 'image/webp' ? 'webp' : 'jpg';
-      const path = `${user!.id}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from('book-covers').upload(path, optimized, { upsert: true, contentType: optimized.type });
-      if (error) throw error;
-      const { data } = supabase.storage.from('book-covers').getPublicUrl(path);
-      setter(data.publicUrl);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка загрузки обложки');
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const deleteBook = async () => {
     if (!editBook) return;
@@ -147,40 +106,26 @@ export default function Home() {
 
   const openEditBook = (b: Book) => {
     setEditBook(b);
-    setEditTitle(b.title);
-    setEditGenres(b.genres ?? []);
-    setEditGoal(b.goal);
-    setEditCover(b.cover ?? COVERS[0]);
-    setEditAuthor(b.author ?? '');
-    clearEditError();
   };
 
-  const saveEditBook = async () => {
-    if (editSavingRef.current || !editBook || !editTitle.trim()) return;
-    editSavingRef.current = true;
-    setEditSaving(true);
-    clearEditError();
-    try {
-      const data = await updateBook(editBook.id, { title: editTitle.trim(), genres: editGenres, goal: Math.max(0, editGoal), cover: editCover, author: editAuthor.trim() || null });
-      queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => prev?.map((b) => b.id === editBook.id ? data : b));
-      queryClient.setQueryData<Book>(QUERY_KEYS.book(editBook.id), data);
-      setEditBook(null);
-    } catch (e) {
-      setEditError(e instanceof Error ? e.message : 'Неизвестная ошибка');
-    } finally {
-      editSavingRef.current = false;
-      setEditSaving(false);
-    }
+  const handleSaveEditBook = async (patch: {
+    title: string;
+    author: string | null;
+    genres: string[];
+    goal: number;
+    cover: string;
+  }) => {
+    if (!editBook) return;
+    const data = await updateBook(editBook.id, patch);
+    queryClient.setQueryData<Book[]>(QUERY_KEYS.books(user!.id), (prev) => prev?.map((b) => b.id === editBook.id ? data : b));
+    queryClient.setQueryData<Book>(QUERY_KEYS.book(editBook.id), data);
+    setEditBook(null);
   };
 
   const handleNewBookClick = () => {
     const nonSampleBooks = (books ?? []).filter((b) => !isSampleBook(b));
     if (nonSampleBooks.length >= limits.maxBooks) {
       setUpgradeFeature('books');
-      trialResumeRef.current = () => {
-        setForkSeriesTransfer(INITIAL_SERIES_TRANSFER);
-        setShowFork(true);
-      };
       setShowUpgrade(true);
       return;
     }
@@ -189,17 +134,13 @@ export default function Home() {
   };
 
   const handleUploadCoverForFork = async (file: File): Promise<string | null> => {
-    return new Promise((resolve) => {
-      uploadCover(
-        file,
-        (url) => resolve(url),
-        () => {},
-        (err) => {
-          console.error('Cover upload error:', err);
-          resolve(null);
-        }
-      );
-    });
+    if (!user?.id) return null;
+    try {
+      return await uploadBookCover(user.id, file);
+    } catch (err) {
+      console.error('Cover upload error:', err);
+      return null;
+    }
   };
 
   const handleForkSuccess = (bookOrId: Book | string) => {
@@ -218,10 +159,8 @@ export default function Home() {
 
   // Импорт создаёт новую книгу — тот же лимит Free, что и «Новая книга».
   const handleImportClick = () => {
-    const nonSampleBooks = (books ?? []).filter((b) => !isSampleBook(b));
-    if (nonSampleBooks.length >= limits.maxBooks) {
+    if ((books?.length ?? 0) >= limits.maxBooks) {
       setUpgradeFeature('books');
-      trialResumeRef.current = () => setShowImport(true);
       setShowUpgrade(true);
     } else {
       setShowImport(true);
@@ -231,7 +170,6 @@ export default function Home() {
   const handleImportNeedsPro = useCallback(() => {
     setShowImport(false);
     setUpgradeFeature('import');
-    trialResumeRef.current = null;
     setShowUpgrade(true);
   }, []);
 
@@ -240,10 +178,6 @@ export default function Home() {
     const nonSampleBooks = (books ?? []).filter((b) => !isSampleBook(b));
     if (nonSampleBooks.length >= limits.maxBooks) {
       setUpgradeFeature('books');
-      trialResumeRef.current = () => {
-        setForkSeriesTransfer({ ...INITIAL_SERIES_TRANSFER, enabled: true, sourceBookId: source.id });
-        setShowFork(true);
-      };
       setShowUpgrade(true);
       return;
     }
@@ -417,98 +351,14 @@ export default function Home() {
       </main>
 
       {/* ─── Edit book modal ─── */}
-      {editBook && (
-        <div className="modal-overlay" onClick={() => { if (!editSaving) setEditBook(null); }}>
-          <div
-            ref={editPanelRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Редактировать книгу"
-            tabIndex={-1}
-            className="modal-panel"
-            style={{ width: 460, maxWidth: 'calc(100vw - 32px)' }}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => trapTab(e)}
-          >
-            <div style={{ font: '600 16px var(--font-ui)' }}>Редактировать книгу</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label htmlFor="edit-book-title" className="label">Название</label>
-                <input
-                  id="edit-book-title"
-                  ref={editTitleRef}
-                  className="input"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') saveEditBook(); }}
-                  maxLength={120}
-                />
-              </div>
-              <GenrePicker value={editGenres} onChange={setEditGenres} />
-              <div>
-                <label htmlFor="edit-book-author" className="label">Автор</label>
-                <input
-                  id="edit-book-author"
-                  className="input"
-                  value={editAuthor}
-                  onChange={(e) => setEditAuthor(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Escape' && !editSaving) setEditBook(null); }}
-                  placeholder="Из профиля"
-                  maxLength={120}
-                />
-              </div>
-              <div>
-                <label htmlFor="edit-book-goal" className="label">Цель по словам</label>
-                <input
-                  id="edit-book-goal"
-                  className="input"
-                  type="number"
-                  min={0}
-                  step={1000}
-                  value={editGoal || ''}
-                  placeholder="необязательно"
-                  onChange={(e) => setEditGoal(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
-                  onKeyDown={(e) => { if (e.key === 'Escape' && !editSaving) setEditBook(null); }}
-                />
-                <div className="input-hint">
-                  Рассказ 1–10 тыс. · Новелла 10–20 тыс. · Повесть 20–50 тыс. · Роман 50–120 тыс. · Эпос / сага 120–300 тыс. слов
-                </div>
-              </div>
-              <CoverPicker
-                value={editCover}
-                onChange={setEditCover}
-                uploading={editUploading}
-                onFileSelect={(f) => uploadCover(f, setEditCover, setEditUploading, setEditError)}
-              />
-            </div>
-            {editError && (
-              <div style={{ fontSize: 12, color: 'var(--danger)' }}>{editError}</div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <button
-                type="button"
-                className="btn btn--danger-ghost"
-                onClick={() => setConfirmDeleteBook(true)}
-              >
-                Удалить книгу
-              </button>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button type="button" className="btn btn--ghost" onClick={() => setEditBook(null)}>Отмена</button>
-                <button
-                  type="button"
-                  className="btn btn--primary"
-                  onClick={saveEditBook}
-                  disabled={editSaving || !editTitle.trim()}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  {editSaving && <span className="btn-spinner" />}
-                  {editSaving ? 'Сохраняем…' : 'Сохранить'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <EditBookModal
+        isOpen={editBook !== null}
+        onClose={() => setEditBook(null)}
+        book={editBook}
+        onSave={handleSaveEditBook}
+        onDelete={() => setConfirmDeleteBook(true)}
+        onUploadCover={handleUploadCoverForFork}
+      />
 
       {/* ─── Onboarding Fork Modal (G-7) ─── */}
       <OnboardingForkModal
@@ -523,19 +373,7 @@ export default function Home() {
         onUploadCover={handleUploadCoverForFork}
       />
 
-      <UpgradePrompt
-        open={showUpgrade}
-        feature={upgradeFeature}
-        onClose={() => {
-          setShowUpgrade(false);
-          trialResumeRef.current = null;
-        }}
-        onTrialActivated={() => {
-          const resume = trialResumeRef.current;
-          trialResumeRef.current = null;
-          resume?.();
-        }}
-      />
+      <UpgradePrompt open={showUpgrade} feature={upgradeFeature} onClose={() => setShowUpgrade(false)} />
 
       <ImportManuscriptModal
         isOpen={showImport}
