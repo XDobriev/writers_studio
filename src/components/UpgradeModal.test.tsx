@@ -95,6 +95,7 @@ describe('UpgradeModal', () => {
     const el = await mount({ onClose });
     const closeBtn = el.querySelector<HTMLButtonElement>('button[aria-label="Закрыть"]')!;
     expect(closeBtn).toBeTruthy();
+    expect(closeBtn.getAttribute('type')).toBe('button');
 
     act(() => {
       closeBtn.click();
@@ -240,6 +241,7 @@ describe('UpgradeModal', () => {
     const alert = el.querySelector('[role="alert"]');
     expect(alert).toBeTruthy();
     expect(alert?.textContent).toContain('Сетевая ошибка платежа');
+    expect(el.querySelectorAll('[role="alert"]').length).toBe(1);
   });
 
   it('удерживает фокус через trapTab при циклической навигации Tab и Shift+Tab', async () => {
@@ -302,5 +304,149 @@ describe('UpgradeModal', () => {
         delete (HTMLElement.prototype as unknown as Record<string, unknown>).offsetParent;
       }
     }
+  });
+
+  it('отображает ошибку оплаты рядом с кнопкой «Купить Lifetime» при сбое', async () => {
+    mockStartCheckout.mockRejectedValue(new Error('Сбой шлюза оплаты Lifetime'));
+    const el = await mount({});
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const lifetimeBtn = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.includes('Купить Lifetime'),
+    )!;
+    expect(lifetimeBtn).toBeTruthy();
+
+    await act(async () => {
+      lifetimeBtn.click();
+    });
+
+    const alert = el.querySelector('[role="alert"]');
+    expect(alert).toBeTruthy();
+    expect(alert?.textContent).toContain('Сбой шлюза оплаты Lifetime');
+    expect(el.querySelectorAll('[role="alert"]').length).toBe(1);
+    // Проверяем, что алерт расположен сразу после кнопки Lifetime, а не в секции Pro
+    expect(lifetimeBtn.nextElementSibling).toBe(alert);
+  });
+
+  it('в режиме skipPro отображает ошибку оплаты рядом с кнопкой «Купить Lifetime» при сбое', async () => {
+    mockStartCheckout.mockRejectedValue(new Error('Сбой шлюза в режиме skipPro'));
+    const el = await mount({ skipPro: true });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const lifetimeBtn = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.includes('Купить Lifetime'),
+    )!;
+    expect(lifetimeBtn).toBeTruthy();
+
+    await act(async () => {
+      lifetimeBtn.click();
+    });
+
+    const alert = el.querySelector('[role="alert"]');
+    expect(alert).toBeTruthy();
+    expect(alert?.textContent).toContain('Сбой шлюза в режиме skipPro');
+    expect(lifetimeBtn.nextElementSibling).toBe(alert);
+  });
+
+  it('в режиме skipPro при slots === null показывает понятное сообщение и кнопку закрытия вместо вечного скелетона', async () => {
+    mockGetLifetimeSlotsRemaining.mockResolvedValue(null);
+    const onClose = vi.fn();
+    const el = await mount({ skipPro: true, onClose });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(el.querySelector('.skeleton')).toBeNull();
+    expect(el.textContent).toContain('Не удалось загрузить данные о тарифе. Попробуйте позже');
+
+    const closeBtn = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.includes('Закрыть') && b.getAttribute('aria-label') !== 'Закрыть',
+    );
+    expect(closeBtn).toBeTruthy();
+    expect(closeBtn?.getAttribute('type')).toBe('button');
+
+    act(() => {
+      closeBtn!.click();
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('в режиме skipPro при ошибке сети getLifetimeSlotsRemaining показывает понятное сообщение и кнопку закрытия', async () => {
+    mockGetLifetimeSlotsRemaining.mockRejectedValue(new Error('Сетевой сбой при загрузке слотов'));
+    const onClose = vi.fn();
+    const el = await mount({ skipPro: true, onClose });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(el.querySelector('.skeleton')).toBeNull();
+    expect(el.textContent).toContain('Не удалось загрузить данные о тарифе. Попробуйте позже');
+
+    const closeBtn = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.includes('Закрыть') && b.getAttribute('aria-label') !== 'Закрыть',
+    );
+    expect(closeBtn).toBeTruthy();
+
+    act(() => {
+      closeBtn!.click();
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('в обычном режиме (!skipPro) при сбое загрузки слотов скрывает блок Lifetime и убирает скелетон', async () => {
+    mockGetLifetimeSlotsRemaining.mockRejectedValue(new Error('Сетевой сбой'));
+    const el = await mount({});
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Скелетон исчезает
+    expect(el.querySelector('.skeleton')).toBeNull();
+    // Блок Lifetime не отображается
+    expect(el.textContent).not.toContain('Купить Lifetime');
+    // Секция Pro остаётся доступной
+    expect(el.textContent).toContain('Оформить подписку');
+  });
+
+  it('в обычном режиме (!skipPro) при slots === null скрывает блок Lifetime и убирает скелетон', async () => {
+    mockGetLifetimeSlotsRemaining.mockResolvedValue(null);
+    const el = await mount({});
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(el.querySelector('.skeleton')).toBeNull();
+    expect(el.textContent).not.toContain('Купить Lifetime');
+    expect(el.textContent).toContain('Оформить подписку');
+  });
+
+  it('при некорректном отрицательном числе слотов корректно переходит в состояние ошибки', async () => {
+    mockGetLifetimeSlotsRemaining.mockResolvedValue(-1);
+
+    // В режиме skipPro показывает сообщение об ошибке
+    const elSkip = await mount({ skipPro: true });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(elSkip.querySelector('.skeleton')).toBeNull();
+    expect(elSkip.textContent).toContain('Не удалось загрузить данные о тарифе. Попробуйте позже');
+
+    // В обычном режиме скрывает блок Lifetime
+    const elNormal = await mount({});
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(elNormal.querySelector('.skeleton')).toBeNull();
+    expect(elNormal.textContent).not.toContain('Купить Lifetime');
   });
 });

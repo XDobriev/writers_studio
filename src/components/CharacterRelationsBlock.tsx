@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { initialsFromName, type Character } from '../lib/characters';
 import { orderedRelationshipChapters, resolveRelationship, type CharacterRelationship, type RelationshipChapter, type RelationshipEvent, type RelationshipEventInput } from '../lib/relationships';
@@ -8,6 +8,248 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { Icon } from './Icon';
 import { useCharacterRelationships } from '../lib/useCharacterRelationships';
 import '../styles/character-relationships.css';
+
+export interface ChapterMomentDropdownProps {
+  id?: string;
+  labelId?: string;
+  value: string;
+  chapters: RelationshipChapter[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}
+
+export function ChapterMomentDropdown({
+  id = 'rel-moment-trigger',
+  labelId,
+  value,
+  chapters,
+  onChange,
+  disabled,
+}: ChapterMomentDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionsRef = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const options = useMemo(() => [
+    { value: '', label: 'Конец книги' },
+    { value: 'baseline', label: 'Исходное состояние' },
+    ...orderedRelationshipChapters(chapters).map((c) => ({
+      value: c.id,
+      label: c.title || 'Без названия',
+    })),
+  ], [chapters]);
+
+  optionsRef.current.length = options.length;
+
+  const selectedIndex = options.findIndex((opt) => opt.value === value);
+  const currentOption = selectedIndex >= 0 ? options[selectedIndex] : options[0];
+  const currentLabel = currentOption ? currentOption.label : 'Конец книги';
+
+  const openDropdown = () => {
+    if (disabled) return;
+    setOpen(true);
+    setHighlightedIndex(selectedIndex >= 0 && selectedIndex < options.length ? selectedIndex : (options.length > 0 ? 0 : -1));
+  };
+
+  const closeDropdown = () => {
+    setOpen(false);
+  };
+
+  const selectOption = (optValue: string) => {
+    onChange(optValue);
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  useEffect(() => {
+    if (disabled && open) {
+      setOpen(false);
+    }
+  }, [disabled, open]);
+
+  useEffect(() => {
+    if (open && highlightedIndex >= options.length) {
+      setHighlightedIndex(Math.max(-1, options.length - 1));
+    }
+  }, [open, options.length, highlightedIndex]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (labelId && document.getElementById(labelId)?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [open, labelId]);
+
+  useEffect(() => {
+    if (open && highlightedIndex >= 0 && optionsRef.current[highlightedIndex]) {
+      const node = optionsRef.current[highlightedIndex];
+      if (typeof node?.scrollIntoView === 'function') {
+        node.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [open, highlightedIndex]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+
+    if (!open) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openDropdown();
+      }
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      closeDropdown();
+      triggerRef.current?.focus();
+      return;
+    }
+
+    if (e.key === 'Tab') {
+      closeDropdown();
+      return;
+    }
+
+    if (options.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex((prev) => (prev < 0 || prev >= options.length - 1 ? 0 : prev + 1));
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex((prev) => (prev <= 0 ? options.length - 1 : prev - 1));
+      return;
+    }
+
+    if (e.key === 'Home') {
+      e.preventDefault();
+      setHighlightedIndex(0);
+      return;
+    }
+
+    if (e.key === 'End') {
+      e.preventDefault();
+      setHighlightedIndex(options.length - 1);
+      return;
+    }
+
+    if (e.key === 'PageUp') {
+      e.preventDefault();
+      setHighlightedIndex((prev) => Math.max(0, (prev < 0 ? 0 : prev) - 5));
+      return;
+    }
+
+    if (e.key === 'PageDown') {
+      e.preventDefault();
+      setHighlightedIndex((prev) => Math.min(options.length - 1, (prev < 0 ? 0 : prev) + 5));
+      return;
+    }
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && highlightedIndex < options.length) {
+        selectOption(options[highlightedIndex].value);
+      }
+    }
+  };
+
+  const listboxId = `${id}-listbox`;
+  const activeOptionId = open && highlightedIndex >= 0 && highlightedIndex < options.length
+    ? `${id}-opt-${highlightedIndex}`
+    : undefined;
+
+  return (
+    <div className="rel-dropdown" ref={containerRef}>
+      <button
+        id={id}
+        ref={triggerRef}
+        type="button"
+        role="combobox"
+        className="input input--sm rel-dropdown-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
+        aria-activedescendant={activeOptionId}
+        aria-labelledby={labelId ? `${labelId} ${id}` : undefined}
+        aria-label={labelId ? undefined : `Момент истории: ${currentLabel}`}
+        disabled={disabled}
+        onClick={() => {
+          if (open) closeDropdown();
+          else openDropdown();
+        }}
+        onKeyDown={handleKeyDown}
+        title={currentLabel}
+      >
+        <span className="rel-dropdown-trigger__text">{currentLabel}</span>
+        <span
+          className={`rel-dropdown-trigger__chevron ${open ? 'rel-dropdown-trigger__chevron--open' : ''}`}
+          aria-hidden="true"
+        >
+          <Icon name="chevd" size={12} />
+        </span>
+      </button>
+
+      {open && (
+        <div
+          id={listboxId}
+          role="listbox"
+          aria-label="Момент истории"
+          aria-labelledby={labelId ? labelId : undefined}
+          tabIndex={-1}
+          className="rel-dropdown-menu"
+        >
+          {options.map((opt, index) => {
+            const isSelected = opt.value === value;
+            const isHighlighted = index === highlightedIndex;
+            return (
+              <button
+                key={opt.value}
+                id={`${id}-opt-${index}`}
+                ref={(node) => {
+                  optionsRef.current[index] = node;
+                }}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                tabIndex={-1}
+                className={`rel-dropdown-option ${isSelected ? 'rel-dropdown-option--selected' : ''} ${isHighlighted ? 'rel-dropdown-option--highlighted' : ''}`}
+                onClick={() => selectOption(opt.value)}
+                onMouseEnter={() => setHighlightedIndex(index)}
+                title={opt.label}
+              >
+                <span className="rel-dropdown-option__label">{opt.label}</span>
+                {isSelected && (
+                  <span className="rel-dropdown-option__check" aria-hidden="true">
+                    ✓
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const PRESET_RELATIONSHIP_ROLES = ['Друг', 'Враг', 'Родственник', 'Союзник', 'Наставник', 'Соперник'] as const;
 
 export type RelationshipWorkspaceDraft = {
   creation: { sourceId: string; toId: string; value: RelationshipState } | null;
@@ -59,11 +301,18 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, e
       </div>
       <p className="rel-hint">Отношения к концу выбранной главы</p>
     </div>
-    <div className="rel-toolbar"><label className="rel-field">Момент истории
-      <select className="input input--sm" aria-label="Момент истории" value={chapterId} onChange={(e) => onChapterChange(e.target.value)}>
-        <option value="">Конец книги</option><option value="baseline">Исходное состояние</option>
-        {orderedRelationshipChapters(chapters).map((c) => <option key={c.id} value={c.id}>{c.title || 'Без названия'}</option>)}
-      </select></label>
+    <div className="rel-toolbar">
+      <div className="rel-field">
+        <label id="rel-moment-label" htmlFor="rel-moment-trigger">Момент истории</label>
+        <ChapterMomentDropdown
+          id="rel-moment-trigger"
+          labelId="rel-moment-label"
+          value={chapterId}
+          chapters={chapters}
+          onChange={onChapterChange}
+          disabled={adding || busy}
+        />
+      </div>
       <div className="rel-view-switch" role="group" aria-label="Представление связей">
         <button className="btn btn--ghost btn--sm" aria-pressed={view === 'graph'} onClick={() => setView('graph')}><Icon name="tree" size={13} /> Граф</button>
         <button className="btn btn--ghost btn--sm" aria-pressed={view === 'list'} onClick={() => setView('list')}><Icon name="list" size={13} /> Список</button>
@@ -85,10 +334,29 @@ export function CharacterRelationsBlock({ activeId, characters, relationships, e
       } catch (e) { setError(e instanceof Error ? e.message : 'Связь не сохранена.'); }
       finally { setBusy(false); }
     }}><fieldset disabled={busy}>
-      <label className="rel-field">Персонаж<select className="input input--sm" aria-label="Персонаж для связи" value={toId} onChange={(e) => { const toId = e.target.value; setDraft((prev) => prev.creation ? { ...prev, creation: { ...prev.creation, toId } } : prev); }}>
+      <label className="rel-field">Персонаж<select className="input input--sm rel-form__select" aria-label="Персонаж для связи" value={toId} onChange={(e) => { const toId = e.target.value; setDraft((prev) => prev.creation ? { ...prev, creation: { ...prev.creation, toId } } : prev); }}>
         {candidates.map((c) => <option key={c.id} value={c.id}>{c.name || 'Без имени'}</option>)}
       </select></label>
-      <div className="rel-presets">{['Друг', 'Враг', 'Родственник'].map((label) => <button type="button" className="chip" key={label} onClick={() => setValue({ ...value, label_a: label, label_b: '' })}>{label}</button>)}</div>
+      <div className="rel-presets" role="group" aria-label="Быстрый выбор роли">
+        {PRESET_RELATIONSHIP_ROLES.map((label) => {
+          const isSelected = value.label_a === label;
+          return (
+            <button
+              type="button"
+              className={`chip${isSelected ? ' chip--accent' : ''}`}
+              key={label}
+              aria-pressed={isSelected}
+              onClick={() => setValue({
+                ...value,
+                label_a: isSelected ? '' : label,
+                label_b: '',
+              })}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
       <RelationshipStateFields value={value} onChange={setValue} symmetricDefault nameA={charMap.get(sourceId)?.name || 'Без имени'} nameB={charMap.get(toId)?.name || 'Без имени'} />
       <p className="rel-hint">Создаётся исходное состояние. Повороты сюжета добавляются в историю связи.</p>
       <div className="rel-form__actions"><button type="submit" className="btn btn--primary btn--sm">{busy ? 'Сохранение…' : 'Добавить'}</button>

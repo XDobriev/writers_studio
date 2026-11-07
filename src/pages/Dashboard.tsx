@@ -11,7 +11,7 @@ import { GenrePicker } from '../components/GenrePicker';
 import { updateBook } from '../lib/books';
 import { DbError } from '../lib/repository';
 import { type Chapter } from '../lib/chapters';
-import { plural, pluralDays, fmtNumber } from '../lib/i18n';
+import { plural, pluralDays, fmtNumber, formatAuthorMetrics } from '../lib/i18n';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useWritingSnapshots } from '../lib/queries';
 import { useResponsive } from '../lib/useResponsive';
 import { computeActivityData } from '../lib/activity';
@@ -151,12 +151,21 @@ export default function Dashboard() {
     if (!book || !chapters || !characters || !stats) return [];
     const protagonistCount = characters.filter((c) => c.role === 'protagonist').length;
     const secondaryCount = characters.filter((c) => c.role === 'secondary').length;
+    const author = formatAuthorMetrics(book.words);
+
     return [
       {
         l: 'Слов написано',
         v: fmtNumber(book.words),
-        sub: book.goal > 0 ? `из ${fmtNumber(book.goal)}` : 'цель не задана',
+        sub: book.goal > 0 ? `из ${fmtNumber(book.goal)} слов` : 'цель не задана',
         delta: book.goal > 0 ? `${stats.goalPct}% от цели` : '—',
+      },
+      {
+        l: 'Объём рукописи',
+        v: author.sheets,
+        sub: author.pages,
+        delta: '40 000 знаков / лист',
+        title: '1 авторский лист (а. л.) = 40 000 знаков (~6 000 слов)\n1 авторская страница = 1 800 знаков (~270 слов)',
       },
       {
         l: 'Глав',
@@ -182,11 +191,10 @@ export default function Dashboard() {
         const totalMins = Math.round(book.words / 200);
         const hours = Math.floor(totalMins / 60);
         const mins = totalMins % 60;
-        const pages = Math.round(book.words / 250);
         return {
           l: 'Время чтения',
           v: hours > 0 ? `${hours} ч ${mins} мин` : totalMins === 0 && book.words > 0 ? '< 1 мин' : `${totalMins} мин`,
-          sub: book.words > 0 ? `≈ ${pages} ${plural(pages, 'страница', 'страницы', 'страниц')} А4` : 'нет текста',
+          sub: book.words > 0 ? 'средний темп чтения' : 'нет текста',
           delta: '200 слов/мин',
         };
       })(),
@@ -241,8 +249,8 @@ export default function Dashboard() {
           <div className="skeleton" style={{ height: '100%', borderRadius: 0 }} />
         )}
         <div style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: 20, background: 'var(--bg)', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
-            {Array.from({ length: 5 }, (_, i) => (
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: isMobile ? 10 : 16 }}>
+            {Array.from({ length: 6 }, (_, i) => (
               <div key={i} className="skeleton" style={{ height: 116, borderRadius: 12 }} />
             ))}
           </div>
@@ -321,11 +329,11 @@ export default function Dashboard() {
             ) : (
               <div className="dash-stat-grid" style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: isMobile ? 10 : 16, marginBottom: 20 }}>
                 {statCards.map((s) => (
-                  <div key={s.l} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '18px 20px' }}>
-                    <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10 }}>{s.l}</div>
-                    <div style={{ font: '600 32px var(--font-mono)', letterSpacing: '-0.012em', color: 'var(--ink)' }}>{s.v}</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>{s.sub}</div>
-                    <div style={{ font: '500 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 10, letterSpacing: '0.04em' }}>{s.delta}</div>
+                  <div key={s.l} title={s.title} style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: isMobile ? '16px 14px' : '18px 20px', minWidth: 0 }}>
+                    <div style={{ font: '500 10.5px var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.l}</div>
+                    <div style={{ font: '600 var(--font-mono)', fontSize: s.v.length > 8 ? (isMobile ? 22 : 26) : (isMobile ? 26 : 30), letterSpacing: '-0.012em', color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.v}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.sub}</div>
+                    <div style={{ font: '500 11px var(--font-mono)', color: 'var(--ink-3)', marginTop: 10, letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.delta}</div>
                   </div>
                 ))}
               </div>

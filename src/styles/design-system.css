@@ -999,6 +999,15 @@ a.sb-book-title:hover { color: var(--accent); transition: color 0.15s; }
   font-size: 11px; color: var(--ink-2);
   background: transparent;
 }
+button.chip {
+  font-family: inherit;
+  cursor: pointer;
+  user-select: none;
+}
+button.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 .chip--accent { border-color: var(--accent); color: color-mix(in oklch, var(--accent) 62%, oklch(0.98 0 0)); background: var(--accent-soft); }
 /* в светлой теме смесь с белым даёт ≈2.5:1 — берём сам акцент (6.0:1 на подложке) */
 [data-theme="light"] .chip--accent { color: var(--accent); }
@@ -1573,7 +1582,7 @@ select.input {
   display: flex; flex-direction: column; gap: 10px;
 }
 .rel-form__select { align-self: flex-start; min-width: 200px; }
-.rel-presets { display: flex; gap: 6px; }
+.rel-presets { display: flex; flex-wrap: wrap; gap: 6px; }
 .rel-form__actions { display: flex; gap: 8px; }
 
 /* two-column labelled fields */
@@ -3139,11 +3148,32 @@ select.input {
 
 /* ── Портрет персонажа (CharacterHeroBlock) ── */
 .char-portrait {
-  border-radius: 8px; background: linear-gradient(160deg, oklch(0.45 0.04 50), oklch(0.25 0.02 50));
+  border-radius: 8px;
+  background: linear-gradient(160deg, var(--surface-2), var(--surface));
   display: flex; align-items: flex-end; justify-content: center; padding: 18px;
   position: relative; overflow: hidden; flex-shrink: 0; cursor: pointer;
 }
+.char-portrait--mobile {
+  padding: 12px;
+}
 .char-portrait:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.char-portrait__placeholder {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, var(--surface-2), var(--surface));
+  color: var(--ink-4);
+}
+.char-portrait__initials {
+  position: relative;
+  font: 600 56px/1 var(--font-serif);
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  user-select: none;
+}
+.char-portrait--mobile .char-portrait__initials {
+  font-size: 38px;
+}
 .char-portrait__overlay {
   position: absolute; inset: 0; background: oklch(0 0 0 / 0.45);
   display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px;

@@ -1,4 +1,4 @@
-export type EditorFontId = 'source-serif-4' | 'lora' | 'pt-serif' | 'spectral' | 'ibm-plex-mono';
+export type EditorFontId = 'source-serif-4' | 'lora' | 'pt-serif' | 'spectral' | 'ibm-plex-mono' | 'cascadia-mono';
 
 export interface EditorFont {
   id: EditorFontId;
@@ -8,11 +8,12 @@ export interface EditorFont {
 }
 
 export const EDITOR_FONTS: EditorFont[] = [
-  { id: 'source-serif-4', label: 'Source Serif', fullName: 'Source Serif 4', family: "'Source Serif 4 Variable', 'Source Serif 4', Georgia, serif" },
-  { id: 'lora',           label: 'Lora',         fullName: 'Lora',           family: "'Lora', Georgia, serif" },
+  { id: 'source-serif-4', label: 'Source Serif',  fullName: 'Source Serif 4', family: "'Source Serif 4 Variable', 'Source Serif 4', Georgia, serif" },
+  { id: 'lora',           label: 'Lora',          fullName: 'Lora',           family: "'Lora', Georgia, serif" },
   { id: 'pt-serif',       label: 'PT Serif',      fullName: 'PT Serif',       family: "'PT Serif', Georgia, serif" },
   { id: 'spectral',       label: 'Spectral',      fullName: 'Spectral',       family: "'Spectral', Georgia, serif" },
-  { id: 'ibm-plex-mono',  label: 'Mono',          fullName: 'IBM Plex Mono',  family: "'IBM Plex Mono', monospace" },
+  { id: 'ibm-plex-mono',  label: 'IBM Plex Mono', fullName: 'IBM Plex Mono',  family: "'IBM Plex Mono', monospace" },
+  { id: 'cascadia-mono',  label: 'Cascadia Mono', fullName: 'Cascadia Mono',  family: "'Cascadia Mono', monospace" },
 ];
 
 const STORAGE_KEY = 'as-editor-font';
