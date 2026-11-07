@@ -29,6 +29,7 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
   const [editingQuote, setEditingQuote] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarDeleting, setAvatarDeleting] = useState(false);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const avatarBusy = avatarUploading || avatarDeleting;
   const quoteRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -45,6 +46,7 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
   useEffect(() => { setName(character.name); }, [character.id, character.name]);
   useEffect(() => { setQuote(character.quote); }, [character.id, character.quote]);
   useEffect(() => { setAliases(character.aliases ?? []); setAliasInput(''); setSuggestions(null); }, [character.id, character.aliases]);
+  useEffect(() => { setAvatarLoadFailed(false); }, [character.avatar_url]);
   useEffect(() => {
     if (editingQuote && quoteRef.current) {
       autoResize(quoteRef.current);
@@ -146,34 +148,52 @@ export function CharacterHeroBlock({ character, bookId, onChange, onError, isMob
     }
   };
 
+  const hasAvatar = Boolean(character.avatar_url && !avatarLoadFailed);
+  const initials = initialsFromName(name);
+  const showSilhouette = !hasAvatar && (!name.trim() || initials === '··');
+
   return (
     <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 16 : 32, alignItems: isMobile ? 'center' : 'flex-start', marginBottom: 36 }}>
       <div
         role="button"
         tabIndex={0}
-        aria-label={character.avatar_url ? 'Сменить портрет' : 'Загрузить портрет'}
+        aria-label={hasAvatar ? 'Сменить портрет' : 'Загрузить портрет'}
         onClick={() => fileInputRef.current?.click()}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
-        title={character.avatar_url ? 'Сменить портрет' : 'Загрузить портрет'}
+        title={hasAvatar ? 'Сменить портрет' : 'Загрузить портрет'}
         className={`char-portrait${avatarBusy ? ' char-portrait--busy' : ''}`}
         style={{ width: isMobile ? 120 : 160, height: isMobile ? 150 : 200 }}
       >
-        {!character.avatar_url && (
-          <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(135deg, oklch(0.40 0.04 50) 0 6px, oklch(0.36 0.04 50) 6px 12px)', opacity: 0.4 }} />
+        {hasAvatar && (
+          <img
+            src={character.avatar_url!}
+            alt={name}
+            decoding="async"
+            data-testid="char-portrait-img"
+            onLoad={e => { (e.currentTarget as HTMLImageElement).style.opacity = '1'; }}
+            onError={() => { setAvatarLoadFailed(true); }}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity 0.25s ease' }}
+          />
         )}
-        {character.avatar_url && (
-          <img src={character.avatar_url} alt={name} decoding="async" onLoad={e => { (e.currentTarget as HTMLImageElement).style.opacity = '1'; }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity 0.25s ease' }} />
-        )}
-        {!character.avatar_url && (
-          <div style={{ position: 'relative', font: '600 56px var(--font-serif)', color: 'oklch(0.95 0.01 80 / 0.9)', letterSpacing: '-0.02em' }}>
-            {initialsFromName(name)}
-          </div>
+        {!hasAvatar && (
+          showSilhouette ? (
+            <div className="char-portrait__placeholder" data-testid="char-portrait-placeholder">
+              <Icon name="user" size={48} />
+            </div>
+          ) : (
+            <>
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, var(--surface-2), var(--surface))', opacity: 0.8 }} />
+              <div className="char-portrait__initials" data-testid="char-portrait-initials">
+                {initials}
+              </div>
+            </>
+          )
         )}
         {/* Оверлей и кнопка удаления видны по hover/focus через CSS, на таче — всегда. */}
         <div className="char-portrait__overlay">
             {avatarBusy
               ? <span style={{ font: '400 11px var(--font-ui)' }}>{avatarDeleting ? 'Удаление…' : 'Загрузка…'}</span>
-              : <><Icon name="camera" size={20} /><span style={{ font: '400 10px var(--font-ui)', letterSpacing: '0.04em' }}>{character.avatar_url ? 'Сменить' : 'Загрузить'}</span></>
+              : <><Icon name="camera" size={20} /><span style={{ font: '400 10px var(--font-ui)', letterSpacing: '0.04em' }}>{hasAvatar ? 'Сменить' : 'Загрузить'}</span></>
             }
         </div>
         {character.avatar_url && !avatarBusy && (

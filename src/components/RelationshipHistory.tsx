@@ -11,14 +11,15 @@ export function RelationshipStateFields({ value, onChange, nameA, nameB, symmetr
   value: RelationshipState; onChange: (value: RelationshipState) => void; nameA: string; nameB: string; symmetricDefault?: boolean;
 }) {
   return <>
-    <label className="rel-field">{nameA} → {nameB}
+    <label className="rel-field">Отношение: {nameA} → {nameB}
       <input className="input input--sm" aria-label={`${nameA} → ${nameB}`} value={value.label_a} maxLength={200}
-        placeholder="брат; не доверяет…" onChange={(e) => onChange({ ...value, label_a: e.target.value })} />
+        placeholder="друг, соперник, наставник..." onChange={(e) => onChange({ ...value, label_a: e.target.value })} />
     </label>
-    <label className="rel-field">{nameB} → {nameA} {symmetricDefault && <span className="rel-hint">(если отличается)</span>}
+    <label className="rel-field">Отношение: {nameB} → {nameA} {symmetricDefault && <span className="rel-hint">(если отличается)</span>}
       <input className="input input--sm" aria-label={`${nameB} → ${nameA}`} value={value.label_b} maxLength={200}
-        placeholder={symmetricDefault ? 'Взаимное отношение' : 'Без подписи'} onChange={(e) => onChange({ ...value, label_b: e.target.value })} />
+        placeholder={symmetricDefault ? 'Взаимно (или введите другое: соперник, тайно завидует...)' : 'друг, соперник, наставник...'} onChange={(e) => onChange({ ...value, label_b: e.target.value })} />
     </label>
+    <span className="rel-hint">Можно указать любую свою роль или статус отношений (друг, союзник, соперник, должник и т.д.).</span>
     <label className="rel-secret-toggle"><input type="checkbox" checked={value.is_secret}
       onChange={(e) => onChange({ ...value, is_secret: e.target.checked })} /> Секретная связь
     </label>
