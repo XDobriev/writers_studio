@@ -253,4 +253,42 @@ describe('OnboardingForkModal', () => {
     });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
+
+  it('не сбрасывает введённые пользователем данные при изменении initialCover, пока модалка открыта', () => {
+    mount({ initialCover: '#7c1d1d' });
+    const cards = document.querySelectorAll('.fork-card');
+    act(() => {
+      (cards[1] as HTMLElement).click();
+    });
+
+    const titleInput = document.querySelector('#fork-book-title') as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+      setter?.call(titleInput, 'Моя начатая книга');
+      titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(titleInput.value).toBe('Моя начатая книга');
+
+    // Перерендериваем с новым initialCover, пока isOpen остаётся true
+    act(() => {
+      root!.render(
+        createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          createElement(OnboardingForkModal, {
+            isOpen: true,
+            onClose: mockOnClose,
+            userId: 'user-123',
+            onSelectImport: mockOnSelectImport,
+            onSuccess: mockOnSuccess,
+            initialCover: '#3d4a2e',
+          }),
+        ),
+      );
+    });
+
+    const updatedTitleInput = document.querySelector('#fork-book-title') as HTMLInputElement;
+    expect(updatedTitleInput).not.toBeNull();
+    expect(updatedTitleInput.value).toBe('Моя начатая книга');
+  });
 });

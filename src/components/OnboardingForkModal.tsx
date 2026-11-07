@@ -59,10 +59,19 @@ export function OnboardingForkModal({
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Сброс шага и формы при открытии/закрытии
+  const prevIsOpenRef = useRef(false);
+  const initialCoverRef = useRef(initialCover);
+  initialCoverRef.current = initialCover;
+  const initialSeriesTransferRef = useRef(initialSeriesTransfer);
+  initialSeriesTransferRef.current = initialSeriesTransfer;
+
+  // Сброс шага и формы только при открытии диалога (переходе isOpen в true)
   useEffect(() => {
-    if (isOpen) {
-      setStep(initialSeriesTransfer?.enabled ? 'configure' : 'cards');
+    const wasOpen = prevIsOpenRef.current;
+    prevIsOpenRef.current = isOpen;
+
+    if (isOpen && !wasOpen) {
+      setStep(initialSeriesTransferRef.current?.enabled ? 'configure' : 'cards');
       setError(null);
       setLoading(false);
       setLoadingAction(null);
@@ -70,11 +79,11 @@ export function OnboardingForkModal({
       setSelectedForm('novel');
       setTargetWords(70000);
       setGenres([]);
-      setCover(initialCover || COVERS[0]);
+      setCover(initialCoverRef.current || COVERS[0]);
       setUploadingCover(false);
-      setSeriesTransfer(initialSeriesTransfer || INITIAL_SERIES_TRANSFER);
+      setSeriesTransfer(initialSeriesTransferRef.current || INITIAL_SERIES_TRANSFER);
     }
-  }, [isOpen, initialCover, initialSeriesTransfer]);
+  }, [isOpen]);
 
   useEscapeToClose(isOpen, () => {
     if (!loading) onClose();
