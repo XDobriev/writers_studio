@@ -13,8 +13,14 @@ import { LandingPricing } from '../components/LandingPricingSection';
 import { ExitIntentPopup } from '../components/ExitIntentPopup';
 import { useFeatureFlag } from '../lib/useFeatureFlag';
 import { faqJsonLd, useJsonLd } from '../lib/useJsonLd';
+import { usePageMeta } from '../lib/usePageMeta';
 
 export default function Landing() {
+  usePageMeta({
+    title: 'Авторская студия — редактор для писателей',
+    description: 'Программа для написания книги и романа: главы, персонажи, карта мира и хронология — всё в одном чистом редакторе. Ваш Scrivener на русском, в браузере.',
+    path: '/',
+  });
   const { session, initializing } = useAuth();
   const { enabled: exitIntentEnabled } = useFeatureFlag('exit_intent_popup');
 

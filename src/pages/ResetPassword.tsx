@@ -5,11 +5,18 @@ import { supabase } from '../lib/supabase';
 import { useAuth, translateAuthError } from '../lib/auth';
 import { LogoMark } from '../components/LogoMark';
 import { PasswordInput } from '../components/PasswordInput';
+import { usePageMeta } from '../lib/usePageMeta';
 
 
 type State = 'waiting' | 'ready' | 'busy' | 'done' | 'expired';
 
 export default function ResetPassword() {
+  usePageMeta({
+    title: 'Сброс пароля — Авторская студия',
+    description: 'Установка нового пароля для аккаунта Авторской студии.',
+    path: '/reset-password',
+    noindex: true,
+  });
   const { updatePassword } = useAuth();
   const navigate = useNavigate();
   const [state, setState] = useState<State>('waiting');
