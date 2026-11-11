@@ -13,7 +13,6 @@
     <title>Авторская студия — редактор для писателей</title>
     <meta name="description" content="Программа для написания книги и романа: главы, персонажи, карта мира и хронология — всё в одном чистом редакторе. Ваш Scrivener на русском, в браузере." />
     <link rel="canonical" href="https://avtorstudio.com/" />
-    <link rel="alternate" hreflang="ru" href="https://avtorstudio.com/" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 
     <!-- Open Graph (Telegram, ВКонтакте, Discord) -->
@@ -35,7 +34,7 @@
     <meta name="twitter:image" content="https://avtorstudio.com/og.png" />
 
     <!-- Schema.org: WebApplication + Organization. FAQPage — только на лендинге,
-         BreadcrumbList — на /offer, /terms, /privacy (src/lib/useJsonLd.ts). -->
+         BreadcrumbList — на /offer, /terms, /privacy, /changelog (src/lib/useJsonLd.ts). -->
     <script type="application/ld+json">
     [
       {
@@ -86,6 +85,7 @@
       (function () {
         try {
           var p = location.pathname.replace(/\/+$/, '') || '/';
+          if (p === '/index.html') p = '/';
           var prerendered = p === '/' || p === '/privacy' || p === '/terms' || p === '/offer' || p === '/changelog';
           // Update canonical to current page for non-prerendered routes
           var c = document.querySelector('link[rel="canonical"]');

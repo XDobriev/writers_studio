@@ -43,6 +43,7 @@ export default function Auth() {
     title: 'Вход — Авторская студия',
     description: 'Войдите или создайте аккаунт. Email, Telegram, ВКонтакте.',
     path: '/login',
+    noindex: true,
   });
 
   if (redirectingToPay) {

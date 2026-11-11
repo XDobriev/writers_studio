@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { LogoMark } from '../components/LogoMark';
 import { usePageMeta } from '../lib/usePageMeta';
+import { breadcrumbJsonLd, useJsonLd } from '../lib/useJsonLd';
 
 interface Entry {
   date: string;
@@ -96,6 +97,7 @@ export default function Changelog() {
     description: 'Что нового в Авторской студии: обновления интерфейса, производительности и безопасности.',
     path: '/changelog',
   });
+  useJsonLd('breadcrumb', breadcrumbJsonLd('История изменений', '/changelog'));
   return (
     <div className="as" style={{ minHeight: '100dvh', background: 'var(--bg)', padding: '56px 24px' }}>
       <div style={{ maxWidth: 680, margin: '0 auto', overflowWrap: 'break-word' }}>
