@@ -106,11 +106,12 @@ export function useCharacters(bookId: string | undefined) {
 }
 
 export function useNotes(bookId: string | undefined) {
-  return useQuery<Note[]>(makeQuery(
+  // Быстрый reload может восстановить кэш до последней записи persister.
+  return useQuery<Note[]>({ ...makeQuery(
     bookId ? QUERY_KEYS.notes(bookId) : ['notes', null],
     () => fetchNotes(bookId!),
     2 * 60_000,
-  ));
+  ), refetchOnMount: 'always' });
 }
 
 export function useRelationships(bookId: string | undefined) {
@@ -145,11 +146,12 @@ export function useLocations(bookId: string | undefined) {
 }
 
 export function useTimelineEvents(bookId: string | undefined) {
-  return useQuery<TimelineEvent[]>(makeQuery(
+  // Быстрый reload может восстановить кэш до последней записи persister.
+  return useQuery<TimelineEvent[]>({ ...makeQuery(
     bookId ? QUERY_KEYS.timelineEvents(bookId) : ['timeline-events', null],
     () => listTimelineEvents(bookId!),
     2 * 60_000,
-  ));
+  ), refetchOnMount: 'always' });
 }
 
 export function useConnections(bookId: string | undefined) {

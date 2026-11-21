@@ -391,14 +391,14 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
           ref={popoverRef}
           style={{
             position: 'fixed',
-            ...(spaceBelow < 180
+            ...(spaceBelow < 180 && rect.top > spaceBelow
               ? { bottom: window.innerHeight - rect.top + 4 }
               : { top: rect.bottom + 4 }
             ),
-            left: rect.left, zIndex: 'var(--z-dropdown)',
+            left: Math.max(8, Math.min(rect.left, window.innerWidth - 310)), zIndex: 'var(--z-dropdown)',
             background: 'var(--bg-deep)', border: '1px solid var(--border)',
             borderRadius: 10, padding: 10, boxShadow: '0 12px 28px oklch(0.05 0.01 50 / 0.35)',
-            minWidth: 280, display: 'flex', flexDirection: 'column', gap: 6,
+            width: 302, maxWidth: 'calc(100vw - 16px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 6,
           }}
           onMouseDown={e => e.stopPropagation()}
         >
@@ -643,7 +643,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           }} />
         </div>
         {showModes && mode && setMode && (
-          <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }}>
+          <div style={{ flexShrink: 0, margin: '0 14px 0 8px' }}>
             <ModeSegment mode={mode} setMode={setMode} />
           </div>
         )}
