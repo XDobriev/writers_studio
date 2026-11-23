@@ -2743,10 +2743,6 @@ select.input {
 }
 @media (max-width: 479px) {
   .lnd-nav-word { display: none; }
-  /* На узкой мобилке текст сжимается ellipsis-ом почти до нуля из-за
-     CTA-кнопки справа — обрезка выглядит бессмысленно ("Печатайте и...").
-     Скрываем целиком, оставляя «Демо-режим» + CTA. */
-  .demo-banner__desc { display: none; }
 }
 
 /* Полоса демо-режима над редактором /demo (DemoBanner) */
@@ -2770,11 +2766,14 @@ select.input {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* margin-left: auto — прижимает кнопку вправо, когда описание скрыто (≤479px) */
 .demo-banner__cta { flex-shrink: 0; margin-left: auto; }
 /* На мобилке .btn тянется до 44px (touch target) — полоса выше, чтобы кнопка не упиралась в края */
 @media (max-width: 768px) {
   .demo-banner { height: 58px; }
+}
+@media (max-width: 479px) {
+  .demo-banner { height: auto; flex-wrap: wrap; gap: 4px 8px; padding-block: 6px; }
+  .demo-banner__desc { order: 1; flex-basis: 100%; white-space: normal; }
 }
 
 /* Обёртка приватного контента для Вебвизора (App.tsx → AnalyticsPrivate): без своего бокса */

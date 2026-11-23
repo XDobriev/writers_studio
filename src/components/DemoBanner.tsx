@@ -10,7 +10,7 @@ export function DemoBanner() {
       <LogoMark size={18} />
       <span className="demo-banner__title">Демо-режим</span>
       <span className="demo-banner__desc">
-        Печатайте и переключайте главы — это живой редактор. Изменения не сохранятся.
+        Изменения не сохранятся.
       </span>
       <button
         type="button"

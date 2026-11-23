@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth, translateAuthError } from '../lib/auth';
 import { useErrorState } from '../lib/useErrorState';
@@ -31,6 +31,13 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
   const [consent, setConsent] = useState(false);
   const [consentMarketing, setConsentMarketing] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
+  const resetTrigger = useRef<HTMLButtonElement>(null);
+  const wasResetting = useRef(false);
+
+  useLayoutEffect(() => {
+    if (flow === 'auth' && wasResetting.current) resetTrigger.current?.focus();
+    wasResetting.current = flow !== 'auth';
+  }, [flow]);
 
   const err = formErr ?? tgAuth.error ?? vkAuth.error;
   const clearErr = () => { clearFormErr(); tgAuth.clearError(); vkAuth.clearError(); };
@@ -296,6 +303,7 @@ export function AuthForm({ telegramAuth: tgAuth }: { telegramAuth: ReturnType<ty
                     <label className="label" htmlFor="auth-password" style={{ marginBottom: 0 }}>Пароль</label>
                     {tab === 'signin' && (
                       <button
+                        ref={resetTrigger}
                         type="button"
                         onClick={() => { clearErr(); setInfo(null); setFlow('reset-request'); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', font: '400 13px var(--font-ui)', color: 'var(--ink-3)', padding: '16px 0', margin: '-16px 0', lineHeight: 1 }}
