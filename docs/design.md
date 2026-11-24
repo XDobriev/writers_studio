@@ -282,6 +282,12 @@ The toolbar is 44px tall, `oak-dark` background — the same as the main content
 - **Separator:** 1px vertical rule, `oak-border-soft`, 18px tall, 2px margin each side.
 - **Min touch target (mobile):** 44×44px, enforced via `@media (max-width: 768px)`.
 
+Keep the section title and primary action visible in the 44px toolbar row. In Notes and Corkboard, move the filter group below the title and action when the content panel narrows. Use the same selected background (`--surface-2`) and mobile touch target for section filters.
+
+Keep the four Corkboard status filters in a single row of toolbar buttons. At panel widths of 28rem or less, move each count below its label inside the same button. Selecting a status changes its background and preserves the layout.
+
+Keep Structure highlighted in the book navigation in both outline and corkboard views. The view tabs indicate which of the two is open.
+
 ### Empty sections
 
 When a workspace collection is empty, use `SectionEmptyState` in the content slot of the section’s flex column. Center the icon, heading, description and primary action **as one group** in the space below the toolbar, filters and any visible banner. The sidebar sits outside this area. Apply the same placement on mobile and when switching between list and lane views.

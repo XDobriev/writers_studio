@@ -8,6 +8,7 @@ interface SidebarNavProps {
 
 export function SidebarNav({ bookId }: SidebarNavProps) {
   const { pathname } = useLocation();
+  const onCorkboard = pathname.replace(/\/$/, '') === `/books/${bookId}/corkboard`;
   const navItems = useMemo<Array<[Parameters<typeof Icon>[0]['name'], string, string | null]>>(() => [
     ['layout',   'Дэшборд',   bookId ? `/books/${bookId}` : null],
     ['book',   'Манускрипт', bookId ? `/books/${bookId}/editor` : null],
@@ -20,6 +21,7 @@ export function SidebarNav({ bookId }: SidebarNavProps) {
 
   function isNavActive(href: string | null): boolean {
     if (!href) return false;
+    if (onCorkboard && href === `/books/${bookId}/outline`) return true;
     if (href === `/books/${bookId}`) return pathname === href;
     return pathname.startsWith(href);
   }
@@ -46,7 +48,7 @@ export function SidebarNav({ bookId }: SidebarNavProps) {
           );
         }
         return (
-          <Link key={label} to={href} className={cls} style={style} aria-current={on ? 'page' : undefined}>
+          <Link key={label} to={href} className={cls} style={style} aria-current={on ? (onCorkboard ? 'location' : 'page') : undefined}>
             {inner}
           </Link>
         );

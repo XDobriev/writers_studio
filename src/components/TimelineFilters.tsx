@@ -34,14 +34,13 @@ export function TimelineFilters({ variant, filter, onFilter }: {
   }
 
   return (
-    <div className="tl-filters">
+    <div className="tl-filters" role="group" aria-label="Тип события">
       {TYPE_FILTERS.map((f) => (
         <button
           key={f.value}
-          className={'sb-tab' + (filter === f.value ? ' sb-tab--on' : '')}
+          className={'tb-btn collection-filter' + (filter === f.value ? ' tb-btn--on' : '')}
           onClick={() => onFilter(f.value)}
           aria-pressed={filter === f.value}
-          style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', padding: '0 12px' }}
         >
           {f.value !== 'all' && (
             <span
