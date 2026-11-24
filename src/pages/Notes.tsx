@@ -435,9 +435,9 @@ export default function Notes() {
             subtitle={`заметки · ${filtered.length}`}
           />
         )}
-        <main className="as-main" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <main className="workspace-main">
           <header className="collection-header">
-            <div className="tb collection-toolbar">
+            <div className="tb collection-toolbar notes-toolbar">
               <div className="collection-toolbar__title">
                 {isMobile && (
                   <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация">
@@ -446,18 +446,25 @@ export default function Notes() {
                 )}
                 <span>Заметки</span>
                 <span className="chip">{filtered.length}</span>
-                {activeChapterTitle && (
-                  <div className="collection-toolbar__chapter">
-                    <span title={activeChapterTitle}>{activeChapterTitle}</span>
-                    <button
-                      type="button"
-                      onClick={() => setActiveChapterId(null)}
-                      aria-label="Сбросить фильтр"
-                      title="Сбросить фильтр"
-                    >×</button>
-                  </div>
-                )}
               </div>
+              <button className="btn btn--primary collection-toolbar__action" onClick={() => setShowForm(true)} aria-label="Добавить заметку">
+                <Icon name="plus" size={13} />
+                {!isMobile && 'Добавить'}
+              </button>
+              {activeChapterTitle && (
+                <div className="collection-toolbar__chapter">
+                  <span>{activeChapterTitle}</span>
+                  <button
+                    type="button"
+                    className="tb-btn"
+                    onClick={() => setActiveChapterId(null)}
+                    aria-label="Сбросить фильтр"
+                    title="Сбросить фильтр"
+                  >
+                    <Icon name="close" size={14} />
+                  </button>
+                </div>
+              )}
               <div className="collection-toolbar__filters" role="group" aria-label="Тип заметки">
                 {(['all', ...BASE_KINDS, 'custom'] as Array<NoteKind | 'all'>).map((k) => (
                   <button
@@ -471,10 +478,6 @@ export default function Notes() {
                   </button>
                 ))}
               </div>
-              <button className="btn btn--primary collection-toolbar__action" onClick={() => setShowForm(true)} aria-label="Добавить заметку">
-                <Icon name="plus" size={13} />
-                {!isMobile && 'Добавить'}
-              </button>
             </div>
           </header>
 

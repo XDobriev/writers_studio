@@ -696,8 +696,8 @@ export default function Outline() {
           </Sidebar>
         )}
 
-        <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: 'var(--bg)' }}>
-          <div className="tb" style={{ justifyContent: 'space-between' }}>
+        <main className="workspace-main">
+          <div className="tb workspace-toolbar">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {isMobile && (
                 <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
@@ -707,7 +707,7 @@ export default function Outline() {
               <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Структура</span>
               {!isMobile && <span className="chip">{totals.count} {plural(totals.count, 'глава', 'главы', 'глав')} · {totals.words.toLocaleString('ru')} сл</span>}
             </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div className="workspace-toolbar__actions">
               {!isMobile && chapters && chapters.length > 0 && characters.length > 0 && (
                 <BulkPovButton
                   chapters={chapters}

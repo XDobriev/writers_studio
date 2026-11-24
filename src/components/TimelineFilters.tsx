@@ -43,15 +43,7 @@ export function TimelineFilters({ variant, filter, onFilter }: {
           aria-pressed={filter === f.value}
         >
           {f.value !== 'all' && (
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 2,
-                background: TYPE_COLORS[f.value],
-                flexShrink: 0,
-              }}
-            />
+            <span className="tl-filter__dot" aria-hidden="true" style={{ background: TYPE_COLORS[f.value] }} />
           )}
           {f.label}
         </button>

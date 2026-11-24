@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useDropdownPosition } from '../lib/useDropdownPosition';
 import { useErrorState } from '../lib/useErrorState';
 import { ErrorBanner } from '../components/ErrorBanner';
@@ -46,6 +46,8 @@ const STATUS_COLOR: Record<ChapterStatus, string> = {
 
 
 const STATUS_ORDER: ChapterStatus[] = ['draft', 'progress', 'done'];
+const POINTER_SENSOR_OPTIONS = { activationConstraint: { distance: 8 } };
+const KEYBOARD_SENSOR_OPTIONS = { coordinateGetter: sortableKeyboardCoordinates };
 
 function SortableCorkCard({
   c,
@@ -54,7 +56,6 @@ function SortableCorkCard({
   onStatusChange,
   onDeleteChapter,
   onSynopsisChange,
-  dragEnabled,
   badgeLabel,
 }: {
   c: ChapterMeta;
@@ -63,7 +64,6 @@ function SortableCorkCard({
   onStatusChange: (id: string, status: ChapterStatus) => void;
   onDeleteChapter: (id: string) => void;
   onSynopsisChange: (id: string, synopsis: string) => void;
-  dragEnabled: boolean;
   badgeLabel?: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -89,10 +89,7 @@ function SortableCorkCard({
     if (e.key === 'Escape') { setEditingSynopsis(false); }
   };
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: c.id,
-    disabled: !dragEnabled,
-  });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id });
 
   useEffect(() => {
     if (!menuOpen) {
@@ -109,6 +106,7 @@ function SortableCorkCard({
   return (
     <div
       ref={setNodeRef}
+      data-status={c.status}
       style={{
         position: 'relative',
         background: 'var(--surface)',
@@ -120,34 +118,31 @@ function SortableCorkCard({
         opacity: isDragging ? 0.45 : 1,
       }}
     >
-      {dragEnabled && (
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          className="cork-card__drag"
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'transparent',
-            border: 'none',
-            cursor: isDragging ? 'grabbing' : 'grab',
-            color: 'var(--ink-4)',
-            padding: 0,
-            zIndex: 2,
-            borderRadius: 4,
-            touchAction: 'none',
-          }}
-          title="Перетащить"
-          aria-label="Перетащить"
-        >
-          <Icon name="drag" size={12} />
-        </button>
-      )}
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cork-card__drag"
+        style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'transparent',
+          border: 'none',
+          cursor: isDragging ? 'grabbing' : 'grab',
+          color: 'var(--ink-4)',
+          padding: 0,
+          zIndex: 2,
+          borderRadius: 4,
+          touchAction: 'none',
+        }}
+        title="Перетащить"
+        aria-label="Перетащить"
+      >
+        <Icon name="drag" size={12} />
+      </button>
 
       <Link
         to={href}
@@ -157,7 +152,7 @@ function SortableCorkCard({
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
           <span style={{ font: '500 10px var(--font-mono)', color: 'var(--accent)', letterSpacing: '0.1em' }}>{badgeLabel ?? `ГЛ. ${String(index + 1).padStart(2, '0')}`}</span>
           <span style={{ flex: 1 }} />
-          <span style={{ font: '400 10px var(--font-mono)', color: 'var(--ink-3)', marginRight: dragEnabled ? 22 : 0 }}>{c.words.toLocaleString('ru')} сл</span>
+          <span className="cork-card__words">{c.words.toLocaleString('ru')} сл</span>
         </div>
         <div style={{ font: '500 16px var(--font-serif)', letterSpacing: '-0.005em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'anywhere' }}>{c.title || 'Без названия'}</div>
       </Link>
@@ -303,8 +298,8 @@ export default function Corkboard() {
   const chapterRanks = useMemo(() => computeChapterRanks(chapters ?? []), [chapters]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(PointerSensor, POINTER_SENSOR_OPTIONS),
+    useSensor(KeyboardSensor, KEYBOARD_SENSOR_OPTIONS),
   );
 
   const counts = useMemo(() => {
@@ -319,21 +314,30 @@ export default function Corkboard() {
     );
   }, [chapters]);
 
-  const visible = useMemo(() => {
-    if (!chapters) return [];
-    if (filter === 'all') return chapters;
-    return chapters.filter((c) => c.status === filter);
-  }, [chapters, filter]);
-
   // Мутации глав — общие со «Структурой» (useOutlineMutations), без копии здесь.
   const { onCreate, onDelete: onDeleteChapter, onPatch, onDragEnd } = useOutlineMutations({
     bookId, userId: user?.id, chapters, navigate, setError,
   });
-  const onStatusChange = (id: string, status: ChapterStatus) => onPatch(id, { status });
-  const onSynopsisChange = (id: string, synopsis: string) => {
+  const onStatusChange = useCallback((id: string, status: ChapterStatus) => onPatch(id, { status }), [onPatch]);
+  const onSynopsisChange = useCallback((id: string, synopsis: string) => {
     if (chapters?.find((c) => c.id === id)?.synopsis === synopsis) return;
     return onPatch(id, { synopsis });
-  };
+  }, [chapters, onPatch]);
+
+  const chapterIds = useMemo(() => chapters?.map(c => c.id) ?? [], [chapters]);
+  // Смена фильтра сохраняет карточки и регистрацию в SortableContext.
+  const cards = useMemo(() => chapters?.map((c, index) => (
+    <SortableCorkCard
+      key={c.id}
+      c={c}
+      index={index}
+      href={`/books/${bookId}/editor?chapter=${c.id}`}
+      onStatusChange={onStatusChange}
+      onDeleteChapter={onDeleteChapter}
+      onSynopsisChange={onSynopsisChange}
+      badgeLabel={chapterRanks.get(c.id)?.badgeLabel}
+    />
+  )), [chapters, chapterRanks, bookId, onStatusChange, onDeleteChapter, onSynopsisChange]);
 
   const filterItems: Array<[Filter, string]> = [
     ['all', 'Все'],
@@ -343,6 +347,27 @@ export default function Corkboard() {
   ];
 
   const dragEnabled = filter === 'all';
+  const noMatches = chapters && counts.all > 0 && counts[filter] === 0;
+  const gridFilter = noMatches ? 'all' : filter;
+  const boardRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (boardRef.current) boardRef.current.inert = Boolean(noMatches);
+  }, [noMatches]);
+
+  const grid = useMemo(() => (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={gridFilter === 'all' ? onDragEnd : undefined}
+    >
+      <SortableContext items={chapterIds} strategy={rectSortingStrategy}>
+        <div className="corkboard-grid" data-filter={gridFilter}>
+          {cards}
+        </div>
+      </SortableContext>
+    </DndContext>
+  ), [cards, chapterIds, gridFilter, onDragEnd, sensors]);
 
   return (
     <WithMode>
@@ -357,7 +382,7 @@ export default function Corkboard() {
           </div>
         </Sidebar>}
 
-        <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: 'var(--bg)' }}>
+        <main className="workspace-main">
           <header className="collection-header">
             <div className="tb collection-toolbar">
               <div className="collection-toolbar__title">
@@ -368,6 +393,10 @@ export default function Corkboard() {
                 )}
                 <span>Доска глав</span>
               </div>
+              <button className="btn collection-toolbar__action" onClick={() => void onCreate()} aria-label="Новая глава">
+                <Icon name="plus" size={14} />
+                {!isMobile && 'Новая глава'}
+              </button>
               <div className="collection-toolbar__filters chapter-filters" role="group" aria-label="Фильтр глав">
                 {filterItems.map(([key, label]) => (
                   <button
@@ -382,13 +411,11 @@ export default function Corkboard() {
                   </button>
                 ))}
               </div>
-              <button className="btn collection-toolbar__action" onClick={() => void onCreate()} aria-label="Новая глава">
-                <Icon name="plus" size={14} />
-                {!isMobile && 'Новая глава'}
-              </button>
             </div>
-            {!dragEnabled && !isMobile && (
-              <p className="collection-toolbar__hint">перетаскивание доступно при фильтре «все»</p>
+            {!isMobile && counts.all > 0 && (
+              <p className="collection-toolbar__hint">
+                {dragEnabled ? 'Перетащите карточки, чтобы изменить порядок' : 'Перетаскивание доступно при фильтре «все»'}
+              </p>
             )}
           </header>
 
@@ -404,37 +431,17 @@ export default function Corkboard() {
                 <Icon name="plus" size={13} /> Новая глава
               </button>
             </SectionEmptyState>
-          ) : chapters && visible.length === 0 ? (
-            <SectionEmptyState title="В этом статусе пока нет глав.">
-              <button className="btn btn--ghost" onClick={() => setFilter('all')}>Сбросить фильтр</button>
-            </SectionEmptyState>
-          ) : (
-            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '28px 32px', background: 'repeating-linear-gradient(45deg, var(--bg) 0 24px, var(--bg-deep) 24px 25px)' }}>
-              {!chapters && !error && <div style={{ color: 'var(--ink-3)' }}>Загрузка…</div>}
-
-              {chapters && (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                  <SortableContext items={chapters.map((c) => c.id)} strategy={rectSortingStrategy}>
-                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: isMobile ? 14 : 20 }}>
-                      {visible.map((c) => {
-                        const index = chapters.findIndex((x) => x.id === c.id);
-                        return (
-                          <SortableCorkCard
-                            key={c.id}
-                            c={c}
-                            index={index}
-                            href={`/books/${bookId}/editor?chapter=${c.id}`}
-                            onStatusChange={onStatusChange}
-                            onDeleteChapter={onDeleteChapter}
-                            onSynopsisChange={onSynopsisChange}
-                            dragEnabled={dragEnabled}
-                            badgeLabel={chapterRanks.get(c.id)?.badgeLabel}
-                          />
-                        );
-                      })}
-                    </div>
-                  </SortableContext>
-                </DndContext>
+          ) : null}
+          {!chapters && !error && <div className="corkboard-body" style={{ color: 'var(--ink-3)' }}>Загрузка…</div>}
+          {chapters && chapters.length > 0 && (
+            <div className="corkboard-results">
+              <div ref={boardRef} className="corkboard-body" aria-hidden={noMatches || undefined}>
+                {grid}
+              </div>
+              {noMatches && (
+                <SectionEmptyState title="В этом статусе пока нет глав.">
+                  <button className="btn btn--ghost" onClick={() => setFilter('all')}>Сбросить фильтр</button>
+                </SectionEmptyState>
               )}
             </div>
           )}

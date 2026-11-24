@@ -14,7 +14,7 @@ test('фильтры и основные действия целиком вид�
       const filters = header.getByRole('group');
       const options = filters.getByRole('button');
       await expect(options).toHaveCount(section === 'notes' ? 6 : 4);
-      if (section === 'corkboard') {
+      if (section === 'corkboard' || width === 320) {
         const rows = await options.evaluateAll(buttons =>
           buttons.map(button => button.getBoundingClientRect().y),
         );
@@ -36,4 +36,18 @@ test('фильтры и основные действия целиком вид�
   await expect(draft).toHaveAttribute('aria-pressed', 'true');
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page.getByRole('link', { name: 'Структура', exact: true })).toHaveAttribute('aria-current', 'location');
+});
+
+test('создание персонажа доступно по обе стороны планшетного порога', async ({ page }) => {
+  const book = await loginAndGetBookHref(page);
+  await page.goto(book + '/characters');
+  const main = page.getByRole('main');
+
+  for (const width of [767, 768, 769]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(main.getByRole('button', { name: 'Новый персонаж' })).toBeInViewport({ ratio: 1 });
+    if (width >= 768) {
+      await expect(main.getByRole('button', { name: 'Детальная карточка' })).toBeInViewport({ ratio: 1 });
+    }
+  }
 });
