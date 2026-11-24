@@ -24,6 +24,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
+import { SectionEmptyState } from '../components/SectionEmptyState';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { WithMode, Sidebar } from '../components/Chrome';
 import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
@@ -565,40 +566,23 @@ export default function Notes() {
 
           {/* основной контент: заглушка пустого состояния или виртуализированная сетка */}
           {filtered.length === 0 && !showForm ? (
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {filterKind !== 'all' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'var(--ink-4)', fontSize: 13 }}>
-                  {`Нет заметок типа «${KIND_LABELS[filterKind]}».`}
-                  <button className="btn btn--ghost" style={{ fontSize: 12 }} onClick={() => setFilterKind('all')}>Сбросить фильтр</button>
-                </div>
-              ) : activeChapterId ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
-                  <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'var(--surface)', color: 'var(--ink-4)', border: '1px solid var(--border-soft)' }}>
-                    <Icon name="note" size={22} />
-                  </div>
-                  <div style={{ textAlign: 'center', maxWidth: 260 }}>
-                    <div style={{ font: '500 14px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 6 }}>Заметок для этой главы нет</div>
-                    <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.6 }}>Добавьте первую заметку — она сразу привяжется к текущей главе</div>
-                  </div>
-                  <button className="btn btn--primary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowForm(true)}>
-                    <Icon name="plus" size={13} /> Добавить заметку
-                  </button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
-                  <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'var(--surface)', color: 'var(--ink-4)', border: '1px solid var(--border-soft)' }}>
-                    <Icon name="note" size={22} />
-                  </div>
-                  <div style={{ textAlign: 'center', maxWidth: 260 }}>
-                    <div style={{ font: '500 14px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 6 }}>Заметок пока нет</div>
-                    <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.6 }}>Записывайте идеи, вопросы и важные мысли по ходу работы над книгой</div>
-                  </div>
-                  <button className="btn btn--primary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowForm(true)}>
-                    <Icon name="plus" size={13} /> Добавить заметку
-                  </button>
-                </div>
-              )}
-            </div>
+            filterKind !== 'all' ? (
+              <SectionEmptyState title={`Нет заметок типа «${KIND_LABELS[filterKind]}».`}>
+                <button className="btn btn--ghost" onClick={() => setFilterKind('all')}>Сбросить фильтр</button>
+              </SectionEmptyState>
+            ) : (
+              <SectionEmptyState
+                icon="note"
+                title={activeChapterId ? 'Заметок для этой главы нет' : 'Заметок пока нет'}
+                description={activeChapterId
+                  ? 'Добавьте первую заметку — она сразу привяжется к текущей главе'
+                  : 'Записывайте идеи, вопросы и важные мысли по ходу работы над книгой'}
+              >
+                <button className="btn btn--primary" onClick={() => setShowForm(true)}>
+                  <Icon name="plus" size={13} /> Добавить заметку
+                </button>
+              </SectionEmptyState>
+            )
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
               <NotesGrid notes={filtered} chapterMap={chapterMap} onOpen={openModal} />

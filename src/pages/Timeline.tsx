@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { Icon } from '../components/Icon';
+import { SectionEmptyState } from '../components/SectionEmptyState';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -239,46 +240,6 @@ export default function Timeline() {
     );
   }
 
-  const emptyState = (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'column',
-        gap: 16,
-        padding: '48px 24px',
-      }}
-    >
-      <div
-        style={{
-          width: 48,
-          height: 48,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 12,
-          background: 'var(--surface)',
-          color: 'var(--ink-4)',
-          border: '1px solid var(--border-soft)',
-        }}
-      >
-        <Icon name="clock" size={22} />
-      </div>
-      <div style={{ textAlign: 'center', maxWidth: 260 }}>
-        <div style={{ font: '500 14px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 6 }}>
-          Хронология пуста
-        </div>
-        <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.6 }}>
-          Фиксируйте ключевые события вашего мира в хронологическом порядке
-        </div>
-      </div>
-      <button onClick={handleCreate} className="btn btn--primary">
-        <Icon name="plus" size={13} /> Создать событие
-      </button>
-    </div>
-  );
-
   const showLane = view === 'lane' && !isMobile;
 
   return (
@@ -360,74 +321,55 @@ export default function Timeline() {
             <ErrorBanner message={mutationError} onDismiss={clearError} style={{ margin: '8px 24px 0', flexShrink: 0 }} />
           )}
 
-          {showLane ? (
-            events.length === 0 ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>{emptyState}</div>
-            ) : (
-              <TimelineLane
-                events={filtered}
-                activeEventId={activeEventId}
-                dragEnabled={filter === 'all'}
-                onSelect={(id) => setActiveEventId(activeEventId === id ? null : id)}
-                onDragEnd={handleDragEnd}
-                onAdd={handleCreate}
-              />
-            )
+          {events.length === 0 ? (
+            <SectionEmptyState
+              icon="clock"
+              title="Хронология пуста"
+              description="Фиксируйте ключевые события вашего мира в хронологическом порядке"
+            >
+              <button onClick={handleCreate} className="btn btn--primary">
+                <Icon name="plus" size={13} /> Создать событие
+              </button>
+            </SectionEmptyState>
+          ) : filtered.length === 0 ? (
+            <SectionEmptyState title="Нет событий в этом слое">
+              <button className="btn btn--ghost" onClick={() => setFilter('all')}>Сбросить фильтр</button>
+            </SectionEmptyState>
+          ) : showLane ? (
+            <TimelineLane
+              events={filtered}
+              activeEventId={activeEventId}
+              dragEnabled={filter === 'all'}
+              onSelect={(id) => setActiveEventId(activeEventId === id ? null : id)}
+              onDragEnd={handleDragEnd}
+              onAdd={handleCreate}
+            />
           ) : (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '32px 48px' }}>
-              {filtered.length === 0 ? (
-                events.length === 0 ? (
-                  emptyState
-                ) : (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexDirection: 'column',
-                      gap: 12,
-                      color: 'var(--ink-3)',
-                      padding: '48px 0',
-                    }}
-                  >
-                    <div style={{ font: '500 14px var(--font-ui)' }}>
-                      Нет событий в этом слое
-                    </div>
-                    <button
-                      className="btn btn--ghost"
-                      style={{ fontSize: 12 }}
-                      onClick={() => setFilter('all')}
-                    >
-                      Сбросить фильтр
-                    </button>
-                  </div>
-                )
-              ) : (
-                <div style={{ position: 'relative', paddingLeft: 24 }}>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: 7,
-                      top: 6,
-                      bottom: 6,
-                      width: 2,
-                      background: 'var(--border-soft)',
-                    }}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    {filtered.map((ev) => (
-                      <TimelineEventCard
-                        key={ev.id}
-                        event={ev}
-                        chapters={chapters}
-                        onUpdate={(patch) => handleUpdate(ev.id, patch)}
-                        onDelete={() => handleDelete(ev.id)}
-                        focusOnMount={ev.id === justCreatedId}
-                      />
-                    ))}
-                  </div>
+              <div style={{ position: 'relative', paddingLeft: 24 }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 7,
+                    top: 6,
+                    bottom: 6,
+                    width: 2,
+                    background: 'var(--border-soft)',
+                  }}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  {filtered.map((ev) => (
+                    <TimelineEventCard
+                      key={ev.id}
+                      event={ev}
+                      chapters={chapters}
+                      onUpdate={(patch) => handleUpdate(ev.id, patch)}
+                      onDelete={() => handleDelete(ev.id)}
+                      focusOnMount={ev.id === justCreatedId}
+                    />
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
           )}
         </main>

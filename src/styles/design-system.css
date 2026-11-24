@@ -1003,6 +1003,43 @@ button.chip:focus-visible {
 .chip--sm { font-size: 10px; height: 18px; padding: 0 6px; }
 button.chip:not(.chip--accent):hover { background: var(--surface-2); }
 
+.section-empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: auto;
+}
+.section-empty__content {
+  margin: auto;
+  padding: 48px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+.section-empty__icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
+  color: var(--ink-4);
+}
+.section-empty__title {
+  margin: 0;
+  font: 500 14px var(--font-ui);
+  color: var(--ink-2);
+}
+.section-empty__description {
+  max-width: 260px;
+  margin: 6px auto 0;
+  font: 400 12px/1.6 var(--font-ui);
+  color: var(--ink-3);
+}
+
 .btn {
   height: 30px; padding: 0 12px;
   border-radius: var(--r-2);
@@ -2743,10 +2780,6 @@ select.input {
 }
 @media (max-width: 479px) {
   .lnd-nav-word { display: none; }
-  /* На узкой мобилке текст сжимается ellipsis-ом почти до нуля из-за
-     CTA-кнопки справа — обрезка выглядит бессмысленно ("Печатайте и...").
-     Скрываем целиком, оставляя «Демо-режим» + CTA. */
-  .demo-banner__desc { display: none; }
 }
 
 /* Полоса демо-режима над редактором /demo (DemoBanner) */
@@ -2770,11 +2803,14 @@ select.input {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* margin-left: auto — прижимает кнопку вправо, когда описание скрыто (≤479px) */
 .demo-banner__cta { flex-shrink: 0; margin-left: auto; }
 /* На мобилке .btn тянется до 44px (touch target) — полоса выше, чтобы кнопка не упиралась в края */
 @media (max-width: 768px) {
   .demo-banner { height: 58px; }
+}
+@media (max-width: 479px) {
+  .demo-banner { height: auto; flex-wrap: wrap; gap: 4px 8px; padding-block: 6px; }
+  .demo-banner__desc { order: 1; flex-basis: 100%; white-space: normal; }
 }
 
 /* Обёртка приватного контента для Вебвизора (App.tsx → AnalyticsPrivate): без своего бокса */

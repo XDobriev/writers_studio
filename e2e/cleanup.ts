@@ -6,10 +6,6 @@ import { createClient } from '@supabase/supabase-js';
 // что создано в этой книге с начала теста.
 const TABLES = ['chapters', 'characters', 'timeline_events', 'notes', 'locations'] as const;
 
-export function bookIdFromHref(href: string): string {
-  return href.split('/')[2] ?? '';
-}
-
 export async function deleteCreatedSince(bookId: string, since: Date): Promise<void> {
   const url = process.env.VITE_SUPABASE_URL;
   const key = process.env.VITE_SUPABASE_ANON_KEY;

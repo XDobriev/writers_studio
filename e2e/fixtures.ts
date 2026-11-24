@@ -1,5 +1,5 @@
 import { test as base, expect, type Page } from '@playwright/test';
-import { bookIdFromHref, deleteCreatedSince } from './cleanup';
+import { deleteCreatedSince } from './cleanup';
 
 let currentBookId = '';
 
@@ -32,21 +32,10 @@ export async function loginAndGetBookHref(page: Page): Promise<string> {
   await page.getByRole('button', { name: 'Войти в студию' }).click();
   await page.waitForURL('**/books', { timeout: 15_000 });
 
-  const link = page.locator('a[href^="/books/"]').first();
-  const hasBooks = await link.isVisible({ timeout: 25_000 }).catch(() => false);
-
-  if (!hasBooks) {
-    const createBtn = page.getByRole('button', { name: 'Создать книгу' });
-    const createBtnVisible = await createBtn.isVisible({ timeout: 10_000 }).catch(() => false);
-    if (createBtnVisible) {
-      await createBtn.click();
-      await page.locator('input[name="title"]').fill('E2E Test Book');
-      await page.getByRole('button', { name: 'Создать' }).click();
-      await expect(link).toBeVisible({ timeout: 15_000 });
-    }
-  }
-
-  const href = (await link.getAttribute('href')) as string;
-  currentBookId = bookIdFromHref(href);
+  // Фикстура «Осколки неба» содержит персонажей и главы для тестов редактора.
+  const bookId = process.env.E2E_BOOK_ID ?? 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+  const href = `/books/${bookId}`;
+  await expect(page.locator(`a[href="${href}"]`), 'На полке должна быть подготовленная E2E-книга').toBeVisible({ timeout: 25_000 });
+  currentBookId = bookId;
   return href;
 }

@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
+import { SectionEmptyState } from '../components/SectionEmptyState';
 import { WithMode, Sidebar } from '../components/Chrome';
 import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
 import { useResponsive } from '../lib/useResponsive';
@@ -440,54 +441,52 @@ export default function Corkboard() {
             </div>
           )}
 
-          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '28px 32px', background: 'repeating-linear-gradient(45deg, var(--bg) 0 24px, var(--bg-deep) 24px 25px)' }}>
-            {error && (
-              <ErrorBanner message={error} style={{ marginBottom: 16 }} />
-            )}
+          {error && <ErrorBanner message={error} style={{ margin: '8px 24px 0', flexShrink: 0 }} />}
 
-            {!chapters && !error && <div style={{ color: 'var(--ink-3)' }}>Загрузка…</div>}
+          {chapters?.length === 0 ? (
+            <SectionEmptyState
+              icon="grid"
+              title="Доска пуста."
+              description="Создайте первую главу — она появится здесь карточкой."
+            >
+              <button className="btn btn--primary" onClick={() => void onCreate()}>
+                <Icon name="plus" size={13} /> Новая глава
+              </button>
+            </SectionEmptyState>
+          ) : chapters && visible.length === 0 ? (
+            <SectionEmptyState title="В этом статусе пока нет глав.">
+              <button className="btn btn--ghost" onClick={() => setFilter('all')}>Сбросить фильтр</button>
+            </SectionEmptyState>
+          ) : (
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '28px 32px', background: 'repeating-linear-gradient(45deg, var(--bg) 0 24px, var(--bg-deep) 24px 25px)' }}>
+              {!chapters && !error && <div style={{ color: 'var(--ink-3)' }}>Загрузка…</div>}
 
-            {chapters && chapters.length === 0 && (
-              <div style={{ padding: '64px 32px', textAlign: 'center', border: '1px dashed var(--border-strong)', borderRadius: 12, color: 'var(--ink-3)', background: 'var(--bg)' }}>
-                <div style={{ font: '500 18px var(--font-serif)', color: 'var(--ink-2)', marginBottom: 8 }}>Доска пуста.</div>
-                <div style={{ marginBottom: 16, fontSize: 13 }}>Создайте первую главу — она появится здесь карточкой.</div>
-                <button className="btn btn--primary" onClick={() => void onCreate()}>
-                  <Icon name="plus" size={14} /> Новая глава
-                </button>
-              </div>
-            )}
-
-            {chapters && chapters.length > 0 && (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                <SortableContext items={chapters.map((c) => c.id)} strategy={rectSortingStrategy}>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: isMobile ? 14 : 20 }}>
-                    {visible.map((c) => {
-                      const index = chapters.findIndex((x) => x.id === c.id);
-                      return (
-                        <SortableCorkCard
-                          key={c.id}
-                          c={c}
-                          index={index}
-                          href={`/books/${bookId}/editor?chapter=${c.id}`}
-                          onStatusChange={onStatusChange}
-                          onDeleteChapter={onDeleteChapter}
-                          onSynopsisChange={onSynopsisChange}
-                          dragEnabled={dragEnabled}
-                          badgeLabel={chapterRanks.get(c.id)?.badgeLabel}
-                        />
-                      );
-                    })}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            )}
-
-            {chapters && chapters.length > 0 && visible.length === 0 && (
-              <div style={{ marginTop: 24, color: 'var(--ink-3)', fontSize: 13 }}>
-                В этом статусе пока нет глав.
-              </div>
-            )}
-          </div>
+              {chapters && (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                  <SortableContext items={chapters.map((c) => c.id)} strategy={rectSortingStrategy}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: isMobile ? 14 : 20 }}>
+                      {visible.map((c) => {
+                        const index = chapters.findIndex((x) => x.id === c.id);
+                        return (
+                          <SortableCorkCard
+                            key={c.id}
+                            c={c}
+                            index={index}
+                            href={`/books/${bookId}/editor?chapter=${c.id}`}
+                            onStatusChange={onStatusChange}
+                            onDeleteChapter={onDeleteChapter}
+                            onSynopsisChange={onSynopsisChange}
+                            dragEnabled={dragEnabled}
+                            badgeLabel={chapterRanks.get(c.id)?.badgeLabel}
+                          />
+                        );
+                      })}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
+          )}
         </main>
       </div>
 

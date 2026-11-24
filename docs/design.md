@@ -282,6 +282,12 @@ The toolbar is 44px tall, `oak-dark` background — the same as the main content
 - **Separator:** 1px vertical rule, `oak-border-soft`, 18px tall, 2px margin each side.
 - **Min touch target (mobile):** 44×44px, enforced via `@media (max-width: 768px)`.
 
+### Empty sections
+
+When a workspace collection is empty, use `SectionEmptyState` in the content slot of the section’s flex column. Center the icon, heading, description and primary action **as one group** in the space below the toolbar, filters and any visible banner. The sidebar sits outside this area. Apply the same placement on mobile and when switching between list and lane views.
+
+Keep list padding and virtualized containers inside the populated branch. The empty state owns its scroll area and uses automatic margins so that on short screens the heading and action remain reachable. For a filter with zero matches, use the same placement with a short explanation and a reset action.
+
 ### Signature Component: The Manuscript Sheet
 
 The paper surface is the most important component in the product.

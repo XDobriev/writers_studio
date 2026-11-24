@@ -21,6 +21,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../components/Icon';
+import { SectionEmptyState } from '../components/SectionEmptyState';
 import { WithMode, Sidebar } from '../components/Chrome';
 import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
 import { useResponsive } from '../lib/useResponsive';
@@ -740,67 +741,67 @@ export default function Outline() {
             </div>
           </div>
 
-          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '16px 16px 28px' : '28px 40px' }}>
-            {error && (
-              <ErrorBanner message={error} style={{ marginBottom: 16 }} />
-            )}
+          {error && <ErrorBanner message={error} style={{ margin: '8px 24px 0', flexShrink: 0 }} />}
 
-            {!chapters && !error && <div style={{ color: 'var(--ink-3)' }}>Загрузка…</div>}
+          {chapters?.length === 0 ? (
+            <SectionEmptyState
+              icon="tree"
+              title="Глав пока нет."
+              description="Создайте первую главу — структура книги начнёт собираться отсюда."
+            >
+              <button className="btn btn--primary" onClick={() => void onCreate()}>
+                <Icon name="plus" size={13} /> Новая глава
+              </button>
+            </SectionEmptyState>
+          ) : (
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '16px 16px 28px' : '28px 40px' }}>
+              {!chapters && !error && <div style={{ color: 'var(--ink-3)' }}>Загрузка…</div>}
 
-            {chapters && chapters.length === 0 && (
-              <div style={{ padding: '64px 32px', textAlign: 'center', border: '1px dashed var(--border-strong)', borderRadius: 12, color: 'var(--ink-3)' }}>
-                <div style={{ font: '500 18px var(--font-serif)', color: 'var(--ink-2)', marginBottom: 8 }}>Глав пока нет.</div>
-                <div style={{ marginBottom: 16, fontSize: 13 }}>Создайте первую главу — структура книги начнёт собираться отсюда.</div>
-                <button className="btn btn--primary" onClick={() => void onCreate()}>
-                  <Icon name="plus" size={14} /> Новая глава
-                </button>
-              </div>
-            )}
+              {chapters && (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-soft)' }}>
+                    <h2 style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em' }}>Главы</h2>
+                    <span style={{ flex: 1 }} />
+                    <span style={{ font: '400 11.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em' }}>
+                      {totals.done} готово · {totals.progress} в работе · {totals.draft} {plural(totals.draft, 'черновик', 'черновика', 'черновиков')}
+                    </span>
+                  </div>
 
-            {chapters && chapters.length > 0 && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-soft)' }}>
-                  <h2 style={{ font: '600 22px var(--font-serif)', letterSpacing: '-0.01em' }}>Главы</h2>
-                  <span style={{ flex: 1 }} />
-                  <span style={{ font: '400 11.5px var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.06em' }}>
-                    {totals.done} готово · {totals.progress} в работе · {totals.draft} {plural(totals.draft, 'черновик', 'черновика', 'черновиков')}
-                  </span>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                    <SortableContext items={chapters.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                      {chapters.map((c, i) => (
+                        <SortableChapterRow
+                          key={c.id}
+                          chapter={c}
+                          index={i}
+                          bookId={bookId!}
+                          menuFor={menuFor}
+                          setMenuFor={setMenuFor}
+                          deleteConfirmFor={deleteConfirmFor}
+                          setDeleteConfirmFor={setDeleteConfirmFor}
+                          onDelete={handleDelete}
+                          menuRef={menuRef}
+                          menuDropdownStyle={menuDropdownStyle}
+                          renameFor={renameFor}
+                          setRenameFor={setRenameFor}
+                          onRename={onRename}
+                          maxWords={maxWords}
+                          povEntries={povEntries.filter((e) => e.chapter_id === c.id)}
+                          allCharacters={characters}
+                          userId={user.id}
+                          onPovChanged={onPovChanged}
+                          setError={setError}
+                          compact={isMobile}
+                          rankInfo={chapterRanks.get(c.id) ?? { id: c.id, type: 'regular', regularNumber: i + 1, displayNumber: String(i + 1).padStart(2, '0'), badgeLabel: `ГЛ. ${String(i + 1).padStart(2, '0')}`, tocNumber: `${i + 1}.` }}
+                          onTypeChange={onTypeChange}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
                 </div>
-
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                  <SortableContext items={chapters.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-                    {chapters.map((c, i) => (
-                      <SortableChapterRow
-                        key={c.id}
-                        chapter={c}
-                        index={i}
-                        bookId={bookId!}
-                        menuFor={menuFor}
-                        setMenuFor={setMenuFor}
-                        deleteConfirmFor={deleteConfirmFor}
-                        setDeleteConfirmFor={setDeleteConfirmFor}
-                        onDelete={handleDelete}
-                        menuRef={menuRef}
-                        menuDropdownStyle={menuDropdownStyle}
-                        renameFor={renameFor}
-                        setRenameFor={setRenameFor}
-                        onRename={onRename}
-                        maxWords={maxWords}
-                        povEntries={povEntries.filter((e) => e.chapter_id === c.id)}
-                        allCharacters={characters}
-                        userId={user.id}
-                        onPovChanged={onPovChanged}
-                        setError={setError}
-                        compact={isMobile}
-                        rankInfo={chapterRanks.get(c.id) ?? { id: c.id, type: 'regular', regularNumber: i + 1, displayNumber: String(i + 1).padStart(2, '0'), badgeLabel: `ГЛ. ${String(i + 1).padStart(2, '0')}`, tocNumber: `${i + 1}.` }}
-                        onTypeChange={onTypeChange}
-                      />
-                    ))}
-                  </SortableContext>
-                </DndContext>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
 

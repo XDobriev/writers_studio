@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Editor } from './RichEditor';
 import { Icon } from './Icon';
@@ -116,9 +116,22 @@ function PortalDropdown({
   const ref = useRef<HTMLDivElement>(null);
   const rect = anchor.getBoundingClientRect();
   const spaceBelow = window.innerHeight - rect.bottom;
-  const posY = spaceBelow < 240
+  const openAbove = spaceBelow < 240 && rect.top > spaceBelow;
+  const posY = openAbove
     ? { bottom: window.innerHeight - rect.top + 4 }
     : { top: rect.bottom + 4 };
+  const availableHeight = openAbove ? rect.top : spaceBelow;
+  const scrollStyle = availableHeight < 240
+    ? { maxHeight: Math.max(0, availableHeight - 8), overflowY: 'auto' as const }
+    : undefined;
+  const viewportWidth = window.innerWidth;
+
+  useLayoutEffect(() => {
+    const panel = ref.current;
+    if (!panel) return;
+    const maxLeft = viewportWidth - panel.getBoundingClientRect().width - 8;
+    panel.style.left = `${Math.max(8, Math.min(rect.left, maxLeft))}px`;
+  }, [rect.left, viewportWidth]);
 
   useEscapeToClose(true, onClose);
 
@@ -146,7 +159,7 @@ function PortalDropdown({
   return createPortal(
     <div
       ref={ref}
-      style={{ position: 'fixed', ...posY, left: rect.left, zIndex: 'var(--z-dropdown)' }}
+      style={{ position: 'fixed', ...posY, ...scrollStyle, width: 'max-content', zIndex: 'var(--z-dropdown)' }}
       onMouseDown={(e) => { e.preventDefault(); e.nativeEvent.stopPropagation(); }}
       onKeyDown={(e) => trapTab(e)}
     >
@@ -321,6 +334,11 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
   const popoverRef = useRef<HTMLDivElement>(null);
   const active = !!editor?.isActive('link');
 
+  useEscapeToClose(open, () => {
+    setOpen(false);
+    btnRef.current?.focus();
+  });
+
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
@@ -391,14 +409,14 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
           ref={popoverRef}
           style={{
             position: 'fixed',
-            ...(spaceBelow < 180
+            ...(spaceBelow < 180 && rect.top > spaceBelow
               ? { bottom: window.innerHeight - rect.top + 4 }
               : { top: rect.bottom + 4 }
             ),
-            left: rect.left, zIndex: 'var(--z-dropdown)',
+            left: Math.max(8, Math.min(rect.left, window.innerWidth - 310)), zIndex: 'var(--z-dropdown)',
             background: 'var(--bg-deep)', border: '1px solid var(--border)',
             borderRadius: 10, padding: 10, boxShadow: '0 12px 28px oklch(0.05 0.01 50 / 0.35)',
-            minWidth: 280, display: 'flex', flexDirection: 'column', gap: 6,
+            width: 302, maxWidth: 'calc(100vw - 16px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 6,
           }}
           onMouseDown={e => e.stopPropagation()}
         >
@@ -410,7 +428,6 @@ function LinkPopover({ editor }: { editor: Editor | null }) {
             onChange={e => setUrl(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') { e.preventDefault(); apply(); }
-              if (e.key === 'Escape') setOpen(false);
             }}
             placeholder="https://..."
             className="input"
@@ -643,7 +660,7 @@ export function EditorToolbar({ editor, mode, setMode, variant = 'studio', showM
           }} />
         </div>
         {showModes && mode && setMode && (
-          <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }}>
+          <div style={{ flexShrink: 0, margin: '0 14px 0 8px' }}>
             <ModeSegment mode={mode} setMode={setMode} />
           </div>
         )}
