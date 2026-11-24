@@ -248,39 +248,98 @@ export default function Characters() {
       <div className="as as-app" style={{ height: '100%', gridTemplateColumns: isMobile ? '1fr' : '260px 1fr' }}>
         {showSidebar && <Sidebar book={book} subtitle={`персонажи · ${filtered.length}`}><></></Sidebar>}
 
-        {showMain && <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
-          {/* Тулбар */}
-          <div className="tb" style={{ justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {isMobile && (
-                <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
-                  <Icon name="panel" size={16} />
-                </button>
-              )}
-              {isMobile && activeId && (
-                <button className="tb-btn" onClick={clearCharacter} title="К списку персонажей" aria-label="К списку персонажей">
-                  <Icon name="arrows" size={16} />
-                </button>
-              )}
-              {!isMobile && viewMode === 'detail' && (
-                <button
-                  className="tb-btn"
-                  onClick={goToGrid}
-                  style={{ color: 'var(--accent)', borderColor: 'color-mix(in oklch, var(--accent) 25%, transparent)', gap: 5 }}
-                >
-                  <Icon name="arrows" size={13} />
-                  Сетка
-                </button>
-              )}
-              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>
-                {!isMobile && viewMode === 'detail' && active ? (active.name || 'Без имени') : (isMobile ? 'Персонажи' : 'Картотека персонажей')}
-              </span>
-            </div>
+        {showMain && <main className="workspace-main">
+          <header className="collection-header">
+            <div className={showGrid ? 'tb collection-toolbar character-toolbar' : 'tb workspace-toolbar character-toolbar'}>
+              <div className="collection-toolbar__title">
+                {isMobile && (
+                  <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
+                    <Icon name="panel" size={16} />
+                  </button>
+                )}
+                {isMobile && activeId && (
+                  <button className="tb-btn" onClick={clearCharacter} title="К списку персонажей" aria-label="К списку персонажей">
+                    <Icon name="arrows" size={16} />
+                  </button>
+                )}
+                {!isMobile && viewMode === 'detail' && (
+                  <button
+                    className="tb-btn"
+                    onClick={goToGrid}
+                    style={{ color: 'var(--accent)', borderColor: 'color-mix(in oklch, var(--accent) 25%, transparent)', gap: 5 }}
+                  >
+                    <Icon name="arrows" size={13} />
+                    Сетка
+                  </button>
+                )}
+                <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>
+                  {!isMobile && viewMode === 'detail' && active ? (active.name || 'Без имени') : (isMobile ? 'Персонажи' : 'Картотека персонажей')}
+                </span>
+              </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* Grid: поиск + фильтры по роли */}
-              {!isMobile && showGrid && (
-                <>
+              <div className={showGrid ? 'collection-toolbar__action' : 'workspace-toolbar__actions'}>
+                {showGrid && (
+                  <button onClick={handleCreate} className="tb-btn" title="Новый персонаж" aria-label="Новый персонаж">
+                    <Icon name="plus" size={14} />
+                  </button>
+                )}
+
+                {/* Detail: статус сохранения + стрелки навигации */}
+                {!showGrid && (
+                  <span style={{ font: '400 12px var(--font-ui)', color: saveState === 'error' ? 'var(--danger)' : 'var(--ink-3)' }}>
+                    {saveLabel[saveState]}
+                  </span>
+                )}
+                {!showGrid && (
+                  <div className="tb-grp">
+                    <button
+                      className="tb-btn"
+                      onClick={() => prevChar && selectCharacter(prevChar.id)}
+                      disabled={!prevChar}
+                      title="Предыдущий персонаж"
+                      aria-label="Предыдущий персонаж"
+                    >
+                      <Icon name="arrows" size={13} />
+                    </button>
+                    <button
+                      className="tb-btn"
+                      onClick={() => nextChar && selectCharacter(nextChar.id)}
+                      disabled={!nextChar}
+                      title="Следующий персонаж"
+                      aria-label="Следующий персонаж"
+                    >
+                      <Icon name="chev" size={13} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Переключатель grid / detail — только десктоп */}
+                {!isMobile && (
+                  <div className="tb-grp">
+                    <button
+                      className={'tb-btn' + (viewMode === 'grid' ? ' tb-btn--on' : '')}
+                      onClick={goToGrid}
+                      aria-pressed={viewMode === 'grid'}
+                      title="Картотека (сетка)"
+                      aria-label="Картотека (сетка)"
+                    >
+                      <Icon name="grid" size={14} />
+                    </button>
+                    <button
+                      className={'tb-btn' + (viewMode === 'detail' ? ' tb-btn--on' : '')}
+                      onClick={() => { if (activeId) setViewMode('detail'); }}
+                      disabled={!activeId}
+                      aria-pressed={viewMode === 'detail'}
+                      title="Детальная карточка"
+                      aria-label="Детальная карточка"
+                    >
+                      <Icon name="char" size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+              {showGrid && (
+                <div className="collection-toolbar__filters">
                   <div className="tb-search">
                     <Icon name="search" size={12} />
                     <input
@@ -291,12 +350,13 @@ export default function Characters() {
                       className="tb-search__input"
                     />
                   </div>
-                  <div className="tb-grp">
+                  <div className="tb-grp" role="group" aria-label="Роль персонажа">
                     {ROLE_FILTERS.map((f) => (
                       <button
                         key={f.value}
-                        className={'tb-btn' + (roleFilter === f.value ? ' tb-btn--on' : '')}
+                        type="button"
                         onClick={() => setRoleFilter(f.value)}
+                        className={'tb-btn' + (roleFilter === f.value ? ' tb-btn--on' : '')}
                         aria-pressed={roleFilter === f.value}
                         title={f.value !== 'all' ? ROLE_LABELS[f.value] : undefined}
                       >
@@ -304,105 +364,10 @@ export default function Characters() {
                       </button>
                     ))}
                   </div>
-                  <button onClick={handleCreate} className="tb-btn" title="Новый персонаж" aria-label="Новый персонаж">
-                    <Icon name="plus" size={14} />
-                  </button>
-                </>
-              )}
-
-              {/* Mobile: поиск + кнопка создания (список персонажей) */}
-              {isMobile && showGrid && (
-                <>
-                  <div className="tb-search">
-                    <Icon name="search" size={12} />
-                    <input
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Поиск"
-                      aria-label="Поиск персонажей"
-                      className="tb-search__input"
-                    />
-                  </div>
-                  <button onClick={handleCreate} className="tb-btn" title="Новый персонаж" aria-label="Новый персонаж">
-                    <Icon name="plus" size={14} />
-                  </button>
-                </>
-              )}
-
-              {/* Detail: статус сохранения + стрелки навигации */}
-              {!showGrid && (
-                <span style={{ font: '400 12px var(--font-ui)', color: saveState === 'error' ? 'var(--danger)' : 'var(--ink-3)' }}>
-                  {saveLabel[saveState]}
-                </span>
-              )}
-              {!showGrid && (
-                <div className="tb-grp">
-                  <button
-                    className="tb-btn"
-                    onClick={() => prevChar && selectCharacter(prevChar.id)}
-                    disabled={!prevChar}
-                    title="Предыдущий персонаж"
-                    aria-label="Предыдущий персонаж"
-                  >
-                    <Icon name="arrows" size={13} />
-                  </button>
-                  <button
-                    className="tb-btn"
-                    onClick={() => nextChar && selectCharacter(nextChar.id)}
-                    disabled={!nextChar}
-                    title="Следующий персонаж"
-                    aria-label="Следующий персонаж"
-                  >
-                    <Icon name="chev" size={13} />
-                  </button>
-                </div>
-              )}
-
-              {/* Переключатель grid / detail — только десктоп */}
-              {!isMobile && (
-                <div className="tb-grp">
-                  <button
-                    className={'tb-btn' + (viewMode === 'grid' ? ' tb-btn--on' : '')}
-                    onClick={goToGrid}
-                    aria-pressed={viewMode === 'grid'}
-                    title="Картотека (сетка)"
-                    aria-label="Картотека (сетка)"
-                  >
-                    <Icon name="grid" size={14} />
-                  </button>
-                  <button
-                    className={'tb-btn' + (viewMode === 'detail' ? ' tb-btn--on' : '')}
-                    onClick={() => { if (activeId) setViewMode('detail'); }}
-                    disabled={!activeId}
-                    aria-pressed={viewMode === 'detail'}
-                    title="Детальная карточка"
-                    aria-label="Детальная карточка"
-                  >
-                    <Icon name="char" size={14} />
-                  </button>
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Мобилка: фильтр по роли — отдельная строка, без сжатия в тулбар (см. Corkboard.tsx) */}
-          {isMobile && showGrid && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 14px', borderBottom: '1px solid var(--border-soft)' }}>
-              {ROLE_FILTERS.map((f) => (
-                <button
-                  key={f.value}
-                  type="button"
-                  onClick={() => setRoleFilter(f.value)}
-                  className={'tb-btn' + (roleFilter === f.value ? ' tb-btn--on' : '')}
-                  aria-pressed={roleFilter === f.value}
-                  title={f.value !== 'all' ? ROLE_LABELS[f.value] : undefined}
-                  style={{ border: '1px solid var(--border)', borderRadius: 7 }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          )}
+          </header>
 
           {/* Основное содержимое */}
           {!showGrid && active ? (

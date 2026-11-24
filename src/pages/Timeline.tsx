@@ -253,69 +253,48 @@ export default function Timeline() {
           <Sidebar book={book} subtitle={`хронология · ${events.length}`}><></></Sidebar>
         )}
 
-        <main style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
-          <div className="tb" style={{ justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {isMobile && (
-                <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
-                  <Icon name="panel" size={16} />
+        <main className="workspace-main">
+          <header className="collection-header">
+            <div className="tb workspace-toolbar">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {isMobile && (
+                  <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
+                    <Icon name="panel" size={16} />
+                  </button>
+                )}
+                <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Хронология</span>
+              </div>
+              <div className="workspace-toolbar__actions">
+                {!isMobile && (
+                  <div className="workspace-toolbar__views" role="group" aria-label="Вид хронологии">
+                    <button
+                      onClick={() => switchView('list')}
+                      className="btn"
+                      aria-pressed={view === 'list'}
+                      title="Список"
+                    >
+                      <Icon name="list" size={14} />
+                      Список
+                    </button>
+                    <button
+                      onClick={() => switchView('lane')}
+                      className="btn"
+                      aria-pressed={view === 'lane'}
+                      title="Лента"
+                    >
+                      <Icon name="arrows" size={14} />
+                      Лента
+                    </button>
+                  </div>
+                )}
+                <button onClick={handleCreate} className="btn">
+                  <Icon name="plus" size={14} /> Событие
                 </button>
-              )}
-              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)' }}>Хронология</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              {!isMobile && (
-                <div
-                  style={{
-                    display: 'flex',
-                    border: '1px solid var(--border)',
-                    borderRadius: 7,
-                    overflow: 'hidden',
-                    marginRight: 4,
-                  }}
-                >
-                  <button
-                    onClick={() => switchView('list')}
-                    className="btn"
-                    aria-pressed={view === 'list'}
-                    style={{
-                      borderRadius: 0,
-                      border: 'none',
-                      gap: 5,
-                      background: view === 'list' ? 'var(--surface)' : 'transparent',
-                      color: view === 'list' ? 'var(--ink)' : 'var(--ink-3)',
-                    }}
-                    title="Список"
-                  >
-                    <Icon name="list" size={14} />
-                    Список
-                  </button>
-                  <button
-                    onClick={() => switchView('lane')}
-                    className="btn"
-                    aria-pressed={view === 'lane'}
-                    style={{
-                      borderRadius: 0,
-                      border: 'none',
-                      borderLeft: '1px solid var(--border-soft)',
-                      gap: 5,
-                      background: view === 'lane' ? 'var(--surface)' : 'transparent',
-                      color: view === 'lane' ? 'var(--ink)' : 'var(--ink-3)',
-                    }}
-                    title="Лента"
-                  >
-                    <Icon name="arrows" size={14} />
-                    Лента
-                  </button>
-                </div>
-              )}
-              <button onClick={handleCreate} className="btn">
-                <Icon name="plus" size={14} /> Событие
-              </button>
-            </div>
-          </div>
 
-          <TimelineFilters variant="inline" filter={filter} onFilter={setFilter} />
+            <TimelineFilters variant="inline" filter={filter} onFilter={setFilter} />
+          </header>
 
           {mutationError && (
             <ErrorBanner message={mutationError} onDismiss={clearError} style={{ margin: '8px 24px 0', flexShrink: 0 }} />

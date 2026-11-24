@@ -24,6 +24,7 @@ const LANE_ZONE_H = 120;
 const LANE_CONN_H = 18;
 const LANE_DOT_D = 12;
 const LANE_NODE_W = 168;
+const LANE_ROW_PADDING = 40;
 const LANE_NODE_H = LANE_ZONE_H * 2 + LANE_CONN_H * 2 + LANE_DOT_D;
 const LANE_AXIS_Y = LANE_ZONE_H + LANE_CONN_H + LANE_DOT_D / 2;
 const ROW_H = LANE_NODE_H + 54; // row label ~20px + connector gap ~34px
@@ -71,7 +72,9 @@ export function TimelineLane({
   const handleDragEnd = (e: DragEndEvent) => { setDraggingId(null); onDragEnd(e); };
   const handleDragCancel = () => setDraggingId(null);
 
-  const eventsPerRow = containerWidth > 0 ? Math.max(3, Math.floor((containerWidth - 80) / LANE_NODE_W)) : 0;
+  const eventsPerRow = containerWidth > 0
+    ? Math.max(1, Math.floor((containerWidth - 2 * LANE_ROW_PADDING) / LANE_NODE_W))
+    : 0;
   const rows = eventsPerRow > 0 ? chunkArray(events, eventsPerRow) : [];
 
   const rowVirtualizer = useVirtualizer({
@@ -133,7 +136,7 @@ export function TimelineLane({
                       left: 0,
                       right: 0,
                       transform: `translateY(${virtualRow.start}px)`,
-                      padding: '0 40px',
+                      paddingInline: LANE_ROW_PADDING,
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -181,33 +184,6 @@ export function TimelineLane({
                             onSelect={() => onSelect(ev.id)}
                           />
                         ))}
-                        {isLastRow && (
-                          <button
-                            onClick={onAdd}
-                            aria-label="Добавить событие"
-                            title="Добавить событие"
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: 34,
-                              height: 34,
-                              borderRadius: 999,
-                              background: 'var(--surface)',
-                              border: '1px dashed var(--border-strong)',
-                              color: 'var(--ink-3)',
-                              cursor: 'pointer',
-                              flexShrink: 0,
-                              marginLeft: 16,
-                              alignSelf: 'flex-start',
-                              position: 'relative',
-                              zIndex: 1,
-                              marginTop: LANE_AXIS_Y - 17,
-                            }}
-                          >
-                            <Icon name="plus" size={15} />
-                          </button>
-                        )}
                       </div>
                     </div>
 
@@ -245,6 +221,11 @@ export function TimelineLane({
           </DragOverlay>
         </DndContext>
       )}
+      <div style={{ padding: `0 ${LANE_ROW_PADDING}px 24px` }}>
+        <button type="button" className="btn" onClick={onAdd}>
+          <Icon name="plus" size={14} /> Добавить событие
+        </button>
+      </div>
     </div>
   );
 }
