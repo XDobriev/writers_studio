@@ -358,88 +358,39 @@ export default function Corkboard() {
         </Sidebar>}
 
         <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: 'var(--bg)' }}>
-          <div className="tb" style={{ justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '1 1 0', minWidth: 0, overflow: 'hidden' }}>
-              {isMobile && (
-                <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация" style={{ flexShrink: 0 }}>
-                  <Icon name="panel" size={16} />
-                </button>
-              )}
-              <span style={{ font: '500 13px var(--font-ui)', color: 'var(--ink)', whiteSpace: 'nowrap' }}>Доска глав</span>
-              {!isMobile && <span className="tb-sep" />}
-              {!isMobile && (
-                <div className="seg-track" role="radiogroup" aria-label="Фильтр глав">
-                  {filterItems.map(([key, label]) => {
-                    const isSelected = filter === key;
-                    const dotColor = key !== 'all' ? STATUS_COLOR[key] : null;
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        role="radio"
-                        aria-checked={isSelected}
-                        onClick={() => setFilter(key)}
-                        className={'seg-btn' + (isSelected ? ' seg-btn--active' : '')}
-                      >
-                        {dotColor && (
-                          <span
-                            aria-hidden="true"
-                            className="seg-btn-dot"
-                            style={{ background: dotColor }}
-                          />
-                        )}
-                        <span>{label}</span>
-                        <span className="seg-badge">{counts[key]}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              {!dragEnabled && !isMobile && (
-                <span style={{ font: '400 11px var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.04em' }}>
-                  перетаскивание доступно при фильтре «все»
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              <button className="btn" onClick={() => void onCreate()} aria-label="Новая глава">{isMobile ? <Icon name="plus" size={14} /> : <><Icon name="plus" size={14} /> Новая глава</>}</button>
-            </div>
-          </div>
-          {/* Фильтры на мобилке были скрыты совсем (!isMobile), без альтернативы.
-              Не сжимаем их в один ряд с заголовком (нет места под 4 кнопки+счётчики)
-              и не делаем горизонтально скроллящимися (нежелательно) — выносим в
-              отдельную полноширинную строку с flex-wrap, места достаточно без обрезки. */}
-          {isMobile && (
-            <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--border-soft)' }}>
-              <div className="seg-track" role="radiogroup" aria-label="Фильтр глав" style={{ display: 'flex', width: '100%' }}>
-                {filterItems.map(([key, label]) => {
-                  const isSelected = filter === key;
-                  const dotColor = key !== 'all' ? STATUS_COLOR[key] : null;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      role="radio"
-                      aria-checked={isSelected}
-                      onClick={() => setFilter(key)}
-                      className={'seg-btn' + (isSelected ? ' seg-btn--active' : '')}
-                      style={{ flex: '1 1 auto', justifyContent: 'center' }}
-                    >
-                      {dotColor && (
-                        <span
-                          aria-hidden="true"
-                          className="seg-btn-dot"
-                          style={{ background: dotColor }}
-                        />
-                      )}
-                      <span>{label}</span>
-                      <span className="seg-badge">{counts[key]}</span>
-                    </button>
-                  );
-                })}
+          <header className="collection-header">
+            <div className="tb collection-toolbar">
+              <div className="collection-toolbar__title">
+                {isMobile && (
+                  <button type="button" className="tb-btn" onClick={() => setSbOpen(true)} title="Навигация" aria-label="Навигация">
+                    <Icon name="panel" size={16} />
+                  </button>
+                )}
+                <span>Доска глав</span>
               </div>
+              <div className="collection-toolbar__filters chapter-filters" role="group" aria-label="Фильтр глав">
+                {filterItems.map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={filter === key}
+                    onClick={() => setFilter(key)}
+                    className={'tb-btn collection-filter' + (filter === key ? ' tb-btn--on' : '')}
+                  >
+                    <span>{label}</span>
+                    <span className="chapter-filters__count">{counts[key]}</span>
+                  </button>
+                ))}
+              </div>
+              <button className="btn collection-toolbar__action" onClick={() => void onCreate()} aria-label="Новая глава">
+                <Icon name="plus" size={14} />
+                {!isMobile && 'Новая глава'}
+              </button>
             </div>
-          )}
+            {!dragEnabled && !isMobile && (
+              <p className="collection-toolbar__hint">перетаскивание доступно при фильтре «все»</p>
+            )}
+          </header>
 
           {error && <ErrorBanner message={error} style={{ margin: '8px 24px 0', flexShrink: 0 }} />}
 
