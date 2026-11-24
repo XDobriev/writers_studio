@@ -1,4 +1,4 @@
-type IconName =
+export type IconName =
   | 'bold' | 'italic' | 'underline' | 'strike' | 'h1' | 'h2' | 'h3'
   | 'list' | 'olist' | 'align' | 'aligncenter' | 'alignright' | 'alignjustify'
   | 'quote' | 'link' | 'unlink' | 'highlight' | 'hr' | 'code' | 'codeblock'

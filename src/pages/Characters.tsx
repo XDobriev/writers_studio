@@ -8,6 +8,7 @@ import { useResponsive } from '../lib/useResponsive';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { Icon } from '../components/Icon';
+import { SectionEmptyState } from '../components/SectionEmptyState';
 import { Sidebar, WithMode } from '../components/Chrome';
 import { MobileSidebarDrawer } from '../components/MobileSidebarDrawer';
 import { CharacterFieldCard } from '../components/CharacterFieldCard';
@@ -597,13 +598,15 @@ function CharacterGrid({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
+  const hasItems = characters.length > 0;
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width));
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [hasItems]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -614,7 +617,7 @@ function CharacterGrid({
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [hasMore, onLoadMore]);
+  }, [hasItems, hasMore, onLoadMore]);
 
   // characters[] + один слот для AddCard
   const allItems: (Character | null)[] = emptyAll || characters.length === 0
@@ -636,31 +639,23 @@ function CharacterGrid({
 
   if (emptyAll) {
     return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: '48px 24px' }}>
-        <div style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'var(--surface)', color: 'var(--ink-4)', border: '1px solid var(--border-soft)' }}>
-          <Icon name="char" size={22} />
-        </div>
-        <div style={{ textAlign: 'center', maxWidth: 260 }}>
-          <div style={{ font: '500 14px var(--font-ui)', color: 'var(--ink-2)', marginBottom: 6 }}>Картотека пуста</div>
-          <div style={{ font: '400 12px var(--font-ui)', color: 'var(--ink-3)', lineHeight: 1.6 }}>Добавляйте персонажей, описывайте их внешность, характер и связи между ними</div>
-        </div>
+      <SectionEmptyState
+        icon="char"
+        title="Картотека пуста"
+        description="Добавляйте персонажей, описывайте их внешность, характер и связи между ними"
+      >
         <button onClick={onCreate} className="btn btn--primary"><Icon name="plus" size={13} /> Создать персонажа</button>
-      </div>
+      </SectionEmptyState>
     );
   }
 
   if (characters.length === 0) {
     return (
-      <div ref={containerRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `20px ${CHAR_GRID_PADDING}px 28px` }}>
-        <div style={{ paddingTop: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-          <div style={{ font: '400 13px var(--font-ui)', color: 'var(--ink-3)' }}>Ничего не найдено</div>
-          {onClearFilter && (
-            <button className="btn btn--ghost" style={{ fontSize: 12 }} onClick={onClearFilter}>
-              Сбросить фильтры
-            </button>
-          )}
-        </div>
-      </div>
+      <SectionEmptyState title="Ничего не найдено">
+        {onClearFilter && (
+          <button className="btn btn--ghost" onClick={onClearFilter}>Сбросить фильтры</button>
+        )}
+      </SectionEmptyState>
     );
   }
 
