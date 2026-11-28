@@ -55,7 +55,6 @@ const Dictionary     = lazy(() => import('./pages/Dictionary'));
 const Profile        = lazy(() => import('./pages/Profile'));
 const NotFound       = lazy(() => import('./pages/NotFound'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
-const RecurringCheck = lazy(() => import('./pages/RecurringCheck'));
 
 function PageFallback() {
   return (
@@ -127,7 +126,6 @@ function AnimatedRoutes() {
         <Route path="/changelog" element={<PageMotion><Changelog /></PageMotion>} />
         <Route path="/offer" element={<PageMotion><Offer /></PageMotion>} />
         <Route path="/payment-success" element={<PageMotion><Guard><PaymentSuccess /></Guard></PageMotion>} />
-        <Route path="/recurring-check" element={<Guard><RecurringCheck /></Guard>} />
         <Route path="/dictionary" element={<PageMotion><Guard><Dictionary /></Guard></PageMotion>} />
         <Route path="/profile" element={<PageMotion><Guard><Profile /></Guard></PageMotion>} />
         <Route path="*" element={<PageMotion><NotFound /></PageMotion>} />
