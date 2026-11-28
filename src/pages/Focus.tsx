@@ -46,6 +46,10 @@ export default function Focus() {
     [chapters, activeId],
   );
   const chapterRanks = useMemo(() => computeChapterRanks(chapters ?? []), [chapters]);
+  const totalBookWords = useMemo(
+    () => (chapters ? chapters.reduce((sum, c) => sum + (c.words ?? 0), 0) : (book?.words ?? 0)),
+    [chapters, book?.words],
+  );
 
   const error = (bookError ?? chaptersError)?.message ?? null;
 
@@ -165,15 +169,15 @@ export default function Focus() {
         <span style={{ flex: 1 }} />
         {book.goal > 0 ? (
           <>
-            <span>{activeChapter.words.toLocaleString('ru-RU')} / {book.goal.toLocaleString('ru-RU')} в книге</span>
+            <span>{activeChapter.words.toLocaleString('ru-RU')} {plural(activeChapter.words, 'слово', 'слова', 'слов')} в главе</span>
             <svg className="focus-foot__bar" width="120" height="6" viewBox="0 0 120 6">
               <rect x="0" y="2" width="120" height="2" fill="var(--surface-2)" />
-              <rect x="0" y="2" width={Math.min(120, (book.words / book.goal) * 120)} height="2" fill="var(--accent)" />
+              <rect x="0" y="2" width={Math.min(120, (totalBookWords / book.goal) * 120)} height="2" fill="var(--accent)" />
             </svg>
-            <span style={{ color: 'var(--accent)' }}>{book.words.toLocaleString('ru-RU')}/{book.goal.toLocaleString('ru-RU')}</span>
+            <span style={{ color: 'var(--accent)' }}>{totalBookWords.toLocaleString('ru-RU')}/{book.goal.toLocaleString('ru-RU')}</span>
           </>
         ) : (
-          <span>{book.words.toLocaleString('ru-RU')} {plural(book.words, 'слово', 'слова', 'слов')} в книге</span>
+          <span>{totalBookWords.toLocaleString('ru-RU')} {plural(totalBookWords, 'слово', 'слова', 'слов')} в книге</span>
         )}
       </div>
     </div>

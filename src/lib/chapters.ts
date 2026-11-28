@@ -20,15 +20,96 @@ export interface ChapterActions {
   onChapterHover?: (id: string) => void;
 }
 
+export const READING_WPM = 200;
+
+const BLOCK_TAG_RE = /<\/?(?:p|div|h[1-6]|li|ul|ol|blockquote|br|hr|td|th|tr|table|thead|tbody|tfoot|pre|img|section|article|header|footer|aside|figure|figcaption|dt|dd|dl)(?:\s[^>]*)?\/?>/gi;
+const INVISIBLE_CHARS_RE = /[\u00AD\u200B\u200C\u200D\uFEFF]/g;
+const HTML_ENTITY_RE = /&(?:#x([0-9a-f]+)|#(\d+)|([a-z][a-z0-9]*));/gi;
+
+const NAMED_ENTITIES: Record<string, string> = {
+  nbsp: ' ',
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  shy: '',
+  zerowidthspace: '',
+  zwnj: '',
+  zwj: '',
+  nbhy: '\u2011',
+  mdash: '—',
+  ndash: '–',
+  minus: '−',
+  hellip: '…',
+  laquo: '«',
+  raquo: '»',
+  ldquo: '“',
+  rdquo: '”',
+  lsquo: '‘',
+  rsquo: '’',
+  bdquo: '„',
+  copy: '©',
+  reg: '®',
+  trade: '™',
+  thinsp: ' ',
+  ensp: ' ',
+  emsp: ' ',
+  // Часто встречающиеся латинские буквы с диакритикой в импортированном HTML
+  aacute: 'á', agrave: 'à', acirc: 'â', atilde: 'ã', auml: 'ä', aring: 'å', aelig: 'æ',
+  ccedil: 'ç',
+  eacute: 'é', egrave: 'è', ecirc: 'ê', euml: 'ë',
+  iacute: 'í', igrave: 'ì', icirc: 'î', iuml: 'ï',
+  ntilde: 'ñ',
+  oacute: 'ó', ograve: 'ò', ocirc: 'ô', otilde: 'õ', ouml: 'ö', oslash: 'ø', oelig: 'œ',
+  uacute: 'ú', ugrave: 'ù', ucirc: 'û', uuml: 'ü',
+  yacute: 'ý', yuml: 'ÿ',
+  szlig: 'ß',
+};
+
+function decodeHtmlEntity(match: string, hex?: string, dec?: string, named?: string): string {
+  if (hex) {
+    const code = parseInt(hex, 16);
+    if (code === 0x00AD || code === 0x200B || code === 0x200C || code === 0x200D || code === 0xFEFF) return '';
+    return Number.isFinite(code) && code >= 0 && code <= 0x10FFFF ? String.fromCodePoint(code) : ' ';
+  }
+  if (dec) {
+    const code = parseInt(dec, 10);
+    if (code === 173 || code === 8203 || code === 8204 || code === 8205 || code === 65279) return '';
+    return Number.isFinite(code) && code >= 0 && code <= 0x10FFFF ? String.fromCodePoint(code) : ' ';
+  }
+  if (named) {
+    const lower = named.toLowerCase();
+    if (lower in NAMED_ENTITIES) return NAMED_ENTITIES[lower];
+    return ' ';
+  }
+  return match;
+}
+
 export function countWords(html: string): number {
   if (!html) return 0;
   const text = html
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&[a-z0-9#]+;/gi, ' ');
-  const matches = text.match(/[\p{L}\p{N}][\p{L}\p{N}'\-]*/gu);
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(BLOCK_TAG_RE, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(HTML_ENTITY_RE, decodeHtmlEntity)
+    .replace(INVISIBLE_CHARS_RE, '');
+  const matches = text.match(/[\p{L}\p{N}][\p{L}\p{M}\p{N}]*(?:['’\-\u2011][\p{L}\p{N}][\p{L}\p{M}\p{N}]*)*/gu);
   return matches ? matches.length : 0;
+}
+
+export function countChars(html: string): number {
+  if (!html) return 0;
+  const text = html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(HTML_ENTITY_RE, decodeHtmlEntity)
+    .replace(INVISIBLE_CHARS_RE, '');
+  return text.length;
 }
 
 // Полный список с контентом — только для экспорта/focus/split

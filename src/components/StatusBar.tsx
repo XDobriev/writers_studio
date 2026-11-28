@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { pluralDays, plural } from '../lib/i18n';
+import { READING_WPM } from '../lib/chapters';
 import { useResponsive } from '../lib/useResponsive';
 import { useDropdownPosition } from '../lib/useDropdownPosition';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
@@ -100,7 +101,7 @@ export function StatusBar({ words = 0, chars = 0, savedAt = '', statusLabel, sav
           <span style={{ color: 'var(--ink-4)' }}>·</span>
           <span>Знаков: {chars.toLocaleString('ru')}</span>
           <span style={{ color: 'var(--ink-4)' }}>·</span>
-          <span>{words < 220 ? '< 1 мин чтения' : `~${Math.round(words / 220)} мин чтения`}</span>
+          <span>{words < READING_WPM ? '< 1 мин чтения' : `~${Math.round(words / READING_WPM)} мин чтения`}</span>
         </>
       )}
       <span style={{ flex: 1 }} />

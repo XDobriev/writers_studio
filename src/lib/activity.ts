@@ -5,6 +5,7 @@ export const HEATMAP_WEEKS = 52;
 export interface ActivitySnapshot {
   date: string;
   words: number;
+  written_words?: number | null;
 }
 
 interface ActivityCell {
@@ -35,8 +36,8 @@ export function computeActivityData(
   today: Date = new Date(),
   startWords = 0,
 ): ActivityData {
-  const snap: Record<string, number> = {};
-  for (const row of snapshots) snap[row.date] = row.words;
+  const snap: Record<string, ActivitySnapshot> = {};
+  for (const row of snapshots) snap[row.date] = row;
 
   const todayStr = toLocalISODate(today);
 
@@ -46,15 +47,13 @@ export function computeActivityData(
   const startDate = new Date(today);
   startDate.setDate(today.getDate() - daysFromMon - (HEATMAP_WEEKS - 1) * 7);
 
-  // Снапшоты разрежённые (пишутся только когда меняется объём), поэтому дельту дня
-  // нельзя считать как snap[день] - snap[день-1] — при разрыве в снимках (гарантированно
-  // бывает: неделями без правок) вся накопленная за паузу разница ушла бы в один день.
-  // Вместо этого ведём "последний известный кумулятив" вперёд по времени и берём дельту
-  // относительно него — как cumulativeAsOf в useWritingStats.ts, но за один проход.
+  // Для новых снапшотов (written_words !== null) берём точный дневной прогресс
+  // по документам из writing_daily_progress. Для исторических строк до миграции
+  // (written_words IS NULL) сохраняем fallback на разницу кумулятивных снапшотов.
   const startDateStr = toLocalISODate(startDate);
   const beforeWindow = Object.keys(snap).filter(d => d < startDateStr).sort();
   // Нет снапшотов до окна — база = объём, с которого книга началась (импорт рукописи), иначе 0.
-  let cumulativeBaseline = beforeWindow.length ? snap[beforeWindow[beforeWindow.length - 1]] : startWords;
+  let cumulativeBaseline = beforeWindow.length ? snap[beforeWindow[beforeWindow.length - 1]].words : startWords;
 
   const cells: ActivityCell[] = [];
   for (let i = 0; i < HEATMAP_WEEKS * 7; i++) {
@@ -63,9 +62,12 @@ export function computeActivityData(
     const ds = toLocalISODate(d);
     const future = ds > todayStr;
     let delta = 0;
-    if (!future && snap[ds] !== undefined) {
-      delta = Math.max(0, snap[ds] - cumulativeBaseline);
-      cumulativeBaseline = snap[ds];
+    const row = snap[ds];
+    if (!future && row !== undefined) {
+      delta = row.written_words !== null && row.written_words !== undefined
+        ? Math.max(0, row.written_words)
+        : Math.max(0, row.words - cumulativeBaseline);
+      cumulativeBaseline = row.words;
     }
     cells.push({ date: ds, delta, future, weekIdx: Math.floor(i / 7) });
   }
@@ -116,7 +118,7 @@ export function computeActivityData(
     if (weekPastCells.length === 0) continue;
     for (const c of weekPastCells) {
       if (snap[c.date] !== undefined) {
-        lastKnownWords = snap[c.date];
+        lastKnownWords = snap[c.date].words;
         hasCumData = true;
       }
     }

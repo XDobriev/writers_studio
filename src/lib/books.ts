@@ -298,7 +298,27 @@ export async function deleteBook(id: string): Promise<void> {
   }
 }
 
-export type WritingSnapshot = Pick<Tables<'writing_snapshots'>, 'date' | 'words'>;
+export type WritingSnapshot = Pick<Tables<'writing_snapshots'>, 'date' | 'words' | 'written_words'>;
+
+export type WritingProgressDocKind = 'chapter' | 'draft';
+
+export async function recordWritingProgress(params: {
+  bookId: string;
+  date: string;
+  docKind: WritingProgressDocKind;
+  docId: string;
+  delta: number;
+}): Promise<number> {
+  const { data, error } = await supabase.rpc('record_writing_progress', {
+    p_book_id: params.bookId,
+    p_date: params.date,
+    p_doc_kind: params.docKind,
+    p_doc_id: params.docId,
+    p_delta: params.delta,
+  });
+  if (error) throw error;
+  return typeof data === 'number' ? data : 0;
+}
 
 // Плюс последний снапшот до окна: снапшоты разрежённые, без него база первой клетки = 0
 // и у книги старше окна весь объём падает в один день.
@@ -306,13 +326,13 @@ export async function listWritingSnapshots(bookId: string, fromDate: string): Pr
   const [inWindow, before] = await Promise.all([
     supabase
       .from('writing_snapshots')
-      .select('date, words')
+      .select('date, words, written_words')
       .eq('book_id', bookId)
       .gte('date', fromDate)
       .order('date', { ascending: true }),
     supabase
       .from('writing_snapshots')
-      .select('date, words')
+      .select('date, words, written_words')
       .eq('book_id', bookId)
       .lt('date', fromDate)
       .order('date', { ascending: false })

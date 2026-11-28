@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from './supabase';
+import { supabase, type Book } from './supabase';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
+import { recordWritingProgress } from './books';
+import { todayLocalISODate } from './dates';
 import {
   countWords,
   getChapterState,
@@ -53,6 +55,7 @@ export function useChapterAutosave({
   const inFlightRef = useRef<{ id: string; patch: ChapterPatch } | null>(null);
   const loopRef = useRef<Promise<void> | null>(null);
   const baseRef = useRef(new Map<string, string>());
+  const confirmedWordsRef = useRef(new Map<string, number>());
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const failuresRef = useRef(0);
@@ -61,6 +64,7 @@ export function useChapterAutosave({
 
   const pendingDraftRef = useRef(new Map<string, DraftScenePatch>());
   const inFlightDraftRef = useRef<{ id: string; patch: DraftScenePatch } | null>(null);
+  const confirmedDraftWordsRef = useRef(new Map<string, number>());
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftLoopRef = useRef<Promise<void> | null>(null);
   const draftFailuresRef = useRef(0);
@@ -109,7 +113,7 @@ export function useChapterAutosave({
   }, [persistDraft]);
 
   const mergeMetaFromServer = useCallback((meta: ChapterMeta) => {
-    const b = ctxRef.current.bookId;
+    const b = meta.book_id || ctxRef.current.bookId;
     if (!b) return;
     const waiting = pendingRef.current.get(meta.id) ?? {};
     const safe: Partial<ChapterMeta> = { ...meta };
@@ -121,8 +125,8 @@ export function useChapterAutosave({
     );
   }, [queryClient]);
 
-  const runBacklinks = useCallback(async (id: string, content: string) => {
-    const b = ctxRef.current.bookId;
+  const runBacklinks = useCallback(async (id: string, content: string, bookIdOverride?: string) => {
+    const b = bookIdOverride || ctxRef.current.bookId;
     if (!b) return;
     const characters = await queryClient.fetchQuery({
       queryKey: QUERY_KEYS.matchableCharacters(b),
@@ -156,6 +160,25 @@ export function useChapterAutosave({
     return updateChapterMeta(id, patch);
   }, [persistDraft, queryClient]);
 
+  const syncBookWordsCache = useCallback((b: string) => {
+    const chaptersList = queryClient.getQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(b));
+    if (chaptersList) {
+      const totalWords = chaptersList.reduce((sum, c) => sum + (c.words ?? 0), 0);
+      queryClient.setQueryData<Book>(QUERY_KEYS.book(b), (prev) =>
+        prev ? { ...prev, words: totalWords } : prev,
+      );
+      const uId = ctxRef.current.userId;
+      if (uId) {
+        queryClient.setQueryData<Book[]>(QUERY_KEYS.books(uId), (prev) =>
+          prev ? prev.map((bk) => (bk.id === b ? { ...bk, words: totalWords } : bk)) : prev,
+        );
+      }
+    } else {
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(b) });
+      void queryClient.invalidateQueries({ queryKey: ['books'] });
+    }
+  }, [queryClient]);
+
   const sendOne = useCallback(async (id: string, patch: ChapterPatch) => {
     const guarded = patch.content !== undefined;
     let meta = await updateChapterMeta(id, patch, guarded ? baseOf(id) : undefined);
@@ -163,13 +186,37 @@ export function useChapterAutosave({
     if (!meta) return;
     baseRef.current.set(id, meta.updated_at);
     mergeMetaFromServer(meta);
+    const b = meta.book_id || ctxRef.current.bookId;
+    if (patch.content !== undefined || patch.words !== undefined) {
+      const prevWords = confirmedWordsRef.current.get(id) ?? meta.words;
+      const delta = meta.words - prevWords;
+      if (delta !== 0 && b) {
+        try {
+          await recordWritingProgress({
+            bookId: b,
+            date: todayLocalISODate(),
+            docKind: 'chapter',
+            docId: id,
+            delta,
+          });
+          confirmedWordsRef.current.set(id, meta.words);
+          void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.writingSnapshots(b) });
+        } catch {
+          // Статистика некритична для сохранности текста; confirmedWordsRef остаётся
+          // на прежнем уровне, чтобы следующее сохранение догнало дельту.
+        }
+      } else {
+        confirmedWordsRef.current.set(id, meta.words);
+      }
+      if (b) syncBookWordsCache(b);
+    }
     if (patch.content !== undefined) {
       const newer = pendingRef.current.get(id)?.content;
       if (newer === undefined) clearDraft(id);
       else writeDraft(id, newer, meta.updated_at);
-      void runBacklinks(id, patch.content).catch(() => { /* бэклинки некритичны */ });
+      void runBacklinks(id, patch.content, b).catch(() => { /* бэклинки некритичны */ });
     }
-  }, [baseOf, mergeMetaFromServer, resolveConflict, runBacklinks]);
+  }, [baseOf, mergeMetaFromServer, queryClient, resolveConflict, runBacklinks, syncBookWordsCache]);
 
   const drain = useCallback(async () => {
     while (pendingRef.current.size > 0) {
@@ -221,6 +268,14 @@ export function useChapterAutosave({
 
   const schedule = useCallback((id: string, patch: ChapterPatch) => {
     const b = ctxRef.current.bookId;
+    if ((patch.content !== undefined || patch.words !== undefined) && !confirmedWordsRef.current.has(id)) {
+      // Если контент главы уже в кэше, считаем базу актуальным countWords по исходному HTML:
+      // старые главы в БД могли быть посчитаны багованным countWords (мягкие переносы, инлайн-теги,
+      // склейка при импорте) — так первая правка не даст ложного скачка или отрицательной дельты.
+      const cachedContent = queryClient.getQueryData<{ id: string; content: string }>(QUERY_KEYS.chapterContent(id));
+      const currentWords = cachedContent ? countWords(cachedContent.content) : metaOf(id)?.words;
+      if (currentWords !== undefined) confirmedWordsRef.current.set(id, currentWords);
+    }
     if (b) {
       const { content: _c, ...metaPatch } = patch;
       if (Object.keys(metaPatch).length > 0) {
@@ -251,23 +306,31 @@ export function useChapterAutosave({
     schedule(id, { content: html, words: countWords(html) });
   }, [schedule]);
 
-  // Перед восстановлением версии: выбросить незаписанный текст главы и дождаться
-  // запроса в полёте — иначе он долетит после restore и перезапишет версию.
-  const discard = useCallback(async (id: string) => {
+  // Перед восстановлением версии или удалением главы: выбросить незаписанный патч
+  // и дождаться запроса в полёте — иначе он долетит после restore/delete.
+  const discard = useCallback(async (id: string, discardAll = false) => {
     const p = pendingRef.current.get(id);
     if (p) {
-      const { content: _c, words: _w, ...rest } = p;
-      if (Object.keys(rest).length > 0) pendingRef.current.set(id, rest);
-      else pendingRef.current.delete(id);
+      if (discardAll) {
+        pendingRef.current.delete(id);
+      } else {
+        const { content: _c, words: _w, ...rest } = p;
+        if (Object.keys(rest).length > 0) pendingRef.current.set(id, rest);
+        else pendingRef.current.delete(id);
+      }
     }
     if (loopRef.current) await loopRef.current.catch(() => {});
     clearDraft(id);
     baseRef.current.delete(id);
+    confirmedWordsRef.current.delete(id);
   }, []);
 
-  // Глава записана мимо очереди (восстановление версии): новая точка отсчёта для блокировки.
-  const rebase = useCallback((id: string, updatedAt: string) => {
+  // Глава записана мимо очереди (восстановление версии, вставка черновика):
+  // новая точка отсчёта для блокировки и для дельты слов.
+  const rebase = useCallback((id: string, updatedAt: string, words?: number) => {
     baseRef.current.set(id, updatedAt);
+    if (words !== undefined) confirmedWordsRef.current.set(id, words);
+    else confirmedWordsRef.current.delete(id);
   }, []);
 
   const hasUnsaved = useCallback(
@@ -284,11 +347,38 @@ export function useChapterAutosave({
       if (mountedRef.current) setDraftSaveState('saving');
       try {
         const updated = await updateDraftScene(id, patch);
-        const b = ctxRef.current.bookId;
+        const b = updated.book_id || ctxRef.current.bookId;
         if (b) {
+          const waiting = pendingDraftRef.current.get(id) ?? {};
+          const safe: Partial<DraftScene> = { ...updated };
+          for (const key of Object.keys(waiting) as (keyof DraftScenePatch)[]) {
+            delete safe[key];
+          }
           queryClient.setQueryData<DraftScene[]>(QUERY_KEYS.draftScenes(b), (prev) =>
-            prev ? prev.map((d) => (d.id === id ? updated : d)) : prev,
+            prev ? prev.map((d) => (d.id === id ? { ...d, ...safe } : d)) : prev,
           );
+        }
+        if (patch.content !== undefined || patch.words !== undefined) {
+          const newWords = updated.words ?? patch.words ?? (patch.content !== undefined ? countWords(patch.content) : 0);
+          const prevWords = confirmedDraftWordsRef.current.get(id) ?? newWords;
+          const delta = newWords - prevWords;
+          if (delta !== 0 && b) {
+            try {
+              await recordWritingProgress({
+                bookId: b,
+                date: todayLocalISODate(),
+                docKind: 'draft',
+                docId: id,
+                delta,
+              });
+              confirmedDraftWordsRef.current.set(id, newWords);
+              void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.writingSnapshots(b) });
+            } catch {
+              // Статистика некритична для сохранности черновика; следующая запись догонит дельту.
+            }
+          } else {
+            confirmedDraftWordsRef.current.set(id, newWords);
+          }
         }
         draftFailuresRef.current = 0;
       } catch (e) {
@@ -329,6 +419,13 @@ export function useChapterAutosave({
 
   const scheduleDraft = useCallback((id: string, patch: DraftScenePatch) => {
     const b = ctxRef.current.bookId;
+    if (b && (patch.content !== undefined || patch.words !== undefined) && !confirmedDraftWordsRef.current.has(id)) {
+      const existing = queryClient.getQueryData<DraftScene[]>(QUERY_KEYS.draftScenes(b))?.find((d) => d.id === id);
+      if (existing) {
+        const currentWords = typeof existing.content === 'string' ? countWords(existing.content) : existing.words;
+        confirmedDraftWordsRef.current.set(id, currentWords);
+      }
+    }
     if (b) {
       queryClient.setQueryData<DraftScene[]>(QUERY_KEYS.draftScenes(b), (prev) =>
         prev ? prev.map((d) => (d.id === id ? { ...d, ...patch } : d)) : prev,
@@ -346,6 +443,7 @@ export function useChapterAutosave({
   const cancelDraft = useCallback((id?: string) => {
     if (id !== undefined) {
       pendingDraftRef.current.delete(id);
+      confirmedDraftWordsRef.current.delete(id);
       if (pendingDraftRef.current.size === 0 && draftTimerRef.current) {
         clearTimeout(draftTimerRef.current);
         draftTimerRef.current = null;
@@ -354,6 +452,7 @@ export function useChapterAutosave({
     }
     if (draftTimerRef.current) { clearTimeout(draftTimerRef.current); draftTimerRef.current = null; }
     pendingDraftRef.current.clear();
+    confirmedDraftWordsRef.current.clear();
   }, []);
 
   const hasUnsavedDraft = useCallback(
@@ -429,15 +528,83 @@ export function useChapterAutosave({
       e.preventDefault();
       e.returnValue = '';
     };
+    // Отправляем неподтверждённую дельту слов только на pagehide (реальный уход/перезагрузка,
+    // никогда при отмене диалога beforeunload) — исключает и потерю прогресса, и двойной учёт.
+    const onPageHide = () => {
+      const token = tokenRef.current;
+      if (!token) return;
+      const latestChapters = new Map<string, ChapterPatch>();
+      if (inFlightRef.current) latestChapters.set(inFlightRef.current.id, inFlightRef.current.patch);
+      for (const [id, patch] of pendingRef.current) {
+        latestChapters.set(id, { ...(latestChapters.get(id) ?? {}), ...patch });
+      }
+      const latestDrafts = new Map<string, DraftScenePatch>();
+      if (inFlightDraftRef.current) latestDrafts.set(inFlightDraftRef.current.id, inFlightDraftRef.current.patch);
+      for (const [id, patch] of pendingDraftRef.current) {
+        latestDrafts.set(id, { ...(latestDrafts.get(id) ?? {}), ...patch });
+      }
+      if (latestChapters.size === 0 && latestDrafts.size === 0) return;
+
+      const date = todayLocalISODate();
+      const sendProgressKeepalive = (bookIdForDoc: string, docKind: 'chapter' | 'draft', docId: string, delta: number) => {
+        void fetch(`${SUPABASE_URL}/rest/v1/rpc/record_writing_progress`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${token}`,
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({
+            p_book_id: bookIdForDoc,
+            p_date: date,
+            p_doc_kind: docKind,
+            p_doc_id: docId,
+            p_delta: delta,
+          }),
+          keepalive: true,
+        }).catch(() => {});
+      };
+
+      for (const [id, patch] of latestChapters) {
+        if (patch.content === undefined && patch.words === undefined) continue;
+        const targetWords = patch.words ?? countWords(patch.content ?? '');
+        const prevWords = confirmedWordsRef.current.get(id);
+        const b = metaOf(id)?.book_id || ctxRef.current.bookId;
+        if (prevWords === undefined || !b) continue;
+        const delta = targetWords - prevWords;
+        if (delta === 0) continue;
+        confirmedWordsRef.current.set(id, targetWords);
+        sendProgressKeepalive(b, 'chapter', id, delta);
+      }
+
+      const fallbackBookId = ctxRef.current.bookId;
+      const cachedDrafts = fallbackBookId
+        ? queryClient.getQueryData<DraftScene[]>(QUERY_KEYS.draftScenes(fallbackBookId))
+        : undefined;
+      for (const [id, patch] of latestDrafts) {
+        if (patch.content === undefined && patch.words === undefined) continue;
+        const targetWords = patch.words ?? countWords(patch.content ?? '');
+        const prevWords = confirmedDraftWordsRef.current.get(id);
+        const b = cachedDrafts?.find((d) => d.id === id)?.book_id || fallbackBookId;
+        if (prevWords === undefined || !b) continue;
+        const delta = targetWords - prevWords;
+        if (delta === 0) continue;
+        confirmedDraftWordsRef.current.set(id, targetWords);
+        sendProgressKeepalive(b, 'draft', id, delta);
+      }
+    };
     window.addEventListener('online', onOnline);
     document.addEventListener('visibilitychange', onHidden);
     window.addEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener('pagehide', onPageHide);
     return () => {
       window.removeEventListener('online', onOnline);
       document.removeEventListener('visibilitychange', onHidden);
       window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('pagehide', onPageHide);
     };
-  }, [flush, flushDraft, persistDraft, baseOf]);
+  }, [flush, flushDraft, persistDraft, baseOf, metaOf, queryClient]);
 
   useEffect(() => {
     mountedRef.current = true;

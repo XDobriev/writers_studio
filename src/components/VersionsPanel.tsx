@@ -16,7 +16,7 @@ interface VersionsPanelProps {
   isPro: boolean;
   onRestoreContent?: (content: string) => void;
   onBeforeRestore?: () => void | Promise<void>;
-  onRebase?: (chapterId: string, updatedAt: string) => void;
+  onRebase?: (chapterId: string, updatedAt: string, words?: number) => void;
 }
 
 export function VersionsPanel({ chapterId, chapterTitle, bookId, userId, currentContent, isPro, onRestoreContent, onBeforeRestore, onRebase }: VersionsPanelProps) {

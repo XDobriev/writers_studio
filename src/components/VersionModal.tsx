@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { overlayVariants, modalPanelVariants } from '../lib/motion';
 import { getVersionContent, createVersion, type ChapterVersionMeta } from '../lib/versions';
-import { updateChapter, countWords } from '../lib/chapters';
+import { updateChapter, countWords, type ChapterMeta } from '../lib/chapters';
 import { ConfirmDialog } from './ConfirmDialog';
 import { QUERY_KEYS } from '../lib/queries';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
@@ -80,7 +80,7 @@ interface VersionModalProps {
   userId: string;
   currentContent: string;
   onBeforeRestore?: () => void | Promise<void>;
-  onRebase?: (chapterId: string, updatedAt: string) => void;
+  onRebase?: (chapterId: string, updatedAt: string, words?: number) => void;
   onClose: () => void;
   onRestored: (content: string) => void;
 }
@@ -130,6 +130,7 @@ export function VersionModal({
     setLoading(true);
     setContent(null);
     setLoadError(null);
+    setRestoreError(null);
     getVersionContent(version.id)
       .then((res) => {
         if (active) setContent(res);
@@ -160,6 +161,7 @@ export function VersionModal({
       return;
     }
     setRestoring(true);
+    setRestoreError(null);
     try {
       // Отменяем незаписанный автосейв редактора и ждём запрос в полёте ДО записи:
       // иначе он долетит после restore и затрёт восстановленную версию.
@@ -168,18 +170,27 @@ export function VersionModal({
       // Снимок текущего контента как точка отмены
       await createVersion(chapterId, userId, currentContent, countWords(currentContent), 'manual');
       const restored = await updateChapter(chapterId, { content, words: countWords(content) });
-      onRebase?.(chapterId, restored.updated_at);
+      onRebase?.(chapterId, restored.updated_at, restored.words);
       queryClient.setQueryData<{ id: string; content: string }>(
         QUERY_KEYS.chapterContent(chapterId),
         { id: chapterId, content },
       );
+      queryClient.setQueryData<ChapterMeta[]>(QUERY_KEYS.chapters(bookId), (prev) =>
+        prev
+          ? prev.map((c) => (c.id === chapterId ? { ...c, words: restored.words, updated_at: restored.updated_at } : c))
+          : prev,
+      );
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapterVersions(chapterId) });
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chapters(bookId) });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
+      void queryClient.invalidateQueries({ queryKey: ['books'] });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.writingSnapshots(bookId) });
       onRestored(content);
       onClose();
     } catch (e) {
-      setRestoring(false);
       setRestoreError(e instanceof Error ? e.message : 'Не удалось восстановить версию');
+    } finally {
+      setRestoring(false);
     }
   }
 
