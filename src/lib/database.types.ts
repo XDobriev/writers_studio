@@ -1137,6 +1137,44 @@ export type Database = {
         }
         Relationships: []
       }
+      writing_daily_progress: {
+        Row: {
+          book_id: string
+          date: string
+          doc_id: string
+          doc_kind: string
+          net_delta: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          date: string
+          doc_id: string
+          doc_kind: string
+          net_delta?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          date?: string
+          doc_id?: string
+          doc_kind?: string
+          net_delta?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "writing_daily_progress_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       writing_snapshots: {
         Row: {
           book_id: string
@@ -1145,6 +1183,7 @@ export type Database = {
           id: string
           user_id: string
           words: number
+          written_words: number | null
         }
         Insert: {
           book_id: string
@@ -1153,6 +1192,7 @@ export type Database = {
           id?: string
           user_id: string
           words: number
+          written_words?: number | null
         }
         Update: {
           book_id?: string
@@ -1161,6 +1201,7 @@ export type Database = {
           id?: string
           user_id?: string
           words?: number
+          written_words?: number | null
         }
         Relationships: [
           {
@@ -1330,6 +1371,16 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_paid: { Args: { p_user_id: string }; Returns: boolean }
+      record_writing_progress: {
+        Args: {
+          p_book_id: string
+          p_date: string
+          p_delta: number
+          p_doc_id: string
+          p_doc_kind: string
+        }
+        Returns: number
+      }
       release_billing_failure_notice: {
         Args: { p_expiry: string; p_user_id: string }
         Returns: undefined

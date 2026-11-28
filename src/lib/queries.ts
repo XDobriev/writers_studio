@@ -133,7 +133,7 @@ export function useWritingSnapshots(bookId: string | undefined) {
   return useQuery(makeQuery(
     bookId ? QUERY_KEYS.writingSnapshots(bookId) : ['writing-snapshots', null],
     () => listWritingSnapshots(bookId!, getSnapshotsFrom()),
-    5 * 60_000,
+    60_000,
   ));
 }
 

@@ -44,7 +44,7 @@ export interface UseOutlineMutationsOptions {
   navigate?: NavigateFunction;
   setError?: (msg: string) => void;
   onCancelDraftSave?: (id: string) => void;
-  onRebaseChapter?: (chapterId: string, updatedAt: string) => void;
+  onRebaseChapter?: (chapterId: string, updatedAt: string, words?: number) => void;
 }
 
 export function useOutlineMutations({
@@ -87,6 +87,9 @@ export function useOutlineMutations({
     deleteChapterWithCache(queryClient, bookId, id);
     try {
       await deleteChapter(id);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
+      void queryClient.invalidateQueries({ queryKey: ['books'] });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.writingSnapshots(bookId) });
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
@@ -215,6 +218,9 @@ export function useOutlineMutations({
         QUERY_KEYS.draftScenes(bookId),
         (prev) => (prev ? prev.filter((d) => d.id !== sceneId) : prev),
       );
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
+      void queryClient.invalidateQueries({ queryKey: ['books'] });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.writingSnapshots(bookId) });
       return { chapter, nextChapters };
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось преобразовать черновик');
@@ -252,7 +258,10 @@ export function useOutlineMutations({
             )
           : prev,
       );
-      onRebaseChapter?.(targetChapterId, updated.updated_at);
+      onRebaseChapter?.(targetChapterId, updated.updated_at, updated.words);
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.book(bookId) });
+      void queryClient.invalidateQueries({ queryKey: ['books'] });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.writingSnapshots(bookId) });
       return updated;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось вставить черновик в главу');

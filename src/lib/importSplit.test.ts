@@ -89,7 +89,8 @@ describe('joinChapters', () => {
     expect(joined[0].title).toBe('Глава 1');
     expect(joined[0].html).toContain('<h2>Глава 2</h2>');
     expect(joined[0].html).toContain('<p>Текст второй главы.</p>');
-    expect(joined[0].words).toBe(6);
+    // "Текст первой главы" (3) + "Глава 2" (2) + "Текст второй главы" (3) = 8 слов
+    expect(joined[0].words).toBe(8);
     expect(joined[1].title).toBe('Глава 3');
   });
 });

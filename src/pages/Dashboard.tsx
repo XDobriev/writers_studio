@@ -10,12 +10,13 @@ import { EditBookModal } from '../components/EditBookModal';
 import { updateBook, uploadBookCover } from '../lib/books';
 import { type Book } from '../lib/supabase';
 import { DbError } from '../lib/repository';
-import { type Chapter } from '../lib/chapters';
+import { READING_WPM, type Chapter } from '../lib/chapters';
 import { plural, pluralDays, fmtNumber } from '../lib/i18n';
 import { QUERY_KEYS, useBook, useChapters, useCharacters, useWritingSnapshots } from '../lib/queries';
 import { useResponsive } from '../lib/useResponsive';
 import { computeActivityData } from '../lib/activity';
 import { toLocalISODate } from '../lib/dates';
+import { parseLocalISODate, useLocalDateKey } from '../lib/useLocalDateKey';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
 import { trapTab } from '../lib/useModalFocus';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
@@ -116,9 +117,10 @@ export default function Dashboard() {
     return { done, progress, draft, daysActive, goalPct };
   }, [book, chapters, characters]);
 
+  const todayKey = useLocalDateKey();
   const activityData = useMemo(
-    () => (snapshots === undefined ? null : computeActivityData(snapshots, undefined, book?.imported_words ?? 0)),
-    [snapshots, book?.imported_words],
+    () => (snapshots === undefined ? null : computeActivityData(snapshots, parseLocalISODate(todayKey), book?.imported_words ?? 0)),
+    [snapshots, book?.imported_words, todayKey],
   );
 
   useEffect(() => {
@@ -179,7 +181,7 @@ export default function Dashboard() {
           : '—',
       },
       (() => {
-        const totalMins = Math.round(book.words / 200);
+        const totalMins = Math.round(book.words / READING_WPM);
         const hours = Math.floor(totalMins / 60);
         const mins = totalMins % 60;
         const pages = Math.round(book.words / 250);
@@ -187,7 +189,7 @@ export default function Dashboard() {
           l: 'Время чтения',
           v: hours > 0 ? `${hours} ч ${mins} мин` : totalMins === 0 && book.words > 0 ? '< 1 мин' : `${totalMins} мин`,
           sub: book.words > 0 ? `≈ ${pages} ${plural(pages, 'страница', 'страницы', 'страниц')} А4` : 'нет текста',
-          delta: '200 слов/мин',
+          delta: `${READING_WPM} слов/мин`,
         };
       })(),
     ];

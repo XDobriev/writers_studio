@@ -23,7 +23,7 @@ interface RightPanelProps {
   isPro?: boolean;
   onRestoreContent?: (content: string) => void;
   onBeforeRestore?: () => void | Promise<void>;
-  onRebase?: (chapterId: string, updatedAt: string) => void;
+  onRebase?: (chapterId: string, updatedAt: string, words?: number) => void;
   /** Alt+N из EditorHybrid — переключает панель на заметки и открывает форму */
   showNoteForm?: boolean;
   onNoteFormClose?: () => void;

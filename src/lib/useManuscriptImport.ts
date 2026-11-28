@@ -225,7 +225,7 @@ export function useManuscriptImport({ userId, isPro, cover, onNeedUpgrade }: {
       // Некритично: при ошибке книга уже создана, страдает только тепловая карта.
       await updateBook(book.id, { imported_words: words }).catch(() => undefined);
       const created0 = created[0];
-      queryClient.setQueryData<Book[]>(QUERY_KEYS.books(userId), (prev) => [{ ...book!, words }, ...(prev ?? [])]);
+      queryClient.setQueryData<Book[]>(QUERY_KEYS.books(userId), (prev) => [{ ...book!, words, imported_words: words }, ...(prev ?? [])]);
       navigate(`/books/${book.id}/editor${created0 ? `?chapter=${created0.id}` : ''}`);
     } catch (e) {
       // Атомарность: книга без глав никому не нужна и съедает лимит Free.

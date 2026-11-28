@@ -33,6 +33,11 @@ const updateDraftScene = vi.fn((id: string, patch: unknown) => Promise.resolve({
 vi.mock('./draftScenes', () => ({
   updateDraftScene: (id: string, patch: unknown) => updateDraftScene(id, patch),
 }));
+const recordWritingProgress = vi.fn((..._args: unknown[]) => Promise.resolve(0));
+vi.mock('./books', async (orig) => ({
+  ...(await orig<typeof import('./books')>()),
+  recordWritingProgress: (...a: unknown[]) => recordWritingProgress(...a),
+}));
 
 import { useChapterAutosave, useRecoveredChapterContent, type ChapterAutosave } from './useChapterAutosave';
 import { decideDraft, readDraft, writeDraft } from './chapterDrafts';
@@ -48,8 +53,8 @@ let container: HTMLDivElement;
 let api: ChapterAutosave;
 let qc: QueryClient;
 
-function Harness() {
-  api = useChapterAutosave({ bookId: 'b1', userId: 'u1', isPro: true });
+function Harness({ bookId = 'b1' }: { bookId?: string }) {
+  api = useChapterAutosave({ bookId, userId: 'u1', isPro: true });
   return null;
 }
 
@@ -59,6 +64,8 @@ beforeEach(() => {
   updateChapterMeta.mockReset();
   getChapterState.mockReset();
   createVersion.mockClear();
+  recordWritingProgress.mockReset();
+  recordWritingProgress.mockResolvedValue(0);
   qc = new QueryClient();
   qc.setQueryData(QUERY_KEYS.chapters('b1'), [meta('c1', 'v1'), meta('c2', 'w1')]);
   container = document.createElement('div');
@@ -234,5 +241,216 @@ describe('useChapterAutosave', () => {
     act(() => api.cancelDraft('d2'));
     await act(async () => { await vi.advanceTimersByTimeAsync(800); });
     expect(updateDraftScene).not.toHaveBeenCalled();
+  });
+
+  it('отправляет точную дельту слов в recordWritingProgress (включая отрицательную) и синхронизирует кэш book/books/writingSnapshots', async () => {
+    qc.setQueryData(QUERY_KEYS.chapters('b1'), [meta('c1', 'v1', { words: 100 }), meta('c2', 'w1', { words: 50 })]);
+    qc.setQueryData(QUERY_KEYS.book('b1'), { id: 'b1', words: 150 });
+    qc.setQueryData(QUERY_KEYS.books('u1'), [{ id: 'b1', words: 150 }]);
+    qc.setQueryData(QUERY_KEYS.writingSnapshots('b1'), []);
+    updateChapterMeta.mockImplementation(async (id, patch) => meta(id, 'v2', { words: patch.words ?? 0 }));
+
+    // +3 слова (100 → 103)
+    act(() => api.schedule('c1', { content: '<p>текст</p>', words: 103 }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+
+    expect(recordWritingProgress).toHaveBeenCalledTimes(1);
+    expect(recordWritingProgress).toHaveBeenCalledWith(expect.objectContaining({
+      bookId: 'b1',
+      docKind: 'chapter',
+      docId: 'c1',
+      delta: 3,
+    }));
+    expect((qc.getQueryData(QUERY_KEYS.book('b1')) as { words: number }).words).toBe(153);
+    expect((qc.getQueryData(QUERY_KEYS.books('u1')) as Array<{ id: string; words: number }>)[0].words).toBe(153);
+    expect(qc.getQueryState(QUERY_KEYS.writingSnapshots('b1'))?.isInvalidated).toBe(true);
+
+    // -2 слова (103 → 101)
+    act(() => api.schedule('c1', { content: '<p>короче</p>', words: 101 }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+
+    expect(recordWritingProgress).toHaveBeenCalledTimes(2);
+    expect(recordWritingProgress).toHaveBeenLastCalledWith(expect.objectContaining({
+      bookId: 'b1',
+      docKind: 'chapter',
+      docId: 'c1',
+      delta: -2,
+    }));
+    expect((qc.getQueryData(QUERY_KEYS.book('b1')) as { words: number }).words).toBe(151);
+  });
+
+  it('правка только заголовка главы не вызывает recordWritingProgress', async () => {
+    updateChapterMeta.mockImplementation(async (id, patch) => meta(id, 'v2', { title: patch.title ?? 'Глава' }));
+    act(() => api.schedule('c1', { title: 'Новое название' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+    expect(recordWritingProgress).not.toHaveBeenCalled();
+  });
+
+  it('ошибка recordWritingProgress не ломает сохранение главы, а следующее сохранение догоняет пропущенную дельту', async () => {
+    qc.setQueryData(QUERY_KEYS.chapters('b1'), [meta('c1', 'v1', { words: 10 })]);
+    updateChapterMeta.mockImplementation(async (id, patch) => meta(id, 'v' + Math.random(), { words: patch.words ?? 0 }));
+    recordWritingProgress.mockRejectedValueOnce(new Error('rpc hiccup')).mockResolvedValueOnce(15);
+
+    act(() => api.schedule('c1', { content: '<p>a</p>', words: 20 }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+    expect(api.saveState).toBe('saved');
+    expect(recordWritingProgress).toHaveBeenCalledWith(expect.objectContaining({ delta: 10 }));
+
+    // Следующая правка +5 слов должна отправить +15 (догоняя несохранённые +10)
+    act(() => api.schedule('c1', { content: '<p>b</p>', words: 25 }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+    expect(recordWritingProgress).toHaveBeenLastCalledWith(expect.objectContaining({ delta: 15 }));
+  });
+
+  it('rebase сбрасывает базовый счётчик слов главы (откат версии / вставка черновика не дают ложную дельту)', async () => {
+    qc.setQueryData(QUERY_KEYS.chapters('b1'), [meta('c1', 'v1', { words: 100 })]);
+    updateChapterMeta.mockImplementation(async (id, patch) => meta(id, 'v3', { words: patch.words ?? 0 }));
+
+    act(() => api.schedule('c1', { content: '<p>a</p>', words: 110 }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+    expect(recordWritingProgress).toHaveBeenLastCalledWith(expect.objectContaining({ delta: 10 }));
+
+    // Структурная вставка черновика +50 слов в c1 (итого 160)
+    act(() => api.rebase('c1', 'v2', 160));
+
+    // Затем автор дописывает 4 слова (160 → 164): дельта должна быть +4, а не +54
+    act(() => api.schedule('c1', { content: '<p>b</p>', words: 164 }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+    expect(recordWritingProgress).toHaveBeenLastCalledWith(expect.objectContaining({ delta: 4 }));
+  });
+
+  it('автосохранение свободной сцены записывает прогресс с docKind="draft" без изменения book.words', async () => {
+    qc.setQueryData(QUERY_KEYS.book('b1'), { id: 'b1', words: 500 });
+    qc.setQueryData(QUERY_KEYS.writingSnapshots('b1'), []);
+    qc.setQueryData(QUERY_KEYS.draftScenes('b1'), [
+      { id: 'd1', book_id: 'b1', user_id: 'u1', title: 'Сцена', content: '', words: 0, position: 0, created_at: '2026-01-01', updated_at: '2026-01-01' },
+    ]);
+
+    act(() => api.scheduleDraft('d1', { content: '<p>Раз два три</p>', words: 3 }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+
+    expect(recordWritingProgress).toHaveBeenCalledWith(expect.objectContaining({
+      bookId: 'b1',
+      docKind: 'draft',
+      docId: 'd1',
+      delta: 3,
+    }));
+    expect((qc.getQueryData(QUERY_KEYS.book('b1')) as { words: number }).words).toBe(500);
+    expect(qc.getQueryState(QUERY_KEYS.writingSnapshots('b1'))?.isInvalidated).toBe(true);
+  });
+
+  it('для старой главы с расходящимся chapters.words в БД считает дельту по countWords загруженного контента', async () => {
+    // Например, старый countWords записал 5 слов из-за утекших мягких переносов/инлайн-тегов,
+    // хотя реально в HTML 2 слова («Привет мир»).
+    qc.setQueryData(QUERY_KEYS.chapters('b1'), [meta('c1', 'v1', { words: 5 })]);
+    qc.setQueryData(QUERY_KEYS.chapterContent('c1'), { id: 'c1', content: '<p><strong>П</strong>ри\u00ADвет мир</p>' });
+    updateChapterMeta.mockImplementation(async (id, patch) => meta(id, 'v2', { words: patch.words ?? 0 }));
+
+    // Автор дописал ровно 1 слово → 3 слова. Дельта должна быть +1, а не -2.
+    act(() => api.scheduleContent('c1', '<p><strong>П</strong>ривет мир снова</p>'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+
+    expect(recordWritingProgress).toHaveBeenCalledWith(expect.objectContaining({
+      bookId: 'b1',
+      docKind: 'chapter',
+      docId: 'c1',
+      delta: 1,
+    }));
+  });
+
+  it('при переключении на другую книгу до окончания сохранения пишет прогресс и кэш в book_id документа, а не новой книги', async () => {
+    qc.setQueryData(QUERY_KEYS.chapters('b1'), [meta('c1', 'v1', { words: 10 })]);
+    qc.setQueryData(QUERY_KEYS.book('b1'), { id: 'b1', words: 10 });
+    qc.setQueryData(QUERY_KEYS.book('b2'), { id: 'b2', words: 999 });
+    qc.setQueryData(QUERY_KEYS.writingSnapshots('b1'), []);
+    qc.setQueryData(QUERY_KEYS.writingSnapshots('b2'), []);
+    updateChapterMeta.mockImplementation(async (id, patch) => meta(id, 'v2', { book_id: 'b1', words: patch.words ?? 0 }));
+
+    act(() => api.schedule('c1', { content: '<p>new</p>', words: 17 }));
+    // Пользователь переходит на книгу b2 до срабатывания debounce
+    act(() => { root.render(createElement(QueryClientProvider, { client: qc }, createElement(Harness, { bookId: 'b2' }))); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+
+    expect(recordWritingProgress).toHaveBeenCalledWith(expect.objectContaining({
+      bookId: 'b1',
+      docKind: 'chapter',
+      docId: 'c1',
+      delta: 7,
+    }));
+    expect((qc.getQueryData(QUERY_KEYS.book('b1')) as { words: number }).words).toBe(17);
+    expect((qc.getQueryData(QUERY_KEYS.book('b2')) as { words: number }).words).toBe(999);
+    expect(qc.getQueryState(QUERY_KEYS.writingSnapshots('b1'))?.isInvalidated).toBe(true);
+    expect(qc.getQueryState(QUERY_KEYS.writingSnapshots('b2'))?.isInvalidated).toBe(false);
+  });
+
+  it('drainDraft не затирает более свежие pending-правки черновика устаревшим ответом сервера', async () => {
+    qc.setQueryData(QUERY_KEYS.draftScenes('b1'), [
+      { id: 'd1', book_id: 'b1', user_id: 'u1', title: 'Сцена', content: '', words: 0, position: 0, created_at: '2026-01-01', updated_at: '2026-01-01' },
+    ]);
+    let resolveFirst!: (val: unknown) => void;
+    updateDraftScene.mockImplementationOnce(() => new Promise((r) => { resolveFirst = r as (val: unknown) => void; }));
+    updateDraftScene.mockImplementationOnce(async (_id, patch) => ({
+      id: 'd1', book_id: 'b1', user_id: 'u1', title: 'Сцена', position: 0,
+      created_at: '2026-01-01', updated_at: '2026-01-03', content: '', words: 0, ...(patch as object),
+    }));
+
+    act(() => api.scheduleDraft('d1', { content: '<p>раз два</p>', words: 2 }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+    // Пока первый запрос в полёте, автор допечатал ещё два слова
+    act(() => api.scheduleDraft('d1', { content: '<p>раз два три четыре</p>', words: 4 }));
+
+    await act(async () => {
+      resolveFirst({
+        id: 'd1', book_id: 'b1', user_id: 'u1', title: 'Сцена', position: 0,
+        created_at: '2026-01-01', updated_at: '2026-01-02', content: '<p>раз два</p>', words: 2,
+      });
+      await Promise.resolve();
+    });
+
+    const cached = qc.getQueryData<Array<{ id: string; words: number; content: string }>>(QUERY_KEYS.draftScenes('b1'));
+    expect(cached?.[0].words).toBe(4);
+    expect(cached?.[0].content).toBe('<p>раз два три четыре</p>');
+  });
+
+  it('discard(id, true) полностью сбрасывает pending-патчи (включая title) при удалении главы', async () => {
+    act(() => api.schedule('c1', { title: 'Новое название', content: '<p>текст</p>', words: 1 }));
+    await act(async () => { await api.discard('c1', true); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(updateChapterMeta).not.toHaveBeenCalled();
+  });
+
+  it('pagehide отправляет keepalive record_writing_progress для несохранённой главы и черновика ровно один раз', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+    try {
+      // Дождёмся резолва getSession() для tokenRef
+      await act(async () => { await Promise.resolve(); });
+      qc.setQueryData(QUERY_KEYS.chapters('b1'), [meta('c1', 'v1', { words: 10 })]);
+      qc.setQueryData(QUERY_KEYS.draftScenes('b1'), [
+        { id: 'd1', book_id: 'b1', user_id: 'u1', title: 'Сцена', content: '<p>один</p>', words: 1, position: 0, created_at: '2026-01-01', updated_at: '2026-01-01' },
+      ]);
+
+      act(() => {
+        api.schedule('c1', { content: '<p>новая правка</p>', words: 25 });
+        api.scheduleDraft('d1', { content: '<p>один два три четыре</p>', words: 4 });
+      });
+
+      act(() => { window.dispatchEvent(new Event('pagehide')); });
+
+      const rpcCalls = fetchSpy.mock.calls.filter(([url]) => String(url).includes('/rest/v1/rpc/record_writing_progress'));
+      expect(rpcCalls).toHaveLength(2);
+      const bodies = rpcCalls.map(([, init]) => JSON.parse(String(init?.body)) as Record<string, unknown>);
+      expect(bodies).toEqual(expect.arrayContaining([
+        expect.objectContaining({ p_book_id: 'b1', p_doc_kind: 'chapter', p_doc_id: 'c1', p_delta: 15 }),
+        expect.objectContaining({ p_book_id: 'b1', p_doc_kind: 'draft', p_doc_id: 'd1', p_delta: 3 }),
+      ]));
+      expect(rpcCalls.every(([, init]) => init?.keepalive === true)).toBe(true);
+
+      // Повторный pagehide (например, после bfcache) не дублирует уже отправленную дельту
+      act(() => { window.dispatchEvent(new Event('pagehide')); });
+      const rpcCallsAfter = fetchSpy.mock.calls.filter(([url]) => String(url).includes('/rest/v1/rpc/record_writing_progress'));
+      expect(rpcCallsAfter).toHaveLength(2);
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 });

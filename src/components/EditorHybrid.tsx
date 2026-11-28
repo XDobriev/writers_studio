@@ -16,7 +16,7 @@ import { RichEditor, type Editor } from './RichEditor';
 import { EditorToolbar, ModeSegment } from './EditorToolbar';
 import { useEscapeToClose } from '../lib/useEscapeToClose';
 import type { Book } from '../lib/supabase';
-import type { ChapterMeta, ChapterActions } from '../lib/chapters';
+import { countChars, type ChapterMeta, type ChapterActions } from '../lib/chapters';
 import type { DraftScene, DraftSceneActions } from '../lib/draftScenes';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ConvertDraftModal, InsertDraftModal } from './DraftModals';
@@ -412,7 +412,7 @@ interface EditorHybridProps {
   onSave?: () => void;
   /** Отменить pending-автосейв перед восстановлением версии (защита от затирания) */
   onBeforeRestore?: () => void | Promise<void>;
-  onRebase?: (chapterId: string, updatedAt: string) => void;
+  onRebase?: (chapterId: string, updatedAt: string, words?: number) => void;
   versionToast?: boolean;
   /** Демо-режим на /demo: скрывает share (данные не сохраняются). */
   demo?: boolean;
@@ -485,8 +485,7 @@ export function EditorHybrid({
     const idx = chapters.findIndex((c) => c.id === activeChapter.id);
     return idx !== -1 && idx < chapters.length - 1 ? chapters[idx + 1] : null;
   })();
-  const writingStats = useWritingStats(book?.id, book?.imported_words ?? 0);
-  const { refetch: refetchStats } = writingStats;
+  const writingStats = useWritingStats(demo ? undefined : book?.id, book?.imported_words ?? 0);
   const { plan } = useUserDisplay();
   const isPro = plan === 'pro' || plan === 'lifetime';
 
@@ -535,14 +534,6 @@ export function EditorHybrid({
     setMode,
     openMobileRight: right.open,
   });
-
-  const prevSaveState = useRef<SaveState>(saveState);
-  useEffect(() => {
-    if (prevSaveState.current !== 'saved' && saveState === 'saved') {
-      refetchStats();
-    }
-    prevSaveState.current = saveState;
-  }, [saveState, refetchStats]);
 
   useEffect(() => {
     if (saveState !== 'error' || !onSave) return;
@@ -768,7 +759,7 @@ export function EditorHybrid({
         isReal ? (
           <StatusBar
             words={activeDraft ? activeDraft.words : (activeChapter?.words ?? 0)}
-            chars={(activeDraft ? activeDraft.content : activeContent).replace(/<[^>]+>/g, '').length}
+            chars={countChars(activeDraft ? activeDraft.content : activeContent)}
             statusLabel={saveLabel(saveState, savedAt)}
             saveState={saveState}
             todayWords={writingStats.todayWords}

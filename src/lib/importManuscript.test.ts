@@ -269,7 +269,8 @@ describe('joinChapters', () => {
     expect(out).toHaveLength(2);
     expect(out[0]).toMatchObject({ title: 'Глава 1', first: 0, last: 2 });
     expect(out[0].html).toBe('<p>раз два</p><h2>Глава 2 &lt;тайна&gt;</h2><p>три</p><h2>Глава 3</h2><p>четыре</p>');
-    expect(out[0].words).toBe(4);
+    // Пересчёт по итоговому HTML: раз(1) два(2) Глава(3) 2(4) тайна(5) три(6) Глава(7) 3(8) четыре(9)
+    expect(out[0].words).toBe(9);
     expect(out[1]).toMatchObject({ title: 'Глава 4', first: 3, last: 3 });
   });
 

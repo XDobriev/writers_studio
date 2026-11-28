@@ -68,6 +68,16 @@ const TEXT_COLORS = [
   { label: 'Розовый',      value: '#ec4899', bg: '#ec4899' },
 ];
 
+// Очищаем мягкие переносы при вставке, чтобы виджеты Hyphenation (\u00AD)
+// не утекали в HTML документа при копировании/вставке внутри редактора.
+export function stripSoftHyphensFromText(text: string): string {
+  return text.replace(/\u00AD/g, '');
+}
+
+export function stripSoftHyphensFromHtml(html: string): string {
+  return html.replace(/\u00AD|&shy;|&#0*173;|&#x0*ad;/gi, '');
+}
+
 const FMT = [
   { name: 'bold',      icon: 'bold'      as const, label: 'Жирный' },
   { name: 'italic',    icon: 'italic'    as const, label: 'Курсив' },
@@ -189,6 +199,8 @@ export function RichEditor({
         style: attributesStyle ?? 'outline:none;',
         spellcheck: 'false',
       },
+      transformPastedText: stripSoftHyphensFromText,
+      transformPastedHTML: stripSoftHyphensFromHtml,
     },
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());

@@ -302,13 +302,14 @@ export default function Editor() {
 
   const onDeleteChapter = useCallback(async (id: string) => {
     const remaining = (chapters ?? []).filter((c) => c.id !== id);
+    await autosave.discard(id, true);
     const ok = await bookStructure.deleteChapter(id);
     if (ok && id === activeId && remaining.length > 0) {
       const next = new URLSearchParams(search);
       next.set('chapter', remaining[0].id);
       setSearch(next, { replace: false });
     }
-  }, [chapters, bookStructure, activeId, search, setSearch]);
+  }, [autosave, chapters, bookStructure, activeId, search, setSearch]);
 
   const handleManualSave = useCallback(() => {
     if (activeDraft) void flushDraftSave();

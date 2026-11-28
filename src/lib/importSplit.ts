@@ -242,8 +242,9 @@ export function joinChapters(chapters: ImportedChapter[], joins: ReadonlySet<num
     const h = doc.createElement('h2');
     h.textContent = c.title;
     prev.html += h.outerHTML + c.html;
-    // Сумма, а не пересчёт: иначе итог «N слов» растёт от склейки на слова подзаголовков.
-    prev.words += c.words;
+    // Пересчитываем по итоговому HTML, чтобы words совпадал с countWords(prev.html)
+    // и при первой правке в редакторе не возникал ложный скачок счётчика слов.
+    prev.words = countWords(prev.html);
     prev.last = i;
   });
   return out;

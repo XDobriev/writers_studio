@@ -68,6 +68,7 @@ describe('useOutlineMutations chapter types & numbering', () => {
     chapters: ChapterMeta[],
     draftScenes: DraftScene[] = [],
     onCancelDraftSave?: (id: string) => void,
+    onRebaseChapter?: (chapterId: string, updatedAt: string, words?: number) => void,
   ) {
     queryClient.setQueryData(QUERY_KEYS.chapters('book-1'), chapters);
     queryClient.setQueryData(QUERY_KEYS.draftScenes('book-1'), draftScenes);
@@ -81,6 +82,7 @@ describe('useOutlineMutations chapter types & numbering', () => {
         navigate: navigateMock,
         setError: setErrorMock,
         onCancelDraftSave,
+        onRebaseChapter,
       });
       return null;
     }
@@ -371,7 +373,10 @@ describe('useOutlineMutations chapter types & numbering', () => {
       updated_at: '2026-01-01',
     };
     const cancelMock = vi.fn();
-    setup(existingChapters, [draft], cancelMock);
+    const rebaseMock = vi.fn();
+    setup(existingChapters, [draft], cancelMock, rebaseMock);
+    queryClient.setQueryData(QUERY_KEYS.book('book-1'), { id: 'book-1', words: 500 });
+    queryClient.setQueryData(QUERY_KEYS.writingSnapshots('book-1'), []);
 
     const updatedChapter = {
       ...existingChapters[0],
@@ -387,6 +392,7 @@ describe('useOutlineMutations chapter types & numbering', () => {
     });
 
     expect(cancelMock).toHaveBeenCalledWith('d-1');
+    expect(rebaseMock).toHaveBeenCalledWith('c-1', '2026-01-02', 510);
     expect(insertDraftSceneIntoChapterMock).toHaveBeenCalledWith(draft, 'c-1', 'end');
     expect(res).toEqual(updatedChapter);
     expect(queryClient.getQueryData(QUERY_KEYS.draftScenes('book-1'))).toEqual([]);
@@ -394,5 +400,7 @@ describe('useOutlineMutations chapter types & numbering', () => {
       id: 'c-1',
       content: '<p>Старый текст</p><p>Текст</p>',
     });
+    expect(queryClient.getQueryState(QUERY_KEYS.book('book-1'))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(QUERY_KEYS.writingSnapshots('book-1'))?.isInvalidated).toBe(true);
   });
 });
